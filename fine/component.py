@@ -709,7 +709,12 @@ class Component(metaclass=ABCMeta):
         # Set material demand
         self.materialDemandPerCapacity = materialDemandPerCapacity
         self.processed_materialDemandPerCapacity = (
-            utils.checkAndSetMaterialDemandPerCapacity(materialDemandPerCapacity)
+            utils.checkAndSetMaterialDemandPerCapacity(
+                esM,
+                name,
+                materialDemandPerCapacity,
+                self.processedStockYears + esM.investmentPeriods,
+            )
         )
 
     def addToEnergySystemModel(self, esM):
@@ -3024,9 +3029,12 @@ class ComponentModel(metaclass=ABCMeta):
         :rtype: _type_
         """
         commisVar = getattr(pyM, "commis_" + self.abbrvName)
+        import pytest
+
+        pytest.set_trace()
         return sum(
             commisVar[loc, compName, ip]
-            * esM.getComponentAttribute(compName, component_attribute)
+            * esM.getComponentAttribute(compName, component_attribute)[ip]
             for loc in esM.locations
             for compName in self.componentsDict
             for ip in esM.investmentPeriods
@@ -3064,9 +3072,10 @@ class ComponentModel(metaclass=ABCMeta):
             # TODO Adapt if this get checked/set better within the corresponding utils function
             if esM.getComponentAttribute(compName, component_attribute):
                 # commisVar.value -> .value = returns the state of the variable instead of the variable itself
-                optimal_values[ip].loc[compName, loc] = commisVar[
-                    loc, compName, ip
-                ].value * esM.getComponentAttribute(compName, component_attribute)
+                optimal_values[ip].loc[compName, loc] = (
+                    commisVar[loc, compName, ip].value
+                    * esM.getComponentAttribute(compName, component_attribute)[ip]
+                )
             else:
                 optimal_values[ip].loc[compName, loc] = np.nan
         return optimal_values

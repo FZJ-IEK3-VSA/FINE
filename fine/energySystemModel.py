@@ -26,6 +26,7 @@ import json
 import copy
 import cloudpickle
 from fine.IOManagement import standardIO
+from fine.IOManagement.utilsIO import load_pyomo_model_from_file
 from typing import Union, List
 
 
@@ -2400,7 +2401,7 @@ class EnergySystemModel:
 
         # By default the solved pyomo models are only stored temporary and deleted after
         # the FINE output post-processing is performed. Therefore in this case a custom folder
-        # is set that can then be deleted.
+        # is created that can then be deleted afterwards.
         # Defining a custom export path in the options of pyaugmecon will prevent this behaviour!
         if not pyaugmeconOptions.get("custom_export_path"):
             pyaugmeconOptions["custom_export_path"] = "_fine_moo_cache/"
@@ -2423,31 +2424,8 @@ class EnergySystemModel:
         excel_output_path=None,
     ):
 
+        # initialize pyaugmecon Options Object
         pyaugmeconOptions = pyaugmecon.opts
-
-        # TODO import this from utilsIO and use it instead of the following function!
-        def load_pyomo_model_from_file(file_name, custom_path=None, delete_file=False):
-            """Load a "pickled" pyomo model instance from a file.
-            Important: To use the imported model and to process its output with FINE
-            it has to be compatible with the current FINE-model instance.
-
-            Args:
-                file_name (str): name of file that contains pickled pyomo model instance
-
-            Returns:
-                pyomo.ConcreteModel: The unpickled pyomo model instance.
-            """
-
-            file_path = file_name
-            if custom_path:  # TODO WHY DO YOU NEED THIS?!
-                if not os.path.isdir(custom_path):
-                    os.mkdir(custom_path)
-                file_path = os.path.join(custom_path, file_name)
-            with open(f"{file_path}.pkl", mode="rb") as file:
-                pyomo_model = cloudpickle.load(file)
-            if delete_file:
-                os.remove(f"{file_path}.pkl")
-            return pyomo_model
 
         # delete existing pyomo model from esm to make the esm "copyable"
         del self.pyM

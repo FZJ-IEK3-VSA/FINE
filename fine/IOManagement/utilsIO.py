@@ -895,21 +895,25 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
     return component_dict
 
 
-def load_pyomo_model_from_file(file_name, custom_path=None, delete_file=False):
+def load_pyomo_model_from_file(
+    file_name: str, custom_path=None, delete_file: bool = False
+):
     """Load a "pickled" pyomo model instance from a file.
     Important: To use the imported model and to process its output with FINE
     it has to be compatible with the current FINE-model instance.
 
     Args:
         file_name (str): name of file that contains pickled pyomo model instance
+        custom_path (pathlike, optional): custom path from where to load the pyomo model. Defaults to None.
+        delete_file (bool, optional): pass True to delete the file after it has been loaded. Defaults to False.
 
     Returns:
         pyomo.ConcreteModel: The unpickled pyomo model instance.
     """
-    
     if custom_path:
         file_path = os.path.join(custom_path, file_name)
-    else: file_path = file_name
+    else:
+        file_path = file_name
 
     with open(f"{file_path}.pkl", mode="rb") as file:
         pyomo_model = cloudpickle.load(file)

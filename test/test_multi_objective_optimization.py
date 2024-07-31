@@ -156,3 +156,17 @@ def test_multi_objective_optimization_perfect_foresight(
         "process_logging": True,
     }
     pyaugmecon_instance = test_esm.optimize_moo(pyaugmeconOptions=opts)
+
+
+def test_moo_ip_dependent_objective_contribution(
+    multi_objective_optimization_test_esM_ip_dependent_material_demand,
+):
+    test_esm = multi_objective_optimization_test_esM_ip_dependent_material_demand
+    opts = {
+        "grid_points": 5,
+        "output_excel": True,
+        # "cpu_count": 2,
+        "process_logging": True,
+    }
+    pyaugmecon_instance = test_esm.optimize_moo(pyaugmeconOptions=opts)
+    # TODO make test more sophisticated

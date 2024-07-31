@@ -2158,7 +2158,22 @@ def checkAndSetTimeHorizon(
 
 def checkStockYears(
     stockCommissioning, startYear, investmentPeriodInterval, ipTechnicalLifetime
-):
+) -> tuple[list, list]:
+    """checks the passed stockCommissioning for stocks that are relevant based on year name of first investment period and the technical life time of the component
+
+    Args:
+        stockCommissioning (None, dict): historical commissioned capacities
+        startYear (int): year name of first investment period
+        investmentPeriodInterval (int)
+        ipTechnicalLifetime (_type_): interval between the investment of transformation
+            path analysis
+
+    Returns:
+        tuple[list,list]: (stockYears, processedStockYears)
+            stockYears -> years for which stock capacities exist (keys of stockComissioning)
+            processedStockYears -> the years of stockYears (as internal investment periods) in which stock
+            capacities still exist based on their technical lifetime
+    """
     if stockCommissioning is None:
         return [], []
     if not isinstance(stockCommissioning, dict):
@@ -2181,6 +2196,9 @@ def checkStockYears(
         int((x - startYear) / investmentPeriodInterval)
         for x in stockCommissioning.keys()
     ]
+    # remove investment periods from stock years that are irrelevant
+    # to the calculation because the corresponding capacities have
+    # already reached the end of their lifetime
     processedStockYears = [
         x for x in processedStockYears if x >= -ipTechnicalLifetime.max()
     ]
@@ -2679,7 +2697,7 @@ def setParamToNoneIfNoneForAllYears(parameter):
         return parameter
 
 
-def checkAndSetMaterialDemandPerCapacity(materialDemand):
+def checkAndSetMaterialDemandPerCapacity(esM, name, materialDemand, years):
     # TODO Checks
     # 1. Is it a number/whatever the needed format is?
     #   - Either a dictionary with the material as keys and the demand as values -> constant demand for all years
@@ -2687,15 +2705,39 @@ def checkAndSetMaterialDemandPerCapacity(materialDemand):
     #   - ...
     # 2. Is it only positive? - maybe not the best idea because a negative material demand could allow for easily including production sites! or geothermal plant that produce lithium and energy
     # 3. maybe more...
-    # TEMP print Material Demand
+
+    # This check is similar to "checkAndSetInvestmentPeriodCostParameter"
+    # stock years are only considered for parameter for which the
+    # years contain investment periods and stock years
+    _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
+
+    # # Ensure that the format of materialDemand is supported - TODO not working because of None
+    # if not isinstance(materialDemand, (int, float, dict, pd.DataFrame)):
+    #     raise ValueError(
+    #         "Material demand currently only supports int, float, dict or dataframe!"
+    #     )
+
+    # TEMP print materialDemand
     print(materialDemand)
-    if materialDemand:
-        return materialDemand
+    # create new dictionary for processed material demand that can be returned later
+    _materialDemand = {}
+    if isinstance(materialDemand, (int, float)):
+        for ip in years:
+            _materialDemand[ip] = materialDemand
+    elif isinstance(materialDemand, dict):
+        # If materialDemand is a dict, this check ensures that it has the correct
+        # keys and prevents "None" as values
+        checkInvestmentPeriodParameters(name, materialDemand, _years)
+        for ip in years:
+            # map of year name (e.g. 2020) to intenral name (e.g. 0)
+            _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
+            _materialDemand[ip] = materialDemand[_ip]
     else:
         # TODO This is only temporary for implementing/testing - remove when done!
-        print("############## MATERIAL DEMAND IS NONE #############")
-        return None
+        print("############## MATERIAL DEMAND IS NONE OR NOT SUPPORTED #############")
+        _materialDemand = None
         # raise ValueError("Material demand is NONE!")
+    return _materialDemand
 
 
 def convertOptimizationSpecsToDict(optimizationSpecs: str) -> dict:
