@@ -10,6 +10,7 @@
 
     Home <self>
     purposeAndVisionDoc
+    installationDoc
     usersGuideDoc
     newsDoc
     integratedSoftwareDoc
