@@ -46,7 +46,9 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
         }
 
     # STEP 4. Add all df variables to xr_ds
-    xr_dss = utilsIO.addDFVariablesToXarray(xr_dss, component_dict, df_iteration_dict, list(esM.locations))
+    xr_dss = utilsIO.addDFVariablesToXarray(
+        xr_dss, component_dict, df_iteration_dict, list(esM.locations)
+    )
 
     # STEP 5. Add all series variables to xr_ds
     locations = sorted(esm_dict["locations"])
@@ -962,7 +964,7 @@ def writeEnergySystemModelToDatasets(esM):
     return xr_dss_results
 
 
-def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
+def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
     """
     Read optimization results from grouped netCDF file to dictionary of
     xr.Datasets.
@@ -977,6 +979,11 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
         |br| * the default value is None
     :type groupPrefix: string
 
+    :param lazy_load: If True, the data is not loaded into memory until it is
+        accessed. This can be useful for large datasets. Refer to xarray documentation for more information
+        |br| * the default value is False
+    :type lazy_load: boolean
+
     :return: Nested dictionary containing an xr.Dataset with all result values
         for each component.
     :rtype: Nested dict
@@ -988,14 +995,17 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
         else:
             group_keys = rootgrp.groups
 
+    if lazy_load:
+        loader = xr.open_dataset
+    else:
+        loader = xr.load_dataset
+
     if not groupPrefix:
         xr_dss = {}
         # read input from netcdf
         xr_dss["Input"] = {
             model_key: {
-                comp_key: xr.load_dataset(
-                    filePath, group=f"Input/{model_key}/{comp_key}"
-                )
+                comp_key: loader(filePath, group=f"Input/{model_key}/{comp_key}")
                 for comp_key in group_keys["Input"][model_key].groups
             }
             for model_key in group_keys["Input"].groups
@@ -1005,7 +1015,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
             xr_dss["Results"] = {
                 ip_key: {
                     model_key: {
-                        comp_key: xr.load_dataset(
+                        comp_key: loader(
                             filePath, group=f"Results/{ip_key}/{model_key}/{comp_key}"
                         )
                         for comp_key in group_keys["Results"][ip_key][model_key].groups
@@ -1015,13 +1025,13 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
                 for ip_key in group_keys["Results"].groups
             }
         # read parameters from netcdf
-        xr_dss["Parameters"] = xr.load_dataset(filePath, group="Parameters")
+        xr_dss["Parameters"] = loader(filePath, group="Parameters")
     else:
         xr_dss = {}
         # read input from netcdf
         xr_dss["Input"] = {
             model_key: {
-                comp_key: xr.load_dataset(
+                comp_key: loader(
                     filePath,
                     group=f"{groupPrefix}/Input/{model_key}/{comp_key}",
                 )
@@ -1034,7 +1044,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
             xr_dss["Results"] = {
                 ip_key: {
                     model_key: {
-                        comp_key: xr.load_dataset(
+                        comp_key: loader(
                             filePath,
                             group=f"{groupPrefix}/Results/{ip_key}/{model_key}/{comp_key}",
                         )
@@ -1045,9 +1055,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
                 for ip_key in group_keys["Results"].groups
             }
         # read parameters from netcdf
-        xr_dss["Parameters"] = xr.load_dataset(
-            filePath, group=f"{groupPrefix}/Parameters"
-        )
+        xr_dss["Parameters"] = loader(filePath, group=f"{groupPrefix}/Parameters")
 
     return xr_dss
 
