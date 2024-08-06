@@ -1428,32 +1428,31 @@ class StorageModel(ComponentModel):
                         >= capVar[loc, compName, ip]
                         * compDict[compName].stateOfChargeMin
                     )
+            elif not pyM.hasSegmentation:
+                return (
+                    SOCinter[loc, compName, ip, pInter]
+                    * (
+                        (1 - compDict[compName].selfDischarge)
+                        ** (t * esM.hoursPerTimeStep)
+                    )
+                    + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                    >= compDict[compName].stateOfChargeMin
+                )
             else:
-                if not pyM.hasSegmentation:
-                    return (
-                        SOCinter[loc, compName, ip, pInter]
-                        * (
-                            (1 - compDict[compName].selfDischarge)
-                            ** (t * esM.hoursPerTimeStep)
+                return (
+                    SOCinter[loc, compName, ip, pInter]
+                    * (
+                        (1 - compDict[compName].selfDischarge)
+                        ** (
+                            esM.segmentStartTime[ip].to_dict()[
+                                esM.periodsOrder[ip][pInter], t
+                            ]
+                            * esM.hoursPerTimeStep
                         )
-                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                        >= compDict[compName].stateOfChargeMin
                     )
-                else:
-                    return (
-                        SOCinter[loc, compName, ip, pInter]
-                        * (
-                            (1 - compDict[compName].selfDischarge)
-                            ** (
-                                esM.segmentStartTime[ip].to_dict()[
-                                    esM.periodsOrder[ip][pInter], t
-                                ]
-                                * esM.hoursPerTimeStep
-                            )
-                        )
-                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                        >= compDict[compName].stateOfChargeMin
-                    )
+                    + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                    >= compDict[compName].stateOfChargeMin
+                )
 
         setattr(
             pyM,

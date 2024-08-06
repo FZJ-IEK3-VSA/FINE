@@ -22,7 +22,9 @@ If you want to use ETHOS.FINE in a published work, please [**kindly cite followi
 There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge.
 For detailed information, have a look at the [installation documentation](https://vsa-fine.readthedocs.io/en/latest/installationDoc.html).
 
-If you would like to use ETHOS.FINE for your analysis, we recommend to install it directly from conda-forge into a new Python environment with
+NOTE: If you want to work on the source code of FINE, see [Editable install from conda-forge](#editable-install-from-conda-forge).
+
+If you would like to run ETHOS.FINE for your analysis we recommend to install it directly from conda-forge into a new Python environment with
 
 ```bash
 mamba create --name fine --channel conda-forge fine
@@ -62,6 +64,40 @@ A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/example
   - In this application, a transformation pathway of an energy system is modeled and optimized showing how to handle several investment periods with time-dependent assumptions for costs and operation.
 - [11_Partload](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/11_Partload)
   - In this application, a hydrogen system is modeled and optimized considering partload behavior of the electrolyzer.
+
+## Notes for developers
+
+### Editable install from conda-forge
+
+It is recommended to create a clean environment with conda to use ETHOS.FINE because it requires many dependencies.
+
+```bash
+mamba env create --name fine --file requirements_dev.yml
+mamba activate fine
+```
+
+Install ETHOS.FINE as editable install and without checking the dependencies from pypi with
+
+```bash
+python -m pip install --no-deps --editable .
+```
+
+### Editable install from pypi
+
+If you do not want to use conda-forge consider the steps in section [Installation from pipy](#Installation-from-pipy) and install ETHOS.FINE as editable install and with developer dependencies with
+
+```bash
+python -m pip install --editable .[develop]
+```
+
+### Good coding style
+
+We use [ruff](https://docs.astral.sh/ruff) to ensure good coding style. Make
+sure to use it before contributing to the code base with
+
+```bash
+ruff check fine
+```
 
 ## License
 

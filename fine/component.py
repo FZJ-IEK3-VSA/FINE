@@ -1654,38 +1654,37 @@ class ComponentModel(metaclass=ABCMeta):
                             return (rate[loc][p, t], rate[loc][p, t])
                     else:
                         return (0, None)
+                elif getattr(compDict[compName], opRateMaxName) is not None:
+                    rate = getattr(compDict[compName], opRateMaxName)[ip]
+                    if rate is not None:
+                        if relevanceThreshold is not None:
+                            validThreshold = 0 < relevanceThreshold
+                            if validThreshold and (
+                                rate[loc][p, t] < relevanceThreshold
+                            ):
+                                return (0, 0)
+                        return (
+                            0,
+                            rate[loc][p, t]
+                            * esM.timeStepsPerSegment[ip].to_dict()[p, t],
+                        )
+                elif getattr(compDict[compName], opRateFixName) is not None:
+                    rate = getattr(compDict[compName], opRateFixName)[ip]
+                    if rate is not None:
+                        if relevanceThreshold is not None:
+                            validThreshold = 0 < relevanceThreshold
+                            if validThreshold and (
+                                rate[loc][p, t] < relevanceThreshold
+                            ):
+                                return (0, 0)
+                        return (
+                            rate[loc][p, t]
+                            * esM.timeStepsPerSegment[ip].to_dict()[p, t],
+                            rate[loc][p, t]
+                            * esM.timeStepsPerSegment[ip].to_dict()[p, t],
+                        )
                 else:
-                    if getattr(compDict[compName], opRateMaxName) is not None:
-                        rate = getattr(compDict[compName], opRateMaxName)[ip]
-                        if rate is not None:
-                            if relevanceThreshold is not None:
-                                validThreshold = 0 < relevanceThreshold
-                                if validThreshold and (
-                                    rate[loc][p, t] < relevanceThreshold
-                                ):
-                                    return (0, 0)
-                            return (
-                                0,
-                                rate[loc][p, t]
-                                * esM.timeStepsPerSegment[ip].to_dict()[p, t],
-                            )
-                    elif getattr(compDict[compName], opRateFixName) is not None:
-                        rate = getattr(compDict[compName], opRateFixName)[ip]
-                        if rate is not None:
-                            if relevanceThreshold is not None:
-                                validThreshold = 0 < relevanceThreshold
-                                if validThreshold and (
-                                    rate[loc][p, t] < relevanceThreshold
-                                ):
-                                    return (0, 0)
-                            return (
-                                rate[loc][p, t]
-                                * esM.timeStepsPerSegment[ip].to_dict()[p, t],
-                                rate[loc][p, t]
-                                * esM.timeStepsPerSegment[ip].to_dict()[p, t],
-                            )
-                    else:
-                        return (0, None)
+                    return (0, None)
             else:
                 return (0, None)
 
@@ -3745,27 +3744,26 @@ class ComponentModel(metaclass=ABCMeta):
                     )
                     / esM.numberOfYears
                 )
+        elif not getOptValue:
+            return (
+                sum(
+                    factor[p, t]
+                    * var[loc, compName, ip, p, t]
+                    * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
+                )
+                / esM.numberOfYears
+            )
         else:
-            if not getOptValue:
-                return (
-                    sum(
-                        factor[p, t]
-                        * var[loc, compName, ip, p, t]
-                        * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
-                    )
-                    / esM.numberOfYears
+            return (
+                sum(
+                    factor[p, t]
+                    * var[loc, compName, ip, p, t].value
+                    * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
                 )
-            else:
-                return (
-                    sum(
-                        factor[p, t]
-                        * var[loc, compName, ip, p, t].value
-                        * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
-                    )
-                    / esM.numberOfYears
-                )
+                / esM.numberOfYears
+            )
 
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
         """

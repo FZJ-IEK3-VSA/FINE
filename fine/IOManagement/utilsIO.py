@@ -170,9 +170,9 @@ def generateIterationDicts(component_dict, investmentPeriods):
     # Loop through every class-component-variable combination
     for classname in component_dict:
         for component in component_dict[classname]:
-            for variable_description, data in component_dict[classname][
+            for variable_description in component_dict[classname][
                 component
-            ].items():
+            ].keys():
                 # 1. iterate through nested dict levels until constant, series or df, add
                 # 1. find list of keys in nested dict level
                 key_lists = getListsOfKeyPathsInNestedDict(
@@ -210,15 +210,14 @@ def generateIterationDicts(component_dict, investmentPeriods):
                                 description_tuple
                             )
                     # 3 add constant
+                    elif _variable_description not in constants_iteration_dict.keys():
+                        constants_iteration_dict[_variable_description] = [
+                            description_tuple
+                        ]
                     else:
-                        if _variable_description not in constants_iteration_dict.keys():
-                            constants_iteration_dict[_variable_description] = [
-                                description_tuple
-                            ]
-                        else:
-                            constants_iteration_dict[_variable_description].append(
-                                description_tuple
-                            )
+                        constants_iteration_dict[_variable_description].append(
+                            description_tuple
+                        )
 
     return df_iteration_dict, series_iteration_dict, constants_iteration_dict
 
@@ -455,19 +454,16 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
                 space_space_dict[df_description] = multi_index_dataframe
 
+            elif set(data.index.values).issubset(set(locations)):
+                space_dict[df_description] = data.rename_axis("space")
             else:
-                # If the data indices correspond to esM locations, then the
-                # data is appended to space_dict, else time_dict
-                if set(data.index.values).issubset(set(locations)):
-                    space_dict[df_description] = data.rename_axis("space")
-                else:
-                    time_dict[df_description] = data.rename_axis("time")
-                    time_dict[df_description] = pd.concat(
-                        {locations[0]: time_dict[df_description]}, names=["space"]
-                    )
-                    time_dict[df_description] = time_dict[
-                        df_description
-                    ].reorder_levels(["time", "space"])
+                time_dict[df_description] = data.rename_axis("time")
+                time_dict[df_description] = pd.concat(
+                    {locations[0]: time_dict[df_description]}, names=["space"]
+                )
+                time_dict[df_description] = time_dict[
+                    df_description
+                ].reorder_levels(["time", "space"])
 
         # If the dicts are populated with at least one item,
         # process them further and merge with xr_ds
