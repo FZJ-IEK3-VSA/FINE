@@ -8,7 +8,7 @@ import gurobi_logtools as glt
 import pandas as pd
 import psutil
 import pyomo.environ as pyomo
-import pyomo.opt as opt
+from pyomo import opt
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from fine import utils
@@ -1195,97 +1195,96 @@ class EnergySystemModel:
                     )
                 )
 
+        elif not pyM.hasSegmentation:
+            utils.output(
+                "Time series aggregation specifications:\n"
+                "Number of typical periods:"
+                + str(len(self.typicalPeriods))
+                + ", number of time steps per period:"
+                + str(len(self.timeStepsPerPeriod))
+                + "\n",
+                self.verbose,
+                0,
+            )
+
+            # Define sets
+            # To-Do: Add explanation perfect foresight
+            def initTimeSet(pyM):
+                return (
+                    (ip, p, t)
+                    for ip in self.investmentPeriods
+                    for p in self.typicalPeriods
+                    for t in self.timeStepsPerPeriod
+                )
+
+            def initInterTimeStepsSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in range(len(self.timeStepsPerPeriod) + 1)
+                )
+
+            def initIntraYearTimeSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in self.timeStepsPerPeriod
+                )
+
+            def initInvestPeriodInterPeriodSet(pyM):
+                return (
+                    (t_inter)
+                    for t_inter in range(
+                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
+                        + 1
+                    )
+                )
+
         else:
-            if not pyM.hasSegmentation:
-                utils.output(
-                    "Time series aggregation specifications:\n"
-                    "Number of typical periods:"
-                    + str(len(self.typicalPeriods))
-                    + ", number of time steps per period:"
-                    + str(len(self.timeStepsPerPeriod))
-                    + "\n",
-                    self.verbose,
-                    0,
+            utils.output(
+                "Time series aggregation specifications:\n"
+                "Number of typical periods:"
+                + str(len(self.typicalPeriods))
+                + ", number of time steps per period:"
+                + str(len(self.timeStepsPerPeriod))
+                + ", number of segments per period:"
+                + str(len(self.segmentsPerPeriod))
+                + "\n",
+                self.verbose,
+                0,
+            )
+
+            # Define sets
+            def initTimeSet(pyM):
+                return (
+                    (ip, p, t)
+                    for ip in self.investmentPeriods
+                    for p in self.typicalPeriods
+                    for t in self.segmentsPerPeriod
                 )
 
-                # Define sets
-                # To-Do: Add explanation perfect foresight
-                def initTimeSet(pyM):
-                    return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
-                        for p in self.typicalPeriods
-                        for t in self.timeStepsPerPeriod
-                    )
-
-                def initInterTimeStepsSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in range(len(self.timeStepsPerPeriod) + 1)
-                    )
-
-                def initIntraYearTimeSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in self.timeStepsPerPeriod
-                    )
-
-                def initInvestPeriodInterPeriodSet(pyM):
-                    return (
-                        (t_inter)
-                        for t_inter in range(
-                            int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
-                            + 1
-                        )
-                    )
-
-            else:
-                utils.output(
-                    "Time series aggregation specifications:\n"
-                    "Number of typical periods:"
-                    + str(len(self.typicalPeriods))
-                    + ", number of time steps per period:"
-                    + str(len(self.timeStepsPerPeriod))
-                    + ", number of segments per period:"
-                    + str(len(self.segmentsPerPeriod))
-                    + "\n",
-                    self.verbose,
-                    0,
+            def initInterTimeStepsSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in range(len(self.segmentsPerPeriod) + 1)
                 )
 
-                # Define sets
-                def initTimeSet(pyM):
-                    return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
-                        for p in self.typicalPeriods
-                        for t in self.segmentsPerPeriod
-                    )
+            def initIntraYearTimeSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in self.segmentsPerPeriod
+                )
 
-                def initInterTimeStepsSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in range(len(self.segmentsPerPeriod) + 1)
+            def initInvestPeriodInterPeriodSet(pyM):
+                return (
+                    (t_inter)
+                    for t_inter in range(
+                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
+                        + 1
                     )
-
-                def initIntraYearTimeSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in self.segmentsPerPeriod
-                    )
-
-                def initInvestPeriodInterPeriodSet(pyM):
-                    return (
-                        (t_inter)
-                        for t_inter in range(
-                            int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
-                            + 1
-                        )
-                    )
+                )
 
         def initInvestSet(pyM):
             return (ip for ip in self.investmentPeriods)
@@ -1939,12 +1938,11 @@ class EnergySystemModel:
                 relaxIsBuiltBinary=relaxIsBuiltBinary,
                 relevanceThreshold=relevanceThreshold,
             )
-        else:
-            if self.pyM is None:
-                raise TypeError(
-                    "The optimization problem is not declared yet. Set the argument declaresOptimization"
-                    " problem to True or call the declareOptimizationProblem function first."
-                )
+        elif self.pyM is None:
+            raise TypeError(
+                "The optimization problem is not declared yet. Set the argument declaresOptimization"
+                " problem to True or call the declareOptimizationProblem function first."
+            )
 
         if includePerformanceSummary:
             """
