@@ -196,9 +196,3 @@ def test_minimumUpTime():
         "ConversionDynamicModel"
     ].operationVariablesOptimum.xs("restricted")
     np.testing.assert_array_almost_equal(testresults.values[0], results, decimal=2)
-
-
-#
-
-if __name__ == "__main__":
-    test_minimumUpTime()

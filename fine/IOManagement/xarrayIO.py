@@ -5,7 +5,7 @@ import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
 
-import fine.utils as utils
+from fine import utils
 from fine.IOManagement import dictIO, utilsIO
 
 
