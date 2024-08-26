@@ -32,7 +32,7 @@ affiliations:
     index: 1
   - name: RWTH Aachen University, Chair for Fuel Cells, Faculty of Mechanical Engineering, 52062 Aachen, Germany
     index: 2
-date: 01 July 2024
+date: 26 August 2024
 bibliography: FINE-literature.bib
 ---
 
@@ -62,7 +62,7 @@ Depending on the spatial and temporal resolution of the modeled system, the inpu
 # Statement of need
 
 `ETHOS.FINE` provides a unique generic model setup with a high level of freedom for model developers. 
-Beyond energy system models, its generic implementation enables the modeling of all kinds of optimization issues, such as material flows and resource consumption or conversion as part of life-cycle analysis. `ETHOS.FINE` was developed to provide a flexible techno-economic analysis tool to analyze the energy transition on all levels of interest especially with regards to sector-coupled systems. The software exhibits many of the features described by @Groissbock2019 and is under constant development. Its code is openly accessible on Github which allows for contributions and feedback from a wider modeling community. The use cases described in the next section demonstrate the broad range of analyses that can be conducted with the tool.
+Beyond energy system models, its generic implementation enables the modeling of all kinds of optimization issues, such as material flows and resource consumption or conversion as part of life-cycle analysis. `ETHOS.FINE` was developed to provide a flexible techno-economic analysis tool to analyze the energy transition on all levels of interest especially with regards to sector-coupled systems. The software exhibits many of the features described by @Groissbock2019 and is under constant development. Its code is openly accessible on GitHub which allows for contributions and feedback from a wider modeling community. The use cases described in the next section demonstrate the broad range of analyses that can be conducted with the tool.
 
 Several other open-source available energy systems modeling frameworks are already existing which are also implemented in Python, e.g. Calliope [@Pfenninger2018], PyPSA [@PyPSA], oemof [@oemof] and CLOVER [@Sandwell2023]. The tools are used for similar use cases, providing different sets of functionalities and possible analysis tools. They differentiate especially in the setup process of the models. `ETHOS.FINE` provides a higly flexible alternative to these tools. 
 
@@ -75,11 +75,11 @@ For newcomers who are not familiar with programming, it also has the flexibility
 
 `ETHOS.FINE` is part of the Energy Transformation paTHway Optimization Suite (`ETHOS`)[^4], a collection of modeling tools developed by the Institute of Energy and Climate Research - Jülich Systems Analysis at Forschungszentrum Jülich. `ETHOS` offers a holistic view on energy systems at arbitrary scales providing tools for geospatial renewable potential analyses, time series simulation tools for residential and industrial sector, discrete choice models for the transportation sector, modeling of global energy supply routes, and local infrastructure assessments, among others. An example of the usage of this model suite can be found in @Stolten2022. The model framework `ETHOS.FINE` serves as base for several model implementations within `ETHOS`, setting up the optimization programs to analyze the transformation of single buildings, the transport sector, and the local, German, European and global energy system, or determining cost potentials for hydrogen production all over the world. 
 
-[^1]: ETHOS - Energy Transformation paTHway Optimization Suite, https://www.fz-juelich.de/en/iek/iek-3/expertise/model-services
+[^4]: ETHOS - Energy Transformation paTHway Optimization Suite, https://www.fz-juelich.de/en/iek/iek-3/expertise/model-services
 
 # Acknowledgements
 
-We acknowledge contributions from Lara Welder, Robin Beer, Julian Belina, Toni Busch, Arne Burdack, Henrik Büsing, Dilara Caglayan, Philipp Dunkel, David Franzmann, Patrick Freitag, Heidi Heinrichs, Shitab Ishmam, Timo Kannengießer, Leander Kotzur, Stefan Kraus, Felix Kullmann, Dane Lacey, Jochen Linssen, Drin Marmullaku, Lars Nolting, Shruthi Patil, Jan Priesmann, Oliver Rehberg, Stanley Risch, Martin Robinius, Thomas Schöb, Bismark Singh, Andreas Smolenko, Maximilian Stargardt, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Christoph Winkler and Michael Zier during the development of this software package.
+We acknowledge contributions from Lara Welder, Robin Beer, Julian Belina, Toni Busch, Arne Burdack, Henrik Büsing, Dilara Caglayan, Philipp Dunkel, David Franzmann, Patrick Freitag, Lars Hadidi, Heidi Heinrichs, Shitab Ishmam, Timo Kannengießer, Leander Kotzur, Stefan Kraus, Felix Kullmann, Dane Lacey, Jochen Linssen, Drin Marmullaku, Lars Nolting, Shruthi Patil, Jan Priesmann, Oliver Rehberg, Stanley Risch, Martin Robinius, Thomas Schöb, Bismark Singh, Andreas Smolenko, Maximilian Stargardt, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Christoph Winkler and Michael Zier during the development of this software package.
 
 This work was initially supported by the Helmholtz Association under the Joint Initiative "Energy System 2050 - A Contribution of the Research Field Energy." The authors also gratefully acknowledge financial support by the Federal Ministry for Economic Affairs and Energy of Germany as part of the project METIS (project number 03ET4064, 2018-2022).
 
