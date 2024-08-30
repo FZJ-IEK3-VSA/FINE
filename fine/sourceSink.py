@@ -409,11 +409,11 @@ class Source(Component):
             esM,
             name,
             partLoadMin,
-            self.fullOperationRateMin,
             self.fullOperationRateMax,
             self.fullOperationRateFix,
             self.bigM,
             self.hasCapacityVariable,
+            self.fullOperationRateMin
         )
 
         utils.isPositiveNumber(tsaWeight)
