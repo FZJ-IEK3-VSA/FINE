@@ -1211,8 +1211,8 @@ def checkDesignVariableModelingParameters(
     elif bigM is not None and not hasIsBuiltBinaryVariable:
         if esM.verbose < 2:
             warnings.warn(
-                "A declaration of bigM is not necessary if hasIsBuiltBinaryVariable is set to false. "
-                "The value of bigM will be ignored in the optimization."
+                "The declared bigM variable is not used in the problem formulation for hasIsBuiltBinaryVariable, since hasIsBuiltBinaryVariable is set to false. \n"
+                "Check if bigM is needed for other binary variables (like partLoadMin). Else it is ignored."
             )
 
 
