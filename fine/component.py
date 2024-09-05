@@ -2136,7 +2136,7 @@ class ComponentModel(metaclass=ABCMeta):
                 comm_date = ip - math.ceil(tech_lifetime)
             # if the commissioning date is within the investment periods, the
             # decommissioning and commissioning variables are linked
-            if comm_date in pyM.investSet._values.values():
+            if comm_date in esM.investmentPeriods:
                 return (
                     decommisVar[loc, compName, ip]
                     == commisVar[loc, compName, comm_date]
