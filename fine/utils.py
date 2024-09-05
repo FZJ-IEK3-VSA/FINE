@@ -1240,6 +1240,14 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
 
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
+    assert not (isinstance(data, pd.Series) and data.isnull().any()), (
+        f"Initialization error in {name} detected.\n"
+        "Economic parameters contain NaN values which are not allowed."
+    )
+    assert not (isinstance(data, (int, float)) and pd.isnull(data)), (
+        f"Initialization error in {name} detected.\n"
+        "Economic parameters contain NaN values which are not allowed."
+    )
     if dimension == "1dim":
         if not (
             isinstance(data, int)
