@@ -5,7 +5,7 @@ import pyomo.environ as pyomo
 import pandas as pd
 import numpy as np
 import math
-
+import copy
 
 class Component(metaclass=ABCMeta):
     """
@@ -1718,21 +1718,35 @@ class ComponentModel(metaclass=ABCMeta):
 
     def declareOperationBinaryVars(self, pyM, opVarBinName):
         """
-        Declare operation Binary variables. Discrete decicion between on and off.
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
+        Declare set of locations and components for which downTimeMin is not None.
         """
-        abbrvName = self.abbrvName
-        setattr(
-            pyM,
-            opVarBinName + "_" + abbrvName,
-            pyomo.Var(
-                getattr(pyM, "operationVarSet_" + abbrvName),
-                pyM.intraYearTimeSet,
-                domain=pyomo.Binary,
-            ),
-        )
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        # get components where partLoadMin is specified
+        def get_declareOperationBinaryVars(pyM):
+            return (
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
+                if getattr(compDict[compName], "partLoadMin") is not None
+            )
+        binaryOperationComponents = set(get_declareOperationBinaryVars(pyM))
+
+        if len(binaryOperationComponents) > 0:
+            # copy and overwrite pyomo object to contain only the relevant components but maintain the correct format
+            allOperationVars = getattr(pyM, "operationVarSet_" + abbrvName)
+            binaryOperationVars = copy.deepcopy(allOperationVars)
+            binaryOperationVars.set_value(binaryOperationComponents)
+
+            setattr(
+                pyM,
+                opVarBinName + "_" + abbrvName,
+                pyomo.Var(
+                    binaryOperationVars,
+                    pyM.intraYearTimeSet,
+                    domain=pyomo.Binary,
+                ),
+            )
 
     ####################################################################################################################
     #                              Functions for declaring time independent constraints                                #
@@ -2593,6 +2607,7 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
+            
     def additionalMinPartLoad(
         self,
         pyM,
@@ -2613,69 +2628,65 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
-        opVarBin = getattr(pyM, opVarBinName + "_" + abbrvName)
-        capVar = getattr(pyM, capVarName + "_" + abbrvName)
-        commisVar = getattr(pyM, "commis_" + abbrvName)
-        constrSetMinPartLoad = getattr(pyM, constrSetName + "partLoadMin_" + abbrvName)
+        opVarBin = getattr(pyM, opVarBinName + "_" + abbrvName, None)
 
-        if isOperationCommisYearDepending:
+        # only create constraint when partLoadMin specified
+        if opVarBin is not None:
+            capVar = getattr(pyM, capVarName + "_" + abbrvName)
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            constrSetMinPartLoad = getattr(pyM, constrSetName + "partLoadMin_" + abbrvName)
 
-            def opMinPartLoad1(pyM, loc, compName, commis, ip, p, t):
-                bigM = getattr(compDict[compName], "bigM")
-                return (
-                    opVar[loc, compName, commis, ip, p, t]
-                    <= opVarBin[loc, compName, commis, ip, p, t] * bigM
-                )
+            if isOperationCommisYearDepending:
+                def opMinPartLoad1(pyM, loc, compName, commis, ip, p, t):
+                    bigM = getattr(compDict[compName], "bigM")
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        <= opVarBin[loc, compName, commis, ip, p, t] * bigM
+                    )
+            else:
+                def opMinPartLoad1(pyM, loc, compName, ip, p, t):
+                    bigM = getattr(compDict[compName], "bigM")
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        <= opVarBin[loc, compName, ip, p, t] * bigM
+                    )
+            setattr(
+                pyM,
+                constrName + "partLoadMin_1_" + abbrvName,
+                pyomo.Constraint(
+                    constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1
+                ),
+            )
 
-        else:
-
-            def opMinPartLoad1(pyM, loc, compName, ip, p, t):
-                bigM = getattr(compDict[compName], "bigM")
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= opVarBin[loc, compName, ip, p, t] * bigM
-                )
-
-        setattr(
-            pyM,
-            constrName + "partLoadMin_1_" + abbrvName,
-            pyomo.Constraint(
-                constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1
-            ),
-        )
-        if isOperationCommisYearDepending:
-
-            def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
-                processedPartLoadMin = getattr(
-                    compDict[compName], "processedPartLoadMin"
-                )[ip]
-                bigM = getattr(compDict[compName], "bigM")
-                return (
-                    opVar[loc, compName, commis, ip, p, t]
-                    >= processedPartLoadMin * commisVar[loc, compName, commis]
-                    - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
-                )
-
-        else:
-
-            def opMinPartLoad2(pyM, loc, compName, ip, p, t):
-                processedPartLoadMin = getattr(
-                    compDict[compName], "processedPartLoadMin"
-                )[ip]
-                bigM = getattr(compDict[compName], "bigM")
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    >= processedPartLoadMin * capVar[loc, compName, ip]
-                    - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
-                )
-
-        setattr(
-            pyM,
-            constrName + "partLoadMin_2_" + abbrvName,
-            pyomo.Constraint(
-                constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad2
-            ),
-        )
+            if isOperationCommisYearDepending:
+                def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
+                    processedPartLoadMin = getattr(
+                        compDict[compName], "processedPartLoadMin"
+                    )[ip]
+                    bigM = getattr(compDict[compName], "bigM")
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        >= processedPartLoadMin * commisVar[loc, compName, commis]
+                        - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
+                    )
+            else:
+                def opMinPartLoad2(pyM, loc, compName, ip, p, t):
+                    processedPartLoadMin = getattr(
+                        compDict[compName], "processedPartLoadMin"
+                    )[ip]
+                    bigM = getattr(compDict[compName], "bigM")
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        >= processedPartLoadMin * capVar[loc, compName, ip]
+                        - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
+                    )
+            setattr(
+                pyM,
+                constrName + "partLoadMin_2_" + abbrvName,
+                pyomo.Constraint(
+                    constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad2
+                ),
+            )
 
     def yearlyFullLoadHoursMin(
         self,
