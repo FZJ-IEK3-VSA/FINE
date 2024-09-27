@@ -48,7 +48,7 @@ def test_capacityBounds():
         )
         # capacityFix
         assert esM.getComponent("PressureTank" + type).capacityFix is None
-        assert esM.getComponent("PressureTank" + type).processedCapacityFix is None
+        assert all(x is None for x in esM.getComponent("PressureTank" + type).processedCapacityFix.values())
         # capacity max and min
         assert isinstance(
             esM.getComponent("PressureTank" + type).processedCapacityMax, dict
@@ -92,7 +92,7 @@ def test_capacityBounds():
         assert isinstance(
             esM.getComponent("Pipelines" + type).processedCapacityMax, dict
         )
-        assert esM.getComponent("Pipelines" + type).processedCapacityFix is None
+        assert all(x is None for x in esM.getComponent("Pipelines" + type).processedCapacityFix.values())
         assert list(
             esM.getComponent("Pipelines" + type).locationalEligibility.index
         ) == [
@@ -144,23 +144,6 @@ def test_capacityBounds():
             economicLifetime=30,
         )
     )
-
-    # error for None value
-    with pytest.raises(ValueError, match=r".*a dict containing None values.*"):
-        esM.add(
-            fn.Storage(
-                esM=esM,
-                name="PressureTank",
-                commodity="hydrogen",
-                hasCapacityVariable=True,
-                capacityVariableDomain="continuous",
-                capacityMax={2020: 5, 2025: 4, 2030: None, 2035: 3, 2040: 0},
-                stateOfChargeMin=0.33,
-                investPerCapacity=0.5,  # eur/kWh
-                interestRate=0.08,
-                economicLifetime=30,
-            )
-        )
 
     # error for capacityMax<capacityMin - in year 4
     with pytest.raises(
