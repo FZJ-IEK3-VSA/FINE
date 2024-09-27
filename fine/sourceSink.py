@@ -338,7 +338,7 @@ class Source(Component):
 
         # commodityCostTimeSeries
         self.commodityCostTimeSeries = commodityCostTimeSeries
-        self.fullCommodityCostTimeSeries = utils.checkAndSetInvestmentPeriodTimeSeries(
+        self.fullCommodityCostTimeSeries = utils.checkAndSetInvestmentPeriodCostTimeSeries(
             esM, name, commodityCostTimeSeries, locationalEligibility
         )
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
@@ -348,7 +348,7 @@ class Source(Component):
         self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
         self.fullCommodityRevenueTimeSeries = {}
         self.fullCommodityRevenueTimeSeries = (
-            utils.checkAndSetInvestmentPeriodTimeSeries(
+            utils.checkAndSetInvestmentPeriodCostTimeSeries(
                 esM, name, commodityRevenueTimeSeries, locationalEligibility
             )
         )
@@ -419,31 +419,11 @@ class Source(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # set parameter to None if all years have None values
-        self.fullOperationRateFix = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateFix
-        )
-        self.fullOperationRateMin = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateMin
-        )
-        self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateMax
-        )
-        self.fullCommodityCostTimeSeries = utils.setParamToNoneIfNoneForAllYears(
-            self.fullCommodityCostTimeSeries
-        )
-        self.fullCommodityRevenueTimeSeries = utils.setParamToNoneIfNoneForAllYears(
-            self.fullCommodityRevenueTimeSeries
-        )
-        self.processedYearlyLimit = utils.setParamToNoneIfNoneForAllYears(
-            self.processedYearlyLimit
-        )
-
-        if self.fullOperationRateFix is not None:
+        if any(x is not None for x in self.fullOperationRateFix.values()):
             operationTimeSeries = self.fullOperationRateFix
-        elif self.fullOperationRateMin is not None:
+        elif any(x is not None for x in self.fullOperationRateMin.values()):
             operationTimeSeries = self.fullOperationRateMin
-        elif self.fullOperationRateMax is not None:
+        elif any(x is not None for x in self.fullOperationRateMax.values()):
             operationTimeSeries = self.fullOperationRateMax
         else:
             operationTimeSeries = None
@@ -573,24 +553,6 @@ class Source(Component):
             data,
             ip,
         )
-
-    def checkProcessedDataSets(self):
-        """
-        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
-        the parameter itself is set to None.
-        """
-        for parameter in [
-            "processedOperationRateFix",
-            "processedOperationRateMin",
-            "processedOperationRateMax",
-            "processedCommodityCostTimeSeries",
-            "processedCommodityRevenueTimeSeries",
-        ]:
-            setattr(
-                self,
-                parameter,
-                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
-            )
 
 
 class Sink(Source):
@@ -906,8 +868,7 @@ class SourceSinkModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
-        # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM, esM)
+
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Set yearly full load hours minimum limit
