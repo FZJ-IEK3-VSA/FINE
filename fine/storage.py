@@ -406,6 +406,8 @@ class Storage(Component):
                         if data is not None
                     ]
                 )
+            else:
+                timeSeriesData[ip] = None
 
         self.processedLocationalEligibility = utils.setLocationalEligibility(
             esM,
@@ -415,20 +417,6 @@ class Storage(Component):
             self.isBuiltFix,
             self.hasCapacityVariable,
             timeSeriesData,
-        )
-
-        # set parameter to None if all years have None values
-        self.fullChargeOpRateFix = utils.setParamToNoneIfNoneForAllYears(
-            self.fullChargeOpRateFix
-        )
-        self.fullChargeOpRateMax = utils.setParamToNoneIfNoneForAllYears(
-            self.fullChargeOpRateMax
-        )
-        self.fullDischargeOpRateFix = utils.setParamToNoneIfNoneForAllYears(
-            self.fullDischargeOpRateFix
-        )
-        self.fullDischargeOpRateMax = utils.setParamToNoneIfNoneForAllYears(
-            self.fullDischargeOpRateMax
         )
 
     def setTimeSeriesData(self, hasTSA):
@@ -511,23 +499,6 @@ class Storage(Component):
         self.aggregatedDischargeOpRateMax[ip] = self.getTSAOutput(
             self.fullDischargeOpRateMax, "dischargeRate_", data, ip
         )
-
-    def checkProcessedDataSets(self):
-        """
-        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
-        the parameter itself is set to None.
-        """
-        for parameter in [
-            "processedChargeOpRateFix",
-            "processedChargeOpRateMax",
-            "processedDischargeOpRateFix",
-            "processedDischargeOpRateMax",
-        ]:
-            setattr(
-                self,
-                parameter,
-                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
-            )
 
 
 class StorageModel(ComponentModel):
@@ -1488,8 +1459,6 @@ class StorageModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
-        # Sets, if applicable, the installed capacities of a component
-        self.capacityFix(pyM, esM)
         # Sets, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
 

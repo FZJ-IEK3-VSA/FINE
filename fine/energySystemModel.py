@@ -363,9 +363,6 @@ class EnergySystemModel:
         self.processedPathwayBalanceLimit = utils.checkAndSetPathwayBalanceLimit(
             self, pathwayBalanceLimit, locations
         )
-        self.processedBalanceLimit = utils.setParamToNoneIfNoneForAllYears(
-            self.processedBalanceLimit
-        )
 
         ################################################################################################################
         #                                        Component specific parameters                                         #
@@ -1143,7 +1140,6 @@ class EnergySystemModel:
         for mdl in self.componentModelingDict.values():
             for comp in mdl.componentsDict.values():
                 comp.setTimeSeriesData(pyM.hasTSA)
-                comp.checkProcessedDataSets()
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
         # entries, the first one indicates an index of a period and the second one indicates a time step inside that
@@ -1337,32 +1333,33 @@ class EnergySystemModel:
 
             # iterate over balance limit to define either minimal, maximal or both balance limits per balanceLimitID
             for ip in self.investmentPeriods:
-                for balanceLimitID, data in self.processedBalanceLimit[ip].iterrows():
-                    # check for regional constraints
-                    for loc in self.locations:
-                        if data[loc] is not None:
+                if self.processedBalanceLimit[ip] is not None:
+                    for balanceLimitID, data in self.processedBalanceLimit[ip].iterrows():
+                        # check for regional constraints
+                        for loc in self.locations:
+                            if data[loc] is not None:
+                                yearlyBalanceLimitDict.setdefault(
+                                    (
+                                        balanceLimitID,
+                                        loc,
+                                        ip,
+                                        data["lowerBound"],
+                                        data[loc],
+                                    ),
+                                    componentsOfBalanceLimit[balanceLimitID],
+                                )
+                        # check for total constraints over all regions
+                        if data["Total"] is not None:
                             yearlyBalanceLimitDict.setdefault(
                                 (
                                     balanceLimitID,
-                                    loc,
+                                    "Total",
                                     ip,
                                     data["lowerBound"],
-                                    data[loc],
+                                    data["Total"],
                                 ),
                                 componentsOfBalanceLimit[balanceLimitID],
                             )
-                    # check for total constraints over all regions
-                    if data["Total"] is not None:
-                        yearlyBalanceLimitDict.setdefault(
-                            (
-                                balanceLimitID,
-                                "Total",
-                                ip,
-                                data["lowerBound"],
-                                data["Total"],
-                            ),
-                            componentsOfBalanceLimit[balanceLimitID],
-                        )
 
             setattr(pyM, "yearlyBalanceLimitDict", yearlyBalanceLimitDict)
 

@@ -430,14 +430,6 @@ class Transmission(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # set parameter to None if all years have None values
-        self.fullOperationRateFix = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateFix
-        )
-        self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateMax
-        )
-
         # set processed location eligiblity # TODO implement check and set
         self.processedLocationalEligibility = self.locationalEligibility
 
@@ -501,18 +493,6 @@ class Transmission(Component):
             self.fullOperationRateMax, "_operationRateMax_", data, ip
         )
 
-    def checkProcessedDataSets(self):
-        """
-        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
-        the parameter itself is set to None.
-        """
-        for parameter in ["processedOperationRateFix", "processedOperationRateMax"]:
-            setattr(
-                self,
-                parameter,
-                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
-            )
-
 
 class TransmissionModel(ComponentModel):
     """
@@ -561,7 +541,10 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation mode sets
         self.declareOperationModeSets(
-            pyM, "opConstrSet", "operationRateMax", "operationRateFix"
+            pyM,
+            "opConstrSet",
+            "processedOperationRateMax",
+            "processedOperationRateFix"
         )
 
     ####################################################################################################################
@@ -716,8 +699,6 @@ class TransmissionModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
-        # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM, esM)
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Enforce the equality of the capacities cap_loc1_loc2 and cap_loc2_loc1
