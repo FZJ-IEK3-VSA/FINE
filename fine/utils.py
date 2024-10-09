@@ -371,9 +371,7 @@ def getQPbound(investmentPeriods, QPcostScale, capacityMax, capacityMin):
                 maxS = pd.Series(capacityMax[ip].isna(), index)
                 for x in index:
                     if not minS.loc[x] and not maxS.loc[x]:
-                        QPbound[ip].loc[x] = (
-                            capacityMax[ip].loc[x] - capacityMin[ip].loc[x]
-                        )
+                        QPbound[ip].loc[x] = capacityMax[ip].loc[x]
     return QPbound
 
 
