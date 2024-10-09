@@ -8,7 +8,7 @@ import gurobi_logtools as glt
 import pandas as pd
 import psutil
 import pyomo.environ as pyomo
-import pyomo.opt as opt
+from pyomo import opt
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from fine import utils
@@ -374,9 +374,6 @@ class EnergySystemModel:
         )
         self.processedPathwayBalanceLimit = utils.checkAndSetPathwayBalanceLimit(
             self, pathwayBalanceLimit, locations
-        )
-        self.processedBalanceLimit = utils.setParamToNoneIfNoneForAllYears(
-            self.processedBalanceLimit
         )
 
         ################################################################################################################
@@ -1162,7 +1159,6 @@ class EnergySystemModel:
         for mdl in self.componentModelingDict.values():
             for comp in mdl.componentsDict.values():
                 comp.setTimeSeriesData(pyM.hasTSA)
-                comp.checkProcessedDataSets()
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
         # entries, the first one indicates an index of a period and the second one indicates a time step inside that
@@ -1214,97 +1210,96 @@ class EnergySystemModel:
                     )
                 )
 
+        elif not pyM.hasSegmentation:
+            utils.output(
+                "Time series aggregation specifications:\n"
+                "Number of typical periods:"
+                + str(len(self.typicalPeriods))
+                + ", number of time steps per period:"
+                + str(len(self.timeStepsPerPeriod))
+                + "\n",
+                self.verbose,
+                0,
+            )
+
+            # Define sets
+            # To-Do: Add explanation perfect foresight
+            def initTimeSet(pyM):
+                return (
+                    (ip, p, t)
+                    for ip in self.investmentPeriods
+                    for p in self.typicalPeriods
+                    for t in self.timeStepsPerPeriod
+                )
+
+            def initInterTimeStepsSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in range(len(self.timeStepsPerPeriod) + 1)
+                )
+
+            def initIntraYearTimeSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in self.timeStepsPerPeriod
+                )
+
+            def initInvestPeriodInterPeriodSet(pyM):
+                return (
+                    (t_inter)
+                    for t_inter in range(
+                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
+                        + 1
+                    )
+                )
+
         else:
-            if not pyM.hasSegmentation:
-                utils.output(
-                    "Time series aggregation specifications:\n"
-                    "Number of typical periods:"
-                    + str(len(self.typicalPeriods))
-                    + ", number of time steps per period:"
-                    + str(len(self.timeStepsPerPeriod))
-                    + "\n",
-                    self.verbose,
-                    0,
+            utils.output(
+                "Time series aggregation specifications:\n"
+                "Number of typical periods:"
+                + str(len(self.typicalPeriods))
+                + ", number of time steps per period:"
+                + str(len(self.timeStepsPerPeriod))
+                + ", number of segments per period:"
+                + str(len(self.segmentsPerPeriod))
+                + "\n",
+                self.verbose,
+                0,
+            )
+
+            # Define sets
+            def initTimeSet(pyM):
+                return (
+                    (ip, p, t)
+                    for ip in self.investmentPeriods
+                    for p in self.typicalPeriods
+                    for t in self.segmentsPerPeriod
                 )
 
-                # Define sets
-                # To-Do: Add explanation perfect foresight
-                def initTimeSet(pyM):
-                    return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
-                        for p in self.typicalPeriods
-                        for t in self.timeStepsPerPeriod
-                    )
-
-                def initInterTimeStepsSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in range(len(self.timeStepsPerPeriod) + 1)
-                    )
-
-                def initIntraYearTimeSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in self.timeStepsPerPeriod
-                    )
-
-                def initInvestPeriodInterPeriodSet(pyM):
-                    return (
-                        (t_inter)
-                        for t_inter in range(
-                            int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
-                            + 1
-                        )
-                    )
-
-            else:
-                utils.output(
-                    "Time series aggregation specifications:\n"
-                    "Number of typical periods:"
-                    + str(len(self.typicalPeriods))
-                    + ", number of time steps per period:"
-                    + str(len(self.timeStepsPerPeriod))
-                    + ", number of segments per period:"
-                    + str(len(self.segmentsPerPeriod))
-                    + "\n",
-                    self.verbose,
-                    0,
+            def initInterTimeStepsSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in range(len(self.segmentsPerPeriod) + 1)
                 )
 
-                # Define sets
-                def initTimeSet(pyM):
-                    return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
-                        for p in self.typicalPeriods
-                        for t in self.segmentsPerPeriod
-                    )
+            def initIntraYearTimeSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in self.segmentsPerPeriod
+                )
 
-                def initInterTimeStepsSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in range(len(self.segmentsPerPeriod) + 1)
+            def initInvestPeriodInterPeriodSet(pyM):
+                return (
+                    (t_inter)
+                    for t_inter in range(
+                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
+                        + 1
                     )
-
-                def initIntraYearTimeSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in self.segmentsPerPeriod
-                    )
-
-                def initInvestPeriodInterPeriodSet(pyM):
-                    return (
-                        (t_inter)
-                        for t_inter in range(
-                            int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
-                            + 1
-                        )
-                    )
+                )
 
         def initInvestSet(pyM):
             return (ip for ip in self.investmentPeriods)
@@ -1357,32 +1352,33 @@ class EnergySystemModel:
 
             # iterate over balance limit to define either minimal, maximal or both balance limits per balanceLimitID
             for ip in self.investmentPeriods:
-                for balanceLimitID, data in self.processedBalanceLimit[ip].iterrows():
-                    # check for regional constraints
-                    for loc in self.locations:
-                        if data[loc] is not None:
+                if self.processedBalanceLimit[ip] is not None:
+                    for balanceLimitID, data in self.processedBalanceLimit[ip].iterrows():
+                        # check for regional constraints
+                        for loc in self.locations:
+                            if data[loc] is not None:
+                                yearlyBalanceLimitDict.setdefault(
+                                    (
+                                        balanceLimitID,
+                                        loc,
+                                        ip,
+                                        data["lowerBound"],
+                                        data[loc],
+                                    ),
+                                    componentsOfBalanceLimit[balanceLimitID],
+                                )
+                        # check for total constraints over all regions
+                        if data["Total"] is not None:
                             yearlyBalanceLimitDict.setdefault(
                                 (
                                     balanceLimitID,
-                                    loc,
+                                    "Total",
                                     ip,
                                     data["lowerBound"],
-                                    data[loc],
+                                    data["Total"],
                                 ),
                                 componentsOfBalanceLimit[balanceLimitID],
                             )
-                    # check for total constraints over all regions
-                    if data["Total"] is not None:
-                        yearlyBalanceLimitDict.setdefault(
-                            (
-                                balanceLimitID,
-                                "Total",
-                                ip,
-                                data["lowerBound"],
-                                data["Total"],
-                            ),
-                            componentsOfBalanceLimit[balanceLimitID],
-                        )
 
             setattr(pyM, "yearlyBalanceLimitDict", yearlyBalanceLimitDict)
 
@@ -1973,12 +1969,11 @@ class EnergySystemModel:
                 relaxIsBuiltBinary=relaxIsBuiltBinary,
                 relevanceThreshold=relevanceThreshold,
             )
-        else:
-            if self.pyM is None:
-                raise TypeError(
-                    "The optimization problem is not declared yet. Set the argument declaresOptimization"
-                    " problem to True or call the declareOptimizationProblem function first."
-                )
+        elif self.pyM is None:
+            raise TypeError(
+                "The optimization problem is not declared yet. Set the argument declaresOptimization"
+                " problem to True or call the declareOptimizationProblem function first."
+            )
 
         if includePerformanceSummary:
             """

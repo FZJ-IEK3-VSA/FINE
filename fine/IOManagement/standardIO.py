@@ -1,5 +1,5 @@
 import fine as fn
-import fine.utils as utils
+from fine import utils
 import pandas as pd
 import ast
 import inspect
@@ -1241,13 +1241,12 @@ def plotLocationalColorMap(
             unit = " [" + unit + "/" + area_unit + "]"
             zlabel = "Installed capacity \n" + unit + "\n"
 
-    else:
-        if zlabel is None:
-            if isinstance(esM.getComponent(compName), fn.Conversion):
-                unit = esM.getComponent(compName).physicalUnit
-            else:
-                unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
-            zlabel = f"Installed capacity \n [ {unit} ] \n"
+    elif zlabel is None:
+        if isinstance(esM.getComponent(compName), fn.Conversion):
+            unit = esM.getComponent(compName).physicalUnit
+        else:
+            unit = esM.commodityUnitsDict[esM.getComponent(compName).commodity]
+        zlabel = f"Installed capacity \n [ {unit} ] \n"
 
     vmax = gdf["data"].max() if vmax == -1 else vmax
 

@@ -84,6 +84,14 @@ documentation = "https://vsa-fine.readthedocs.io/en/master/"
 extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "PL"]
+# See https://docs.astral.sh/ruff/rules for explanations
 ignore = [
-    "F403", # ‘from module import *’ used; unable to detect undefined names
+    "F403",    # ‘from module import *’ used; unable to detect undefined names
+    "PLR0913", # Too many arguments in function definition ( > 5)
+    "PLR0912", # Too many branches ( > 12) (if, else statements)
+    "PLR0915", # Too many statements ( > 50)
+    "PLR0911", # Too many return statements ( > 6)
+    "PLR2004", # Magic value used in comparison, consider replacing `2` with a constant variable
+    "PLR1714", # Consider merging multiple comparisons. Use a `set` if the elements are hashable.
 ]

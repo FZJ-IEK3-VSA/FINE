@@ -182,7 +182,7 @@ class LOPFModel(TransmissionModel):
 
         # Declare operation variable set
         self.declareOperationModeSets(
-            pyM, "opConstrSet", "operationRateMax", "operationRateFix"
+            pyM, "opConstrSet", "processedOperationRateMax", "processedOperationRateFix"
         )
 
     ####################################################################################################################

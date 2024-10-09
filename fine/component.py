@@ -5,7 +5,7 @@ import pyomo.environ as pyomo
 import pandas as pd
 import numpy as np
 import math
-
+import copy
 
 class Component(metaclass=ABCMeta):
     """
@@ -644,12 +644,6 @@ class Component(metaclass=ABCMeta):
         self.processedYearlyFullLoadHoursMax = utils.checkAndSetFullLoadHoursParameter(
             esM, name, yearlyFullLoadHoursMax, dimension, locationalEligibility
         )
-        self.processedYearlyFullLoadHoursMin = utils.setParamToNoneIfNoneForAllYears(
-            self.processedYearlyFullLoadHoursMin
-        )
-        self.processedYearlyFullLoadHoursMax = utils.setParamToNoneIfNoneForAllYears(
-            self.processedYearlyFullLoadHoursMax
-        )
 
         self.isBuiltFix = isBuiltFix
 
@@ -666,27 +660,6 @@ class Component(metaclass=ABCMeta):
             self.processedStockYears + esM.investmentPeriods, self.processedQPcostScale
         )
 
-        self.processedCapacityFix = utils.setParamToNoneIfNoneForAllYears(
-            self.processedCapacityFix
-        )
-        self.processedCapacityMin = utils.setParamToNoneIfNoneForAllYears(
-            self.processedCapacityMin
-        )
-        self.processedCapacityMax = utils.setParamToNoneIfNoneForAllYears(
-            self.processedCapacityMax
-        )
-        self.processedCommissioningFix = utils.setParamToNoneIfNoneForAllYears(
-            self.processedCommissioningFix
-        )
-        self.processedCommissioningMin = utils.setParamToNoneIfNoneForAllYears(
-            self.processedCommissioningMin
-        )
-        self.processedCommissioningMax = utils.setParamToNoneIfNoneForAllYears(
-            self.processedCommissioningMax
-        )
-        # self.processedGrowthRate = utils.setParamToNoneIfNoneForAllYears(
-        #     self.processedGrowthRate
-        # )
         # stock commissioning
         self.stockCommissioning = stockCommissioning
         self.processedStockCommissioning = utils.checkAndSetStock(
@@ -810,8 +783,10 @@ class Component(metaclass=ABCMeta):
         :return: reformatted data or None
         :rtype: Pandas DataFrame
         """
-        if rate is not None:
-            if isinstance(rate, dict):
+        if rate is None:
+            return None
+        elif isinstance(rate, dict):
+            if rate[ip] is not None:
                 uniqueIdentifiers = [
                     self.name + rateName + loc for loc in rate[ip].columns
                 ]
@@ -822,18 +797,18 @@ class Component(metaclass=ABCMeta):
                     },
                     inplace=True,
                 )
-            elif isinstance(rate, pd.DataFrame):
-                uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
-                data_ = data[uniqueIdentifiers].copy(deep=True)
-                data_.rename(
-                    columns={self.name + rateName + loc: loc for loc in rate.columns},
-                    inplace=True,
-                )
             else:
-                raise ValueError(f"Wrong type for rate of '{self.name}': {type(rate)}")
-            return data_
+                return None
+        elif isinstance(rate, pd.DataFrame):
+            uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
+            data_ = data[uniqueIdentifiers].copy(deep=True)
+            data_.rename(
+                columns={self.name + rateName + loc: loc for loc in rate.columns},
+                inplace=True,
+            )
         else:
-            return None
+            raise ValueError(f"Wrong type for rate of '{self.name}': {type(rate)}")
+        return data_
 
     @abstractmethod
     def setTimeSeriesData(self, hasTSA):
@@ -869,15 +844,6 @@ class Component(metaclass=ABCMeta):
 
         :param ip: investment period of transformation path analysis.
         :type ip: int
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def checkProcessedDataSets(self):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Check
-        aggregated time series data after applying time series aggregation. If all entries of dictionary are None
-        the parameter itself is set to None.
         """
         raise NotImplementedError
 
@@ -1195,8 +1161,8 @@ class ComponentModel(metaclass=ABCMeta):
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
                 if compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateMax) is None
-                and getattr(compDict[compName], rateFix) is None
+                and getattr(compDict[compName], rateMax)[ip] is None
+                and getattr(compDict[compName], rateFix)[ip] is None
             )
 
         setattr(
@@ -1218,7 +1184,7 @@ class ComponentModel(metaclass=ABCMeta):
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
                 if compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateFix) is not None
+                and getattr(compDict[compName], rateFix)[ip] is not None
             )
 
         setattr(
@@ -1240,7 +1206,7 @@ class ComponentModel(metaclass=ABCMeta):
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
                 if compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateMax) is not None
+                and getattr(compDict[compName], rateMax)[ip] is not None
             )
 
         setattr(
@@ -1262,7 +1228,7 @@ class ComponentModel(metaclass=ABCMeta):
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
                 if compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateMin) is not None
+                and getattr(compDict[compName], rateMin)[ip] is not None
             )
 
         setattr(
@@ -1331,7 +1297,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
-                if compDict[compName].processedYearlyFullLoadHoursMin is not None
+                if compDict[compName].processedYearlyFullLoadHoursMin[ip] is not None
             )
 
         setattr(
@@ -1351,7 +1317,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
-                if compDict[compName].processedYearlyFullLoadHoursMax is not None
+                if compDict[compName].processedYearlyFullLoadHoursMax[ip] is not None
             )
 
         setattr(
@@ -1389,7 +1355,7 @@ class ComponentModel(metaclass=ABCMeta):
             """Function for setting lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
             if (
-                comp.processedCapacityFix is not None
+                comp.processedCapacityFix[ip] is not None
                 and loc in comp.processedCapacityFix[ip].index
             ):
                 # in utils.py there are checks to ensure that capacityFix is between min and max
@@ -1400,14 +1366,14 @@ class ComponentModel(metaclass=ABCMeta):
             else:
                 # the upper bound is only set if the parameter is given and no binary design variable exists
                 # In the case of the binary design variable, the bigM-constraint will suffice as upper bound.
-                if (comp.processedCapacityMin is not None) and (
+                if (comp.processedCapacityMin[ip] is not None) and (
                     not comp.hasIsBuiltBinaryVariable
                 ):
                     capLowerBound = comp.processedCapacityMin[ip][loc]
                 else:
                     capLowerBound = 0
 
-                if comp.processedCapacityMax is not None:
+                if comp.processedCapacityMax[ip] is not None:
                     capUpperBound = comp.processedCapacityMax[ip][loc]
                 else:
                     capUpperBound = None
@@ -1438,8 +1404,10 @@ class ComponentModel(metaclass=ABCMeta):
         def commisBounds(pyM, loc, compName, ip):
             """Function for setting lower and upper commissioning bounds."""
             comp = self.componentsDict[compName]
+            if ip < 0:
+                return None, None
             if (
-                comp.processedCommissioningFix is not None
+                comp.processedCommissioningFix[ip] is not None
                 and loc in comp.processedCommissioningFix[ip].index
             ):
                 # in utils.py there are checks to ensure that CommissioningFix is between min and max
@@ -1450,14 +1418,15 @@ class ComponentModel(metaclass=ABCMeta):
             else:
                 # the upper bound is only set if the parameter is given and no binary design variable exists
                 # In the case of the binary design variable, the bigM-constraint will suffice as upper bound.
-                if (comp.processedCommissioningMin is not None) and (
-                    not comp.hasIsBuiltBinaryVariable
+                if (
+                    comp.processedCommissioningMin[ip] is not None
+                    and not comp.hasIsBuiltBinaryVariable
                 ):
                     commisLowerBound = comp.processedCommissioningMin[ip][loc]
                 else:
                     commisLowerBound = 0
 
-                if comp.processedCommissioningMax is not None:
+                if comp.processedCommissioningMax[ip] is not None:
                     commisUpperBound = comp.processedCommissioningMax[ip][loc]
                 else:
                     commisUpperBound = None
@@ -1553,8 +1522,10 @@ class ComponentModel(metaclass=ABCMeta):
                 # If binary variables are relaxed, value can take all non negative reals (between 0 and 1)
                 return pyomo.NonNegativeReals
 
+            if ip < 0:
+                return pyomo.Binary
             if (compDict[compName].isBuiltFix is not None) or (
-                compDict[compName].processedCapacityFix is not None
+                compDict[compName].processedCapacityFix[ip] is not None
             ):
                 # If isBuiltFix or capacityFix is given, binary variable is already fixed.
                 return pyomo.NonNegativeReals
@@ -1563,6 +1534,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         def binBounds(pyM, loc, compName, ip):
             """returns bounds with minimal necessary freedom for the binary variables (e.g. (0,0) or (1,1))"""
+            if ip < 0:
+                return None, None
             if compDict[compName].isBuiltFix is not None:
                 # If isBuiltFix is given, binary variable is set to isBuiltFix
                 return (
@@ -1570,7 +1543,7 @@ class ComponentModel(metaclass=ABCMeta):
                     compDict[compName].isBuiltFix[loc],
                 )
             elif (
-                compDict[compName].processedCapacityFix is not None
+                compDict[compName].processedCapacityFix[ip] is not None
                 and loc in compDict[compName].processedCapacityFix[ip].index
             ):
                 # If capacityFix is given, binary variable is set to 1
@@ -1644,7 +1617,7 @@ class ComponentModel(metaclass=ABCMeta):
         def opBounds(pyM, loc, compName, ip, p, t):
             if not getattr(compDict[compName], "hasCapacityVariable"):
                 if not pyM.hasSegmentation:
-                    if getattr(compDict[compName], opRateMaxName) is not None:
+                    if getattr(compDict[compName], opRateMaxName)[ip] is not None:
                         rate = getattr(compDict[compName], opRateMaxName)[ip]
                         if rate is not None:
                             if relevanceThreshold is not None:
@@ -1654,7 +1627,7 @@ class ComponentModel(metaclass=ABCMeta):
                                 ):
                                     return (0, 0)
                             return (0, rate[loc][p, t])
-                    elif getattr(compDict[compName], opRateFixName) is not None:
+                    elif getattr(compDict[compName], opRateFixName)[ip] is not None:
                         rate = getattr(compDict[compName], opRateFixName)[ip]
                         if rate is not None:
                             if relevanceThreshold is not None:
@@ -1666,38 +1639,37 @@ class ComponentModel(metaclass=ABCMeta):
                             return (rate[loc][p, t], rate[loc][p, t])
                     else:
                         return (0, None)
+                elif getattr(compDict[compName], opRateMaxName)[ip] is not None:
+                    rate = getattr(compDict[compName], opRateMaxName)[ip]
+                    if rate is not None:
+                        if relevanceThreshold is not None:
+                            validThreshold = 0 < relevanceThreshold
+                            if validThreshold and (
+                                rate[loc][p, t] < relevanceThreshold
+                            ):
+                                return (0, 0)
+                        return (
+                            0,
+                            rate[loc][p, t]
+                            * esM.timeStepsPerSegment[ip].to_dict()[p, t],
+                        )
+                elif getattr(compDict[compName], opRateFixName)[ip] is not None:
+                    rate = getattr(compDict[compName], opRateFixName)[ip]
+                    if rate is not None:
+                        if relevanceThreshold is not None:
+                            validThreshold = 0 < relevanceThreshold
+                            if validThreshold and (
+                                rate[loc][p, t] < relevanceThreshold
+                            ):
+                                return (0, 0)
+                        return (
+                            rate[loc][p, t]
+                            * esM.timeStepsPerSegment[ip].to_dict()[p, t],
+                            rate[loc][p, t]
+                            * esM.timeStepsPerSegment[ip].to_dict()[p, t],
+                        )
                 else:
-                    if getattr(compDict[compName], opRateMaxName) is not None:
-                        rate = getattr(compDict[compName], opRateMaxName)[ip]
-                        if rate is not None:
-                            if relevanceThreshold is not None:
-                                validThreshold = 0 < relevanceThreshold
-                                if validThreshold and (
-                                    rate[loc][p, t] < relevanceThreshold
-                                ):
-                                    return (0, 0)
-                            return (
-                                0,
-                                rate[loc][p, t]
-                                * esM.timeStepsPerSegment[ip].to_dict()[p, t],
-                            )
-                    elif getattr(compDict[compName], opRateFixName) is not None:
-                        rate = getattr(compDict[compName], opRateFixName)[ip]
-                        if rate is not None:
-                            if relevanceThreshold is not None:
-                                validThreshold = 0 < relevanceThreshold
-                                if validThreshold and (
-                                    rate[loc][p, t] < relevanceThreshold
-                                ):
-                                    return (0, 0)
-                            return (
-                                rate[loc][p, t]
-                                * esM.timeStepsPerSegment[ip].to_dict()[p, t],
-                                rate[loc][p, t]
-                                * esM.timeStepsPerSegment[ip].to_dict()[p, t],
-                            )
-                    else:
-                        return (0, None)
+                    return (0, None)
             else:
                 return (0, None)
 
@@ -1731,21 +1703,35 @@ class ComponentModel(metaclass=ABCMeta):
 
     def declareOperationBinaryVars(self, pyM, opVarBinName):
         """
-        Declare operation Binary variables. Discrete decicion between on and off.
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
+        Declare set of locations and components for which downTimeMin is not None.
         """
-        abbrvName = self.abbrvName
-        setattr(
-            pyM,
-            opVarBinName + "_" + abbrvName,
-            pyomo.Var(
-                getattr(pyM, "operationVarSet_" + abbrvName),
-                pyM.intraYearTimeSet,
-                domain=pyomo.Binary,
-            ),
-        )
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        # get components where partLoadMin is specified
+        def get_declareOperationBinaryVars(pyM):
+            return (
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
+                if getattr(compDict[compName], "partLoadMin") is not None
+            )
+        binaryOperationComponents = set(get_declareOperationBinaryVars(pyM))
+
+        if len(binaryOperationComponents) > 0:
+            # copy and overwrite pyomo object to contain only the relevant components but maintain the correct format
+            allOperationVars = getattr(pyM, "operationVarSet_" + abbrvName)
+            binaryOperationVars = copy.deepcopy(allOperationVars)
+            binaryOperationVars.set_value(binaryOperationComponents)
+
+            setattr(
+                pyM,
+                opVarBinName + "_" + abbrvName,
+                pyomo.Var(
+                    binaryOperationVars,
+                    pyM.intraYearTimeSet,
+                    domain=pyomo.Binary,
+                ),
+            )
 
     ####################################################################################################################
     #                              Functions for declaring time independent constraints                                #
@@ -1837,7 +1823,7 @@ class ComponentModel(metaclass=ABCMeta):
                 # set bigM for investment periods
                 M = (
                     comp.processedCapacityMax[ip][loc]
-                    if comp.processedCapacityMax is not None
+                    if comp.processedCapacityMax[ip] is not None
                     else comp.bigM
                 )
                 return (
@@ -1886,7 +1872,7 @@ class ComponentModel(metaclass=ABCMeta):
                     capVar[loc, compName, ip]
                     >= compDict[compName].processedCapacityMin[ip][loc]
                     * commisBinVar[loc, compName, ip]
-                    if compDict[compName].processedCapacityMin is not None
+                    if compDict[compName].processedCapacityMin[ip] is not None
                     else pyomo.Constraint.Skip
                 )
             else:  # constraint not required for stock years
@@ -1896,38 +1882,6 @@ class ComponentModel(metaclass=ABCMeta):
             pyM,
             "ConstrCapacityMinDec_" + abbrvName,
             pyomo.Constraint(commisBinVarSet, rule=capacityMinDec),
-        )
-
-    def capacityFix(self, pyM, esM):
-        """
-        Set, if applicable, the installed capacities of a component.
-
-        .. math::
-
-            cap^{comp}_{(loc_1,loc_2),ip} = \\text{capFix}^{comp}_{(loc_1,loc_2)}
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-
-        :param esM: energy system model containing general information.
-        :type esM: EnergySystemModel instance from the FINE package
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        capVar = getattr(pyM, "cap_" + abbrvName)
-        capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
-
-        def capacityFix(pyM, loc, compName, ip):
-            return (
-                capVar[loc, compName, ip]
-                == compDict[compName].processedCapacityFix[ip][loc]
-                if compDict[compName].processedCapacityFix is not None
-                else pyomo.Constraint.Skip
-            )
-
-        setattr(
-            pyM,
-            "ConstrCapacityFix_" + abbrvName,
-            pyomo.Constraint(capVarSet, rule=capacityFix),
         )
 
     def designBinFix(self, pyM):
@@ -2149,7 +2103,7 @@ class ComponentModel(metaclass=ABCMeta):
                 comm_date = ip - math.ceil(tech_lifetime)
             # if the commissioning date is within the investment periods, the
             # decommissioning and commissioning variables are linked
-            if comm_date in pyM.investSet._values.values():
+            if comm_date in esM.investmentPeriods:
                 return (
                     decommisVar[loc, compName, ip]
                     == commisVar[loc, compName, comm_date]
@@ -2606,6 +2560,7 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
+            
     def additionalMinPartLoad(
         self,
         pyM,
@@ -2626,69 +2581,65 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
-        opVarBin = getattr(pyM, opVarBinName + "_" + abbrvName)
-        capVar = getattr(pyM, capVarName + "_" + abbrvName)
-        commisVar = getattr(pyM, "commis_" + abbrvName)
-        constrSetMinPartLoad = getattr(pyM, constrSetName + "partLoadMin_" + abbrvName)
+        opVarBin = getattr(pyM, opVarBinName + "_" + abbrvName, None)
 
-        if isOperationCommisYearDepending:
+        # only create constraint when partLoadMin specified
+        if opVarBin is not None:
+            capVar = getattr(pyM, capVarName + "_" + abbrvName)
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            constrSetMinPartLoad = getattr(pyM, constrSetName + "partLoadMin_" + abbrvName)
 
-            def opMinPartLoad1(pyM, loc, compName, commis, ip, p, t):
-                bigM = getattr(compDict[compName], "bigM")
-                return (
-                    opVar[loc, compName, commis, ip, p, t]
-                    <= opVarBin[loc, compName, commis, ip, p, t] * bigM
-                )
+            if isOperationCommisYearDepending:
+                def opMinPartLoad1(pyM, loc, compName, commis, ip, p, t):
+                    bigM = getattr(compDict[compName], "bigM")
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        <= opVarBin[loc, compName, commis, ip, p, t] * bigM
+                    )
+            else:
+                def opMinPartLoad1(pyM, loc, compName, ip, p, t):
+                    bigM = getattr(compDict[compName], "bigM")
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        <= opVarBin[loc, compName, ip, p, t] * bigM
+                    )
+            setattr(
+                pyM,
+                constrName + "partLoadMin_1_" + abbrvName,
+                pyomo.Constraint(
+                    constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1
+                ),
+            )
 
-        else:
-
-            def opMinPartLoad1(pyM, loc, compName, ip, p, t):
-                bigM = getattr(compDict[compName], "bigM")
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= opVarBin[loc, compName, ip, p, t] * bigM
-                )
-
-        setattr(
-            pyM,
-            constrName + "partLoadMin_1_" + abbrvName,
-            pyomo.Constraint(
-                constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1
-            ),
-        )
-        if isOperationCommisYearDepending:
-
-            def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
-                processedPartLoadMin = getattr(
-                    compDict[compName], "processedPartLoadMin"
-                )[ip]
-                bigM = getattr(compDict[compName], "bigM")
-                return (
-                    opVar[loc, compName, commis, ip, p, t]
-                    >= processedPartLoadMin * commisVar[loc, compName, commis]
-                    - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
-                )
-
-        else:
-
-            def opMinPartLoad2(pyM, loc, compName, ip, p, t):
-                processedPartLoadMin = getattr(
-                    compDict[compName], "processedPartLoadMin"
-                )[ip]
-                bigM = getattr(compDict[compName], "bigM")
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    >= processedPartLoadMin * capVar[loc, compName, ip]
-                    - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
-                )
-
-        setattr(
-            pyM,
-            constrName + "partLoadMin_2_" + abbrvName,
-            pyomo.Constraint(
-                constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad2
-            ),
-        )
+            if isOperationCommisYearDepending:
+                def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
+                    processedPartLoadMin = getattr(
+                        compDict[compName], "processedPartLoadMin"
+                    )[ip]
+                    bigM = getattr(compDict[compName], "bigM")
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        >= processedPartLoadMin * commisVar[loc, compName, commis]
+                        - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
+                    )
+            else:
+                def opMinPartLoad2(pyM, loc, compName, ip, p, t):
+                    processedPartLoadMin = getattr(
+                        compDict[compName], "processedPartLoadMin"
+                    )[ip]
+                    bigM = getattr(compDict[compName], "bigM")
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        >= processedPartLoadMin * capVar[loc, compName, ip]
+                        - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
+                    )
+            setattr(
+                pyM,
+                constrName + "partLoadMin_2_" + abbrvName,
+                pyomo.Constraint(
+                    constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad2
+                ),
+            )
 
     def yearlyFullLoadHoursMin(
         self,
@@ -3849,7 +3800,7 @@ class ComponentModel(metaclass=ABCMeta):
             factor = pd.Series(factorVal, index=mIdx)
         elif fncType == "TimeSeries":
             # if there is not time series, there is not cost contribution
-            if getattr(self.componentsDict[compName], factorNames[0]) is None:
+            if getattr(self.componentsDict[compName], factorNames[0])[ip] is None:
                 return 0
             factor = getattr(self.componentsDict[compName], factorNames[0])[ip][loc]
 
@@ -3874,27 +3825,26 @@ class ComponentModel(metaclass=ABCMeta):
                     )
                     / esM.numberOfYears
                 )
+        elif not getOptValue:
+            return (
+                sum(
+                    factor[p, t]
+                    * var[loc, compName, ip, p, t]
+                    * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
+                )
+                / esM.numberOfYears
+            )
         else:
-            if not getOptValue:
-                return (
-                    sum(
-                        factor[p, t]
-                        * var[loc, compName, ip, p, t]
-                        * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
-                    )
-                    / esM.numberOfYears
+            return (
+                sum(
+                    factor[p, t]
+                    * var[loc, compName, ip, p, t].value
+                    * esM.periodOccurrences[ip][p]
+                    for p, t in timeSet_pt
                 )
-            else:
-                return (
-                    sum(
-                        factor[p, t]
-                        * var[loc, compName, ip, p, t].value
-                        * esM.periodOccurrences[ip][p]
-                        for p, t in timeSet_pt
-                    )
-                    / esM.numberOfYears
-                )
+                / esM.numberOfYears
+            )
 
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
         """

@@ -32,7 +32,7 @@ def test_commissioningMinMaxFix(perfectForesight_test_esM):
         )
     )
 
-    commissioningFix_H2_Source = {2020: 0.5, 2025: 1, 2030: 0, 2035: 0, 2040: 0}
+    commissioningFix_H2_Source = {2020: None, 2025: 1, 2030: 0, 2035: 0, 2040: 0}
     esM.add(
         fn.Source(
             esM=esM,
@@ -89,4 +89,5 @@ def test_commissioningMinMaxFix(perfectForesight_test_esM):
     for ip in esM.investmentPeriodNames:
         assert commissioningMax_PV_cheap[ip] >= commissioning_PV_cheap[ip]
         assert commissioningMin_PV_expensive[ip] <= commissioning_PV_expensive[ip]
-        assert commissioningFix_H2_Source[ip] == commissioning_H2_Source[ip]
+        if commissioningFix_H2_Source[ip] is not None:
+            assert commissioningFix_H2_Source[ip] == commissioning_H2_Source[ip]

@@ -299,22 +299,11 @@ class Conversion(Component):
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
 
-        # set parameter to None if all years have None values
-        self.fullOperationRateFix = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateFix
-        )
-        self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateMax
-        )
-        self.fullOperationRateMin = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateMin
-        )
-
-        if self.fullOperationRateFix is not None:
+        if any(x is not None for x in self.fullOperationRateFix.values()):
             operationTimeSeries = self.fullOperationRateFix
-        elif self.fullOperationRateMax is not None:
+        elif any(x is not None for x in self.fullOperationRateMax.values()):
             operationTimeSeries = self.fullOperationRateMax
-        elif self.fullOperationRateMin is not None:
+        elif any(x is not None for x in self.fullOperationRateMin.values()):
             operationTimeSeries = self.fullOperationRateMin
         else:
             operationTimeSeries = None
@@ -487,23 +476,6 @@ class Conversion(Component):
                             ip,
                         )
 
-    def checkProcessedDataSets(self):
-        """
-        Check processed time series data after applying time series
-        aggregation. If all entries of dictionary are None
-        the parameter itself is set to None.
-        """
-        for parameter in [
-            "processedOperationRateFix",
-            "processedOperationRateMax",
-            "processedOperationRateMin",
-        ]:
-            setattr(
-                self,
-                parameter,
-                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
-            )
-
 
 class ConversionModel(ComponentModel):
     """
@@ -641,7 +613,7 @@ class ConversionModel(ComponentModel):
                 (loc, compName, commis, ip)
                 for loc, compName, commis, ip in varSet
                 if compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateFix) is not None
+                and getattr(compDict[compName], rateFix)[ip] is not None
                 and compDict[compName].isCommisDepending
             )
 
@@ -664,7 +636,7 @@ class ConversionModel(ComponentModel):
                 (loc, compName, commis, ip)
                 for loc, compName, commis, ip in varSet
                 if compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateMax) is not None
+                and getattr(compDict[compName], rateMax)[ip] is not None
                 and compDict[compName].isCommisDepending
             )
 
@@ -687,7 +659,7 @@ class ConversionModel(ComponentModel):
                 (loc, compName, commis, ip)
                 for loc, compName, commis, ip in varSet
                 if compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateMin) is not None
+                and getattr(compDict[compName], rateMin)[ip] is not None
                 and compDict[compName].isCommisDepending
             )
 
@@ -729,7 +701,7 @@ class ConversionModel(ComponentModel):
             return (
                 (loc, compName, commis, ip)
                 for loc, compName, commis, ip in varSet
-                if compDict[compName].processedYearlyFullLoadHoursMin is not None
+                if compDict[compName].processedYearlyFullLoadHoursMin[ip] is not None
                 and compDict[compName].isCommisDepending
             )
 
@@ -750,7 +722,7 @@ class ConversionModel(ComponentModel):
             return (
                 (loc, compName, commis, ip)
                 for loc, compName, commis, ip in varSet
-                if compDict[compName].processedYearlyFullLoadHoursMax is not None
+                if compDict[compName].processedYearlyFullLoadHoursMax[ip] is not None
                 and compDict[compName].isCommisDepending
             )
 
@@ -913,8 +885,6 @@ class ConversionModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
-        # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM, esM)
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Link, if applicable, the capacity of components with the same linkedConversionCapacityID
@@ -1002,7 +972,7 @@ class ConversionModel(ComponentModel):
             isOperationCommisYearDepending=True,
         )
 
-        # Operation [physicalUnit*h] is limited by minimum part Load
+        # # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )

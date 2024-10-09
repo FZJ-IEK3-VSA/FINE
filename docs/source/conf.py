@@ -46,6 +46,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
     "myst_parser",
+    "sphinx.ext.autosectionlabel"
 ]
 
 inheritance_graph_attrs = dict(
@@ -70,7 +71,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "fine"
-copyright = "2016-2023, FINE Developer Team"
+copyright = "2016-2024, FINE Developer Team"
 author = "FINE Developer Team"
 
 # The version info for the project you're documenting, acts as replacement for

@@ -372,9 +372,7 @@ def getQPbound(investmentPeriods, QPcostScale, capacityMax, capacityMin):
                 maxS = pd.Series(capacityMax[ip].isna(), index)
                 for x in index:
                     if not minS.loc[x] and not maxS.loc[x]:
-                        QPbound[ip].loc[x] = (
-                            capacityMax[ip].loc[x] - capacityMin[ip].loc[x]
-                        )
+                        QPbound[ip].loc[x] = capacityMax[ip].loc[x]
     return QPbound
 
 
@@ -566,16 +564,6 @@ def processBoundParams(esM, param):
     return processedParam
 
 
-def checkForConsistency(paramName, valueName, name, capacityBound):
-    if isinstance(capacityBound, dict):
-        if any(x is not None for x in capacityBound.values()):
-            if not all(x is not None for x in capacityBound.values()):
-                raise ValueError(
-                    "A mix between None and specified values is not allowed "
-                    + f"between investment periods for {paramName}{valueName} for {name}."
-                )
-
-
 def checkAndSetBounds(esM, name, paramName, MinVal, MaxVal, FixVal):
     checkInvestmentPeriodParameters(name, MinVal, esM.investmentPeriodNames)
     checkInvestmentPeriodParameters(name, MaxVal, esM.investmentPeriodNames)
@@ -627,11 +615,6 @@ def checkAndSetBounds(esM, name, paramName, MinVal, MaxVal, FixVal):
                     f"{paramName}Fix values < {paramName}Min values detected."
                 )
 
-    # check if there is a mix of None and specified boundaries in one of the capacityBounds
-    checkForConsistency(paramName, "Max", name, MaxVal)
-    checkForConsistency(paramName, "Min", name, MinVal)
-    checkForConsistency(paramName, "Fix", name, FixVal)
-
     return processedMinVal, processedMaxVal, processedFixVal
 
 
@@ -646,12 +629,6 @@ def checkInvestmentPeriodParameters(name, param, years):
                 f"'{name}' has different ip-names ('{param.keys()}')"
                 + f" than the investment periods of the esM ('{years}')",
             )
-
-        for key, value in param.items():
-            if value is None:
-                raise ValueError(
-                    f"Currently a dict containing None values cannot be passed for '{name}'"
-                )
 
 
 def checkCapacityDevelopmentWithStock(
@@ -700,14 +677,14 @@ def checkCapacityDevelopmentWithStock(
         # stock capacity
         for loc in stockCapacity.columns:
             for year in investmentPeriods:
-                if capacityMax is not None:
+                if capacityMax[year] is not None:
                     if stockCapacity.loc[year, loc] > capacityMax[year][loc]:
                         raise ValueError(
                             "Mismatch between stock capacity (by its "
                             + "commissioning and the technical lifetime) and "
                             + "capacityMax"
                         )
-                if capacityFix is not None:
+                if capacityFix[year] is not None:
                     if stockCapacity.loc[year, loc] > capacityFix[year][loc]:
                         raise ValueError(
                             "Mismatch between stock capacity (by its "
@@ -938,17 +915,10 @@ def setLocationalEligibility(
         def defineLocDependencyCapacityBounds(name, capacityBound):
             if capacityBound is None:
                 return False
-            anyLocIndependent = any(
-                x is None or isinstance(x, (int, float)) for x in capacityBound.values()
-            )
             anyLocDependent = any(
                 x is not None and not isinstance(x, (int, float))
                 for x in capacityBound.values()
             )
-            if anyLocDependent and anyLocIndependent:
-                raise ValueError(
-                    f"Please implement {name} either as location dependent or indendent consistent over entire pathway."
-                )
             if anyLocDependent:
                 return True
             else:
@@ -964,12 +934,17 @@ def setLocationalEligibility(
         if isinstance(operationTimeSeries, dict) and len(operationTimeSeries) == 0:
             operationTimeSeries = None
 
-        if not hasCapacityVariable and operationTimeSeries is not None:
+        if (
+                not hasCapacityVariable
+                and operationTimeSeries is not None
+                and any(ots is not None for ots in operationTimeSeries.values())
+            ):
             if dimension == "1dim":
                 data = 0
                 # sum values over ips
                 for ip in esM.investmentPeriods:
-                    data += operationTimeSeries[ip].copy().sum()
+                    if operationTimeSeries[ip] is not None:
+                        data += operationTimeSeries[ip].copy().sum()
                 data[data > 0] = 1
                 return data
             # Problems here ? Adapt this?
@@ -1034,8 +1009,9 @@ def setLocationalEligibility(
 
             # set location eligibility to 1 if capacity bound exists
             for ip in esM.investmentPeriods:
-                loc_idx = data[ip][data[ip] > 0].index
-                _data[loc_idx] = 1
+                if data[ip] is not None:
+                    loc_idx = data[ip][data[ip] > 0].index
+                    _data[loc_idx] = 1
 
             return _data
 
@@ -1065,6 +1041,20 @@ def checkAndSetInvestmentPeriodTimeSeries(
                 f"Parameter of {name} should be a pandas dataframe or a dictionary."
             )
     return parameter
+
+
+def checkAndSetInvestmentPeriodCostTimeSeries(
+    esM, name, data, locationalEligibility, dimension="1dim"
+):
+    if (
+        isinstance(data, dict)
+        and any(x is None for x in data.values())
+        and not all(x is None for x in data.values())
+    ):
+        raise TypeError(
+            f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
+        )
+    return checkAndSetInvestmentPeriodTimeSeries(esM, name, data, locationalEligibility, dimension)
 
 
 def checkAndSetTimeSeries(
@@ -1213,8 +1203,8 @@ def checkDesignVariableModelingParameters(
     elif bigM is not None and not hasIsBuiltBinaryVariable:
         if esM.verbose < 2:
             warnings.warn(
-                "A declaration of bigM is not necessary if hasIsBuiltBinaryVariable is set to false. "
-                "The value of bigM will be ignored in the optimization."
+                "The declared bigM variable is not used in the problem formulation for hasIsBuiltBinaryVariable, since hasIsBuiltBinaryVariable is set to false. \n"
+                "Check if bigM is needed for other binary variables (like partLoadMin). Else it is ignored."
             )
 
 
@@ -1242,6 +1232,14 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
 
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
+    assert not (isinstance(data, pd.Series) and data.isnull().any()), (
+        f"Initialization error in {name} detected.\n"
+        "Economic parameters contain NaN values which are not allowed."
+    )
+    assert not (isinstance(data, (int, float)) and pd.isnull(data)), (
+        f"Initialization error in {name} detected.\n"
+        "Economic parameters contain NaN values which are not allowed."
+    )
     if dimension == "1dim":
         if not (
             isinstance(data, int)
@@ -1694,6 +1692,8 @@ def checkAndSetFullLoadHoursParameter(
                         + "All entries in economic parameter series have to be positive."
                     )
                 parameter[ip] = _data
+            elif _data is None:
+                parameter[ip] = None
     return parameter
 
 
@@ -2300,13 +2300,13 @@ def checkAndSetStock(component, esM, stockCommissioning):
             installed_sum -= stockCommissioning[
                 esM.startYear - component.technicalLifetime[loc]
             ][loc]
-        if component.processedCapacityMax is not None:
+        if component.processedCapacityMax[0] is not None:
             if installed_sum > component.processedCapacityMax[0][loc]:
                 raise ValueError(
                     f"The stock of {installed_sum} for '{component.name}' in region '{loc}' "
                     + f"exceeds its capacityMax of '{component.processedCapacityMax}' in the first year"
                 )
-        if component.processedCapacityFix is not None:
+        if component.processedCapacityFix[0] is not None:
             if installed_sum > component.processedCapacityFix[0][loc]:
                 raise ValueError(
                     f"The stock of '{component.name}' in region '{loc}' "

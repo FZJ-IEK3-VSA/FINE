@@ -1,6 +1,6 @@
 """
-Functions to aggregate region data for a reduced set 
-of regions obtained as a result of spatial grouping of regions. 
+Functions to aggregate region data for a reduced set
+of regions obtained as a result of spatial grouping of regions.
 """
 
 import logging
@@ -484,7 +484,8 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
         for comp, comp_ds in comp_dict.items():
             aggregated_comp_ds = xr.Dataset()
 
-            for varname, da in comp_ds.data_vars.items():
+            for varname, da_iter in comp_ds.data_vars.items():
+                da = da_iter
                 # Check and set aggregation mode and weights
                 aggregation_mode, aggregation_weight = _get_aggregation_mode(
                     varname, comp, comp_ds
