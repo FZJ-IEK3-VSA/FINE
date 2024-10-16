@@ -2980,9 +2980,6 @@ class ComponentModel(metaclass=ABCMeta):
         :rtype: _type_
         """
         commisVar = getattr(pyM, "commis_" + self.abbrvName)
-        import pytest
-
-        pytest.set_trace()
         return sum(
             commisVar[loc, compName, ip]
             * esM.getComponentAttribute(compName, component_attribute)[ip]
