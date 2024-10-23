@@ -24,3 +24,4 @@ dependencies:
   - pwlf<3
   - psutil<6
   - gurobi-logtools<4
+  - ipykernel<=6.29.5
