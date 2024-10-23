@@ -9,12 +9,12 @@ version = "2.3.8"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
+    { name = "Johannes Behrens", email = "j.behrens@fz-juelich.de"},
     { name = "Theresa Groß", email = "t.gross@fz-juelich.de" },
-    { name = "Kevin Knosala", email = "k.knosala@fz-juelich.de" },
 ]
 maintainers = [
+    { name = "Johannes Behrens", email = "j.behrens@fz-juelich.de"},
     { name = "Theresa Groß", email = "t.gross@fz-juelich.de" },
-    { name = "Kevin Knosala", email = "k.knosala@fz-juelich.de" },
 ]
 license = { file = "LICENSE" }
 
@@ -46,6 +46,7 @@ dependencies = [
     "pwlf<3",
     "psutil<6",
     "gurobi-logtools<4",
+    "ipykernel<=6.29.5",
 ]
 
 requires-python = ">=3.10,<3.13"
