@@ -7,6 +7,7 @@ import numpy as np
 import math
 import copy
 
+
 class Component(metaclass=ABCMeta):
     """
     The Component class includes the general methods and arguments for the components which are add-able to
@@ -49,7 +50,7 @@ class Component(metaclass=ABCMeta):
         floorTechnicalLifetime=True,
     ):
         """
-        Constructor for creating an Component class instance.
+        Constructor for creating an instance of the Component class.
 
         **Required arguments:**
 
@@ -1573,6 +1574,7 @@ class ComponentModel(metaclass=ABCMeta):
         opRateFixName="processedOperationRateFix",
         opRateMaxName="processedOperationRateMax",
         isOperationCommisYearDepending=False,
+        flexibleConversion=False,
         relevanceThreshold=None,
     ):
         """
@@ -1580,12 +1582,14 @@ class ComponentModel(metaclass=ABCMeta):
 
         The following operation modes are directly handled during variable creation as bounds instead of constraints.
 
-        operation mode 4: If operationRateFix is given, the variables are fixed with operationRateFix, i.e. the operation [commodityUnit*h] is equal to a time series.
+        operation mode 4: If operationRateFix is given for components without a capacity variable,
+        the variables are fixed with operationRateFix, i.e. the operation [commodityUnit*h] is equal to a time series.
 
         .. math::
             op^{comp,opType}_{loc,p,t} = \\text{opRateFix}^{comp,opType}_{loc,p,t}
 
-        operation mode 5: If operationRateMax is given, the variables are bounded by operationRateMax, i.e. the operation [commodityUnit*h] is limited by a time series.
+        operation mode 5: If operationRateMax is given for components without a capacity variable,
+        the variables are bounded by operationRateMax, i.e. the operation [commodityUnit*h] is limited by a time series.
 
         .. math::
             op^{comp,opType}_{loc,p,t} \\leq \\text{opRateMax}^{comp,opType}_{loc,p,t}
@@ -1597,7 +1601,9 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
 
-        :param isOperationCommisYearDepending: defines weather the operation variable is depending on the year of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency, variates over the transformation pathway
+        :param isOperationCommisYearDepending: defines weather the operation variable is depending on the year
+            of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency,
+            variates over the transformation pathway
         :type isOperationCommisYearDepending: str
         """
         abbrvName, compDict = self.abbrvName, self.componentsDict
@@ -1677,6 +1683,16 @@ class ComponentModel(metaclass=ABCMeta):
                     bounds=opBounds_commisDepending,
                 ),
             )
+        elif flexibleConversion:
+            setattr(
+                pyM,
+                opVarName + "_" + abbrvName,
+                pyomo.Var(
+                    getattr(pyM, "operationFlexVarSet_" + abbrvName),
+                    pyM.intraYearTimeSet,
+                    domain=pyomo.NonNegativeReals,
+                ),
+            )
         else:
             setattr(
                 pyM,
@@ -1703,6 +1719,7 @@ class ComponentModel(metaclass=ABCMeta):
                 for loc, compName, ip in varSet
                 if getattr(compDict[compName], "partLoadMin") is not None
             )
+
         binaryOperationComponents = set(get_declareOperationBinaryVars(pyM))
 
         if len(binaryOperationComponents) > 0:
