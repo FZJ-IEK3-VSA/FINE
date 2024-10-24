@@ -50,11 +50,14 @@ class Conversion(Component):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        commissioningDependentCcf=False,
+        emissionFactors=None,
+        flowShares=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
         """
-        Constructor for creating an Conversion class instance. Capacities are given in the physical unit
+        Constructor for creating an instance of the Conversion class. Capacities are given in the physical unit
         of the plants.
         The Conversion component specific input arguments are described below. The general component
         input arguments are described in the Component class.
@@ -83,15 +86,14 @@ class Conversion(Component):
                 GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
                 -> the commodityConversionFactors are defined as {'electricity':1,'hydrogen':-1/0.6}.
 
-            If a transformation pathway analysis is performed the conversion factors can also be variated
-            over the transformation pathway. Therefore two different options are available:
+            If a transformation pathway analysis is performed the conversion factors can also be varied
+            over the transformation pathway. Therefore, two different options are available:
 
             1. Variation with operation year (for example to incorporate weather changes for a heat pump).
                Example:
                {2020: {'electricity':-1,'heat':pd.Series(data=[2.5, 2.8, 2.5, ...])},
                2025: {'electricity':-1,'heat':pd.Series(data=[2.7, 2.4, 2.9, ...])},
-               ...
-               }
+               ...}
             2. Variation with commissioning and operation year (for example to incorporate efficiency
                changes dependent on the installation year). Please note that this implementation massively
                increases the complexity of the optimization problem.
@@ -99,8 +101,16 @@ class Conversion(Component):
                {(2020, 2020): {'electricity':-1,'heat':pd.Series(data=[2.5, 2.8, 2.5, ...])},
                (2020, 2025): {'electricity':-1,'heat':pd.Series(data=[2.7, 2.4, 2.9, ...])},
                (2025, 2025): {'electricity':-1,'heat':pd.Series(data=[3.7, 3.4, 3.9, ...])},
-               ...
-               }
+               ...}
+
+            If a conversion component can decide between multiple in- or outputs which one to use
+            (e.g. a chp plant) a flexible conversion component can be specified. This enables the
+            component to substitute in- or output commodities within a commodity group. To allow
+            this behavior an additional level needs to be specified:
+
+            * A CHP plant can decide between the production of heat or electricity (or a mix of both).
+                When electricity is produced the conversion factor is 0.2 and for heat 0.5:
+                {'gas': -1, 'out': {electricity: 0.2, heat: 0.5}}
 
         :type commodityConversionFactors:
 
@@ -171,6 +181,49 @@ class Conversion(Component):
             * Pandas Series with positive (>=0) entries. The indices of the series have to equal the in the energy
               system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
+
+        :param commissioningDependentCcf: specifies if commodity conversion factors are dependent on commissioning
+            or operation year. If set to False, the factors are only dependent on the year of operation and
+            no new operation variables are introduced. If set to True, the factors are dependent on commissioning
+            year and new operation variables are introduced for every commissioning year.
+            |br| * the default value is False
+        :type commissioningDependentCcf:bool
+
+        :param emissionFactors: can be used to specify emissions for flexible conversion components.
+            This parameter can only be specified if the component is a flexible conversion component (see explanations
+            on commodity conversion factors above). When specified, the emission factors indicate what emissions
+            are produced when a particular commodity is used by the component.
+            Note: For non-flexible conversion components emissions must be specified as commodity conversion factors.
+
+            Example: The CO2 emissions of a power plant are dependent on the type of fuel is used (e.g. coal has
+            higher emissions than gas): {'co2': {'coal': 3, 'gas': 1}}
+        :type emissionFactors: dict with emission commodities as key and a dict as value. The inner dict holds the
+            emission factors which are dependent on the utilized commodity.
+
+        :param flowShares: can be used to constrain the operation of flexible conversion components (see explanations
+            on commodity conversion factors above). When used, the flow shares must be specified as 'min', 'max', or
+            'fix' values that limit the commodity specific operation rate of a flexible conversion component relative
+            to the overall rate of that component (e.g. if the flow share max for H2 is set to 0.75 and the overall
+            operation rate is 4 MW, then the H2 operation rate must be smaller or equal to 3 MW). Flow shares can be
+            set up for all, some, or none of the modeled investment periods, and can either apply to all regions
+            (if defined as int) or depend on individual regions (if defined as pandas series). Flow shares must be
+            between 0 and 1 if specified.
+
+            Example: In the first investment period in Location1 only a small share of 10 % of the modeled gas heaters
+            are able to burn hydrogen instead of natural gas. In the second investment period more hydrogen ready
+            heaters are available and 50% of the heaters can burn hydrogen instead of natural gas (10 % of
+            those heaters can only burn hydrogen). In Location2 only 5 % can burn hydrogen in first period and 40 % can
+            burn hydrogen in second period:
+            flowShares = {
+                0: {
+                    'max': {'hydrogen': pd.Series([0.1, 0.05], index=['loc1', 'loc2'])}
+                },
+                1: {
+                    'max': {'hydrogen': pd.Series([0.1, 0.05], index=['loc1', 'loc2'])},
+                    'min': {'hydrogen': pd.Series([0.1], index=['loc1'])}
+                }
+            }
+        :type flowShares: dict
         """
         Component.__init__(
             self,
@@ -278,7 +331,13 @@ class Conversion(Component):
         )
 
         # commodity conversions factors
+        self.commissioningDependentCcf = commissioningDependentCcf
         self.commodityConversionFactors = commodityConversionFactors
+        (
+            self.isIpDepending,
+            self.isCommisDepending,
+            self.flexibleConversion
+        ) = utils.checkConversionFactorProperties(self, esM, commissioningDependentCcf)
         (
             self.fullCommodityConversionFactors,
             self.processedCommodityConversionFactors,
@@ -287,6 +346,12 @@ class Conversion(Component):
         self.aggregatedCommodityConversionFactors = dict.fromkeys(
             self.fullCommodityConversionFactors.keys()
         )
+
+        self.emissionFactors = emissionFactors
+        self.processedEmissionFactors = utils.checkEmissionFactors(self, esM)
+
+        self.flowShares = flowShares
+        self.processedFlowShares = utils.checkAndSetFlowShares(self, esM)
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
@@ -436,8 +501,8 @@ class Conversion(Component):
         )
 
         # get the aggregated commodity conversion factors
-        # procedure changes whether the commodity converison factors are depending
-        # on the commissioning year or only on the operation year (investment period)
+        # The procedure changes depending on whether the commodity conversion factors depend on the year of
+        # commissioning or only on the year of operation (investment period).
         if not self.isCommisDepending:
             if self.fullCommodityConversionFactors[ip] != {}:
                 self.aggregatedCommodityConversionFactors[ip] = {}
@@ -540,8 +605,8 @@ class ConversionModel(ComponentModel):
 
     def declareOpCommisVarSet(self, esM, pyM):
         """
-        Declare operation set for components, which commodity conversion factors are depending on the
-        commissioning year in the pyomo object for amodeling class.
+        Declare the operation set for components that have commodity conversion factors that depend on the
+        year in the pyomo object for a modeling class.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel instance
@@ -571,6 +636,70 @@ class ConversionModel(ComponentModel):
             pyM,
             "operationCommisVarSet_" + abbrvName,
             pyomo.Set(dimen=4, initialize=declareOpCommisVarSet),
+        )
+
+    def declareOpFlexVarSets(self, esM, pyM):
+        """
+        Declare commodity specific operation variable set for flexible conversion components in the pyomo object
+        for a modeling class.
+        """
+        compDict = self.componentsDict
+        flexConv = [
+            compName for (compName, comp) in compDict.items() if comp.flexibleConversion
+        ]
+
+        # Set which holds commodity groups for all flexible components, investment periods and locations
+        def declareOpFlexGroupSet(pyM):
+            return (
+                (loc, compName, ip, group)
+                for compName in flexConv
+                for loc in compDict[compName].processedLocationalEligibility.index
+                for ip in esM.investmentPeriods
+                for group, group_ccf in compDict[compName].processedCommodityConversionFactors[ip].items()
+                if isinstance(group_ccf, dict)
+                if compDict[compName].processedLocationalEligibility[loc] == 1
+            )
+
+        setattr(
+            pyM,
+            "operationFlexGroupSet_" + self.abbrvName,
+            pyomo.Set(dimen=4, initialize=declareOpFlexGroupSet),
+        )
+
+        # Set for flexible operation variables including commodity group
+        def declareOpFlexVarSet(pyM):
+            return (
+                (loc, compName, ip, group, commod)
+                for (loc, compName, ip, group) in getattr(pyM, "operationFlexGroupSet_" + self.abbrvName)
+                for commod in compDict[compName].processedCommodityConversionFactors[ip][group].keys()
+            )
+
+        setattr(
+            pyM,
+            "operationFlexVarSet_" + self.abbrvName,
+            pyomo.Set(dimen=5, initialize=declareOpFlexVarSet),
+        )
+
+    def declareFlexFlowShareConstrSet(self, pyM):
+        """
+        Declare set for flow share constraints based on the processed flow shares parameter.
+        """
+
+        def declareOpFlexFlowShareConstrSet(pyM):
+            return (
+                (loc, compName, ip, group, attr, commod)
+                for loc, compName, ip, group in getattr(pyM, "operationFlexGroupSet_" + self.abbrvName)
+                if self.componentsDict[compName].processedFlowShares
+                if ip in self.componentsDict[compName].processedFlowShares.keys()
+                for attr, fs in self.componentsDict[compName].processedFlowShares[ip].items()
+                for commod in fs.keys()
+                if loc in fs[commod].index
+            )
+
+        setattr(
+            pyM,
+            "operationFlexFlowShareConstrSet_" + self.abbrvName,
+            pyomo.Set(dimen=6, initialize=declareOpFlexFlowShareConstrSet),
         )
 
     def declareOpCommisConstrSet1(self, pyM, constrSetName, rateMax, rateFix, rateMin):
@@ -765,7 +894,9 @@ class ConversionModel(ComponentModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
+        self.declareOpFlexVarSets(esM, pyM)
         self.declareOpCommisVarSet(esM, pyM)
+        self.declareFlexFlowShareConstrSet(pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
@@ -827,6 +958,14 @@ class ConversionModel(ComponentModel):
             "op_commis",
             relevanceThreshold=relevanceThreshold,
             isOperationCommisYearDepending=True,
+        )
+        # Flexible conversion operation variables that are also indexed over the commodity
+        self.declareOperationVars(
+            pyM,
+            esM,
+            "op_flex",
+            relevanceThreshold=relevanceThreshold,
+            flexibleConversion=True,
         )
         # Operation of component as binary [1/0]
         self.declareOperationBinaryVars(pyM, "op_bin")
@@ -984,20 +1123,17 @@ class ConversionModel(ComponentModel):
             "cap",
             isOperationCommisYearDepending=True,
         )
-        # Operation for components with commissioning year depending commodity conversions
-        self.getTotalOperationIfDifferentCommodityConversionFactors(
-            pyM, esM
-        )  # TODO new name
+        # Operation for components with commissioning year dependent commodity conversion factors
+        self.getTotalOperationCommissioningDependentOperation(pyM)
 
-    def getTotalOperationIfDifferentCommodityConversionFactors(
-        self,
-        pyM,
-        esM,
-    ):
+        # Declare flexible conversion constraints
+        self.flexConversionConstraint(pyM, esM)
+        self.flexConversionFlowShareConstraint(pyM)
+
+    def getTotalOperationCommissioningDependentOperation(self, pyM):
         """
-        # TODO formula
-        # TODO new name of function
-
+        Ensure that the sum of all commissioning dependent operating variables equals the total operating variable
+        of that conversion component for each time step.
         """
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1046,8 +1182,15 @@ class ConversionModel(ComponentModel):
         :param commod: string
         """
         # note: year definition can either
-        # a) int: if the commodity converison factor is constant for commissioning years
+        # a) int: if the commodity conversion factor is constant for commissioning years
         # b) tuple with (commisYear,ip) if the commodity conversion is varying with the commissioning year
+
+        operationFlexVarSet = getattr(esM.pyM, "operationFlexVarSet_" + self.abbrvName)
+        flexible_commods = {
+            index[4]
+            for index in operationFlexVarSet
+            if index[0] == loc
+        }
         return any(
             [
                 (
@@ -1060,7 +1203,78 @@ class ConversionModel(ComponentModel):
                 and comp.processedLocationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
                 for yearDefinition in comp.processedCommodityConversionFactors.keys()
+            ] +
+            [
+                commod in comp.processedEmissionFactors.keys()
+                for comp in self.componentsDict.values()
+                if comp.processedEmissionFactors is not None
             ]
+        ) or commod in flexible_commods
+
+    def flexConversionConstraint(self, pyM, esM):
+        """
+        Declare constraint that ensures that the sum of all flexible operation variables of one component are equal
+        to the overall operation of this component.
+        """
+
+        opVar = getattr(pyM, "op_" + self.abbrvName)
+        opVarFlex = getattr(pyM, "op_flex_" + self.abbrvName)
+        compDict = self.componentsDict
+
+        def input_output_constr(pyM, loc, compName, ip, group, p, t):
+            ccf = compDict[compName].processedCommodityConversionFactors[ip][group]
+
+            opVarFlexSum = sum(
+                opVarFlex[loc, compName, ip, group, commod, p, t]
+                for commod, value in ccf.items()
+            )
+            return opVarFlexSum == opVar[loc, compName, ip, p, t]
+
+        setattr(
+            pyM,
+            "flexConversion_input_output_constraint_" + self.abbrvName,
+            pyomo.Constraint(
+                getattr(pyM, "operationFlexGroupSet_" + self.abbrvName),
+                pyM.intraYearTimeSet,
+                rule=input_output_constr
+            ),
+        )
+
+    def flexConversionFlowShareConstraint(self, pyM):
+        """
+        Declare constraint that applies flow shares for each flexible component.
+        """
+        opVar = getattr(pyM, "op_" + self.abbrvName)
+        opVarFlex = getattr(pyM, "op_flex_" + self.abbrvName)
+        compDict = self.componentsDict
+
+        def flow_share_constr(pyM, loc, compName, ip, group, attr, commod, p, t):
+            flowShares = compDict[compName].processedFlowShares
+
+            if attr == 'min':
+                return (
+                    opVarFlex[loc, compName, ip, group, commod, p, t] >=
+                    opVar[loc, compName, ip, p, t] * flowShares[ip][attr][commod].loc[loc]
+                )
+            elif attr == 'max':
+                return (
+                    opVarFlex[loc, compName, ip, group, commod, p, t] <=
+                    opVar[loc, compName, ip, p, t] * flowShares[ip][attr][commod].loc[loc]
+                )
+            elif attr == 'fix':
+                return (
+                    opVarFlex[loc, compName, ip, group, commod, p, t] ==
+                    opVar[loc, compName, ip, p, t] * flowShares[ip][attr][commod].loc[loc]
+                )
+
+        setattr(
+            pyM,
+            "flexConversion_flow_share_constraint_" + self.abbrvName,
+            pyomo.Constraint(
+                getattr(pyM, "operationFlexFlowShareConstrSet_" + self.abbrvName),
+                pyM.intraYearTimeSet,
+                rule=flow_share_constr
+            ),
         )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
@@ -1073,6 +1287,7 @@ class ConversionModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
+        opVarFlex = getattr(pyM, "op_flex_" + abbrvName)
         opCommisVar = getattr(pyM, "op_commis_" + abbrvName)
         opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
 
@@ -1082,7 +1297,7 @@ class ConversionModel(ComponentModel):
             else:
                 return commodCommodityConversionFactors[loc][p, t]
 
-        # 1. get balance for compontents, which do not have commodity conversions varying with the commissioning year
+        # 1.a get balance for components, which do not have commodity conversions varying with the commissioning year
         # prepare data
         sumCommisYearIndependent = sum(
             opVar[loc, compName, ip, p, t]
@@ -1095,6 +1310,25 @@ class ConversionModel(ComponentModel):
             for compName in opVarDict[ip][loc]
             if not compDict[compName].isCommisDepending
             and commod in compDict[compName].processedCommodityConversionFactors[ip]
+        )
+        # 1.b get balance contribution for flexible conversion components
+        flexible_comp_commod_groups = {
+            (index[1], index[3])
+            for index in getattr(pyM, "operationFlexGroupSet_" + self.abbrvName)
+            if index[0] == loc
+        }
+        sumCommisYearIndependentFlex = sum(
+            opVarFlex[loc, compName, ip, group, commod, p, t]
+            * getFactor(
+                compDict[compName].processedCommodityConversionFactors[ip][group][commod],
+                loc,
+                p,
+                t,
+            )
+            for compName, group in flexible_comp_commod_groups
+            if not compDict[compName].isCommisDepending
+            if compDict[compName].flexibleConversion
+            and commod in compDict[compName].processedCommodityConversionFactors[ip][group]
         )
         # 2. commodity conversions factors is depending on the commissioning year (e.g. efficiencies) if
         # a) component has isCommisDepending
@@ -1125,8 +1359,35 @@ class ConversionModel(ComponentModel):
                                 p,
                                 t,
                             )
+        # 3. get balance contribution for emissions from flexible conversion components
+        emission_comps = {
+            compName: list(compDict[compName].processedEmissionFactors[commod].keys())
+            for compName in compDict.keys()
+            if compDict[compName].processedEmissionFactors is not None
+            if commod in compDict[compName].processedEmissionFactors.keys()
+            if compDict[compName].processedEmissionFactors[commod] is not None
+        }
+        if len(emission_comps) > 0:
+            sumFlexEmission = sum(
+                opVarFlex[loc, compName, ip, group, commodity, p, t]
+                * compDict[compName].emissionFactors[commod][commodity]
+                * abs(
+                    getFactor(
+                        compDict[compName].processedCommodityConversionFactors[ip][group][commodity],
+                        loc,
+                        p,
+                        t
+                    )
+                )
+                for compName, group in flexible_comp_commod_groups
+                if compName in emission_comps.keys()
+                for commodity in emission_comps[compName]
+                if commodity in compDict[compName].processedCommodityConversionFactors[ip][group].keys()
+            )
+        else:
+            sumFlexEmission = 0
 
-        return sumCommisYearIndependent + sumCommisYearDependent
+        return sumCommisYearIndependent + sumCommisYearDependent + sumCommisYearIndependentFlex + sumFlexEmission
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
