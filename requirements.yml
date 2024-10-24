@@ -7,21 +7,21 @@ channels:
 dependencies:
   - python>=3.10,<3.13
   - pip
-  - geopandas<1
+  - geopandas<=0.14.4
   - glpk
-  - openpyxl<4
-  - matplotlib<4
-  - xlrd<3
-  - pyomo<7
-  - numpy<2
-  - pandas<3
-  - scipy<2
-  - scikit-learn>=1.2,<2
+  - openpyxl<=3.1.5
+  - matplotlib<=3.9.2
+  - xlrd<=2.0.1
+  - pyomo<=6.8.0
+  - numpy<=1.26.4
+  - pandas<=2.2.3
+  - scipy<=1.14.1
+  - scikit-learn>=1.2,<=1.5.2
   - xarray<=2024.3
-  - rasterio<2
-  - netcdf4<2
+  - rasterio<=1.4.1
+  - netcdf4<=1.7.2
   - tsam
-  - pwlf<3
-  - psutil<6
-  - gurobi-logtools<4
+  - pwlf<=2.2.1
+  - psutil<=5.9.8
+  - gurobi-logtools<=3.1.0
   - ipykernel<=6.29.5
