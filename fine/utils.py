@@ -2719,11 +2719,14 @@ def checkAndSetMaterialDemandPerCapacity(esM, name, materialDemand, years):
 
     # TEMP print materialDemand
     print(materialDemand)
+    print(type(materialDemand))
     # create new dictionary for processed material demand that can be returned later
     _materialDemand = {}
-    if isinstance(materialDemand, (int, float)):
+    if materialDemand is not None and not isinstance(materialDemand, dict):
         for ip in years:
             _materialDemand[ip] = materialDemand
+        # print("is instance int or float!")
+        print(_materialDemand)
     elif isinstance(materialDemand, dict):
         # If materialDemand is a dict, this check ensures that it has the correct
         # keys and prevents "None" as values
