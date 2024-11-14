@@ -2,9 +2,27 @@ import inspect
 
 import fine as fn
 from fine.IOManagement import utilsIO
+from fine.utils import buildFullTimeSeries
 
 
-def exportToDict(esM, useProcessedValues=False):
+def reconstruct_full_timeseries(esM, timeseries, ip):
+    print("Reconstructing timeseries from TSA")
+
+    # switch first index level and column level
+    df = timeseries.copy()
+    df = df.stack().unstack(level=1)
+    df.index.names = [None] * len(df.index.names)
+    full_df = (
+        buildFullTimeSeries(df, esM.periodsOrder[ip], ip=ip, esM=esM, divide=False)
+        .reset_index(level=0, drop=True)
+        .T
+    )
+    full_df.columns = timeseries.columns
+
+    return full_df
+
+
+def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
     """
     Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
 
@@ -88,6 +106,58 @@ def exportToDict(esM, useProcessedValues=False):
                         compDict[classname][componentname][prop] = getattr(
                             component, prop
                         )
+                # Add aggregatedRate timeseries from TSA
+                if esM.isTimeSeriesDataClustered:
+                    prop_list_full_set = component.__dict__.keys()
+                    for prop in prop_list_full_set:
+                        if (prop != "self") and (prop != "esM"):
+                            if ("aggregated" in prop) and ("Rate" in prop):
+                                timeseries = getattr(component, prop)
+                                # if only one time series was given by user, independent of the number of investment periods, we only save that
+                                original_name = prop.replace("aggregated", "")
+                                original_name = (
+                                    f"{original_name[:1].lower()}{original_name[1:]}"
+                                )
+                                inuptTimeSeries = getattr(component, original_name)
+
+                                if isinstance(inuptTimeSeries, dict):
+                                    compDict[classname][componentname][prop] = {}
+                                    for ip in timeseries.keys():
+                                        ip_name = esM.investmentPeriodNames[ip]
+                                        # get years
+                                        if timeseries[ip] is not None:
+                                            compDict[classname][componentname][prop][
+                                                ip_name
+                                            ] = reconstruct_full_timeseries(
+                                                esM, timeseries[ip], ip=ip
+                                            )
+                                        else:
+                                            compDict[classname][componentname][prop] = (
+                                                None
+                                            )
+                                else:
+                                    ip = 0
+                                    if isinstance(timeseries, dict):
+                                        if (
+                                            timeseries[ip] is not None
+                                        ):  # we only save the first time series since they are all the same (becaue only one time series given by user)
+                                            compDict[classname][componentname][prop] = (
+                                                reconstruct_full_timeseries(
+                                                    esM, timeseries[ip], ip=ip
+                                                )
+                                            )
+                                        else:
+                                            compDict[classname][componentname][prop] = (
+                                                None
+                                            )
+                                    elif timeseries is not None:
+                                        compDict[classname][componentname][prop] = (
+                                            reconstruct_full_timeseries(
+                                                esM, timeseries, ip=ip
+                                            )
+                                        )
+                                    else:
+                                        compDict[classname][componentname][prop] = None
 
     return esmDict, compDict
 
@@ -110,8 +180,20 @@ def importFromDict(esmDict, compDict):
     for classname in compDict:
         # get class
         class_ = getattr(fn, classname)
+        blacklist = [
+            "aggregated"
+        ]  # variable is only needed to save clusterd timeseries data
 
         for comp in compDict[classname]:
+            # get all vars that start with entries in blacklist
+            compBlacklist = [
+                var
+                for var in compDict[classname][comp]
+                if any([var.startswith(bl) for bl in blacklist])
+            ]
+            # remove all vars in blacklist
+            for var in compBlacklist:
+                compDict[classname][comp].pop(var)
             esM.add(class_(esM, **compDict[classname][comp]))
 
     return esM
