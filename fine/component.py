@@ -2615,8 +2615,30 @@ class ComponentModel(metaclass=ABCMeta):
                     constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1
                 ),
             )
-
-            if isOperationCommisYearDepending:
+            if not pyM.hasSegmentation:
+                if isOperationCommisYearDepending:
+                    def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
+                        processedPartLoadMin = getattr(
+                            compDict[compName], "processedPartLoadMin"
+                        )[ip]
+                        bigM = getattr(compDict[compName], "bigM")
+                        return (
+                            opVar[loc, compName, commis, ip, p, t]
+                            >= processedPartLoadMin * commisVar[loc, compName, commis]
+                            - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
+                        )
+                else:
+                    def opMinPartLoad2(pyM, loc, compName, ip, p, t):
+                        processedPartLoadMin = getattr(
+                            compDict[compName], "processedPartLoadMin"
+                        )[ip]
+                        bigM = getattr(compDict[compName], "bigM")
+                        return (
+                            opVar[loc, compName, ip, p, t]
+                            >= processedPartLoadMin * capVar[loc, compName, ip]
+                            - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
+                        )
+            elif isOperationCommisYearDepending:
                 def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
                     processedPartLoadMin = getattr(
                         compDict[compName], "processedPartLoadMin"
@@ -2624,9 +2646,9 @@ class ComponentModel(metaclass=ABCMeta):
                     bigM = getattr(compDict[compName], "bigM")
                     return (
                         opVar[loc, compName, commis, ip, p, t]
-                        >= processedPartLoadMin * commisVar[loc, compName, commis]
+                        >= processedPartLoadMin * commisVar[loc, compName, commis] * esM.hoursPerSegment[ip][p, t]
                         - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
-                    )
+                )
             else:
                 def opMinPartLoad2(pyM, loc, compName, ip, p, t):
                     processedPartLoadMin = getattr(
@@ -2635,7 +2657,7 @@ class ComponentModel(metaclass=ABCMeta):
                     bigM = getattr(compDict[compName], "bigM")
                     return (
                         opVar[loc, compName, ip, p, t]
-                        >= processedPartLoadMin * capVar[loc, compName, ip]
+                        >= processedPartLoadMin * capVar[loc, compName, ip] * esM.hoursPerSegment[ip][p, t]
                         - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
                     )
             setattr(
