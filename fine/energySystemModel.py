@@ -1025,8 +1025,9 @@ class EnergySystemModel:
                         compWeightDict,
                     ) = comp.getDataForTimeSeriesAggregation(ip)
                     if compTimeSeriesData is not None:
-                        timeSeriesData.append(compTimeSeriesData), weightDict.update(
-                            compWeightDict
+                        (
+                            timeSeriesData.append(compTimeSeriesData),
+                            weightDict.update(compWeightDict),
                         )
             timeSeriesData = pd.concat(timeSeriesData, axis=1)
             # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
@@ -1737,9 +1738,7 @@ class EnergySystemModel:
             )
             # Add create an objective list and add all objectives to it
             pyM.obj_list = pyomo.ObjectiveList()
-            for (
-                obj
-            ) in (
+            for obj in (
                 self.objective  # remember: if use_moo is true, this is a list containing all desired objectives
             ):
                 pyM.obj_list.add(expr=objective_rule(pyM, obj))
@@ -1816,15 +1815,18 @@ class EnergySystemModel:
             utils.output(
                 "Declaring sets, variables and constraints for " + key, self.verbose, 0
             )
-            utils.output("\tdeclaring sets... ", self.verbose, 0), mdl.declareSets(
-                self, pyM
+            (
+                utils.output("\tdeclaring sets... ", self.verbose, 0),
+                mdl.declareSets(self, pyM),
             )
-            utils.output(
-                "\tdeclaring variables... ", self.verbose, 0
-            ), mdl.declareVariables(self, pyM, relaxIsBuiltBinary, relevanceThreshold)
-            utils.output(
-                "\tdeclaring constraints... ", self.verbose, 0
-            ), mdl.declareComponentConstraints(self, pyM)
+            (
+                utils.output("\tdeclaring variables... ", self.verbose, 0),
+                mdl.declareVariables(self, pyM, relaxIsBuiltBinary, relevanceThreshold),
+            )
+            (
+                utils.output("\tdeclaring constraints... ", self.verbose, 0),
+                mdl.declareComponentConstraints(self, pyM),
+            )
             utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################
@@ -2104,8 +2106,9 @@ class EnergySystemModel:
         else:
             solver_info = optimizer.solve(self.pyM, tee=True)
         self.solverSpecs["solvetime"] = time.time() - timeStart
-        utils.output(solver_info.solver(), self.verbose, 0), utils.output(
-            solver_info.problem(), self.verbose, 0
+        (
+            utils.output(solver_info.solver(), self.verbose, 0),
+            utils.output(solver_info.problem(), self.verbose, 0),
         )
         utils.output(
             "Solve time: " + str(self.solverSpecs["solvetime"]) + " sec.",
@@ -2421,7 +2424,6 @@ class EnergySystemModel:
         write_excel_output=True,
         excel_output_path=None,
     ):
-
         # initialize pyaugmecon Options Object
         pyaugmeconOptions = pyaugmecon.opts
 

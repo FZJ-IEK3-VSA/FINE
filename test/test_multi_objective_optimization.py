@@ -178,17 +178,19 @@ def test_moo_ip_dependent_objective_contribution(
     test_esm.process_fine_moo_output(
         pyaugmecon_instance, excel_output_path=temp_results_path
     )
-    
+
     # load temporary result files
     results = {
-        year : pd.read_excel(
+        year: pd.read_excel(
             io=temp_results_path
             / f"pareto_solution_{list(pyaugmecon_instance.sols)[0]}"
-            / f"results_for_{list(pyaugmecon_instance.sols)[0]}_{year}.xlsx",sheet_name="ConversionOptSummary_1dim", index_col=[0,1]
+            / f"results_for_{list(pyaugmecon_instance.sols)[0]}_{year}.xlsx",
+            sheet_name="ConversionOptSummary_1dim",
+            index_col=[0, 1],
         )
         for year in [2020, 2040]
     }
-    
+
     for year in results.keys():
         # check if material demand in results devided by comissioning are equal to the material demand set for the component via "get component attribute "
         expected_material_demand = test_esm.getComponent(
@@ -196,9 +198,16 @@ def test_moo_ip_dependent_objective_contribution(
         ).materialDemandPerCapacity[
             year
         ]  # use unprocessed attribute here to access it via "years" instead of investment periods
-        material_demand_calculated = results[year].loc[("Electrolyzer_cheap_highMat", "materialDemand"), "ForesightLand"].sum() / results[year].loc[("Electrolyzer_cheap_highMat", "commissioning"), "ForesightLand"].sum() # sum is used instead of float(...) to prevent deprication from pandas.
+        material_demand_calculated = (
+            results[year]
+            .loc[("Electrolyzer_cheap_highMat", "materialDemand"), "ForesightLand"]
+            .sum()
+            / results[year]
+            .loc[("Electrolyzer_cheap_highMat", "commissioning"), "ForesightLand"]
+            .sum()
+        )  # sum is used instead of float(...) to prevent deprication from pandas.
         np.testing.assert_almost_equal(
-        expected_material_demand,material_demand_calculated, decimal=5
+            expected_material_demand, material_demand_calculated, decimal=5
         )
 
     # After the test finishes - remove temporary results folder

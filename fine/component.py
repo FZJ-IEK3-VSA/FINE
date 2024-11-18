@@ -7,6 +7,7 @@ import numpy as np
 import math
 import copy
 
+
 class Component(metaclass=ABCMeta):
     """
     The Component class includes the general methods and arguments for the components which are add-able to
@@ -758,9 +759,10 @@ class Component(metaclass=ABCMeta):
                 columns={loc: self.name + rateName + loc for loc in data_.columns},
                 inplace=True,
             )
-            weightDict.update(
-                {id: rateWeight for id in uniqueIdentifiers}
-            ), data.append(data_)
+            (
+                weightDict.update({id: rateWeight for id in uniqueIdentifiers}),
+                data.append(data_),
+            )
         return weightDict, data
 
     def getTSAOutput(self, rate, rateName, data, ip):
@@ -1715,6 +1717,7 @@ class ComponentModel(metaclass=ABCMeta):
                 for loc, compName, ip in varSet
                 if getattr(compDict[compName], "partLoadMin") is not None
             )
+
         binaryOperationComponents = set(get_declareOperationBinaryVars(pyM))
 
         if len(binaryOperationComponents) > 0:
@@ -2560,7 +2563,6 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
-            
     def additionalMinPartLoad(
         self,
         pyM,
@@ -2587,9 +2589,12 @@ class ComponentModel(metaclass=ABCMeta):
         if opVarBin is not None:
             capVar = getattr(pyM, capVarName + "_" + abbrvName)
             commisVar = getattr(pyM, "commis_" + abbrvName)
-            constrSetMinPartLoad = getattr(pyM, constrSetName + "partLoadMin_" + abbrvName)
+            constrSetMinPartLoad = getattr(
+                pyM, constrSetName + "partLoadMin_" + abbrvName
+            )
 
             if isOperationCommisYearDepending:
+
                 def opMinPartLoad1(pyM, loc, compName, commis, ip, p, t):
                     bigM = getattr(compDict[compName], "bigM")
                     return (
@@ -2597,12 +2602,14 @@ class ComponentModel(metaclass=ABCMeta):
                         <= opVarBin[loc, compName, commis, ip, p, t] * bigM
                     )
             else:
+
                 def opMinPartLoad1(pyM, loc, compName, ip, p, t):
                     bigM = getattr(compDict[compName], "bigM")
                     return (
                         opVar[loc, compName, ip, p, t]
                         <= opVarBin[loc, compName, ip, p, t] * bigM
                     )
+
             setattr(
                 pyM,
                 constrName + "partLoadMin_1_" + abbrvName,
@@ -2612,6 +2619,7 @@ class ComponentModel(metaclass=ABCMeta):
             )
 
             if isOperationCommisYearDepending:
+
                 def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
                     processedPartLoadMin = getattr(
                         compDict[compName], "processedPartLoadMin"
@@ -2623,6 +2631,7 @@ class ComponentModel(metaclass=ABCMeta):
                         - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
                     )
             else:
+
                 def opMinPartLoad2(pyM, loc, compName, ip, p, t):
                     processedPartLoadMin = getattr(
                         compDict[compName], "processedPartLoadMin"
@@ -2633,6 +2642,7 @@ class ComponentModel(metaclass=ABCMeta):
                         >= processedPartLoadMin * capVar[loc, compName, ip]
                         - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
                     )
+
             setattr(
                 pyM,
                 constrName + "partLoadMin_2_" + abbrvName,
@@ -2983,14 +2993,13 @@ class ComponentModel(metaclass=ABCMeta):
         return sum(
             commisVar[loc, compName, ip]
             * getattr(esM.getComponent(compName), component_attribute)[ip]
-            
             for loc in esM.locations
             for compName in self.componentsDict
             for ip in esM.investmentPeriods
             if self.componentsDict[
                 compName
             ].hasCapacityVariable  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
-                                   #TODO ask Johannes whether it is possible to switch this to "hasComissioning"
+            # TODO ask Johannes whether it is possible to switch this to "hasComissioning"
             and getattr(esM.getComponent(compName), component_attribute)
             != (None and 0)  # has to be "and" because "not None AND not 0"
         )
@@ -3235,26 +3244,18 @@ class ComponentModel(metaclass=ABCMeta):
                         _ipEconomicLifetime = ipEconomicLifetime
                         if esM.getComponent(compName).floorTechnicalLifetime:
                             # example: technical lifetime is floored to 10, year 10 and 11 not relevant and without costs
-                            hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
-                                False
-                            )
+                            hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = False
                             _ipTechnicalLifetime = math.floor(ipTechnicalLifetime)
                         else:
                             # example: technical lifetime is ceiled to 15, year 10 and 11 without costs, year 12,13,14 require additional costs
-                            hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
-                                True
-                            )
+                            hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = True
                             _ipTechnicalLifetime = ipTechnicalLifetime
 
                         # economic lifetime leading to overhead years in last interval
                         if _ipEconomicLifetime % 1 != 0:
-                            hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
-                                True
-                            )
+                            hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = True
                         else:
-                            hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
-                                False
-                            )
+                            hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = False
 
                     # interval with cost in all included years
                     intervalsWithCompleteCosts = math.floor(_ipEconomicLifetime)

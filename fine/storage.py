@@ -1021,9 +1021,7 @@ class StorageModel(ComponentModel):
                     ip,
                     esM.periodsOrder[ip][pInter],
                     esM.timeStepsPerPeriod[-1] + 1,
-                ] + (
-                    offsetUp_ - offsetDown_
-                )
+                ] + (offsetUp_ - offsetDown_)
             else:
                 # return SOCInter[loc, compName, pInter + 1] == \
                 #     SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
@@ -1040,9 +1038,7 @@ class StorageModel(ComponentModel):
                     ip,
                     esM.periodsOrder[ip][pInter],
                     esM.segmentsPerPeriod[-1] + 1,
-                ] + (
-                    offsetUp_ - offsetDown_
-                )
+                ] + (offsetUp_ - offsetDown_)
 
         setattr(
             pyM,
@@ -1900,9 +1896,7 @@ class StorageModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = opSum.values / esM.numberOfYears
                 optSummary.loc[
                     [
                         (

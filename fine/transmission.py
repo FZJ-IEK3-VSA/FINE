@@ -226,13 +226,19 @@ class Transmission(Component):
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
         preprocessedCommissioningMin = utils.preprocess2dimData(
-            commissioningMin, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningMin,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningMax = utils.preprocess2dimData(
-            commissioningMax, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningMax,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningFix = utils.preprocess2dimData(
-            commissioningFix, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningFix,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         # stockCommissioning
         if stockCommissioning is None:
@@ -407,7 +413,7 @@ class Transmission(Component):
         )
         self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
-        
+
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
@@ -541,10 +547,7 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation mode sets
         self.declareOperationModeSets(
-            pyM,
-            "opConstrSet",
-            "processedOperationRateMax",
-            "processedOperationRateFix"
+            pyM, "opConstrSet", "processedOperationRateMax", "processedOperationRateFix"
         )
 
     ####################################################################################################################
@@ -1061,9 +1064,7 @@ class TransmissionModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = opSum.values / esM.numberOfYears
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")

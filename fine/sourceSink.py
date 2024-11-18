@@ -340,8 +340,10 @@ class Source(Component):
 
         # commodityCostTimeSeries
         self.commodityCostTimeSeries = commodityCostTimeSeries
-        self.fullCommodityCostTimeSeries = utils.checkAndSetInvestmentPeriodCostTimeSeries(
-            esM, name, commodityCostTimeSeries, locationalEligibility
+        self.fullCommodityCostTimeSeries = (
+            utils.checkAndSetInvestmentPeriodCostTimeSeries(
+                esM, name, commodityCostTimeSeries, locationalEligibility
+            )
         )
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
@@ -415,7 +417,7 @@ class Source(Component):
             self.fullOperationRateFix,
             self.bigM,
             self.hasCapacityVariable,
-            self.fullOperationRateMin
+            self.fullOperationRateMin,
         )
 
         utils.isPositiveNumber(tsaWeight)
@@ -701,13 +703,13 @@ class SourceSinkModel(ComponentModel):
                 if comp.commodityLimitID is not None:
                     ID, limit = comp.commodityLimitID, comp.processedYearlyLimit[ip]
                     if (
-                        ID,
-                        ip,
-                    ) in yearlyCommodityLimitationDict.keys() and limit != yearlyCommodityLimitationDict[
-                        (ID, ip)
-                    ][
-                        0
-                    ]:
+                        (
+                            ID,
+                            ip,
+                        )
+                        in yearlyCommodityLimitationDict.keys()
+                        and limit != yearlyCommodityLimitationDict[(ID, ip)][0]
+                    ):
                         raise ValueError(
                             "yearlyLimitationIDs with different upper limits detected."
                         )
@@ -1285,9 +1287,7 @@ class SourceSinkModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = opSum.values / esM.numberOfYears
 
                 # costs
                 tac_ox = resultsTAC_opexOp[ip]

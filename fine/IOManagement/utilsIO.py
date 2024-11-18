@@ -172,9 +172,7 @@ def generateIterationDicts(component_dict, investmentPeriods):
     # Loop through every class-component-variable combination
     for classname in component_dict:
         for component in component_dict[classname]:
-            for variable_description in component_dict[classname][
-                component
-            ].keys():
+            for variable_description in component_dict[classname][component].keys():
                 # 1. iterate through nested dict levels until constant, series or df, add
                 # 1. find list of keys in nested dict level
                 key_lists = getListsOfKeyPathsInNestedDict(
@@ -463,9 +461,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 time_dict[df_description] = pd.concat(
                     {locations[0]: time_dict[df_description]}, names=["space"]
                 )
-                time_dict[df_description] = time_dict[
-                    df_description
-                ].reorder_levels(["time", "space"])
+                time_dict[df_description] = time_dict[df_description].reorder_levels(
+                    ["time", "space"]
+                )
 
         # If the dicts are populated with at least one item,
         # process them further and merge with xr_ds

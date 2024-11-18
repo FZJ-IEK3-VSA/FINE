@@ -1,5 +1,3 @@
-
-
 def test_segmentation(minimal_test_esM):
     """
     Get the minimal test system, and check that for different segment and period configurations the same solution is

@@ -8,6 +8,7 @@ import pwlf
 
 # ruff: noqa
 
+
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
     """
     Determine xSegments, ySegments.

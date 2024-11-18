@@ -118,7 +118,9 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
             model_results_1_sorted = model_results_1.sort_index()
             model_results_2_sorted = model_results_2.sort_index()
 
-            assert_frame_equal(model_results_1_sorted, model_results_2_sorted, check_dtype=False)
+            assert_frame_equal(
+                model_results_1_sorted, model_results_2_sorted, check_dtype=False
+            )
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):

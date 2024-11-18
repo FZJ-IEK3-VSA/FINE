@@ -935,10 +935,10 @@ def setLocationalEligibility(
             operationTimeSeries = None
 
         if (
-                not hasCapacityVariable
-                and operationTimeSeries is not None
-                and any(ots is not None for ots in operationTimeSeries.values())
-            ):
+            not hasCapacityVariable
+            and operationTimeSeries is not None
+            and any(ots is not None for ots in operationTimeSeries.values())
+        ):
             if dimension == "1dim":
                 data = 0
                 # sum values over ips
@@ -1054,7 +1054,9 @@ def checkAndSetInvestmentPeriodCostTimeSeries(
         raise TypeError(
             f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
         )
-    return checkAndSetInvestmentPeriodTimeSeries(esM, name, data, locationalEligibility, dimension)
+    return checkAndSetInvestmentPeriodTimeSeries(
+        esM, name, data, locationalEligibility, dimension
+    )
 
 
 def checkAndSetTimeSeries(
@@ -1700,8 +1702,9 @@ def checkAndSetFullLoadHoursParameter(
 def checkClusteringInput(
     numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps
 ):
-    isStrictlyPositiveInt(numberOfTypicalPeriods), isStrictlyPositiveInt(
-        numberOfTimeStepsPerPeriod
+    (
+        isStrictlyPositiveInt(numberOfTypicalPeriods),
+        isStrictlyPositiveInt(numberOfTimeStepsPerPeriod),
     )
     if not totalNumberOfTimeSteps % numberOfTimeStepsPerPeriod == 0:
         raise ValueError(
@@ -2005,6 +2008,7 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
     """
     Change format of 2-dimensional data (for transmission components).
     """
+
     def preprocessDataPerIp(data):
         if data is not None and isinstance(data, pd.DataFrame):
             if mapC is None:
@@ -2015,13 +2019,15 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                             if discard:
                                 # Structure: data[column][row]
                                 if data[loc1][loc2] > 0:
-                                    index.append(loc1 + "_" + loc2), data_.append(
-                                        data[loc1][loc2]
+                                    (
+                                        index.append(loc1 + "_" + loc2),
+                                        data_.append(data[loc1][loc2]),
                                     )
                             else:
                                 if data[loc1][loc2] >= 0:
-                                    index.append(loc1 + "_" + loc2), data_.append(
-                                        data[loc1][loc2]
+                                    (
+                                        index.append(loc1 + "_" + loc2),
+                                        data_.append(data[loc1][loc2]),
                                     )
                 data_ = pd.Series(data_, index=index)
                 data_.sort_index(inplace=True)
@@ -2043,6 +2049,7 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
             return data_
         else:
             return data
+
     if isinstance(data, dict):
         return {ip: preprocessDataPerIp(data[ip]) for ip in data.keys()}
     else:
