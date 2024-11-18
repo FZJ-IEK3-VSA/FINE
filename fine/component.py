@@ -2168,31 +2168,30 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet1 = getattr(pyM, constrSetName + "1_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            factor1 = 1 if isStateOfCharge else esM.hoursPerTimeStep
             if isOperationCommisYearDepending:
 
                 def op1(pyM, loc, compName, commis, ip, p, t):
-                    factor2 = (
+                    factor = (
                         1
                         if factorName is None
                         else getattr(compDict[compName], factorName)
                     )
                     return (
                         opVar[loc, compName, commis, ip, p, t]
-                        <= factor1 * factor2 * commisVar[loc, compName, commis]
+                        <= factor * commisVar[loc, compName, commis]
                     )
 
             else:
 
                 def op1(pyM, loc, compName, ip, p, t):
-                    factor2 = (
+                    factor = (
                         1
                         if factorName is None
                         else getattr(compDict[compName], factorName)
                     )
                     return (
                         opVar[loc, compName, ip, p, t]
-                        <= factor1 * factor2 * capVar[loc, compName, ip]
+                        <= factor * capVar[loc, compName, ip]
                     )
 
             setattr(
@@ -4015,6 +4014,8 @@ class ComponentModel(metaclass=ABCMeta):
                 # Calculate the annualized operational costs ox (OPEX)
                 tac_ox = resultsTAC_ox[ip]
 
+                factor = esM.hoursPerTimeStep
+
                 # Fill the optimization summary with the calculated values for invest, CAPEX and OPEX
                 # (due to capacity expansion).
                 optSummary_ip.loc[
@@ -4027,7 +4028,7 @@ class ComponentModel(metaclass=ABCMeta):
                         for ix in capOptVal.index
                     ],
                     capOptVal.columns,
-                ] = capOptVal.values
+                ] = capOptVal.values * factor
 
                 optSummary_ip.loc[
                     [(ix, "invest", "[" + esM.costUnit + "]") for ix in i.index],

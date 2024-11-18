@@ -652,7 +652,7 @@ class TransmissionModel(ComponentModel):
                 return (
                     opVar[loc, compName, ip, p, t]
                     + opVar[compDict[compName]._mapI[loc], compName, ip, p, t]
-                    <= capVar[loc, compName, ip] * esM.hoursPerTimeStep
+                    <= capVar[loc, compName, ip]
                 )
 
             setattr(
