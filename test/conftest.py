@@ -3387,7 +3387,13 @@ def multi_objective_optimization_test_esM_ip_dependent_material_demand(scope="se
             opexPerCapacity=500 * 0.025,
             interestRate=0.08,
             economicLifetime=10,
-            materialDemandPerCapacity=30,
+            materialDemandPerCapacity={
+                2020: 30,
+                2025: 30,
+                2030: 20,
+                2035: 20,
+                2040: 10,
+            },
         )
     )
 

@@ -2982,14 +2982,16 @@ class ComponentModel(metaclass=ABCMeta):
         commisVar = getattr(pyM, "commis_" + self.abbrvName)
         return sum(
             commisVar[loc, compName, ip]
-            * esM.getComponentAttribute(compName, component_attribute)[ip]
+            * getattr(esM.getComponent(compName), component_attribute)[ip]
+            
             for loc in esM.locations
             for compName in self.componentsDict
             for ip in esM.investmentPeriods
             if self.componentsDict[
                 compName
             ].hasCapacityVariable  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
-            and esM.getComponentAttribute(compName, component_attribute)
+                                   #TODO ask Johannes whether it is possible to switch this to "hasComissioning"
+            and getattr(esM.getComponent(compName), component_attribute)
             != (None and 0)  # has to be "and" because "not None AND not 0"
         )
 
@@ -3018,11 +3020,11 @@ class ComponentModel(metaclass=ABCMeta):
                 continue
             # check if component has a material demand - if not return NaN
             # TODO Adapt if this get checked/set better within the corresponding utils function
-            if esM.getComponentAttribute(compName, component_attribute):
+            if getattr(esM.getComponent(compName), component_attribute):
                 # commisVar.value -> .value = returns the state of the variable instead of the variable itself
                 optimal_values[ip].loc[compName, loc] = (
                     commisVar[loc, compName, ip].value
-                    * esM.getComponentAttribute(compName, component_attribute)[ip]
+                    * getattr(esM.getComponent(compName), component_attribute)[ip]
                 )
             else:
                 optimal_values[ip].loc[compName, loc] = np.nan

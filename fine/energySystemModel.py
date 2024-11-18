@@ -257,6 +257,9 @@ class EnergySystemModel:
             |br| * the default value is False
         :type: annuityPerpetuity: bool
 
+        :param objective: the objective(s) of the energy system model. Currently supported are "costs" and "material_demand".
+        :type: objective: str or List[str]
+
         """
 
         # Check correctness of inputs
@@ -424,9 +427,17 @@ class EnergySystemModel:
         }
         self.objectiveValue = None
 
-        #### MultiObjective Additions ####
-        self.objective = objective  # TODO Add check if its a string or a list
-        if type(self.objective) == list:
+        ################################################################################################################
+        #                                         Multi-objective additions                                            #
+        ################################################################################################################
+        # The objective parameter defines the objectives of the energy system model
+        # If only one objective is passed the workflow for single objective optimization is used and the parameter
+        # use_moo is set to False.
+        # If a list of objectives is passed, e.g. ["costs", "material_demand"] the workflow for multi-objective
+        # optimization is used and the parameter use_moo is set to True
+
+        self.objective = objective
+        if isinstance(self.objective, list):
             self.use_moo = True
         else:
             self.use_moo = False
@@ -1241,17 +1252,14 @@ class EnergySystemModel:
 
             def initIntraYearTimeSet(pyM):
                 return (
-                    (p, t)
-                    for p in self.typicalPeriods
-                    for t in self.timeStepsPerPeriod
+                    (p, t) for p in self.typicalPeriods for t in self.timeStepsPerPeriod
                 )
 
             def initInvestPeriodInterPeriodSet(pyM):
                 return (
                     (t_inter)
                     for t_inter in range(
-                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
-                        + 1
+                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1
                     )
                 )
 
@@ -1287,17 +1295,14 @@ class EnergySystemModel:
 
             def initIntraYearTimeSet(pyM):
                 return (
-                    (p, t)
-                    for p in self.typicalPeriods
-                    for t in self.segmentsPerPeriod
+                    (p, t) for p in self.typicalPeriods for t in self.segmentsPerPeriod
                 )
 
             def initInvestPeriodInterPeriodSet(pyM):
                 return (
                     (t_inter)
                     for t_inter in range(
-                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
-                        + 1
+                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1
                     )
                 )
 
@@ -1353,7 +1358,9 @@ class EnergySystemModel:
             # iterate over balance limit to define either minimal, maximal or both balance limits per balanceLimitID
             for ip in self.investmentPeriods:
                 if self.processedBalanceLimit[ip] is not None:
-                    for balanceLimitID, data in self.processedBalanceLimit[ip].iterrows():
+                    for balanceLimitID, data in self.processedBalanceLimit[
+                        ip
+                    ].iterrows():
                         # check for regional constraints
                         for loc in self.locations:
                             if data[loc] is not None:
@@ -2333,15 +2340,11 @@ class EnergySystemModel:
         timeSeriesAggregation=False,
         solver="gurobi",
         optimizationSpecs: Union[dict, str] = None,
-        deletePyomoModels=True,
-        write_excel_output=True,
-        excel_output_path=None,
     ):
         # TODO Add docstrings
         # Future TODO add a performance summary similar to the one within esm.optimize()
-        # Future TODO maybe use the utils.checkOptimizeInput() function to also check the input here or implement a similar function
 
-        # TODO This method does currently only work with a customized fork of the original PyAugmecon package
+        # This method does currently only work with a customized fork of the original PyAugmecon package
         # This fork can be found here: https://github.com/kschulze26/pyaugmecon/tree/add_model_export
 
         # Set the segmentation parameter to false if time series aggregation is disabled
@@ -2351,13 +2354,12 @@ class EnergySystemModel:
         # Declare optimization problem if not already done
         if declaresOptimizationProblem:
             self.declareOptimizationProblem(timeSeriesAggregation)
-        else:
+        elif self.pyM is None:
             # Throw an error if declareOptimizationProblem is False but no pyomo model exists (same error as in optimize())
-            if self.pyM is None:
-                raise TypeError(
-                    "The optimization problem is not declared yet. Set the argument declaresOptimization"
-                    " problem to True or call the declareOptimizationProblem function first."
-                )
+            raise TypeError(
+                "The optimization problem is not declared yet. Set the argument declaresOptimization"
+                " problem to True or call the declareOptimizationProblem function first."
+            )
 
         ############################################################################
         ################################ PYAUGMECON ################################
@@ -2401,6 +2403,7 @@ class EnergySystemModel:
         if not pyaugmeconOptions.get("custom_export_path"):
             pyaugmeconOptions["custom_export_path"] = "_fine_moo_cache/"
 
+        # Future TODO maybe use the utils.checkOptimizeInput() function to also check the input here or implement a similar function
         # Deactivate all objectives by default - this is PyAugmecon-specific!
         for o in range(len(self.pyM.obj_list)):
             self.pyM.obj_list[o + 1].deactivate()
@@ -2446,10 +2449,9 @@ class EnergySystemModel:
                     print(
                         f"No custom output path for the excel results was provided. Saving to default folder: {excel_output_path}"
                     )
-                else:
-                    print(
-                        f"Exporting results of multi-objective optimization to {excel_output_path}"
-                    )
+                if not os.path.isdir(excel_output_path):
+                    os.makedirs(excel_output_path)
+
                 if len(self.investmentPeriodNames) > 1:
                     # if the results are not for a single year, adapt the layout of the results folder to provide a better overview
                     _excel_output_path = os.path.join(
@@ -2458,11 +2460,14 @@ class EnergySystemModel:
                     os.mkdir(_excel_output_path)
                 else:
                     _excel_output_path = excel_output_path
+                print(
+                    f"Exporting results of multi-objective optimization to {_excel_output_path}"
+                )
                 standardIO.writeOptimizationOutputToExcel(
                     esm_copy,
                     outputFileName=os.path.join(
                         _excel_output_path,
-                        f"results_for_{tuple(s*(-1) for s in sol)}",
+                        f"results_for_{sol}",
                     ),
                 )
             del esm_copy.pyM

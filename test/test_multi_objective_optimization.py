@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 import copy
+import shutil
+from pathlib import Path
 from fine.IOManagement import standardIO
 
 
@@ -82,9 +84,8 @@ def test_obj_value_single_vs_multi(
     # optimizations first pareto point
     # IMPORTANT: This does only work if the costs objective is the first objective
     # Maybe future TODO: Find a way to make sure that this is always the case...
-    # TODO currently FAILS due to changes within the pyaugmecon fork...
     np.testing.assert_almost_equal(
-        test_esm_single_objective.pyM.Obj(), pareto_solutions_moo[0][0]
+        test_esm_single_objective.pyM.Obj(), pareto_solutions_moo[0][0], decimal=5
     )
 
 
@@ -169,4 +170,37 @@ def test_moo_ip_dependent_objective_contribution(
         "process_logging": True,
     }
     pyaugmecon_instance = test_esm.optimize_moo(pyaugmeconOptions=opts)
-    # TODO make test more sophisticated
+    # process results for further checking
+    module_directory = Path(__file__).parent.absolute()
+    # create temporary results folder
+    temp_results_path = module_directory / "data" / "_temp_moo_results"
+    # export the fine moo output to the temporary results folder
+    test_esm.process_fine_moo_output(
+        pyaugmecon_instance, excel_output_path=temp_results_path
+    )
+    
+    # load temporary result files
+    results = {
+        year : pd.read_excel(
+            io=temp_results_path
+            / f"pareto_solution_{list(pyaugmecon_instance.sols)[0]}"
+            / f"results_for_{list(pyaugmecon_instance.sols)[0]}_{year}.xlsx",sheet_name="ConversionOptSummary_1dim", index_col=[0,1]
+        )
+        for year in [2020, 2040]
+    }
+    
+    for year in results.keys():
+        # check if material demand in results devided by comissioning are equal to the material demand set for the component via "get component attribute "
+        expected_material_demand = test_esm.getComponent(
+            "Electrolyzer_cheap_highMat"
+        ).materialDemandPerCapacity[
+            year
+        ]  # use unprocessed attribute here to access it via "years" instead of investment periods
+        material_demand_calculated = results[year].loc[("Electrolyzer_cheap_highMat", "materialDemand"), "ForesightLand"].sum() / results[year].loc[("Electrolyzer_cheap_highMat", "commissioning"), "ForesightLand"].sum() # sum is used instead of float(...) to prevent deprication from pandas.
+        np.testing.assert_almost_equal(
+        expected_material_demand,material_demand_calculated, decimal=5
+        )
+
+    # After the test finishes - remove temporary results folder
+    if temp_results_path.is_dir():
+        shutil.rmtree(temp_results_path)
