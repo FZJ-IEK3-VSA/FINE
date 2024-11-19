@@ -1969,7 +1969,7 @@ class StorageModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = opSum.values
+                ] = opSum.values / esM.numberOfYears
                 optSummary.loc[
                     [
                         (
