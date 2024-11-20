@@ -77,7 +77,7 @@ console_output_style = "progress"
 filterwarnings = []
 
 [project.urls]
-homepage = "https://www.fz-juelich.de/de/iek/iek-3/forschung/open-source/fine"
+homepage = "https://www.fz-juelich.de/en/ice/ice-2/research-1/open_source/fine"
 repository = "https://github.com/FZJ-IEK3-VSA/FINE"
 documentation = "https://vsa-fine.readthedocs.io/en/master/"
 

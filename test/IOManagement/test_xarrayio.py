@@ -85,30 +85,7 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
         assert results_1.keys() == results_2.keys()
 
         for model_key, model_results_1 in results_1.items():
-            model_results_2 = results_2[model_key]
-
-            # Only total operation is saved in netCDF not the yearly value so we drop the
-            # opreation value. This needs to be fixed in future.
-            switch = False
-            labels = set()
-            for label in list(model_results_1.index.get_level_values(1).unique()):
-                if label.startswith("operation"):
-                    switch = True
-                    labels.add(label)
-            if switch:
-                for label in labels:
-                    model_results_1.drop(
-                        index=model_results_1.xs(
-                            label, axis=0, level=1, drop_level=False
-                        ).index.tolist(),
-                        inplace=True,
-                    )
-                    model_results_2.drop(
-                        index=model_results_2.xs(
-                            label, axis=0, level=1, drop_level=False
-                        ).index.tolist(),
-                        inplace=True,
-                    )
+            model_results_2 = results_2[model_key]       
 
             # Reading from netCDF creates a column name `space_1`. This needs to be
             # fixed in future.
@@ -118,7 +95,9 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
             model_results_1_sorted = model_results_1.sort_index()
             model_results_2_sorted = model_results_2.sort_index()
 
-            assert_frame_equal(model_results_1_sorted, model_results_2_sorted, check_dtype=False)
+            assert_frame_equal(
+                model_results_1_sorted, model_results_2_sorted, check_dtype=False
+            )
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
@@ -280,3 +259,28 @@ def test_transmission_dims(minimal_test_esM):
     assert operationRateMax.index.name == "time"
 
     esM2.optimize()
+
+
+def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM):
+    """Optimize an esM, write it to  netCDF, then load the esM from this file.
+    Compare if both esMs are identical. Inputs are compared with exportToDict,
+    outputs are compared with optimizationSummary.
+    """
+
+    esm_original_pf = deepcopy(perfectForesight_test_esM)
+    esm_original_pf.aggregateTemporally(
+        numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=2
+    )
+    esm_original_pf.optimize()
+
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original_pf, outputFilePath="test_esM_pf.nc"
+    )
+    esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original_pf)
+    assert "ts_aggregatedOperationRateMax" in esm_datasets["Input"]["Source"]["PV"]
+
+    esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM_pf.nc")
+
+    compare_esm_inputs(esm_original_pf, esm_pf_from_netcdf)
+
+    Path("test_esM_pf.nc").unlink()
