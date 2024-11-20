@@ -85,30 +85,7 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
         assert results_1.keys() == results_2.keys()
 
         for model_key, model_results_1 in results_1.items():
-            model_results_2 = results_2[model_key]
-
-            # Only total operation is saved in netCDF not the yearly value so we drop the
-            # opreation value. This needs to be fixed in future.
-            switch = False
-            labels = set()
-            for label in list(model_results_1.index.get_level_values(1).unique()):
-                if label.startswith("operation"):
-                    switch = True
-                    labels.add(label)
-            if switch:
-                for label in labels:
-                    model_results_1.drop(
-                        index=model_results_1.xs(
-                            label, axis=0, level=1, drop_level=False
-                        ).index.tolist(),
-                        inplace=True,
-                    )
-                    model_results_2.drop(
-                        index=model_results_2.xs(
-                            label, axis=0, level=1, drop_level=False
-                        ).index.tolist(),
-                        inplace=True,
-                    )
+            model_results_2 = results_2[model_key]       
 
             # Reading from netCDF creates a column name `space_1`. This needs to be
             # fixed in future.
