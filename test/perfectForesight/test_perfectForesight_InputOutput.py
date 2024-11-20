@@ -125,16 +125,6 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
             )
             output_OptSum = output_esM_xarray.getOptimizationSummary(mdl, ip=ip)
 
-            # see test/IOManagement/test_xarrayio.py: "Only total operation is
-            # saved in netCDF not the yearly value, so we drop the
-            # operation value. This needs to be fixed in the future."
-            drop_rows_condition = [
-                x
-                for x in expected_OptSum.index
-                if x[1] == "operation" and "h/a" in x[2]
-            ]
-            expected_OptSum = expected_OptSum.drop(drop_rows_condition)
-
             expected_OptSum = expected_OptSum.astype(float).round(2).sort_index()
             output_OptSum = output_OptSum.astype(float).round(2).sort_index()
 
@@ -202,16 +192,6 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
                 mdl, ip=ip
             )
             output_OptSum = output_esM_xarray.getOptimizationSummary(mdl, ip=ip)
-
-            # see test/IOManagement/test_xarrayio.py: "Only total operation is
-            # saved in netCDF not the yearly value, so we drop the
-            # operation value. This needs to be fixed in future."
-            drop_rows_condition = [
-                x
-                for x in expected_OptSum.index
-                if x[1] == "operation" and "h/a" in x[2]
-            ]
-            expected_OptSum = expected_OptSum.drop(drop_rows_condition)
 
             expected_OptSum = expected_OptSum.astype(float).round(2).sort_index()
             output_OptSum = output_OptSum.astype(float).round(2).sort_index()

@@ -46,7 +46,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values)
 
         shape_union = unary_union(temp_shape_list)
-
+        
         shape_list.append(shape_union)
 
     if len(shape_list) == 1:
@@ -55,7 +55,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         )
 
     shape_list = np.array(shape_list, dtype=object)
-
+    
     xr_data_array_out = xr.DataArray(shape_list, coords=[space], dims=["space"])
 
     return xr_data_array_out
