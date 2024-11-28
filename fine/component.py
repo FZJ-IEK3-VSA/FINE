@@ -3278,7 +3278,7 @@ class ComponentModel(metaclass=ABCMeta):
                     # contribution, implying the system design and operation
                     # will remain constant after the time frame of the
                     # transformation pathway.
-                    for loc, compName in costContribution.keys():
+                    for (loc, compName) in costContribution.keys(): # noqa: PLC0206
                         for y in componentYears[compName]:
                             costContribution[(loc, compName)][
                                 (y, esM.investmentPeriods[-1])
@@ -3604,7 +3604,7 @@ class ComponentModel(metaclass=ABCMeta):
                     # contribution, implying the system design and operation
                     # will remain constant after the time frame of the
                     # transformation pathway.
-                    for loc, compName in costContribution.keys():
+                    for (loc, compName) in costContribution.keys(): # noqa: PLC0206
                         for y in componentYears[compName]:
                             costContribution[(loc, compName)][
                                 (y, esM.investmentPeriods[-1])
