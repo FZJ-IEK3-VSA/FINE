@@ -1,6 +1,5 @@
-********
 Tutorial
-********
+########
 
 The repository of ETHOS.FINE provides a certain amount of different `examples <https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples>`_ to get to know to the package. 
 The examples are sorted by their complexity and should provide a good overview on the scope of the package. 
