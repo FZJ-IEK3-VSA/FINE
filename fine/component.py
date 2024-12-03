@@ -91,7 +91,7 @@ class Component(metaclass=ABCMeta):
             This parameter should be specified when using a 'discrete' capacityVariableDomain.
             It can be specified when using a 'continuous' variable domain.
             |br| * the default value is 1
-        :type capacityPerPlantUnit: strictly positive float
+        :type capacityPerPlantUnit: dict of strictly positive float or strictly positive float
 
         :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for
 
@@ -494,20 +494,26 @@ class Component(metaclass=ABCMeta):
         self.dimension = dimension
         self.modelingClass = ComponentModel
 
+        self.hasCapacityVariable = hasCapacityVariable
+        self.capacityVariableDomain = capacityVariableDomain
+        self.capacityPerPlantUnit = capacityPerPlantUnit
+        self.processedCapacityPerPlantUnit = utils.checkAndSetInvestmentPeriodParamters(
+            'capacityPerPlantUnit',
+            capacityPerPlantUnit,
+            esM,
+        )
+        self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
+        self.bigM = bigM
+
         # Set design variable modeling parameters
         utils.checkDesignVariableModelingParameters(
             esM,
             capacityVariableDomain,
             hasCapacityVariable,
-            capacityPerPlantUnit,
+            self.processedCapacityPerPlantUnit,
             hasIsBuiltBinaryVariable,
             bigM,
         )
-        self.hasCapacityVariable = hasCapacityVariable
-        self.capacityVariableDomain = capacityVariableDomain
-        self.capacityPerPlantUnit = capacityPerPlantUnit
-        self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
-        self.bigM = bigM
 
         self.partLoadMin = partLoadMin
 
@@ -1767,7 +1773,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 capVar[loc, compName, ip]
                 == nbRealVar[loc, compName, ip]
-                * compDict[compName].capacityPerPlantUnit
+                * compDict[compName].processedCapacityPerPlantUnit[ip]
             )
 
         setattr(
@@ -1797,7 +1803,7 @@ class ComponentModel(metaclass=ABCMeta):
         def capToNbInt(pyM, loc, compName, ip):
             return (
                 capVar[loc, compName, ip]
-                == nbIntVar[loc, compName, ip] * compDict[compName].capacityPerPlantUnit
+                == nbIntVar[loc, compName, ip] * compDict[compName].processedCapacityPerPlantUnit[ip]
             )
 
         setattr(
