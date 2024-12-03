@@ -1557,12 +1557,12 @@ class EnergySystemModel:
             capPPU1 = (
                 self.componentModelingDict[self.componentNames[compName1]]
                 .componentsDict[compName1]
-                .capacityPerPlantUnit
+                .processedCapacityPerPlantUnit[ip]
             )
             capPPU2 = (
                 self.componentModelingDict[self.componentNames[compName2]]
                 .componentsDict[compName2]
-                .capacityPerPlantUnit
+                .processedCapacityPerPlantUnit[ip]
             )
             return (
                 capVar1[loc, compName1, ip] / capPPU1

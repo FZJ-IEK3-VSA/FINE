@@ -630,6 +630,19 @@ def checkInvestmentPeriodParameters(name, param, years):
             )
 
 
+def checkAndSetInvestmentPeriodParamters(name, param, esM):
+    checkInvestmentPeriodParameters(name, param, esM.investmentPeriodNames)
+    processedParam = {}
+    for ip in esM.investmentPeriods:
+        if param is None:
+            processedParam[ip] = None
+        if isinstance(param, dict):
+            processedParam[ip] = param[esM.investmentPeriodNames[ip]]
+        else:
+            processedParam[ip] = param
+    return processedParam
+
+
 def checkCapacityDevelopmentWithStock(
     investmentPeriods,
     capacityMax,
@@ -1183,7 +1196,8 @@ def checkDesignVariableModelingParameters(
     if not isinstance(hasIsBuiltBinaryVariable, bool):
         raise TypeError("The hasCapacityVariable variable domain has to be a boolean.")
 
-    isStrictlyPositiveNumber(capacityPerPlantUnit)
+    for ip in esM.investmentPeriods:
+        isStrictlyPositiveNumber(capacityPerPlantUnit[ip])
 
     if not hasCapacityVariable and hasIsBuiltBinaryVariable:
         raise ValueError(
