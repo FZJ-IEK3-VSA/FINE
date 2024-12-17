@@ -3398,3 +3398,158 @@ def multi_objective_optimization_test_esM_ip_dependent_material_demand(scope="se
     )
 
     return esM
+
+@pytest.fixture
+def multi_objective_optimization_test_esM_decommissioning(scope="session"):
+    # based on multi_objective_optimization_test_esM_ip_dependent_material_demand
+    # Create an energy system model instance
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand", "ForesightLand"},
+        commodities={"electricity", "hydrogen"},
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=4380,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=5,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        lengthUnit="km",
+        verboseLogLevel=2,
+        objective=["costs", "material_demand_and_supply"],
+    )
+
+    PVoperationRateMax = pd.DataFrame(
+        [
+            np.array(
+                [
+                    0.5,
+                    0.25,
+                ]
+            ),
+            np.array(
+                [
+                    0.25,
+                    0.5,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=PVoperationRateMax,
+            capacityMax=4e6,
+            investPerCapacity=1e3,
+            opexPerCapacity=1,
+            interestRate=0.02,
+            opexPerOperation=0.01,
+            economicLifetime=10,
+        )
+    )
+
+    demand = {}
+    demand[2020] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T  # first investmentperiod
+    demand[2025] = demand[2020]
+    demand[2030] = pd.DataFrame(
+        [
+            np.array(
+                [
+                    2190,
+                    1e3,
+                ]
+            ),
+            np.array(
+                [
+                    4380,
+                    1e3,
+                ]
+            ),
+        ],
+        index=["PerfectLand", "ForesightLand"],
+    ).T
+    demand[2035] = demand[2030]
+    demand[2040] = demand[2030]
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Hydrogen_demand",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+    
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzer_exp_lowMat",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=800,  # euro/kW
+            opexPerCapacity=500 * 0.025,
+            interestRate=0.08,
+            economicLifetime=10,
+            materialDemandPerCapacity={
+                2020: 15,
+                2025: 15,
+                2030: 10,
+                2035: 10,
+                2040: 5,
+            },
+            materialSupplyPerCapacityDecommissioned={
+                2020: 15, # equals 100% recycling after decommissioning
+                2025: 15, # equals 100% recycling after decommissioning
+                2030: 10, # equals 100% recycling after decommissioning
+                2035: 10, # equals 100% recycling after decommissioning
+                2040: 5,  # equals 100% recycling after decommissioning
+            }
+        )
+    )
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzer_cheap_highMat",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+            hasCapacityVariable=True,
+            investPerCapacity=400,  # euro/kW
+            opexPerCapacity=500 * 0.025,
+            interestRate=0.08,
+            economicLifetime=10,
+            materialDemandPerCapacity={
+                2020: 30,
+                2025: 30,
+                2030: 20,
+                2035: 20,
+                2040: 10,
+            },
+        )
+    )
+
+    return esM

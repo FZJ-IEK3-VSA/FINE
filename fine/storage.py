@@ -62,6 +62,7 @@ class Storage(Component):
         socOffsetUp=-1,
         stockCommissioning=None,
         materialDemandPerCapacity=None,
+        materialSupplyPerCapacityDecommissioned=None
     ):
         """
         Constructor for creating an Storage class instance.
@@ -273,6 +274,7 @@ class Storage(Component):
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
             materialDemandPerCapacity=materialDemandPerCapacity,
+            materialSupplyPerCapacityDecommissioned=materialSupplyPerCapacityDecommissioned
         )
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,
@@ -1655,10 +1657,8 @@ class StorageModel(ComponentModel):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-        """
-        if objective not in ["costs", "material_demand"]:
-            raise NotImplementedError("The chosen objective is not supported yet.")
-
+        """ 
+        
         if objective == "costs":
             compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -1731,7 +1731,7 @@ class StorageModel(ComponentModel):
                 + offsetUpOp
                 + offsetDownOp
             )
-        if objective == "material_demand":
+        if objective in ["material_demand", "material_demand_and_supply"]:
             return super().getObjectiveFunctionContribution(esM, pyM, objective)
 
     ####################################################################################################################

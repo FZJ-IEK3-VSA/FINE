@@ -57,6 +57,7 @@ class Source(Component):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         materialDemandPerCapacity=None,
+        materialSupplyPerCapacityDecommissioned=None
     ):
         """
         Constructor for creating an Source class instance.
@@ -286,6 +287,7 @@ class Source(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
             materialDemandPerCapacity=materialDemandPerCapacity,
+            materialSupplyPerCapacityDecommissioned=materialSupplyPerCapacityDecommissioned
         )
 
         # Set general source/sink data: ID and yearly limit
@@ -1045,8 +1047,6 @@ class SourceSinkModel(ComponentModel):
             :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
             :type pym: pyomo ConcreteModel
         """
-        if objective not in ["costs", "material_demand"]:
-            raise NotImplementedError("The chosen objective is not supported yet.")
 
         if objective == "costs":
             opexOp = self.getEconomicsOperation(
@@ -1081,7 +1081,7 @@ class SourceSinkModel(ComponentModel):
                 + commodCostTimeSeries
                 - (commodRevenue + commodRevenueTimeSeries)
             )
-        if objective == "material_demand":
+        if objective in ["material_demand", "material_demand_and_supply"]:
             return super().getObjectiveFunctionContribution(esM, pyM, objective)
 
     ####################################################################################################################

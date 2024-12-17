@@ -213,3 +213,27 @@ def test_moo_ip_dependent_objective_contribution(
     # After the test finishes - remove temporary results folder
     if temp_results_path.is_dir():
         shutil.rmtree(temp_results_path)
+
+
+def test_decommissioning_based_objective_function_contribution(multi_objective_optimization_test_esM_ip_dependent_material_demand, multi_objective_optimization_test_esM_decommissioning): 
+    test_esm_only_demand = multi_objective_optimization_test_esM_ip_dependent_material_demand
+    test_esm_demand_and_supply = multi_objective_optimization_test_esM_decommissioning
+    opts = {
+        "grid_points": 5,
+        "output_excel": False,
+        "process_logging": False,
+    }
+    pyaugmecon_instance_only_demand = test_esm_only_demand.optimize_moo(pyaugmeconOptions=opts)
+    pyaugmecon_instance_test_esm_demand_and_supply = test_esm_demand_and_supply.optimize_moo(pyaugmeconOptions=opts)
+
+    # Compare both material related objective values 
+    # We expect the value of the run with added supply by decommissioned capacities to be half as big as the default value
+    # Reason: demandPerCapacity = materialSupplyPerCapacityDecommissioned, we optimize 20 years and the components have a lifetime of 10 years 
+    np.testing.assert_almost_equal(
+            pyaugmecon_instance_only_demand.get_payoff_table()[1][1], 
+            (pyaugmecon_instance_test_esm_demand_and_supply.get_payoff_table()[1][1] * 2), 
+            decimal=5
+    )
+    
+    
+    

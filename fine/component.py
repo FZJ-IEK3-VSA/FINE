@@ -49,6 +49,7 @@ class Component(metaclass=ABCMeta):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         materialDemandPerCapacity=None,
+        materialSupplyPerCapacityDecommissioned=None,
     ):
         """
         Constructor for creating an Component class instance.
@@ -687,6 +688,16 @@ class Component(metaclass=ABCMeta):
                 esM,
                 name,
                 materialDemandPerCapacity,
+                self.processedStockYears + esM.investmentPeriods,
+            )
+        )
+        # Recycling aka material "supply" based on decommissioning 
+        self.materialSupplyPerCapacityDecommissioned = materialSupplyPerCapacityDecommissioned
+        self.processed_materialSupplyPerCapacityDecommissioned = (
+            utils.checkAndSetMaterialDemandPerCapacity(
+                esM,
+                name,
+                materialSupplyPerCapacityDecommissioned,
                 self.processedStockYears + esM.investmentPeriods,
             )
         )
@@ -2892,9 +2903,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param objective: type of objective for which the objective function contribution is returned. Default: costs
         :type objective: String
         """
-        # If new objective functions are implemented, they need to be added here!
-        if objective not in ["costs", "material_demand"]:
-            raise NotImplementedError("The chosen objective is not supported yet.")
+        
         if objective == "costs":
             capexCap = self.getEconomicsDesign(
                 pyM,
@@ -2932,9 +2941,12 @@ class ComponentModel(metaclass=ABCMeta):
             )
             objective_function_contribution = capexCap + capexDec + opexCap + opexDec
 
-        if objective == "material_demand":
+        if objective == "material_demand": 
+            # Only the MaterialDemandPerCapacity is considered
             objective_function_contribution = self.getMaterialDemand(esM, pyM)
-
+        if objective == "material_demand_and_supply":
+            # The second objective considers the MaterialDemandPerCapacity as well as the MaterialSupplyPerCapacityDecommissioned
+            objective_function_contribution = self.getMaterialDemand(esM, pyM) - self.getMaterialSupplyPerCapacityDecommissioned(esM, pyM)
         return objective_function_contribution
 
     def getMaterialDemand(self, esM, pyM, getOptValue=False):
@@ -2968,6 +2980,38 @@ class ComponentModel(metaclass=ABCMeta):
             return self.get_commissioning_based_objective_contribution(
                 esM, pyM, component_attribute
             )
+        
+    def getMaterialSupplyPerCapacityDecommissioned(self, esM, pyM, getOptValue=False):
+        """
+        Get material supply of a component when it is decommissioned. This can be used to build the
+        objective function or to get the optimal values after optimizing
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param getOptValue: Boolean that defines the output of the function:
+
+            - True: Return the optimal material demand values.
+            - False: Return the material demand equation.
+
+            |br| * the default value is False.
+        :type getOptValue: boolean
+
+        :return: material demand equation or optimal material demand values (dictionary containing dataframes for each investment period)
+        :rtype: _type_
+        """
+        component_attribute = "processed_materialSupplyPerCapacityDecommissioned" 
+        if getOptValue:
+            return self.get_decommissioning_based_optimal_values(
+                esM, pyM, component_attribute
+            )
+        else:
+            return self.get_decommissioning_based_objective_contribution(
+                esM, pyM, component_attribute
+            )
 
     def get_commissioning_based_objective_contribution(
         self, esM, pyM, component_attribute
@@ -2994,7 +3038,7 @@ class ComponentModel(metaclass=ABCMeta):
             commisVar[loc, compName, ip]
             * getattr(esM.getComponent(compName), component_attribute)[ip]
             for loc in esM.locations
-            for compName in self.componentsDict
+            for compName in self.componentsDict.keys()
             for ip in esM.investmentPeriods
             if self.componentsDict[
                 compName
@@ -3033,6 +3077,75 @@ class ComponentModel(metaclass=ABCMeta):
                 # commisVar.value -> .value = returns the state of the variable instead of the variable itself
                 optimal_values[ip].loc[compName, loc] = (
                     commisVar[loc, compName, ip].value
+                    * getattr(esM.getComponent(compName), component_attribute)[ip]
+                )
+            else:
+                optimal_values[ip].loc[compName, loc] = np.nan
+        return optimal_values
+    
+    def get_decommissioning_based_objective_contribution(
+        self, esM, pyM, component_attribute
+    ):
+        """
+        Get the objective function contribution, i.e. the equation, of an attribute that is comissioning specific.
+        The resulting equation is the sum of "component_attribute * commissioning of component per year, per location"
+        over all locations, all components and all investment periods
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param component_attribute: decommissioning specific attribute (e.g. processed_materialDemandPerCapacity)
+        :type component_attribute: String
+
+        :return: objective function contribution equation for passed component_attribute
+        :rtype: _type_
+        """
+        decommisVar = getattr(pyM, "decommis_" + self.abbrvName)
+        return sum(
+            decommisVar[loc, compName, ip]
+            * getattr(esM.getComponent(compName), component_attribute)[ip]
+            for loc in esM.locations
+            for compName in self.componentsDict.keys()
+            for ip in esM.investmentPeriods
+            if self.componentsDict[
+                compName
+            ].hasCapacityVariable  # If a component has no capacity, it does not make sense to have a materialDemand per Capacity!
+            and getattr(esM.getComponent(compName), component_attribute)
+            != (None and 0)  # has to be "and" because "not None AND not 0"
+        )
+
+    def get_decommissioning_based_optimal_values(self, esM, pyM, component_attribute):
+        """
+        Get the optimal value of an attribute that is comissioning specific after the optimization is completed.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param component_attribute: decommissioning specific attribute (e.g. processed_materialDemandPerCapacity)
+        :type component_attribute: String
+
+        :return: optimal value of the passed component_attribute
+        :rtype: _type_
+        """
+        decommisVar = getattr(pyM, "decommis_" + self.abbrvName)
+        optimal_values = {}
+        for ip in esM.investmentPeriods:
+            optimal_values[ip] = pd.DataFrame()
+        for loc, compName, ip in decommisVar:
+            if ip not in esM.investmentPeriods:
+                continue
+            # check if component has a material demand - if not return NaN
+            # TODO Adapt if this get checked/set better within the corresponding utils function
+            if getattr(esM.getComponent(compName), component_attribute):
+                # decommisVar.value -> .value = returns the state of the variable instead of the variable itself
+                optimal_values[ip].loc[compName, loc] = (
+                    decommisVar[loc, compName, ip].value
                     * getattr(esM.getComponent(compName), component_attribute)[ip]
                 )
             else:
@@ -3906,6 +4019,7 @@ class ComponentModel(metaclass=ABCMeta):
             "investLifetimeExtension",
             "revenueLifetimeShorteningResale",
             "materialDemand",  # TODO Adjust Name if needed!
+            "materialSupplyByDecommissioning",  # TODO Adjust Name if needed!
         ]
         units = [
             "[-]",
@@ -3921,6 +4035,7 @@ class ComponentModel(metaclass=ABCMeta):
             "[" + esM.costUnit + "]",
             "[" + esM.costUnit + "]",
             "[" + esM.costUnit + "]",
+            "[kg]",  # TODO adjust unit if needed!
             "[kg]",  # TODO adjust unit if needed!
         ]
         tuples = [
@@ -4046,7 +4161,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Get the material demand
         results_material_demand = self.getMaterialDemand(esM, pyM, getOptValue=True)
-
+        results_material_supply_by_decommissioning = self.getMaterialSupplyPerCapacityDecommissioned(esM, pyM, getOptValue=True)
+                
         optSummary = {}
         for ip in esM.investmentPeriods:
             optSummary_ip = pd.DataFrame(
@@ -4357,7 +4473,8 @@ class ComponentModel(metaclass=ABCMeta):
                 npv.columns,
             ] = npv.values
 
-            # Add Material Demand to results
+            # Add Material Demand to results 
+            # TODO adapt unit?!
             # TODO probably an if branch needed to check whether material demands are actually considered
             optSummary_ip.loc[
                 [
@@ -4366,6 +4483,16 @@ class ComponentModel(metaclass=ABCMeta):
                 ],
                 results_material_demand[ip].columns,
             ] = results_material_demand[ip].values
+            
+            optSummary_ip.loc[
+                [
+                    (ix, "materialSupplyByDecommissioning", "[kg]")
+                    for ix in results_material_supply_by_decommissioning[ip].index
+                ],
+                results_material_supply_by_decommissioning[ip].columns,
+            ] = results_material_supply_by_decommissioning[ip].values
+            
+            
 
             optSummary[esM.investmentPeriodNames[ip]] = optSummary_ip
 

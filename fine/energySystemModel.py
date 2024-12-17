@@ -1720,8 +1720,8 @@ class EnergySystemModel:
         """
 
         def objective_rule(pyM, objective="costs"):
-            # TODO This is a bit redundant with the check in getObjectiveFunctionContribution
-            if objective not in ["costs", "material_demand"]:
+            # If new objective functions are implemented, they need to be added here!
+            if objective not in ["costs", "material_demand", "material_demand_and_supply"]:
                 raise NotImplementedError("The chosen objective is not supported yet.")
             return sum(
                 mdl.getObjectiveFunctionContribution(self, pyM, objective)

@@ -51,6 +51,7 @@ class Conversion(Component):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         materialDemandPerCapacity=None,
+        materialSupplyPerCapacityDecommissioned=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -207,6 +208,7 @@ class Conversion(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
             materialDemandPerCapacity=materialDemandPerCapacity,
+            materialSupplyPerCapacityDecommissioned=materialSupplyPerCapacityDecommissioned,
         )
 
         # opexPerOperation
@@ -1140,8 +1142,6 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        if objective not in ["costs", "material_demand"]:
-            raise NotImplementedError("The chosen objective is not supported yet.")
 
         if objective == "costs":
             opexOp = self.getEconomicsOperation(
@@ -1150,7 +1150,7 @@ class ConversionModel(ComponentModel):
             return (
                 super().getObjectiveFunctionContribution(esM, pyM, objective) + opexOp
             )
-        if objective == "material_demand":
+        if objective in ["material_demand", "material_demand_and_supply"]:
             # TODO This looks redundant but might be okay as is...
             return super().getObjectiveFunctionContribution(esM, pyM, objective)
 
