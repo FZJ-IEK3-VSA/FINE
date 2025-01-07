@@ -65,9 +65,13 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
 
                 _prop_list = prop_list.copy()
                 for prop in _prop_list:
+                    # for soc min/max the original input must be used to ensure compatibility with spatial aggregation
+                    if prop in ['stateOfChargeMin', 'stateOfChargeMax']:
+                        prop_list.remove(prop)
+                        prop_list.append((prop, prop))
                     # for the transmission investment parameters, the preprocessed version
                     # (without multiplication with the distance and 0.5) must be used
-                    if (
+                    elif (
                         f"preprocessed{prop[:1].upper()}{prop[1:]}"
                         in prop_list_full_set
                     ):
