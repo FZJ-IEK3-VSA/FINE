@@ -8,6 +8,15 @@ import fine as fn
 
 # ruff: noqa
 
+def isInRange(value, lowerBound, upperBound):
+    """Check if the input value is in the given range."""
+    if not (isinstance(value, float) or isinstance(value, int)):
+        raise TypeError("The input argument has to be a number")
+    if value <= upperBound and value >= lowerBound:
+        return value
+    else:
+        raise ValueError(f"The input argument has to be in the range [{lowerBound},{upperBound}]")
+
 def isString(string):
     """Check if the input argument is a string."""
     if not isinstance(string, str):

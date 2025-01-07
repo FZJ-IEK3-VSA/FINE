@@ -82,7 +82,7 @@ class Storage(Component):
               one hour. The chargeRate thus equals 0.45/133 1/h.
 
             |br| * the default value is 1
-        :type chargeRate: 0 <= float <=1
+        :type chargeRate: 0 < float 
 
         :param dischargeRate: ratio of the maximum storage outflow (in commodityUnit/hour) to
             the storage capacity (in commodityUnit).
@@ -92,7 +92,7 @@ class Storage(Component):
               one hour. The dischargeRate thus equals 0.45/133.
 
             |br| * the default value is 1
-        :type dischargeRate: 0 <= float <=1
+        :type dischargeRate: 0 < float 
 
         :param chargeEfficiency: defines the efficiency with which the storage can be charged (equals
             the percentage of the injected commodity that is transformed into stored commodity).
@@ -281,13 +281,19 @@ class Storage(Component):
             commodity,
             esM.commodityUnitsDict[commodity],
         )
-        # TODO unit and type checks
-        self.chargeRate, self.dischargeRate = chargeRate, dischargeRate
-        self.chargeEfficiency = chargeEfficiency
-        self.dischargeEfficiency = dischargeEfficiency
-        self.selfDischarge = selfDischarge
+        # TODO unit and type checks        
+        
+        utils.isStrictlyPositiveNumber(chargeRate)
+        self.chargeRate = chargeRate
+        utils.isStrictlyPositiveNumber(dischargeRate)
+        self.dischargeRate = dischargeRate
+        self.chargeEfficiency = utils.isInRange(chargeEfficiency, 0, 1)
+        self.dischargeEfficiency = utils.isInRange(dischargeEfficiency, 0, 1)
+        self.selfDischarge = utils.isInRange(selfDischarge, 0, 1)
         self.cyclicLifetime = cyclicLifetime
+        utils.isPositiveNumber(stateOfChargeMin)
         self.stateOfChargeMin = stateOfChargeMin
+        utils.isPositiveNumber(stateOfChargeMax)
         self.stateOfChargeMax = stateOfChargeMax
         self.isPeriodicalStorage = isPeriodicalStorage
         self.doPreciseTsaModeling = doPreciseTsaModeling
@@ -1258,12 +1264,20 @@ class StorageModel(ComponentModel):
             if compDict[compName].hasCapacityVariable:
                 return (
                     SOCInter[loc, compName, ip, pInter]
+                    * (1 - compDict[compName].selfDischarge)
+                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
                     + SOCmax[loc, compName, ip, esM.periodsOrder[ip][pInter]]
                     <= capVar[loc, compName, ip]
                     * compDict[compName].processedStateOfChargeMax[ip][loc].loc[esM.periodsOrder[ip][pInter]].min()
                 )
             else:
-                pyomo.Constraint.Skip
+                return (
+                    SOCInter[loc, compName, ip, pInter]
+                    * (1 - compDict[compName].selfDischarge)
+                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
+                    + SOCmax[loc, compName, ip, esM.periodsOrder[ip][pInter]]
+                    <= compDict[compName].stateOfChargeMax
+                )
 
         setattr(
             pyM,
@@ -1292,6 +1306,8 @@ class StorageModel(ComponentModel):
                     + SOCmin[loc, compName, ip, esM.periodsOrder[ip][pInter]]
                     >= compDict[compName].processedStateOfChargeMin[ip][loc].loc[esM.periodsOrder[ip][pInter]].max()
                 )
+
+
 
         setattr(
             pyM,
