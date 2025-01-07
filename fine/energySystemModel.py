@@ -621,6 +621,9 @@ class EnergySystemModel:
                 + "Please define a valid investment period  "
                 + f"(from '{self.investmentPeriodNames}')"
             )
+        
+        # adjust columns name and remove "space" or "space_2" in case it exists
+        self.componentModelingDict[modelingClass]._optSummary[ip].columns.name=None    
 
         if outputLevel == 0:
             return self.componentModelingDict[modelingClass]._optSummary[ip]
