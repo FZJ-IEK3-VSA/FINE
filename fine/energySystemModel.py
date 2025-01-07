@@ -1555,8 +1555,8 @@ class EnergySystemModel:
             abbrvName2 = self.componentModelingDict[
                 self.componentNames[compName2]
             ].abbrvName
-            capVar1 = getattr(pyM, "cap_" + abbrvName1)
-            capVar2 = getattr(pyM, "cap_" + abbrvName2)
+            commisVar1 = getattr(pyM, "commis_" + abbrvName1)
+            commisVar2 = getattr(pyM, "commis_" + abbrvName2)
             capPPU1 = (
                 self.componentModelingDict[self.componentNames[compName1]]
                 .componentsDict[compName1]
@@ -1568,8 +1568,8 @@ class EnergySystemModel:
                 .processedCapacityPerPlantUnit[ip]
             )
             return (
-                capVar1[loc, compName1, ip] / capPPU1
-                == capVar2[loc, compName2, ip] / capPPU2
+                commisVar1[loc, compName1, ip] / capPPU1
+                == commisVar2[loc, compName2, ip] / capPPU2
             )
 
         for i, j in pyM.linkedQuantityDict.keys():

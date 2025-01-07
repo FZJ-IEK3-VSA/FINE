@@ -1048,9 +1048,14 @@ def checkAndSetInvestmentPeriodTimeSeries(
             parameter[ip] = checkAndSetTimeSeries(
                 esM, name, data[_ip], locationalEligibility, dimension
             )
+        elif isinstance(data, int) or isinstance(data, float):
+            _data = pd.DataFrame({loc: [data] * esM.numberOfTimeSteps for loc in esM.locations})
+            parameter[ip] = checkAndSetTimeSeries(
+                esM, name, _data, None, dimension
+            )
         else:
             raise TypeError(
-                f"Parameter of {name} should be a pandas dataframe or a dictionary."
+                f"Parameter of {name} does not match required type."
             )
     return parameter
 
