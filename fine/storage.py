@@ -117,11 +117,21 @@ class Storage(Component):
 
         :param stateOfChargeMin: threshold (percentage) that the state of charge can not drop under
             |br| * the default value is 0
-        :type stateOfChargeMin: 0 <= float <=1
+        :type stateOfChargeMax:
+            * 0 <= float <=1
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param stateOfChargeMax: threshold (percentage) that the state of charge can not exceed
             |br| * the default value is 1
-        :type stateOfChargeMax: 0 <= float <=1
+        :type stateOfChargeMax:
+            * 0 <= float <=1
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param doPreciseTsaModeling: determines whether the state of charge is limited precisely (True) or
             with a simplified method (False). The error is small if the selfDischarge is small.
@@ -281,7 +291,6 @@ class Storage(Component):
             commodity,
             esM.commodityUnitsDict[commodity],
         )
-        # TODO unit and type checks        
         
         utils.isStrictlyPositiveNumber(chargeRate)
         self.chargeRate = chargeRate
@@ -291,9 +300,7 @@ class Storage(Component):
         self.dischargeEfficiency = utils.isInRange(dischargeEfficiency, 0, 1)
         self.selfDischarge = utils.isInRange(selfDischarge, 0, 1)
         self.cyclicLifetime = cyclicLifetime
-        utils.isPositiveNumber(stateOfChargeMin)
         self.stateOfChargeMin = stateOfChargeMin
-        utils.isPositiveNumber(stateOfChargeMax)
         self.stateOfChargeMax = stateOfChargeMax
         self.isPeriodicalStorage = isPeriodicalStorage
         self.doPreciseTsaModeling = doPreciseTsaModeling
