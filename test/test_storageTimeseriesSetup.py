@@ -31,7 +31,7 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
             hasCapacityVariable=True,
             chargeOpRateMax=dummy_time_series,
             capacityVariableDomain="continuous",
-            stateOfChargeMin=0.33,
+            stateOfChargeMin=dummy_time_series,
             investPerCapacity=0.5,  # eur/kWh
             interestRate=0.08,
             economicLifetime=30,

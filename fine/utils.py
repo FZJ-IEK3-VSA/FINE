@@ -8,6 +8,15 @@ import fine as fn
 
 # ruff: noqa
 
+def isInRange(value, lowerBound, upperBound):
+    """Check if the input value is in the given range."""
+    if not (isinstance(value, float) or isinstance(value, int)):
+        raise TypeError("The input argument has to be a number")
+    if value <= upperBound and value >= lowerBound:
+        return value
+    else:
+        raise ValueError(f"The input argument has to be in the range [{lowerBound},{upperBound}]")
+
 def isString(string):
     """Check if the input argument is a string."""
     if not isinstance(string, str):
@@ -630,6 +639,19 @@ def checkInvestmentPeriodParameters(name, param, years):
             )
 
 
+def checkAndSetInvestmentPeriodParamters(name, param, esM):
+    checkInvestmentPeriodParameters(name, param, esM.investmentPeriodNames)
+    processedParam = {}
+    for ip in esM.investmentPeriods:
+        if param is None:
+            processedParam[ip] = None
+        if isinstance(param, dict):
+            processedParam[ip] = param[esM.investmentPeriodNames[ip]]
+        else:
+            processedParam[ip] = param
+    return processedParam
+
+
 def checkCapacityDevelopmentWithStock(
     investmentPeriods,
     capacityMax,
@@ -1035,9 +1057,14 @@ def checkAndSetInvestmentPeriodTimeSeries(
             parameter[ip] = checkAndSetTimeSeries(
                 esM, name, data[_ip], locationalEligibility, dimension
             )
+        elif isinstance(data, int) or isinstance(data, float):
+            _data = pd.DataFrame({loc: [data] * esM.numberOfTimeSteps for loc in esM.locations})
+            parameter[ip] = checkAndSetTimeSeries(
+                esM, name, _data, None, dimension
+            )
         else:
             raise TypeError(
-                f"Parameter of {name} should be a pandas dataframe or a dictionary."
+                f"Parameter of {name} does not match required type."
             )
     return parameter
 
@@ -1183,7 +1210,8 @@ def checkDesignVariableModelingParameters(
     if not isinstance(hasIsBuiltBinaryVariable, bool):
         raise TypeError("The hasCapacityVariable variable domain has to be a boolean.")
 
-    isStrictlyPositiveNumber(capacityPerPlantUnit)
+    for ip in esM.investmentPeriods:
+        isStrictlyPositiveNumber(capacityPerPlantUnit[ip])
 
     if not hasCapacityVariable and hasIsBuiltBinaryVariable:
         raise ValueError(
@@ -2862,4 +2890,94 @@ def checkAndSetFlowShares(comp, esM):
         }
 
     return processedFlowShares
+
+
+def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
+    ipEconomicLifetime = getattr(
+        esM.getComponent(compName), "ipEconomicLifetime"
+    )[loc]
+    ipTechnicalLifetime = getattr(
+        esM.getComponent(compName), "ipTechnicalLifetime"
+    )[loc]
+
+    # A) Fix operational costs for design variables.
+    # Fix operation costs are applied over the entire operational time.
+    # The duration of the operation time depends on the technical lifetime and
+    # (in case it is not a multiple of the interval) weather it is floored
+    # or ceiled to the next interval.
+    if lifetimeAttr == "ipTechnicalLifetime":
+        if esM.getComponent(compName).floorTechnicalLifetime:
+            intervalsWithCompleteCosts = math.floor(ipTechnicalLifetime)
+        else:
+            intervalsWithCompleteCosts = math.ceil(ipTechnicalLifetime)
+        # The following two parameters unrelevant for operation costs
+        hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = False
+        hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = False
+
+    # B) Costs for design variables.
+    # The applied costs for the design variables are more complex.
+    # The cost distrubutiuon depends on the economic lifetime, the technical
+    # lifetime, the flooring/ceiling of the technical lifetime to the next
+    # interval and the length of the interval.
+    # Complex example: interval of 5 years, economic lifetime of 8 years,
+    # technical lifetime of 13 years and technical lifetime is ceiled to 15 years
+    # Then design costs need to be applied for
+    # - first interval (0-4): all years of interval with costs
+    # - second interval (5-9): costs only in years 5,6,7
+    # - third interval (10-14): costs only in years 14,15 (as new capacity is required,
+    #   the specific costs of the first interval are used)
+    else:
+        # if the technical and economic lifetime are in the same interval, both are affected by flooring
+        economicAndTechnicalLifetimeInSameInterval = math.floor(
+            ipEconomicLifetime
+        ) == math.floor(ipTechnicalLifetime)
+        if (
+                economicAndTechnicalLifetimeInSameInterval
+                and esM.getComponent(compName).floorTechnicalLifetime
+        ):
+            # example: interval 5, economic lifetime 6, technical lifetime 7
+            # both lifetimes are then floored to 5
+            _ipEconomicLifetime = math.floor(ipEconomicLifetime)
+            _ipTechnicalLifetime = math.floor(ipTechnicalLifetime)
+            # by rounding, no intervals will contain costs only for a few years
+            hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
+                False
+            )
+            hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
+                False
+            )
+        else:
+            # example: interval 5, economic lifetime 7, technical lifetime 12
+            _ipEconomicLifetime = ipEconomicLifetime
+            if esM.getComponent(compName).floorTechnicalLifetime:
+                # example: technical lifetime is floored to 10, year 10 and 11 not relevant and without costs
+                hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
+                    False
+                )
+                _ipTechnicalLifetime = math.floor(ipTechnicalLifetime)
+            else:
+                # example: technical lifetime is ceiled to 15, year 10 and 11 without costs, year 12,13,14 require additional costs
+                hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
+                    True
+                )
+                _ipTechnicalLifetime = ipTechnicalLifetime
+
+            # economic lifetime leading to overhead years in last interval
+            if _ipEconomicLifetime % 1 != 0:
+                hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
+                    True
+                )
+            else:
+                hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
+                    False
+                )
+
+        # interval with cost in all included years
+        intervalsWithCompleteCosts = math.floor(_ipEconomicLifetime)
+
+    return (
+        intervalsWithCompleteCosts,
+        hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval,
+        hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval
+    )
 

@@ -5,16 +5,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.4.0"
+version = "2.4.1"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
     { name = "Johannes Behrens", email = "j.behrens@fz-juelich.de"},
-    { name = "Theresa Groß", email = "t.gross@fz-juelich.de" },
+    { name = "Theresa Klütz", email = "t.kluetz@fz-juelich.de" },
 ]
 maintainers = [
     { name = "Johannes Behrens", email = "j.behrens@fz-juelich.de"},
-    { name = "Theresa Groß", email = "t.gross@fz-juelich.de" },
+    { name = "Theresa Klütz", email = "t.kluetz@fz-juelich.de" },
 ]
 license = { file = "LICENSE" }
 

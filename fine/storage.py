@@ -82,7 +82,7 @@ class Storage(Component):
               one hour. The chargeRate thus equals 0.45/133 1/h.
 
             |br| * the default value is 1
-        :type chargeRate: 0 <= float <=1
+        :type chargeRate: 0 < float 
 
         :param dischargeRate: ratio of the maximum storage outflow (in commodityUnit/hour) to
             the storage capacity (in commodityUnit).
@@ -92,7 +92,7 @@ class Storage(Component):
               one hour. The dischargeRate thus equals 0.45/133.
 
             |br| * the default value is 1
-        :type dischargeRate: 0 <= float <=1
+        :type dischargeRate: 0 < float 
 
         :param chargeEfficiency: defines the efficiency with which the storage can be charged (equals
             the percentage of the injected commodity that is transformed into stored commodity).
@@ -117,11 +117,21 @@ class Storage(Component):
 
         :param stateOfChargeMin: threshold (percentage) that the state of charge can not drop under
             |br| * the default value is 0
-        :type stateOfChargeMin: 0 <= float <=1
+        :type stateOfChargeMax:
+            * 0 <= float <=1
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param stateOfChargeMax: threshold (percentage) that the state of charge can not exceed
             |br| * the default value is 1
-        :type stateOfChargeMax: 0 <= float <=1
+        :type stateOfChargeMax:
+            * 0 <= float <=1
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
+              to match the in the energy system model  specified time steps. The column indices have to match the
+              in the energy system model specified locations.
+            * a dictionary with investment periods as keys and one of the two options above as values.
 
         :param doPreciseTsaModeling: determines whether the state of charge is limited precisely (True) or
             with a simplified method (False). The error is small if the selfDischarge is small.
@@ -281,11 +291,14 @@ class Storage(Component):
             commodity,
             esM.commodityUnitsDict[commodity],
         )
-        # TODO unit and type checks
-        self.chargeRate, self.dischargeRate = chargeRate, dischargeRate
-        self.chargeEfficiency = chargeEfficiency
-        self.dischargeEfficiency = dischargeEfficiency
-        self.selfDischarge = selfDischarge
+        
+        utils.isStrictlyPositiveNumber(chargeRate)
+        self.chargeRate = chargeRate
+        utils.isStrictlyPositiveNumber(dischargeRate)
+        self.dischargeRate = dischargeRate
+        self.chargeEfficiency = utils.isInRange(chargeEfficiency, 0, 1)
+        self.dischargeEfficiency = utils.isInRange(dischargeEfficiency, 0, 1)
+        self.selfDischarge = utils.isInRange(selfDischarge, 0, 1)
         self.cyclicLifetime = cyclicLifetime
         self.stateOfChargeMin = stateOfChargeMin
         self.stateOfChargeMax = stateOfChargeMax
@@ -294,6 +307,16 @@ class Storage(Component):
         self.socOffsetUp = socOffsetUp
         self.socOffsetDown = socOffsetDown
         self.modelingClass = StorageModel
+
+        self.fullStateOfChargeMin = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, stateOfChargeMin, locationalEligibility
+        )
+        self.aggregatedStateOfChargeMin = dict.fromkeys(esM.investmentPeriods)
+
+        self.fullStateOfChargeMax = utils.checkAndSetInvestmentPeriodTimeSeries(
+            esM, name, stateOfChargeMax, locationalEligibility
+        )
+        self.aggregatedStateOfChargeMax = dict.fromkeys(esM.investmentPeriods)
 
         # opexPerChargeOperation
         self.opexPerChargeOperation = opexPerChargeOperation
@@ -439,6 +462,12 @@ class Storage(Component):
         self.processedDischargeOpRateFix = (
             self.aggregatedDischargeOpRateFix if hasTSA else self.fullDischargeOpRateFix
         )
+        self.processedStateOfChargeMax = (
+            self.aggregatedStateOfChargeMax if hasTSA else self.fullStateOfChargeMax
+        )
+        self.processedStateOfChargeMin = (
+            self.aggregatedStateOfChargeMin if hasTSA else self.fullStateOfChargeMin
+        )
 
     def getDataForTimeSeriesAggregation(self, ip):
         """Function for getting the required data if a time series aggregation is requested.
@@ -472,6 +501,18 @@ class Storage(Component):
                 weightDict, data = self.prepareTSAInput(
                     rateMax, rateName, rateWeight, weightDict, data, ip
                 )
+
+        combinedTsaWeight = (self.chargeTsaWeight + self.dischargeTsaWeight) / 2
+        if not isinstance(self.stateOfChargeMin, (int, float)):
+            # only consider stateOfChargeMin in tsa if it is not a constant value
+            weightDict, data = self.prepareTSAInput(
+                self.fullStateOfChargeMin, "stateOfChargeMin_", combinedTsaWeight, weightDict, data, ip
+            )
+        if not isinstance(self.stateOfChargeMax, (int, float)):
+            # only consider stateOfChargeMax in tsa if it is not a constant value
+            weightDict, data = self.prepareTSAInput(
+                self.fullStateOfChargeMax, "stateOfChargeMax_", combinedTsaWeight, weightDict, data, ip
+            )
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data, ip):
@@ -499,6 +540,33 @@ class Storage(Component):
         self.aggregatedDischargeOpRateMax[ip] = self.getTSAOutput(
             self.fullDischargeOpRateMax, "dischargeRate_", data, ip
         )
+
+        if isinstance(self.stateOfChargeMin, (int, float)):
+            # if stateOfChargeMin is a constant value, the aggregatedStateOfChargeMax is
+            # created from a constant value as it was not considered within the tsa
+            self.aggregatedStateOfChargeMin[ip] = pd.DataFrame(
+                index=data.index,
+                columns=self.fullStateOfChargeMin[ip].columns,
+                data=self.stateOfChargeMin
+            )
+        else:
+            self.aggregatedStateOfChargeMin[ip] = self.getTSAOutput(
+                self.fullStateOfChargeMin, "stateOfChargeMin_", data, ip
+            )
+
+        if isinstance(self.stateOfChargeMax, (int, float)):
+            # if stateOfChargeMax is a constant value, the aggregatedStateOfChargeMax is
+            # created from a constant value as it was not considered within the tsa
+            self.aggregatedStateOfChargeMax[ip] = pd.DataFrame(
+                index=data.index,
+                columns=self.fullStateOfChargeMax[ip].columns,
+                data=self.stateOfChargeMax
+            )
+        else:
+            self.aggregatedStateOfChargeMax[ip] = self.getTSAOutput(
+                self.fullStateOfChargeMax, "stateOfChargeMax_", data, ip
+            )
+
 
 
 class StorageModel(ComponentModel):
@@ -955,8 +1023,8 @@ class StorageModel(ComponentModel):
                 / esM.numberOfYears
                 <= capVar[loc, compName, ip]
                 * (
-                    compDict[compName].stateOfChargeMax
-                    - compDict[compName].stateOfChargeMin
+                    compDict[compName].processedStateOfChargeMax[ip][loc].max()
+                    - compDict[compName].processedStateOfChargeMin[ip][loc].min()
                 )
                 * compDict[compName].cyclicLifetime
                 / compDict[compName].economicLifetime[loc]
@@ -1023,11 +1091,6 @@ class StorageModel(ComponentModel):
                     offsetUp_ - offsetDown_
                 )
             else:
-                # return SOCInter[loc, compName, pInter + 1] == \
-                #     SOCInter[loc, compName, pInter] * (1 - compDict[compName].selfDischarge) ** \
-                #     ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep) + \
-                #     SOC[loc, compName, esM.periodsOrder[pInter], esM.segmentsPerPeriod[-1] + 1] + \
-                #     (offsetUp_ - offsetDown_)
                 return SOCInter[loc, compName, ip, pInter + 1] == SOCInter[
                     loc, compName, ip, pInter
                 ] * (1 - compDict[compName].selfDischarge) ** (
@@ -1130,7 +1193,8 @@ class StorageModel(ComponentModel):
         def SOCMin(pyM, loc, compName, ip, p, t):
             return (
                 SOC[loc, compName, ip, p, t]
-                >= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMin
+                >= capVar[loc, compName, ip]
+                * compDict[compName].processedStateOfChargeMin[ip][loc].loc[p,t]
             )
 
         setattr(
@@ -1207,11 +1271,20 @@ class StorageModel(ComponentModel):
             if compDict[compName].hasCapacityVariable:
                 return (
                     SOCInter[loc, compName, ip, pInter]
+                    * (1 - compDict[compName].selfDischarge)
+                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
                     + SOCmax[loc, compName, ip, esM.periodsOrder[ip][pInter]]
-                    <= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMax
+                    <= capVar[loc, compName, ip]
+                    * compDict[compName].processedStateOfChargeMax[ip][loc].loc[esM.periodsOrder[ip][pInter]].min()
                 )
             else:
-                pyomo.Constraint.Skip
+                return (
+                    SOCInter[loc, compName, ip, pInter]
+                    * (1 - compDict[compName].selfDischarge)
+                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
+                    + SOCmax[loc, compName, ip, esM.periodsOrder[ip][pInter]]
+                    <= compDict[compName].stateOfChargeMax
+                )
 
         setattr(
             pyM,
@@ -1229,7 +1302,8 @@ class StorageModel(ComponentModel):
                     * (1 - compDict[compName].selfDischarge)
                     ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
                     + SOCmin[loc, compName, ip, esM.periodsOrder[ip][pInter]]
-                    >= capVar[loc, compName, ip] * compDict[compName].stateOfChargeMin
+                    >= capVar[loc, compName, ip]
+                    * compDict[compName].processedStateOfChargeMin[ip][loc].loc[esM.periodsOrder[ip][pInter]].max()
                 )
             else:
                 return (
@@ -1237,8 +1311,10 @@ class StorageModel(ComponentModel):
                     * (1 - compDict[compName].selfDischarge)
                     ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
                     + SOCmin[loc, compName, ip, esM.periodsOrder[ip][pInter]]
-                    >= compDict[compName].stateOfChargeMin
+                    >= compDict[compName].processedStateOfChargeMin[ip][loc].loc[esM.periodsOrder[ip][pInter]].max()
                 )
+
+
 
         setattr(
             pyM,
@@ -1273,7 +1349,8 @@ class StorageModel(ComponentModel):
         def op(pyM, loc, compName, ip, p, t):
             return (
                 opVar[loc, compName, ip, p, t]
-                <= compDict[compName].stateOfChargeMax * capVar[loc, compName, ip]
+                <= compDict[compName].processedStateOfChargeMax[ip][loc].loc[p,t]
+                * capVar[loc, compName, ip]
             )
 
         setattr(
@@ -1316,7 +1393,7 @@ class StorageModel(ComponentModel):
                         )
                         + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
                         <= capVar[loc, compName, ip]
-                        * compDict[compName].stateOfChargeMax
+                        * compDict[compName].processedStateOfChargeMax[ip][loc].loc[pInter, t]
                     )
                 else:
                     return (
@@ -1332,7 +1409,7 @@ class StorageModel(ComponentModel):
                         )
                         + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
                         <= capVar[loc, compName, ip]
-                        * compDict[compName].stateOfChargeMax
+                        * compDict[compName].processedStateOfChargeMax[ip][loc].loc[pInter, t]
                     )
             else:
                 return pyomo.Constraint.Skip
@@ -1381,7 +1458,7 @@ class StorageModel(ComponentModel):
                         )
                         + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
                         >= capVar[loc, compName, ip]
-                        * compDict[compName].stateOfChargeMin
+                        * compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
                     )
                 else:
                     return (
@@ -1397,7 +1474,7 @@ class StorageModel(ComponentModel):
                         )
                         + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
                         >= capVar[loc, compName, ip]
-                        * compDict[compName].stateOfChargeMin
+                        * compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
                     )
             elif not pyM.hasSegmentation:
                 return (
@@ -1407,7 +1484,7 @@ class StorageModel(ComponentModel):
                         ** (t * esM.hoursPerTimeStep)
                     )
                     + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                    >= compDict[compName].stateOfChargeMin
+                    >= compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
                 )
             else:
                 return (
@@ -1422,7 +1499,7 @@ class StorageModel(ComponentModel):
                         )
                     )
                     + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                    >= compDict[compName].stateOfChargeMin
+                    >= compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
                 )
 
         setattr(
