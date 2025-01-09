@@ -1,6 +1,9 @@
 import fine as fn
 import pandas as pd
+from pathlib import Path
 import pytest
+
+from fine.IOManagement.xarrayIO import writeEnergySystemModelToNetCDF
 
 def test_flexibleConversion_init():
 
@@ -354,7 +357,9 @@ def test_flexibleConversion_groups():
     )
 
     esM.optimize(timeSeriesAggregation=False, solver='glpk')
+    writeEnergySystemModelToNetCDF(esM, 'flex_conversion_esm.nc')
     print("Objective Value: \n" + str(esM.pyM.Obj()))
+    Path("flex_conversion_esm.nc").unlink()
 
 @pytest.mark.parametrize("use_balanceLimit", [False, True])
 def test_flexibleConversion_emissionFactors(use_balanceLimit):

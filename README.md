@@ -103,11 +103,11 @@ ruff check fine
 
 MIT License
 
-Copyright (C) 2016-2024 FZJ-ICE-2
+Copyright (C) 2016-2025 FZJ-ICE-2
 
-Active Developers: Theresa Groß, Kevin Knosala, Noah Pflugradt, Johannes Behrens, Julian Belina, Arne Burdack, Toni Busch, Philipp Dunkel, David Franzmann, Patrick Freitag, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Jason Hu, Shitab Ishmam, Sebastian Kebrich, Felix Kullmann, Jochen Linßen, Rachel Maier, Shruthi Patil, Jan Priesmann, Julian Schönau, Maximilian Stargardt, Lovindu Wijesinghe, Christoph Winkler, Detlef Stolten
+Active Developers: Johannes Behrens, Theresa Klütz, Noah Pflugradt,  Julian Belina, Arne Burdack, Toni Busch, Philipp Dunkel, David Franzmann, Maike Gnirß, Thomas Grube, Lars Hadidi, Heidi Heinrichs, Shitab Ishmam, Sebastian Kebrich, Jochen Linßen, Nils Ludwig, Lilly Madeisky, Drin Marmullaku, Gian Müller, Kenneth Okosun, Olalekan Omoyele, Shruthi Patil, Kai Schulze, Julian Schönau, Maximilian Stargardt, Lana Söltzer, Henrik Wenzel, Bernhard Wortmann, Lovindu Wijesinghe, Christoph Winkler, Detlef Stolten
 
-Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Timo Kannengießer, Leander Kotzur, Stefan Kraus, Peter Markewitz, Lars Nolting,Stanley Risch, Martin Robinius, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder, Michael Zier
+Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Patrick Freitag, Maximilian Hoffmann, Jason Hu, Timo Kannengießer, Kevin Knosala, Leander Kotzur, Felix Kullmann, Stefan Kraus, Rachel Maier, Peter Markewitz, Lars Nolting, Jan Priesmann, Stanley Risch, Martin Robinius, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder, Michael Zier
 
 You should have received a copy of the MIT License along with this program.
 If not, see https://opensource.org/licenses/MIT

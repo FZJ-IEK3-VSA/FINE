@@ -8,5 +8,5 @@ Last edited: May 15 2018
 
 from .lopf import LinearOptimalPowerFlow
 from .conversionDynamic import ConversionDynamic
-
 from .conversionPartLoad import ConversionPartLoad
+from .endogenousTechnologicalLearning import EndogenousTechnologicalLearningModul, EndogenousTechnologicalLearningModel

@@ -1,6 +1,5 @@
-***********************
 EnergySystemModel class
-***********************
+#######################
 
 .. |br| raw:: html
 
@@ -8,7 +7,8 @@ EnergySystemModel class
 
 A description of the class is given below.
 
-**Class description:**
+Class description:
+******************
 
 .. automodule:: energySystemModel
 .. autoclass:: EnergySystemModel

@@ -56,6 +56,7 @@ class Source(Component):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        etlParameter=None,
     ):
         """
         Constructor for creating an Source class instance.
@@ -284,6 +285,7 @@ class Source(Component):
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
+            etlParameter=etlParameter,
         )
 
         # Set general source/sink data: ID and yearly limit

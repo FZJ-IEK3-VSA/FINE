@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from fine import utils
+import fine
 import warnings
 import pyomo.environ as pyomo
 import pandas as pd
@@ -48,6 +49,7 @@ class Component(metaclass=ABCMeta):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        etlParameter=None,
     ):
         """
         Constructor for creating an instance of the Component class.
@@ -91,7 +93,7 @@ class Component(metaclass=ABCMeta):
             This parameter should be specified when using a 'discrete' capacityVariableDomain.
             It can be specified when using a 'continuous' variable domain.
             |br| * the default value is 1
-        :type capacityPerPlantUnit: strictly positive float
+        :type capacityPerPlantUnit: dict of strictly positive float or strictly positive float
 
         :param hasIsBuiltBinaryVariable: specifies if binary decision variables should be declared for
 
@@ -494,20 +496,26 @@ class Component(metaclass=ABCMeta):
         self.dimension = dimension
         self.modelingClass = ComponentModel
 
+        self.hasCapacityVariable = hasCapacityVariable
+        self.capacityVariableDomain = capacityVariableDomain
+        self.capacityPerPlantUnit = capacityPerPlantUnit
+        self.processedCapacityPerPlantUnit = utils.checkAndSetInvestmentPeriodParamters(
+            'capacityPerPlantUnit',
+            capacityPerPlantUnit,
+            esM,
+        )
+        self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
+        self.bigM = bigM
+
         # Set design variable modeling parameters
         utils.checkDesignVariableModelingParameters(
             esM,
             capacityVariableDomain,
             hasCapacityVariable,
-            capacityPerPlantUnit,
+            self.processedCapacityPerPlantUnit,
             hasIsBuiltBinaryVariable,
             bigM,
         )
-        self.hasCapacityVariable = hasCapacityVariable
-        self.capacityVariableDomain = capacityVariableDomain
-        self.capacityPerPlantUnit = capacityPerPlantUnit
-        self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
-        self.bigM = bigM
 
         self.partLoadMin = partLoadMin
 
@@ -679,6 +687,22 @@ class Component(metaclass=ABCMeta):
             self.floorTechnicalLifetime,
         )
 
+        self.etlParameter = etlParameter
+        self.etl = None
+        if etlParameter:
+            etlModul = fine.subclasses.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModul
+            self.etl = etlModul(self, esM, **etlParameter)
+            #TODO: check if needed
+
+            # self.processedInvestPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
+            #         esM,
+            #         name,
+            #         investPerCapacity,
+            #         dimension,
+            #         self.locationalEligibility,
+            #         self.processedStockYears + esM.investmentPeriods,
+            #     )
+
     def addToEnergySystemModel(self, esM):
         """
         Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -707,7 +731,15 @@ class Component(metaclass=ABCMeta):
             esM.componentModelingDict.update({mdl: self.modelingClass()})
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
-    def prepareTSAInput(self, rate, rateName, rateWeight, weightDict, data, ip):
+        if self.etl is not None:
+            etlModel = fine.subclasses.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModel
+            if not hasattr(esM, 'etlModel'):
+                esM.etlModel = etlModel()
+            esM.etlModel.modulsDict.update({self.name: self.etl})
+
+    def prepareTSAInput(
+        self, rate, rateName, rateWeight, weightDict, data, ip
+    ):
         """
         Format the time series data of a component to fit the requirements of the time series aggregation package and
         return a list of formatted data.
@@ -1767,7 +1799,7 @@ class ComponentModel(metaclass=ABCMeta):
             return (
                 capVar[loc, compName, ip]
                 == nbRealVar[loc, compName, ip]
-                * compDict[compName].capacityPerPlantUnit
+                * compDict[compName].processedCapacityPerPlantUnit[ip]
             )
 
         setattr(
@@ -1797,7 +1829,7 @@ class ComponentModel(metaclass=ABCMeta):
         def capToNbInt(pyM, loc, compName, ip):
             return (
                 capVar[loc, compName, ip]
-                == nbIntVar[loc, compName, ip] * compDict[compName].capacityPerPlantUnit
+                == nbIntVar[loc, compName, ip] * compDict[compName].processedCapacityPerPlantUnit[ip]
             )
 
         setattr(
@@ -2565,7 +2597,7 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
-            
+
     def additionalMinPartLoad(
         self,
         pyM,
@@ -3097,80 +3129,11 @@ class ComponentModel(metaclass=ABCMeta):
                     esM.getComponent(compName), "ipTechnicalLifetime"
                 )[loc]
 
-                # A) Fix operational costs for design variables.
-                # Fix operation costs are applied over the entire operational time.
-                # The duration of the operation time depends on the technical lifetime and
-                # (in case it is not a multiple of the interval) weather it is floored
-                # or ceiled to the next interval.
-                if lifetimeAttr == "ipTechnicalLifetime":
-                    if esM.getComponent(compName).floorTechnicalLifetime:
-                        intervalsWithCompleteCosts = math.floor(ipTechnicalLifetime)
-                    else:
-                        intervalsWithCompleteCosts = math.ceil(ipTechnicalLifetime)
-                    # The following two parameters unrelevant for operation costs
-                    hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = False
-                    hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = False
+                (fullCostIntervals, costInLastEconInterval,
+                 costInLastTechInterval) = utils.getParametersForUnevenLifetimes(
+                    compName, loc, lifetimeAttr, esM
+                )
 
-                # B) Costs for design variables.
-                # The applied costs for the design variables are more complex.
-                # The cost distribution depends on the economic lifetime, the technical
-                # lifetime, the flooring/ceiling of the technical lifetime to the next
-                # interval and the length of the interval.
-                # Complex example: interval of 5 years, economic lifetime of 8 years,
-                # technical lifetime of 13 years and technical lifetime is ceiled to 15 years
-                # Then design costs need to be applied for
-                # - first interval (0-4): all years of interval with costs
-                # - second interval (5-9): costs only in years 5,6,7
-                # - third interval (10-14): costs only in years 14,15 (as new capacity is required,
-                #   the specific costs of the first interval are used)
-                else:
-                    # if the technical and economic lifetime are in the same interval, both are affected by flooring
-                    economicAndTechnicalLifetimeInSameInterval = math.floor(
-                        ipEconomicLifetime
-                    ) == math.floor(ipTechnicalLifetime)
-                    if (
-                        economicAndTechnicalLifetimeInSameInterval
-                        and esM.getComponent(compName).floorTechnicalLifetime
-                    ):
-                        # example: interval 5, economic lifetime 6, technical lifetime 7
-                        # both lifetimes are then floored to 5
-                        _ipEconomicLifetime = math.floor(ipEconomicLifetime)
-                        _ipTechnicalLifetime = math.floor(ipTechnicalLifetime)
-                        # by rounding, no intervals will contain costs only for a few years
-                        hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
-                            False
-                        )
-                        hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
-                            False
-                        )
-                    else:
-                        # example: interval 5, economic lifetime 7, technical lifetime 12
-                        _ipEconomicLifetime = ipEconomicLifetime
-                        if esM.getComponent(compName).floorTechnicalLifetime:
-                            # example: technical lifetime is floored to 10, year 10 and 11 not relevant and without costs
-                            hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
-                                False
-                            )
-                            _ipTechnicalLifetime = math.floor(ipTechnicalLifetime)
-                        else:
-                            # example: technical lifetime is ceiled to 15, year 10 and 11 without costs, year 12,13,14 require additional costs
-                            hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
-                                True
-                            )
-                            _ipTechnicalLifetime = ipTechnicalLifetime
-
-                        # economic lifetime leading to overhead years in last interval
-                        if _ipEconomicLifetime % 1 != 0:
-                            hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
-                                True
-                            )
-                        else:
-                            hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
-                                False
-                            )
-
-                    # interval with cost in all included years
-                    intervalsWithCompleteCosts = math.floor(_ipEconomicLifetime)
 
                 # calculation of the annuity
                 annuity = self.getLocEconomicsDesign(
@@ -3189,25 +3152,24 @@ class ComponentModel(metaclass=ABCMeta):
 
                 # write costs into dataframe
                 # a) costs for complete intervals
-                for i in range(commisYear, commisYear + intervalsWithCompleteCosts):
-                    costContribution[(loc, compName)][(commisYear, i)] = (
-                        annuity
-                        * utils.annuityPresentValueFactor(
-                            esM, compName, loc, esM.investmentPeriodInterval
-                        )
+                for i in range(commisYear, commisYear + fullCostIntervals):
+                    costContribution[(loc, compName)][
+                        (commisYear, i)
+                    ] = annuity * utils.annuityPresentValueFactor(
+                        esM, compName, loc, esM.investmentPeriodInterval
                     )
 
                 # b) costs for last economic interval
                 # example: interval 5, economic lifetime 7, technical lifetime 10
                 # last interval has costs only in year 5 and 6
-                if hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval:
+                if costInLastEconInterval:
                     # calculate portion of interval with economic lifetime
                     # example: interval 5, economic lifetime 7 leads to partlyCostInLastEconomicInterval of 0.4
                     partlyCostInLastEconomicInterval = (
                         ipEconomicLifetime % 1
                     ) * esM.investmentPeriodInterval
                     costContribution[(loc, compName)][
-                        (commisYear, commisYear + intervalsWithCompleteCosts)
+                        (commisYear, commisYear + fullCostIntervals)
                     ] = annuity * utils.annuityPresentValueFactor(
                         esM, compName, loc, partlyCostInLastEconomicInterval
                     )
@@ -3216,7 +3178,7 @@ class ComponentModel(metaclass=ABCMeta):
                 # example: interval 5, economic lifetime 5, technical lifetime 7 and is ceiled to 10
                 # extra costs for years 8 and 9
                 if (
-                    hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval
+                    costInLastTechInterval
                     and ipTechnicalLifetime % 1 != 0
                 ):
                     partlyCostInLastTechnicalInterval = (
@@ -3249,7 +3211,7 @@ class ComponentModel(metaclass=ABCMeta):
                             )
                         )
 
-            # create dictonary with ip as key and const contribution as value
+            # create dictionary with ip as key and cost contribution as value
             if getOptValue:
                 cost_results = {ip: pd.DataFrame() for ip in esM.investmentPeriods}
                 for loc, compName in locCompNamesCombinations:
@@ -3278,7 +3240,7 @@ class ComponentModel(metaclass=ABCMeta):
                     # contribution, implying the system design and operation
                     # will remain constant after the time frame of the
                     # transformation pathway.
-                    for loc, compName in costContribution.keys():
+                    for (loc, compName) in costContribution.keys(): # noqa: PLC0206
                         for y in componentYears[compName]:
                             costContribution[(loc, compName)][
                                 (y, esM.investmentPeriods[-1])
@@ -3604,7 +3566,7 @@ class ComponentModel(metaclass=ABCMeta):
                     # contribution, implying the system design and operation
                     # will remain constant after the time frame of the
                     # transformation pathway.
-                    for loc, compName in costContribution.keys():
+                    for (loc, compName) in costContribution.keys(): # noqa: PLC0206
                         for y in componentYears[compName]:
                             costContribution[(loc, compName)][
                                 (y, esM.investmentPeriods[-1])
