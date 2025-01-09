@@ -2406,7 +2406,7 @@ def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
             return CO2ReductionTargets
 
 
-def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
+def checkSimultaneousChargeDischarge(ip, esM):
     """
     Check if simultaneous charge and discharge occurs for StorageComponent.
     :param tsCharge: Charge time series of component, which is checked. Can be retrieved from
@@ -2419,18 +2419,53 @@ def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
     :return: simultaneousChargeDischarge: Boolean with information if simultaneous charge & discharge happens
     :type simultaneousChargeDischarge: bool
     """
-    # Merge Charge and Discharge Series
-    ts = pd.concat([tsCharge.T, tsDischarge.T], axis=1)
-    # If no simultaneous charge and discharge occurs ts[region][ts[region] > 0] will only return nan values. After
-    # dropping them the len() is 0 and the check returns False. This is done for all regions in the list comprehension.
-    # If any() region returns True the check returns True.
-    simultaneousChargeDischarge = any(
-        [
-            len(ts[region][ts[region] > 0].dropna()) > 0
-            for region in set(ts.columns.values)
-        ]
-    )
-    return simultaneousChargeDischarge
+    
+    for compName in esM.componentModelingDict["StorageModel"].componentsDict.keys():
+        tsCharge=esM.componentModelingDict["StorageModel"].getOptimalValues(name="chargeOperationVariablesOptimum", ip=ip)[
+                "values"
+            ].loc[compName]
+            
+        tsDischarge=esM.componentModelingDict["StorageModel"].getOptimalValues(name="dischargeOperationVariablesOptimum", ip=ip)[
+                "values"
+            ].loc[compName]
+        capacity = esM.componentModelingDict["StorageModel"].getOptimalValues(name="capacityVariablesOptimum", ip=ip)[
+                "values"
+            ].loc[compName]
+        
+        _simulatneousChargeDischarge = (tsCharge >0) & (tsDischarge>0)
+        simultaneousChargeDischarge = {}
+        simultaneousChargeDischargeAndChargeDischargeLargerThanXPercCapacity = {}
+        for region in tsCharge.index:
+            simultaneousChargeDischargeAndChargeDischargeLargerThanXPercCapacity[region] = any((tsCharge.loc[region]/esM.hoursPerTimeStep > capacity.loc[region]*0.1) & (_simulatneousChargeDischarge.loc[region]))
+            simultaneousChargeDischarge[region] = any(_simulatneousChargeDischarge.loc[region])
+
+        
+        # If no simultaneous charge and discharge occurs ts[region][ts[region] > 0] will only return nan values. After
+        # dropping them the len() is 0 and the check returns False. This is done for all regions in the list comprehension.
+        # If any() region returns True the check returns True.
+        # simultaneousChargeDischarge = {
+        #     region: 
+        #         len(ts[region][ts[region] > 0].dropna()) > 0
+        #         for region in set(ts.columns.values)
+        # }w
+        if any(simultaneousChargeDischargeAndChargeDischargeLargerThanXPercCapacity.values()):
+            affectedRegions = [k for k,v in simultaneousChargeDischargeAndChargeDischargeLargerThanXPercCapacity.items() if v]
+            if not esM.ignoreSimultaneousChargingDiscargeErrors:
+                raise ValueError(
+                    f"Charge and discharge at the same time and charge or discharge larger than 10% of capacity for component {compName} at investment period {ip} in regions {affectedRegions}. \n Storage is likely being misused as energy dissipator. \n If this is intended, set the flag 'ignoreSimultaneousChargingDiscargeErrors' in esM to True.",
+                )
+            else:
+                warnings.warn(
+                    f"Charge and discharge at the same time and charge or discharge larger than 10% of capacity for component {compName} at investment period {ip} in regions {affectedRegions}. \n Storage is likely being misused as energy dissipator. \n Check if this is intended.",
+                    UserWarning,
+                )           
+        elif any(simultaneousChargeDischarge.values()):
+            affectedRegions = [k for k,v in simultaneousChargeDischarge.items() if v]
+            warnings.warn(
+                f"Charge and discharge at the same time for component {compName} at investment period {ip} in regions {affectedRegions}. \n Storage is likely being misused as energy dissipator. \n Check if this is intended.",
+                UserWarning,
+            )
+
 
 
 def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):

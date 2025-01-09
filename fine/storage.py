@@ -1938,23 +1938,12 @@ class StorageModel(ComponentModel):
                 optVal_discharge
             )
             # Check if there are time steps, at which a storage component is both charging and discharging
-            for compName in opSum.index:
-                simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
-                    tsCharge=self._chargeOperationVariablesOptimum[
-                        esM.investmentPeriodNames[ip]
-                    ].loc[compName],
-                    tsDischarge=self._dischargeOperationVariablesOptimum[
-                        esM.investmentPeriodNames[ip]
-                    ].loc[compName],
-                )
-                if simultaneousChargeDischarge:
-                    if esM.verbose < 2:
-                        warnings.warn(
-                            "Charge and discharge at the same time for component {}".format(
-                                compName
-                            ),
-                            UserWarning,
-                        )
+            # for compName in opSum.index:
+            utils.checkSimultaneousChargeDischarge(
+                ip=ip,
+                esM=esM,
+            )
+
 
             if optVal_discharge is not None:
                 # operation

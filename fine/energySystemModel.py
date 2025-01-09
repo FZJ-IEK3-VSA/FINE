@@ -84,6 +84,7 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
+        ignoreSimultaneousChargingDiscargeErrors=False,
     ):
         """
         Constructor for creating an EnergySystemModel class instance
@@ -422,6 +423,7 @@ class EnergySystemModel:
         # The optimization solver logging can be separately enabled in the optimizationSpecs of the optimize function.
         self.verbose = verboseLogLevel
         self.verboseLogLevel = verboseLogLevel  # TODO replace
+        self.ignoreSimultaneousChargingDiscargeErrors = ignoreSimultaneousChargingDiscargeErrors
 
     def add(self, component):
         """
