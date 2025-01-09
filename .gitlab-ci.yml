@@ -203,6 +203,8 @@ test-codestyle:
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has
     # been created on the branch.
+    - if: $CI_COMMIT_TAG
+      when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
       when: never
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
@@ -220,7 +222,7 @@ build-tag:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
-    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG
+    - if: $CI_COMMIT_TAG
 
 # Push develop build to local jugit registry
 build-dev:
@@ -240,16 +242,15 @@ pypi-upload:
   before_script:
     - python3 -m pip install --upgrade build
     - python3 -m pip install --upgrade twine
-  variables:
-    TWINE_USERNAME: $PYPI_USERNAME
-    TWINE_PASSWORD: $PYPI_PASSWORD
   script:
     # Test if the version defined in `pyproject.toml` is the same as the tag
     - PYPROJECT_VERSION=$(grep -m 1 version pyproject.toml | tr -s ' ' | tr -d '"' | tr -d "'" | cut -d' ' -f3)
-    - test PYPROJECT_VERSION = v${CI_COMMIT_TAG}    
+    - echo v${PYPROJECT_VERSION}
+    - echo ${CI_COMMIT_TAG}
+    - test v${PYPROJECT_VERSION} = ${CI_COMMIT_TAG}
     # Build and push to pypi
     - python3 -m build
-    - python3 -m twine upload dist/*
+    - python3 -m twine upload --repository pypi --non-interactive --verbose --disable-progress-bar dist/*
   rules:
-    - if: $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_TAG
+    - if: $CI_COMMIT_TAG
 
