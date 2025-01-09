@@ -1141,8 +1141,9 @@ class EnergySystemModel:
         pyM.hasTSA = timeSeriesAggregation
         pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
-            for comp in mdl.componentsDict.values():
-                comp.setTimeSeriesData(pyM.hasTSA)
+            if mdl.abbrvName != "etl":
+                for comp in mdl.componentsDict.values():
+                    comp.setTimeSeriesData(pyM.hasTSA)
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
         # entries, the first one indicates an index of a period and the second one indicates a time step inside that
@@ -1701,6 +1702,8 @@ class EnergySystemModel:
                 mdl.getObjectiveFunctionContribution(self, pyM)
                 for mdl in self.componentModelingDict.values()
             )
+            if hasattr(self, 'etlModel'):
+                NPV += self.etlModel.getObjectiveFunctionContribution(self, pyM)
 
             return NPV
 
@@ -1787,6 +1790,15 @@ class EnergySystemModel:
             utils.output(
                 "\tdeclaring constraints... ", self.verbose, 0
             ), mdl.declareComponentConstraints(self, pyM)
+            utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+
+        if hasattr(self, 'etlModel'):
+            utils.output(
+                "Declaring sets, variables and constraints for ETL components", self.verbose, 0
+            )
+            self.etlModel.declareSets(self, pyM)
+            self.etlModel.declareVariables(self, pyM)
+            self.etlModel.declareComponentConstraints(self, pyM)
             utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################
@@ -2185,6 +2197,9 @@ class EnergySystemModel:
 
                 for optParam in optimalValueParameters:
                     convertOptimalValues(self, mdl, optParam)
+
+            if hasattr(self, 'etlModel'):
+                self.etlModel.setOptimalValues(self, self.pyM)
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
