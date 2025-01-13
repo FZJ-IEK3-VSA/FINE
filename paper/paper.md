@@ -2,7 +2,7 @@
 title: "ETHOS.FINE: A Framework for Integrated Energy System Assessment"
 tags:
   - Python
-  - energy systems modeling
+  - energy system modeling
   - optimization
   - energy
 authors:
