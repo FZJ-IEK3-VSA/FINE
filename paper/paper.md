@@ -6,7 +6,7 @@ tags:
   - optimization
   - energy
 authors:
-  - name: Theresa Groß
+  - name: Theresa Klütz
     orcid: 0000-0003-1792-5598
     affiliation: "1"
   - name: Kevin Knosala
@@ -32,7 +32,7 @@ affiliations:
     index: 1
   - name: RWTH Aachen University, Chair for Fuel Cells, Faculty of Mechanical Engineering, 52062 Aachen, Germany
     index: 2
-date: 26 August 2024
+date: 09 January 2025
 bibliography: FINE-literature.bib
 ---
 
