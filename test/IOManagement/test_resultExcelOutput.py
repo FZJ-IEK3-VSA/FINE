@@ -60,7 +60,7 @@ def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
     )
     pathMultiNodeExcel_expected_pandas1 = os.path.join(
         dataPath, "expected_result_multinode_pandas1.xlsx"
-    )
+    ) #An adaptation of the expected output was necessary due to the changes in MR 368 / Issue 367 which affected the storage (if there is self-discharge and no precise TSA) 
 
     try:
         compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)

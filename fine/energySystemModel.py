@@ -621,6 +621,9 @@ class EnergySystemModel:
                 + "Please define a valid investment period  "
                 + f"(from '{self.investmentPeriodNames}')"
             )
+        
+        # adjust columns name and remove "space" or "space_2" in case it exists
+        self.componentModelingDict[modelingClass]._optSummary[ip].columns.name=None    
 
         if outputLevel == 0:
             return self.componentModelingDict[modelingClass]._optSummary[ip]
@@ -1138,8 +1141,9 @@ class EnergySystemModel:
         pyM.hasTSA = timeSeriesAggregation
         pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
-            for comp in mdl.componentsDict.values():
-                comp.setTimeSeriesData(pyM.hasTSA)
+            if mdl.abbrvName != "etl":
+                for comp in mdl.componentsDict.values():
+                    comp.setTimeSeriesData(pyM.hasTSA)
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
         # entries, the first one indicates an index of a period and the second one indicates a time step inside that
@@ -1552,8 +1556,8 @@ class EnergySystemModel:
             abbrvName2 = self.componentModelingDict[
                 self.componentNames[compName2]
             ].abbrvName
-            capVar1 = getattr(pyM, "cap_" + abbrvName1)
-            capVar2 = getattr(pyM, "cap_" + abbrvName2)
+            commisVar1 = getattr(pyM, "commis_" + abbrvName1)
+            commisVar2 = getattr(pyM, "commis_" + abbrvName2)
             capPPU1 = (
                 self.componentModelingDict[self.componentNames[compName1]]
                 .componentsDict[compName1]
@@ -1565,8 +1569,8 @@ class EnergySystemModel:
                 .processedCapacityPerPlantUnit[ip]
             )
             return (
-                capVar1[loc, compName1, ip] / capPPU1
-                == capVar2[loc, compName2, ip] / capPPU2
+                commisVar1[loc, compName1, ip] / capPPU1
+                == commisVar2[loc, compName2, ip] / capPPU2
             )
 
         for i, j in pyM.linkedQuantityDict.keys():
@@ -1698,6 +1702,8 @@ class EnergySystemModel:
                 mdl.getObjectiveFunctionContribution(self, pyM)
                 for mdl in self.componentModelingDict.values()
             )
+            if hasattr(self, 'etlModel'):
+                NPV += self.etlModel.getObjectiveFunctionContribution(self, pyM)
 
             return NPV
 
@@ -1784,6 +1790,15 @@ class EnergySystemModel:
             utils.output(
                 "\tdeclaring constraints... ", self.verbose, 0
             ), mdl.declareComponentConstraints(self, pyM)
+            utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+
+        if hasattr(self, 'etlModel'):
+            utils.output(
+                "Declaring sets, variables and constraints for ETL components", self.verbose, 0
+            )
+            self.etlModel.declareSets(self, pyM)
+            self.etlModel.declareVariables(self, pyM)
+            self.etlModel.declareComponentConstraints(self, pyM)
             utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################
@@ -2182,6 +2197,9 @@ class EnergySystemModel:
 
                 for optParam in optimalValueParameters:
                     convertOptimalValues(self, mdl, optParam)
+
+            if hasattr(self, 'etlModel'):
+                self.etlModel.setOptimalValues(self, self.pyM)
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()

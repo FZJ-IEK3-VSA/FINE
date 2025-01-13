@@ -85,12 +85,7 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
         assert results_1.keys() == results_2.keys()
 
         for model_key, model_results_1 in results_1.items():
-            model_results_2 = results_2[model_key]       
-
-            # Reading from netCDF creates a column name `space_1`. This needs to be
-            # fixed in future.
-            model_results_1.columns.name = None
-            model_results_2.columns.name = None
+            model_results_2 = results_2[model_key]
 
             model_results_1_sorted = model_results_1.sort_index()
             model_results_2_sorted = model_results_2.sort_index()
@@ -125,7 +120,7 @@ def test_input_esm_to_netcdf_and_back(minimal_test_esM):
     """
 
     esm_original = deepcopy(minimal_test_esM)
-    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc")
+    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc", overwriteExisting=True)
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
@@ -141,8 +136,7 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM):
 
     esm_original = deepcopy(minimal_test_esM)
     esm_original.optimize()
-
-    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc")
+    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc", overwriteExisting=True)
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
