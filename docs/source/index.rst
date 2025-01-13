@@ -9,7 +9,7 @@
     :caption: Contents:
 
     Home <self>
-    purposeAndVisionDoc
+    purposeDoc
     installationDoc
     usersGuideDoc
     newsDoc

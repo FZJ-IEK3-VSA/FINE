@@ -82,7 +82,7 @@ jobs:
           conda run pip install . --no-deps
           echo "Installation done"
           conda run python -V
-          conda list fine
+          conda list
           echo "libaries printed"
           echo "start pytest"
           conda run pytest

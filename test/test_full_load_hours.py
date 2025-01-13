@@ -177,4 +177,4 @@ def test_init_full_load_hours(minimal_test_esM):
     ).processedYearlyFullLoadHoursMax
 
     assert isinstance(full_load_hours_min[0], pd.Series)
-    assert full_load_hours_max is None
+    assert all(x is None for x in full_load_hours_max.values())

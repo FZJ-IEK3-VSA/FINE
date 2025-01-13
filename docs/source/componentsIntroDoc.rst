@@ -1,6 +1,5 @@
-**********************
 Energy System Modeling
-**********************
+######################
 
 For creating your own energy system model, you start adding different components such as sources (e.g.,
 photovoltaic panels), storage units (e.g., batteries), conversion units (e.g., heat pumps), transmission units

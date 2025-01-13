@@ -288,7 +288,6 @@ def test_stochasticTimeSeries_withTransmission():
     # Optimize energy system model
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
-    #
     cms_vars = esM.pyM.commis_srcSnk.get_values()
     assert cms_vars[("PerfectLand", "PV", 0)] == cms_vars[("PerfectLand", "PV", 1)]
     assert cms_vars[("PerfectLand2", "PV", 0)] == cms_vars[("PerfectLand2", "PV", 1)]

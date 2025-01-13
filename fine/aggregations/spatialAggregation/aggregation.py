@@ -1,6 +1,6 @@
 """
-Functions to aggregate region data for a reduced set 
-of regions obtained as a result of spatial grouping of regions. 
+Functions to aggregate region data for a reduced set
+of regions obtained as a result of spatial grouping of regions.
 """
 
 import logging
@@ -46,7 +46,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values)
 
         shape_union = unary_union(temp_shape_list)
-
+        
         shape_list.append(shape_union)
 
     if len(shape_list) == 1:
@@ -55,7 +55,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         )
 
     shape_list = np.array(shape_list, dtype=object)
-
+    
     xr_data_array_out = xr.DataArray(shape_list, coords=[space], dims=["space"])
 
     return xr_data_array_out
@@ -484,7 +484,8 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
         for comp, comp_ds in comp_dict.items():
             aggregated_comp_ds = xr.Dataset()
 
-            for varname, da in comp_ds.data_vars.items():
+            for varname, da_iter in comp_ds.data_vars.items():
+                da = da_iter
                 # Check and set aggregation mode and weights
                 aggregation_mode, aggregation_weight = _get_aggregation_mode(
                     varname, comp, comp_ds

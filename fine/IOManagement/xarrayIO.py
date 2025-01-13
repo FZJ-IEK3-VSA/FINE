@@ -5,7 +5,7 @@ import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
 
-import fine.utils as utils
+from fine import utils
 from fine.IOManagement import dictIO, utilsIO
 
 
@@ -46,7 +46,9 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
         }
 
     # STEP 4. Add all df variables to xr_ds
-    xr_dss = utilsIO.addDFVariablesToXarray(xr_dss, component_dict, df_iteration_dict, list(esM.locations))
+    xr_dss = utilsIO.addDFVariablesToXarray(
+        xr_dss, component_dict, df_iteration_dict, list(esM.locations)
+    )
 
     # STEP 5. Add all series variables to xr_ds
     locations = sorted(esm_dict["locations"])
@@ -105,55 +107,110 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
             if esM.componentModelingDict[name].dimension == "1dim":
                 for component in optSum.index.get_level_values(0).unique():
-                    variables = optSum.loc[component].index.get_level_values(0)
-                    units = optSum.loc[component].index.get_level_values(1)
-                    variables_unit = dict(zip(variables, units))
-
                     for variable in (
                         optSum.loc[component].index.get_level_values(0).unique()
-                    ):
-                        df = optSum.loc[(component, variable)]
-                        df = df.iloc[-1]
-                        df.name = variable
-                        df.index.rename("space", inplace=True)
-                        df = pd.to_numeric(df)
-                        xr_da = df.to_xarray()
-
-                        # add variable [e.g. 'TAC'] and units to attributes of xarray
-                        unit = variables_unit[variable]
-                        xr_da.attrs[variable] = unit
-
+                        ):
+                        df_o = optSum.loc[(component, variable)]
+                        # differentiate if two entries per variable
+                        if df_o.shape[0]==2:
+                            df = df_o.iloc[0].copy()
+                            df.name = variable
+                            df.index.rename("space", inplace=True)
+                            df = pd.to_numeric(df)
+                            xr_da = df.to_xarray()
+                            unit = df_o.iloc[0].name
+                            # unit = variables_unit[variable]
+                            xr_da.attrs[variable] = unit
+                            # merge to overall xr_dss
+                            xr_dss[ip][name][component] = xr.merge(
+                            [xr_dss[ip][name][component], xr_da],
+                            combine_attrs="drop_conflicts",
+                            )                           
+                            # if a variable occurs twice keep both in separate lines, example: operation_annual, operation
+                            df = df_o.iloc[1].copy()
+                            df.name = f"{variable}_{1}"
+                            df.index.rename("space", inplace=True)
+                            df = pd.to_numeric(df)
+                            xr_da = df.to_xarray()
+                            # add variable [e.g. 'TAC'] and units to attributes of xarray
+                            unit = df_o.iloc[1].name
+                            xr_da.attrs[df.name] = unit    
+                        else:
+                            df = df_o.iloc[-1]
+                            df.name = variable
+                            df.index.rename("space", inplace=True)
+                            df = pd.to_numeric(df)
+                            xr_da = df.to_xarray()
+                            # add variable [e.g. 'TAC'] and units to attributes of xarray
+                            unit = df_o.iloc[-1].name
+                            xr_da.attrs[variable] = unit
+                        
+                        # merge to overall xr_ds
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
                             combine_attrs="drop_conflicts",
                         )
             elif esM.componentModelingDict[name].dimension == "2dim":
                 for component in optSum.index.get_level_values(0).unique():
-                    variables = optSum.loc[component].index.get_level_values(0)
-                    units = optSum.loc[component].index.get_level_values(1)
-                    variables_unit = dict(zip(variables, units))
-
                     for variable in (
                         optSum.loc[component].index.get_level_values(0).unique()
                     ):
-                        df = optSum.loc[(component, variable)]
-                        if len(df.index.get_level_values(0).unique()) > 1:
-                            idx = df.index.get_level_values(0).unique()[-1]
-                            df = df.xs(idx, level=0)
+                        df_o = optSum.loc[(component, variable)]
+                        if "operation" in variable or variable=="operation":
+                            df = df_o.iloc[0:2,:].copy()
+                            if len(df.index.get_level_values(0).unique()) > 1:
+                                idx = df.index.get_level_values(0).unique()[-1]
+                                df = df.xs(idx, level=0)
+                            else:
+                                df.index = df.index.droplevel(0)
+                            df = df.stack()
+                            df.name = variable
+                            df.index.rename(["space", "space_2"], inplace=True)
+                            df = pd.to_numeric(df)
+                            xr_da = df.to_xarray()
+                            # add variable [e.g. 'TAC'] and units to attributes of xarray
+                            unit = df_o.iloc[0:2,:].index.get_level_values(0)[0]
+                            xr_da.attrs[variable] = unit
+                            # merge to overall xr_ds
+                            xr_dss[ip][name][component] = xr.merge(
+                                [xr_dss[ip][name][component], xr_da],
+                                combine_attrs="drop_conflicts",
+                            )
+
+                            # if a variable occurs twice keep both in separate lines, example: operation_annual, operation
+                            df = df_o.iloc[2:4,:].copy()
+                            if len(df.index.get_level_values(0).unique()) > 1:
+                                idx = df.index.get_level_values(0).unique()[-1]
+                                df = df.xs(idx, level=0)
+                            else:
+                                df.index = df.index.droplevel(0)
+                            df = df.stack()
+                            df.name = f"{variable}_{1}"
+                            df.index.rename(["space", "space_2"], inplace=True)
+                            df = pd.to_numeric(df)
+                            xr_da = df.to_xarray()
+                            # add variable [e.g. 'TAC'] and units to attributes of xarray
+                            unit = df_o.iloc[2:4,:].index.get_level_values(0)[0]
+                            xr_da.attrs[df.name] = unit
+
                         else:
-                            df.index = df.index.droplevel(0)
-                        # df = df.iloc[-1]
-                        df = df.stack()
-                        # df.name = (name, component, variable)
-                        df.name = variable
-                        df.index.rename(["space", "space_2"], inplace=True)
-                        df = pd.to_numeric(df)
-                        xr_da = df.to_xarray()
+                            df = df_o.copy()
+                            if len(df.index.get_level_values(0).unique()) > 1:
+                                idx = df.index.get_level_values(0).unique()[-1]
+                                df = df.xs(idx, level=0)
+                            else:
+                                df.index = df.index.droplevel(0)
+                            df = df.stack()
+                            df.name = variable
+                            df.index.rename(["space", "space_2"], inplace=True)
+                            df = pd.to_numeric(df)
+                            xr_da = df.to_xarray()
 
-                        # add variable [e.g. 'TAC'] and units to attributes of xarray
-                        unit = variables_unit[variable]
-                        xr_da.attrs[variable] = unit
+                            # add variable [e.g. 'TAC'] and units to attributes of xarray
+                            unit = df_o.index.get_level_values(0)[0]
+                            xr_da.attrs[variable] = unit
 
+                        # merge to overall xr_ds
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
                             combine_attrs="drop_conflicts",
@@ -584,6 +641,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 [optSum_df_comp, _optSum_df],
                                 axis=0,
                             )
+    
+                        if "operation" in variable and "_1" in variable:                                            # operation needed to be renamed in conversion
+                            optSum_df_comp = optSum_df_comp.rename(index={variable:variable.replace("_1", "")})     # to dataset and xarray and now is renamed to operation again
 
                     if isinstance(optSum_df_comp, pd.Series):
                         optSum_df_comp = optSum_df_comp.to_frame().T
@@ -962,7 +1022,7 @@ def writeEnergySystemModelToDatasets(esM):
     return xr_dss_results
 
 
-def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
+def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
     """
     Read optimization results from grouped netCDF file to dictionary of
     xr.Datasets.
@@ -977,6 +1037,11 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
         |br| * the default value is None
     :type groupPrefix: string
 
+    :param lazy_load: If True, the data is not loaded into memory until it is
+        accessed. This can be useful for large datasets. Refer to xarray documentation for more information
+        |br| * the default value is False
+    :type lazy_load: boolean
+
     :return: Nested dictionary containing an xr.Dataset with all result values
         for each component.
     :rtype: Nested dict
@@ -988,14 +1053,17 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
         else:
             group_keys = rootgrp.groups
 
+    if lazy_load:
+        loader = xr.open_dataset
+    else:
+        loader = xr.load_dataset
+
     if not groupPrefix:
         xr_dss = {}
         # read input from netcdf
         xr_dss["Input"] = {
             model_key: {
-                comp_key: xr.load_dataset(
-                    filePath, group=f"Input/{model_key}/{comp_key}"
-                )
+                comp_key: loader(filePath, group=f"Input/{model_key}/{comp_key}")
                 for comp_key in group_keys["Input"][model_key].groups
             }
             for model_key in group_keys["Input"].groups
@@ -1005,7 +1073,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
             xr_dss["Results"] = {
                 ip_key: {
                     model_key: {
-                        comp_key: xr.load_dataset(
+                        comp_key: loader(
                             filePath, group=f"Results/{ip_key}/{model_key}/{comp_key}"
                         )
                         for comp_key in group_keys["Results"][ip_key][model_key].groups
@@ -1015,13 +1083,13 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
                 for ip_key in group_keys["Results"].groups
             }
         # read parameters from netcdf
-        xr_dss["Parameters"] = xr.load_dataset(filePath, group="Parameters")
+        xr_dss["Parameters"] = loader(filePath, group="Parameters")
     else:
         xr_dss = {}
         # read input from netcdf
         xr_dss["Input"] = {
             model_key: {
-                comp_key: xr.load_dataset(
+                comp_key: loader(
                     filePath,
                     group=f"{groupPrefix}/Input/{model_key}/{comp_key}",
                 )
@@ -1034,7 +1102,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
             xr_dss["Results"] = {
                 ip_key: {
                     model_key: {
-                        comp_key: xr.load_dataset(
+                        comp_key: loader(
                             filePath,
                             group=f"{groupPrefix}/Results/{ip_key}/{model_key}/{comp_key}",
                         )
@@ -1045,9 +1113,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None):
                 for ip_key in group_keys["Results"].groups
             }
         # read parameters from netcdf
-        xr_dss["Parameters"] = xr.load_dataset(
-            filePath, group=f"{groupPrefix}/Parameters"
-        )
+        xr_dss["Parameters"] = loader(filePath, group=f"{groupPrefix}/Parameters")
 
     return xr_dss
 
