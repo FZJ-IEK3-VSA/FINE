@@ -9,6 +9,7 @@ dependencies:
   - pip
   - geopandas<=0.14.4
   - glpk
+  - highspy
   - openpyxl<=3.1.5
   - matplotlib<=3.9.2
   - xlrd<=2.0.1
