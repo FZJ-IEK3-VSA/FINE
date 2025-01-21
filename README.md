@@ -7,6 +7,7 @@
 [![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/)
 [![PyPI - License](https://img.shields.io/pypi/l/FINE)](https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)
 [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.06274/status.svg)](https://doi.org/10.21105/joss.06274)
 
 <a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/JSA-Header.svg?raw=True" alt="Forschungszentrum Juelich Logo" width="300px"></a>
 
@@ -16,7 +17,7 @@ This Readme provides information on the installation of the package. For further
 
 ETHOS.FINE is used for the modelling of a diverse group of optimization problems within the [Energy Transformation PatHway Optimization Suite (ETHOS) at ICE-2](https://www.fz-juelich.de/de/ice/ice-2/leistungen/model-services).  
 
-If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://www.sciencedirect.com/science/article/pii/S036054421830879X) which gives a description of the first stages of the framework. The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
+If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://joss.theoj.org/papers/10.21105/joss.06274). The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
 
 ## Installation 
 There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge.
@@ -38,31 +39,31 @@ The functionality of ETHOS.FINE depends on the following C libraries that need t
 
 ## Examples
 
-A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples) shows the capabilities of ETHOS.FINE.
+A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples) shows the capabilities of ETHOS.FINE.
 
-- [00_Tutorial](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/00_Tutorial)
+- [00_Tutorial](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/00_Tutorial)
   - In this application, an energy supply system, consisting of two regions, is modeled and optimized. Recommended as starting point to get to know to ETHOS.FINE.
-- [01_1node_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/01_1node_Energy_System_Workflow)
+- [01_1node_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/01_1node_Energy_System_Workflow)
   - In this application, a single region energy system is modeled and optimized. The system includes only a few technologies.
-- [02_EnergyLand](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/02_EnergyLand)
+- [02_EnergyLand](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/02_EnergyLand)
   - In this application, a single region energy system is modeled and optimized. Compared to the previous examples, this example includes a lot more technologies considered in the system.
-- [03_Multi-regional_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/03_Multi-regional_Energy_System_Workflow)
+- [03_Multi-regional_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/03_Multi-regional_Energy_System_Workflow)
   - In this application, an energy supply system, consisting of eight regions, is modeled and optimized. The example shows how to model multi-regional energy systems. The example also includes a notebook to get to know the optional performance summary. The summary shows how the optimization performed.
-- [04_Model_Run_from_Excel](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/04_Model_Run_from_Excel)
+- [04_Model_Run_from_Excel](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/04_Model_Run_from_Excel)
   - ETHOS.FINE can also be run by excel. This example shows how to read and run a model using excel files.
-- [05_District_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/05_District_Optimization)
+- [05_District_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/05_District_Optimization)
   - In this application, a small district is modeled and optimized. This example also includes binary decision variables.
-- [06_Water_Supply_System](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/06_Water_Supply_System)
+- [06_Water_Supply_System](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/06_Water_Supply_System)
   - The application cases of ETHOS.FINE are not limited. This application shows how to model the water supply system.
-- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/07_NetCDF_to_save_and_set_up_model_instance)
+- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/dmaster/examples/07_NetCDF_to_save_and_set_up_model_instance)
   - This example shows how to save the input and optimized results of an energy system Model instance to netCDF files to allow reproducibility.
-- [08_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/08_Spatial_and_technology_aggregation)
+- [08_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/08_Spatial_and_technology_aggregation)
   - These two examples show how to reduce the model complexity. Model regions can be aggregated to reduce the number of regions (spatial aggregation). Input parameters are automatically adapted. Furthermore, technologies can be aggregated to reduce complexity, e.g. reducing the number of different PV components (technology aggregation). Input parameters are automatically adapted.
-- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/9_Stochastic_Optimizatio)
+- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/9_Stochastic_Optimizatio)
   - In this application, a stochastic optimization is performed. It is possible to perform the optimization of an energy system model with different input parameter sets to receive a more robust solution.
-- [10_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/10_PerfectForesight)
+- [10_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/10_PerfectForesight)
   - In this application, a transformation pathway of an energy system is modeled and optimized showing how to handle several investment periods with time-dependent assumptions for costs and operation.
-- [11_Partload](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/11_Partload)
+- [11_Partload](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/11_Partload)
   - In this application, a hydrogen system is modeled and optimized considering partload behavior of the electrolyzer.
 
 ## Notes for developers
