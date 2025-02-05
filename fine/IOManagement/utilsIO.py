@@ -556,7 +556,38 @@ def processXarrayAttributes(xarray_dataset):
 
     # STEP 1. Loop through each attribute, convert datatypes
     # or append to dot_attrs_dict for conversion in a later step
+    balanceLimit_dict = {}
+    balanceLimit_columns = None
+    balanceLimit_dtypes = {}
+    hasBalanceLimit = False
     for attr_name, attr_value in _xarray_dataset.attrs.items():
+        if "balanceLimit" in attr_name:
+            if attr_name == "balanceLimit_index":
+                keys_to_delete.append("balanceLimit_index")
+                continue
+            elif attr_name == "balanceLimit_columns":
+                balanceLimit_columns = attr_value
+                keys_to_delete.append("balanceLimit_columns")
+            elif attr_name == "balanceLimit_dtypes":
+                balanceLimit_dtypes = attr_value
+                keys_to_delete.append("balanceLimit_dtypes")
+            else:
+                balanceLimit_dict[attr_name.replace("balanceLimit.", "")] = attr_value
+                keys_to_delete.append(attr_name)
+                hasBalanceLimit = True
+
+    if hasBalanceLimit:
+        balanceLimit_df = None
+    else:
+        balanceLimit_df = pd.DataFrame(
+            data=balanceLimit_dict, index=balanceLimit_columns
+        ).T
+        for column, dtype in zip(balanceLimit_df.columns, balanceLimit_dtypes):
+            balanceLimit_df[column] = balanceLimit_df[column].astype(dtype)
+
+    for attr_name, attr_value in _xarray_dataset.attrs.items():
+        if "balanceLimit" in attr_name:
+            continue
         if attr_name in ["locations", "commodities"] and isinstance(attr_value, str):
             xarray_dataset.attrs[attr_name] = set([attr_value])
         if attr_name in ["commodityUnitsDict"] and isinstance(attr_value, str):
@@ -623,8 +654,10 @@ def processXarrayAttributes(xarray_dataset):
                 xarray_dataset.attrs.update({new_attr_name: series})
 
         # cleaning up the many keys
-        for key in keys_to_delete:
-            xarray_dataset.attrs.pop(key)
+    for key in keys_to_delete:
+        xarray_dataset.attrs.pop(key)
+
+    xarray_dataset.attrs['balanceLimit'] = balanceLimit_df
 
     return xarray_dataset
 

@@ -1,7 +1,6 @@
 from fine.component import Component, ComponentModel
 from fine import utils
 import pandas as pd
-import pyomo.environ as pyomo
 import warnings
 
 
@@ -24,8 +23,6 @@ class Source(Component):
         operationRateMax=None,
         operationRateFix=None,
         tsaWeight=1,
-        commodityLimitID=None,
-        yearlyLimit=None,
         locationalEligibility=None,
         capacityMin=None,
         capacityMax=None,
@@ -156,36 +153,6 @@ class Source(Component):
             |br| * the default value is 1
         :type tsaWeight: positive (>= 0) float
 
-        :param commodityLimitID: can be specified to limit an annual commodity import/export over the
-            energySystemModel's boundaries for one or multiple Source/Sink components. If the same ID
-            is used in multiple components, the sum of all imports and exports is considered. If a
-            commodityLimitID is specified, the yearlyLimit parameters has to be set as well.
-            |br| * the default value is None
-        :type commodityLimitID: string
-
-        :param yearlyLimit: if specified, indicates a yearly import/export commodity limit per investment period for all components with
-            the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is
-            limited. If negative, the commodity flow entering the energySystemModel is limited. If a
-            yearlyLimit is specified, the commodityLimitID parameters has to be set as well. The yearlyLimit can also be specified for
-            every investment period year individually.
-            Examples:
-
-            * CO2 can be emitted in power plants by burning natural gas or coal. The CO2 which goes into
-              the atmosphere over the energy system's boundaries is modelled as a Sink. CO2 can also be a
-              Source taken directly from the atmosphere (over the energy system's boundaries) for a
-              methanation process. The commodityUnit for CO2 is tonnes_CO2. Overall, +XY tonnes_CO2 are
-              allowed to be emitted during the year. All Sources/Sinks producing or consuming CO2 over the
-              energy system's boundaries have the same commodityLimitID and the same yearlyLimit of +XY.
-            * The maximum annual import of a certain chemical (commodityUnit tonnes_chem) is limited to
-              XY tonnes_chem. The Source component modeling this import has a commodityLimitID
-              "chemicalComponentLimitID" and a yearlyLimit of -XY.
-
-            |br| * the default value is None
-        :type yearlyLimit:
-
-            * float
-            * a dictionary with investment periods as keys and float as values
-
 
         :param opexPerOperation: describes the cost for one unit of the operation. The cost which is directly
             proportional to the operation of the component is obtained by multiplying the opexPerOperation parameter
@@ -295,15 +262,10 @@ class Source(Component):
             esM.commodityUnitsDict[commodity],
         )
         # TODO check value and type correctness
-        self.commodityLimitID = commodityLimitID
         self.balanceLimitID = balanceLimitID
         self.pathwayBalanceLimitID = pathwayBalanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
-
-        # yearlyLimit
-        self.yearlyLimit = yearlyLimit
-        self.processedYearlyLimit = utils.checkAndSetYearlyLimit(esM, yearlyLimit)
 
         # opexPerOperation
         self.opexPerOperation = opexPerOperation
@@ -576,8 +538,6 @@ class Sink(Source):
         operationRateMax=None,
         operationRateFix=None,
         tsaWeight=1,
-        commodityLimitID=None,
-        yearlyLimit=None,
         locationalEligibility=None,
         capacityMin=None,
         capacityMax=None,
@@ -628,8 +588,6 @@ class Sink(Source):
             operationRateMax=operationRateMax,
             operationRateFix=operationRateFix,
             tsaWeight=tsaWeight,
-            commodityLimitID=commodityLimitID,
-            yearlyLimit=yearlyLimit,
             locationalEligibility=locationalEligibility,
             capacityMin=capacityMin,
             capacityMax=capacityMax,
@@ -684,40 +642,6 @@ class SourceSinkModel(ComponentModel):
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
 
-    def declareYearlyCommodityLimitationDict(self, pyM, esM):
-        """
-        Declare source/sink components with linked commodity limits and check if the linked components have the same
-        yearly upper limit.
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-
-        yearlyCommodityLimitationDict = {}
-        for ip in esM.investmentPeriods:
-            for compName, comp in self.componentsDict.items():
-                if comp.commodityLimitID is not None:
-                    ID, limit = comp.commodityLimitID, comp.processedYearlyLimit[ip]
-                    if (
-                        ID,
-                        ip,
-                    ) in yearlyCommodityLimitationDict.keys() and limit != yearlyCommodityLimitationDict[
-                        (ID, ip)
-                    ][
-                        0
-                    ]:
-                        raise ValueError(
-                            "yearlyLimitationIDs with different upper limits detected."
-                        )
-                    yearlyCommodityLimitationDict.setdefault((ID, ip), (limit, []))[
-                        1
-                    ].append(compName)
-        setattr(
-            pyM,
-            "yearlyCommodityLimitationDict_" + self.abbrvName,
-            yearlyCommodityLimitationDict,
-        )
-
     def declareSets(self, esM, pyM):
         """
         Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
@@ -752,9 +676,6 @@ class SourceSinkModel(ComponentModel):
             "processedOperationRateFix",
             "processedOperationRateMin",
         )
-
-        # Declare commodity limitation dictionary
-        self.declareYearlyCommodityLimitationDict(pyM, esM)
 
         # Declare minimum yearly full load hour set
         self.declareYearlyFullLoadHoursMinSet(pyM)
@@ -805,47 +726,6 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
     #                                          Declare component constraints                                           #
     ####################################################################################################################
-
-    def yearlyLimitationConstraint(self, pyM, esM):
-        """
-        Limit annual commodity imports/exports over the energySystemModel's boundaries for one or multiple
-        Source/Sink components.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        warnings.warn(
-            "The yearly limit is deprecated and moved to the balanceLimit",
-            DeprecationWarning,
-        )
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
-        limitDict = getattr(pyM, "yearlyCommodityLimitationDict_" + abbrvName)
-
-        def yearlyLimitationConstraint(pyM, key, ip):
-            sumEx = -sum(
-                opVar[loc, compName, ip, p, t]
-                * compDict[compName].sign
-                * esM.periodOccurrences[ip][p]
-                / esM.numberOfYears
-                for loc, compName, _ip, p, t in opVar
-                if (_ip == ip and compName in limitDict[(key, ip)][1])
-            )
-            sign = (
-                limitDict[(key, ip)][0] / abs(limitDict[(key, ip)][0])
-                if limitDict[(key, ip)][0] != 0
-                else 1
-            )
-            return sign * sumEx <= sign * limitDict[(key, ip)][0]
-
-        setattr(
-            pyM,
-            "ConstrYearlyLimitation_" + abbrvName,
-            pyomo.Constraint(limitDict.keys(), rule=yearlyLimitationConstraint),
-        )
 
     def declareComponentConstraints(self, esM, pyM):
         """
@@ -911,8 +791,6 @@ class SourceSinkModel(ComponentModel):
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )
-
-        self.yearlyLimitationConstraint(pyM, esM)
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #

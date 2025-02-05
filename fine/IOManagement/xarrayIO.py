@@ -444,8 +444,15 @@ def writeDatasetsToNetCDF(
                     _df = _df.reindex(sorted(_df.columns), axis=1)
                     for idx, row in _df.iterrows():
                         xarray_dataset.attrs.update(
-                            {f"{attr_name}.{idx}": row.to_numpy()}
+                            {f"{attr_name}.{idx}": row.to_numpy().astype(str)}
                         )
+                        if attr_name == "balanceLimit":
+                            xarray_dataset.attrs.update(
+                                {f"{attr_name}_columns": _df.columns.tolist()}
+                            )
+                            xarray_dataset.attrs.update(
+                                {f"{attr_name}_dtypes": _df.dtypes.astype(str).tolist()}
+                            )
 
                     # Delete the original attribute
                     del xarray_dataset.attrs[attr_name]
