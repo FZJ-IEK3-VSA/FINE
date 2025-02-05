@@ -2006,7 +2006,7 @@ class EnergySystemModel:
 
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
-        solverList = ["gurobi", "glpk", "cbc"]
+        solverList = ["gurobi", "glpk", "cbc", "appsi_highs"]
 
         if solver != "None":
             try:
@@ -2075,6 +2075,9 @@ class EnergySystemModel:
         elif solver == "glpk":
             optimizer.set_options(optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, tee=True)
+        elif solver == "appsi_highs":
+            solver_options = {"output_flag": False, "log_to_console": False}
+            solver_info = optimizer.solve(self.pyM, options=solver_options)
         else:
             solver_info = optimizer.solve(self.pyM, tee=True)
         self.solverSpecs["solvetime"] = time.time() - timeStart
