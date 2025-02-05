@@ -1554,42 +1554,6 @@ def checkAndSetTimeSeriesConversionFactors(
         return None
 
 
-def checkAndSetYearlyLimit(esM, yearlyLimit):
-    checkInvestmentPeriodParameters(
-        "yearlyLimit", yearlyLimit, esM.investmentPeriodNames
-    )
-    processedYearlyLimit = {}
-    for ip in esM.investmentPeriods:
-        _ip = esM.investmentPeriodNames[ip]
-        if yearlyLimit is None:
-            processedYearlyLimit[ip] = None
-        else:
-            if isinstance(yearlyLimit, dict):
-                _data = yearlyLimit[_ip]
-            else:
-                _data = yearlyLimit
-            if isinstance(_data, int) or isinstance(_data, float):
-                if _data < 0:
-                    raise ValueError(
-                        "Value error detected.\n "
-                        + "Yearly Limit limitations have to be positive."
-                    )
-                processedYearlyLimit[ip] = _data
-            elif isinstance(_data, pd.Series):
-                if _data[_data < 0].any():
-                    raise ValueError(
-                        "Value error detected.\n "
-                        + "all regional Yearly Limit limitations have to be positive."
-                    )
-                processedYearlyLimit[ip] = _data
-            else:
-                raise ValueError(
-                    "Value error detected.\n "
-                    + "Yearly Limit limitations have to be positive float."
-                )
-    return processedYearlyLimit
-
-
 def _addColumnsBalanceLimit(balanceLimit, locations):
     # check and set lower bounds
     if "lowerBound" not in balanceLimit.columns:
@@ -2446,26 +2410,6 @@ def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
     )
     return simultaneousChargeDischarge
 
-
-def setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step):
-    """
-    If CO2ReductionTargets are given, set the new value for each iteration.
-    """
-    if CO2ReductionTargets is not None:
-        setattr(
-            esM.componentModelingDict["SourceSinkModel"].componentsDict[
-                "CO2 to environment"
-            ],
-            "yearlyLimit",
-            CO2Reference * (1 - CO2ReductionTargets[step] / 100),
-        )
-        setattr(
-            esM.componentModelingDict["SourceSinkModel"].componentsDict[
-                "CO2 to environment"
-            ],
-            "processedYearlyLimit",
-            {esM.startYear: CO2Reference * (1 - CO2ReductionTargets[step] / 100)},
-        )
 
 
 def checkParamInput(param):

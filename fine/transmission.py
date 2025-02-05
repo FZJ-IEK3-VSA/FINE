@@ -1,3 +1,5 @@
+import warnings
+
 from fine.component import Component, ComponentModel
 from fine import utils
 import pyomo.environ as pyomo
@@ -834,6 +836,11 @@ class TransmissionModel(ComponentModel):
         :param componentNames: Names of components which contribute to the balance limit
         :type componentNames: list
         """
+        if loc == 'Total':
+            if set(componentNames).issubset(set(self.componentsDict.keys())):
+                warnings.warn('The balance limit constraint for the all '
+                            'regions is not supported for Transmission components.')
+            return 0
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
         opVarDictIn = getattr(pyM, "operationVarDictIn_" + abbrvName)
