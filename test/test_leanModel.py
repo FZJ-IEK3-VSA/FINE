@@ -207,6 +207,17 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
         )
     )
 
+    esM.add( #just add because esM_init contains balanceLimit for CO2. Does nothing
+        fn.Source(
+            esM=esM,
+            name="CO2 from enviroment",
+            commodity="CO2",
+            hasCapacityVariable=False,
+            balanceLimitID="CO2 limit",
+        )
+    )
+
+
     esM.aggregateTemporally(
         numberOfTypicalPeriods=3,
         segmentation=False,

@@ -1,0 +1,63 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Klütz
+  given-names: Theresa
+  orcid: "https://orcid.org/0000-0003-1792-5598"
+- family-names: Knosala
+  given-names: Kevin
+  orcid: "https://orcid.org/0000-0002-8825-5934"
+- family-names: Behrens
+  given-names: Johannes
+  orcid: "https://orcid.org/0009-0003-2396-0282"
+- family-names: Maier
+  given-names: Rachel
+  orcid: "https://orcid.org/0000-0003-0664-3886"
+- family-names: Hoffmann
+  given-names: Maximilian
+  orcid: "https://orcid.org/0000-0003-1232-8110"
+- family-names: Pflugradt
+  given-names: Noah
+  orcid: "https://orcid.org/0000-0002-1982-8794"
+- family-names: Stolten
+  given-names: Detlef
+  orcid: "https://orcid.org/0000-0002-1671-3262"
+doi: 10.5281/zenodo.14673548
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Klütz
+    given-names: Theresa
+    orcid: "https://orcid.org/0000-0003-1792-5598"
+  - family-names: Knosala
+    given-names: Kevin
+    orcid: "https://orcid.org/0000-0002-8825-5934"
+  - family-names: Behrens
+    given-names: Johannes
+    orcid: "https://orcid.org/0009-0003-2396-0282"
+  - family-names: Maier
+    given-names: Rachel
+    orcid: "https://orcid.org/0000-0003-0664-3886"
+  - family-names: Hoffmann
+    given-names: Maximilian
+    orcid: "https://orcid.org/0000-0003-1232-8110"
+  - family-names: Pflugradt
+    given-names: Noah
+    orcid: "https://orcid.org/0000-0002-1982-8794"
+  - family-names: Stolten
+    given-names: Detlef
+    orcid: "https://orcid.org/0000-0002-1671-3262"
+  date-published: 2025-01-20
+  doi: 10.21105/joss.06274
+  issn: 2475-9066
+  issue: 105
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 6274
+  title: "ETHOS.FINE: A Framework for Integrated Energy System
+    Assessment"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.06274"
+  volume: 10
+title: "ETHOS.FINE: A Framework for Integrated Energy System Assessment"
