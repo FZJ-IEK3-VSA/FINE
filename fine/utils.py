@@ -2398,6 +2398,16 @@ def checkSimultaneousChargeDischarge(ip, esM):
     :type simultaneousChargeDischarge: bool
     """
     
+    SP = fn.getShadowPrices(
+        esM,
+        esM.pyM.commodityBalanceConstraint,
+        dualValues=None,
+        hasTimeSeries=True,
+        periodOccurrences=esM.periodOccurrences,
+        periodsOrder=esM.periodsOrder,
+        )
+    
+    
     for compName in esM.componentModelingDict["StorageModel"].componentsDict.keys():
         tsCharge=esM.componentModelingDict["StorageModel"].getOptimalValues(name="chargeOperationVariablesOptimum", ip=ip)[
                 "values"
@@ -2411,40 +2421,90 @@ def checkSimultaneousChargeDischarge(ip, esM):
             ].loc[compName]
         
         _simulatneousChargeDischarge = (tsCharge >0) & (tsDischarge>0)
+        
+        # calculate actually dissipated energy
+        _charge_maks = (tsCharge > tsDischarge)
+        _discharge_mask = (tsDischarge > tsCharge)
+
+        chargeEfficiency = esM.getComponent(compName).chargeEfficiency
+        dischargeEfficiency = esM.getComponent(compName).dischargeEfficiency
+
+        dissipated_energy_charge = tsDischarge[_charge_maks][_simulatneousChargeDischarge]*(1/(chargeEfficiency*dischargeEfficiency)-1)
+        dissipated_energy_discharge = tsCharge[_discharge_mask][_simulatneousChargeDischarge]*(1-chargeEfficiency*dischargeEfficiency)
+
+        dissipated_energy = (dissipated_energy_charge.sum(axis=1) + dissipated_energy_discharge.sum(axis=1)).sum()
+                
+        
         simultaneousChargeDischarge = {}
         simultaneousChargeDischargeAndChargeDischargeLargerThanXPercCapacity = {}
         for region in tsCharge.index:
             simultaneousChargeDischargeAndChargeDischargeLargerThanXPercCapacity[region] = any((tsCharge.loc[region]/esM.hoursPerTimeStep > capacity.loc[region]*0.1) & (_simulatneousChargeDischarge.loc[region]))
             simultaneousChargeDischarge[region] = any(_simulatneousChargeDischarge.loc[region])
 
+
+        hasCyclicLifetime = True if esM.getComponent(compName).cyclicLifetime else False       
+
+        commodity = esM.getComponent(compName).commodity
         
-        # If no simultaneous charge and discharge occurs ts[region][ts[region] > 0] will only return nan values. After
-        # dropping them the len() is 0 and the check returns False. This is done for all regions in the list comprehension.
-        # If any() region returns True the check returns True.
-        # simultaneousChargeDischarge = {
-        #     region: 
-        #         len(ts[region][ts[region] > 0].dropna()) > 0
-        #         for region in set(ts.columns.values)
-        # }w
-        if any(simultaneousChargeDischargeAndChargeDischargeLargerThanXPercCapacity.values()):
-            affectedRegions = [k for k,v in simultaneousChargeDischargeAndChargeDischargeLargerThanXPercCapacity.items() if v]
-            if not esM.ignoreSimultaneousChargingDiscargeErrors:
-                raise ValueError(
-                    f"Charge and discharge at the same time and charge or discharge larger than 10% of capacity for component {compName} at investment period {ip} in regions {affectedRegions}. \n Storage is likely being misused as energy dissipator. \n If this is intended, set the flag 'ignoreSimultaneousChargingDiscargeErrors' in esM to True.",
-                )
+        # Check if the sum of all negative Shadow prices in one region is below the NPV contribution of an additional unit of the component
+        annuityPresentValueFactor = {}
+        discountFactor = {}
+        for loc in esM.locations:
+            lifetime = esM.getComponent(compName).economicLifetime.loc[loc]
+            annuityPresentValueFactor[loc]  =  fn.utils.annuityPresentValueFactor(esM, compName, loc, lifetime)
+            discountFactor[loc] = fn.utils.discountFactor(esM, ip, compName, loc)
+        annuityPresentValueFactor = pd.Series(annuityPresentValueFactor)
+        discountFactor = pd.Series(discountFactor)
+        investPerCapacity = esM.getComponent(compName).processedInvestPerCapacity[ip]
+        sumOfAllNegativeSP = SP.loc[commodity].unstack()[SP.loc[commodity].unstack()<0].sum(axis=1).sort_index()
+        NPV_contribution_additonal_unit = investPerCapacity.div(annuityPresentValueFactor,axis=0).mul(discountFactor,axis=0).sort_index()
+        shadowPricesBelowZero = (sumOfAllNegativeSP < NPV_contribution_additonal_unit*-1*0.7).any()
+        
+        affectedRegions = [k for k,v in simultaneousChargeDischarge.items() if v]
+
+        def constructErrorMessage():
+            
+            text = f"Charge and discharge at the same time for component {compName} at investment period {ip} in regions {affectedRegions}. Storage is likely being misused as energy dissipator. \n"
+            
+            if hasCyclicLifetime:
+                text += f"Storage component has a cyclicLiftime set. Charge and discharge at the same time distorts the actual cycles. Cyclic Lifetime of component is probably longer. Check by using getRealChargeDischarge in fine.utils \n"
+            
+            if shadowPricesBelowZero:
+                text += f"Shadow Prices are below zero during simultaneous charge and discharge. This indicates that the component capacity was increased to dissipate excess energy. \n"
+            
+            text += f"In total {dissipated_energy} energy units are being dissipated. \n"
+            
+            text += f"Check if this is intended. "
+            if (hasCyclicLifetime or shadowPricesBelowZero) and not esM.ignoreSimultaneousChargeDischargeErrors:
+                text += f"If this is intended, set the flag 'ignoreSimultaneousChargeDischargeErrors' in esM to True to convert error to waring. "
+            
+            text += f"You can calculate the actual charge and discharge operation with the function: getRealChargeDischarge in fine.utils"    
+            return text
+        
+        if any(simultaneousChargeDischarge.values()):
+            if (hasCyclicLifetime or shadowPricesBelowZero) and not esM.ignoreSimultaneousChargeDischargeErrors:
+                raise ValueError(constructErrorMessage())
             else:
-                warnings.warn(
-                    f"Charge and discharge at the same time and charge or discharge larger than 10% of capacity for component {compName} at investment period {ip} in regions {affectedRegions}. \n Storage is likely being misused as energy dissipator. \n Check if this is intended.",
-                    UserWarning,
-                )           
-        elif any(simultaneousChargeDischarge.values()):
-            affectedRegions = [k for k,v in simultaneousChargeDischarge.items() if v]
-            warnings.warn(
-                f"Charge and discharge at the same time for component {compName} at investment period {ip} in regions {affectedRegions}. \n Storage is likely being misused as energy dissipator. \n Check if this is intended.",
-                UserWarning,
-            )
+                warnings.warn(constructErrorMessage(), UserWarning)
+                
+        
 
+def getRealChargeDischarge(compName, ip, esM):
+    tsCharge=esM.componentModelingDict["StorageModel"].getOptimalValues(name="chargeOperationVariablesOptimum", ip=ip)[
+        "values"
+    ].loc[compName]
+        
+    tsDischarge=esM.componentModelingDict["StorageModel"].getOptimalValues(name="dischargeOperationVariablesOptimum", ip=ip)[
+            "values"
+        ].loc[compName]
 
+    ts_charge_real = tsCharge - tsDischarge
+    ts_charge_real = ts_charge_real.where(ts_charge_real > 0, 0).abs()
+
+    ts_discharge_real = tsCharge - tsDischarge
+    ts_discharge_real = ts_discharge_real.where(ts_discharge_real < 0, 0).abs()
+    
+    return ts_charge_real, ts_discharge_real
 
 
 def checkParamInput(param):
