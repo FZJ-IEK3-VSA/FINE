@@ -126,8 +126,7 @@ def rasterize_xr_ds(
     if isinstance(shp_file, str):
         if not os.path.isfile(shp_file):
             raise FileNotFoundError("The shp_file path specified is not valid")
-        else:
-            shp_file = gpd.read_file(shp_file)
+        shp_file = gpd.read_file(shp_file)
 
     elif not isinstance(shp_file, gpd.geodataframe.GeoDataFrame):
         raise TypeError(

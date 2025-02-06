@@ -195,24 +195,24 @@ def test_check_and_set_cost_parameter():
         lengthUnit="km",
         verboseLogLevel=2,
     )
- 
+
     # Test with valid integer data (1dim)
     assert utils.checkAndSetCostParameter(esM, "testParam", 10, "1dim", None).equals(
         pd.Series([10.0], index=esM.locations)
     )
- 
+
     # Test with valid series data (1dim)
     valid_series_1dim = pd.Series([10], index=esM.locations)
     assert utils.checkAndSetCostParameter(esM, "testParam", valid_series_1dim, "1dim", None).equals(
         valid_series_1dim.astype(float)
     )
- 
+
     # Test with NaN in integer data (1dim)
     with pytest.raises(AssertionError):
         assert utils.checkAndSetCostParameter(esM, "testParam", np.nan, "1dim", None).equals(
             pd.Series([np.nan], index=esM.locations)
         )
- 
+
     # Test with NaN in series data (2dim)
     with pytest.raises(AssertionError):
         invalid_series_with_nan = pd.Series([10, np.nan], index=["loc1", "loc2"])

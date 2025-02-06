@@ -372,31 +372,30 @@ class EndogenousTechnologicalLearningModel:
                             esM, modulName, loc, esM.investmentPeriodInterval
                         )
             return cost_results
-        else:
-            if esM.annuityPerpetuity:
-                for modulName in costContribution.keys(): # noqa: PLC0206
-                    for y in componentYears[modulName]:
-                        costContribution[modulName][
+        if esM.annuityPerpetuity:
+            for modulName in costContribution.keys(): # noqa: PLC0206
+                for y in componentYears[modulName]:
+                    costContribution[modulName][
+                        (y, esM.investmentPeriods[-1])
+                    ] = costContribution[modulName][
                             (y, esM.investmentPeriods[-1])
-                        ] = costContribution[modulName][
-                                (y, esM.investmentPeriods[-1])
-                            ] / (
-                                    utils.annuityPresentValueFactor(
-                                        esM, modulName, loc, esM.investmentPeriodInterval
-                                    )
-                                    * esM.getComponent(modulName).interestRate[loc]
-                            )
-            return sum(
-                sum(
-                    [
-                        costContribution[modulName].get((y, ip), 0)
-                        for y in componentYears[modulName]
-                    ]
-                )
-                * utils.discountFactor(esM, ip, modulName, loc)
-                for modulName in self.modulsDict.keys()
-                for ip in esM.investmentPeriods
+                        ] / (
+                                utils.annuityPresentValueFactor(
+                                    esM, modulName, loc, esM.investmentPeriodInterval
+                                )
+                                * esM.getComponent(modulName).interestRate[loc]
+                        )
+        return sum(
+            sum(
+                [
+                    costContribution[modulName].get((y, ip), 0)
+                    for y in componentYears[modulName]
+                ]
             )
+            * utils.discountFactor(esM, ip, modulName, loc)
+            for modulName in self.modulsDict.keys()
+            for ip in esM.investmentPeriods
+        )
 
     def getAnnuityEtl(self, pyM, modulName, commisYear, commisYears, getOptValues=False):
         def getIpTotalCost(ip):

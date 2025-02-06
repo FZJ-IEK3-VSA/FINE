@@ -168,8 +168,7 @@ def optimizeSimpleMyopic(
             esM = getStock(esM, mileStoneYear, nbOfRepresentedYears)
     if trackESMs:
         return myopicResults
-    else:
-        return None
+    return None
 
 
 def getStock(esM, mileStoneYear, nbOfRepresentedYears):

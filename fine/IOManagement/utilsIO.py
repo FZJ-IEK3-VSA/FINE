@@ -95,8 +95,7 @@ def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
             else:
                 key_lists_in_nested_dict.append([variable_name, key1])
         return key_lists_in_nested_dict
-    else:
-        return [[variable_name]]
+    return [[variable_name]]
 
 
 def transform1dSeriesto2dDataFrame(series, locations):
@@ -271,12 +270,12 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict,
             multi_index_dataframe = data.stack()
             if "Period" in multi_index_dataframe.index.names:
                 multi_index_dataframe = multi_index_dataframe.droplevel(0)
-            
+
             multi_index_dataframe.index.set_names("time", level=0, inplace=True)
             multi_index_dataframe.index.set_names("space", level=1, inplace=True)
 
             if classname in ["Transmission", "LinearOptimalPowerFlow"]:
-                # use _mapC to split via location names 
+                # use _mapC to split via location names
                 space_index = multi_index_dataframe.index.get_level_values("space")
                 time_index = multi_index_dataframe.index.get_level_values("time")
                 # reconstruct multiindex
@@ -565,7 +564,7 @@ def processXarrayAttributes(xarray_dataset):
             if attr_name == "balanceLimit_index":
                 keys_to_delete.append("balanceLimit_index")
                 continue
-            elif attr_name == "balanceLimit_columns":
+            if attr_name == "balanceLimit_columns":
                 balanceLimit_columns = attr_value
                 keys_to_delete.append("balanceLimit_columns")
             elif attr_name == "balanceLimit_dtypes":

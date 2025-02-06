@@ -1146,19 +1146,18 @@ class ConversionModel(ComponentModel):
         def combinedOperation(pyM, loc, compName, ip, p, t):
             if not compDict[compName].isCommisDepending:
                 return pyomo.Constraint.Skip
-            else:
-                commisYearsWithOperationInIp = [
-                    _commis
-                    for (_commis, _ip) in compDict[
-                        compName
-                    ].processedCommodityConversionFactors
-                    if _ip == ip
-                ]
-                sumOpCommisVar = sum(
-                    opCommisVar[loc, compName, commis, ip, p, t]
-                    for commis in commisYearsWithOperationInIp
-                )
-                return opVar[loc, compName, ip, p, t] == sumOpCommisVar
+            commisYearsWithOperationInIp = [
+                _commis
+                for (_commis, _ip) in compDict[
+                    compName
+                ].processedCommodityConversionFactors
+                if _ip == ip
+            ]
+            sumOpCommisVar = sum(
+                opCommisVar[loc, compName, commis, ip, p, t]
+                for commis in commisYearsWithOperationInIp
+            )
+            return opVar[loc, compName, ip, p, t] == sumOpCommisVar
 
         setattr(
             pyM,
@@ -1258,12 +1257,12 @@ class ConversionModel(ComponentModel):
                     opVarFlex[loc, compName, ip, group, commod, p, t] >=
                     opVar[loc, compName, ip, p, t] * flowShares[ip][attr][commod].loc[loc]
                 )
-            elif attr == 'max':
+            if attr == 'max':
                 return (
                     opVarFlex[loc, compName, ip, group, commod, p, t] <=
                     opVar[loc, compName, ip, p, t] * flowShares[ip][attr][commod].loc[loc]
                 )
-            elif attr == 'fix':
+            if attr == 'fix':
                 return (
                     opVarFlex[loc, compName, ip, group, commod, p, t] ==
                     opVar[loc, compName, ip, p, t] * flowShares[ip][attr][commod].loc[loc]
@@ -1284,7 +1283,7 @@ class ConversionModel(ComponentModel):
 
         .. math::
 
-            \\text{C}^{comp,comm}_{loc,ip,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,ip,p,t}^{comp,op}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} =  \\text{conversionFactor}^{comp}_{comm} \\cdot op_{loc,ip,p,t}^{comp,op}
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1296,8 +1295,7 @@ class ConversionModel(ComponentModel):
         def getFactor(commodCommodityConversionFactors, loc, p, t):
             if isinstance(commodCommodityConversionFactors, (int, float)):
                 return commodCommodityConversionFactors
-            else:
-                return commodCommodityConversionFactors[loc][p, t]
+            return commodCommodityConversionFactors[loc][p, t]
 
         # 1.a get balance for components, which do not have commodity conversions varying with the commissioning year
         # prepare data

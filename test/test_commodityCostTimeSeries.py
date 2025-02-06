@@ -1,5 +1,4 @@
 #https://unix.stackexchange.com/questions/74571/vim-shortcut-to-open-a-file-under-cursor-in-an-already-opened-window!/usr/bin/env python
-# coding: utf-8
 
 # # Workflow for a multi-regional energy system
 #

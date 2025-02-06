@@ -291,7 +291,7 @@ class Storage(Component):
             commodity,
             esM.commodityUnitsDict[commodity],
         )
-        
+
         utils.isStrictlyPositiveNumber(chargeRate)
         self.chargeRate = chargeRate
         utils.isStrictlyPositiveNumber(dischargeRate)
@@ -789,8 +789,7 @@ class StorageModel(ComponentModel):
                 # Declare the constraint that the (virtual) state of charge at the beginning of a typical period is zero.
                 if t == 0:
                     return (0, 0)
-                else:
-                    return (None, None)
+                return (None, None)
 
             # (Virtual) energy amount stored during a period (the i-th state of charge refers to the state of charge at
             # the beginning of the i-th time step, the last index is the state of charge after the last time step)
@@ -899,17 +898,16 @@ class StorageModel(ComponentModel):
                     - dischargeOp[loc, compName, ip, p, t]
                     / compDict[compName].dischargeEfficiency
                 )
-            else:
-                return (
-                    SOC[loc, compName, ip, p, t + 1]
-                    - SOC[loc, compName, ip, p, t]
-                    * (1 - compDict[compName].selfDischarge)
-                    ** esM.hoursPerSegment[ip].to_dict()[p, t]
-                    == chargeOp[loc, compName, ip, p, t]
-                    * compDict[compName].chargeEfficiency
-                    - dischargeOp[loc, compName, ip, p, t]
-                    / compDict[compName].dischargeEfficiency
-                )
+            return (
+                SOC[loc, compName, ip, p, t + 1]
+                - SOC[loc, compName, ip, p, t]
+                * (1 - compDict[compName].selfDischarge)
+                ** esM.hoursPerSegment[ip].to_dict()[p, t]
+                == chargeOp[loc, compName, ip, p, t]
+                * compDict[compName].chargeEfficiency
+                - dischargeOp[loc, compName, ip, p, t]
+                / compDict[compName].dischargeEfficiency
+            )
 
         setattr(
             pyM,
@@ -1048,7 +1046,7 @@ class StorageModel(ComponentModel):
             :nowrap:
 
             \\begin{eqnarray*}
-            SoC^{inter}_{loc,ip,p+1} - SoC^{inter}_{loc,ip,p} \\cdot \\left( 1 - \\eta^{self-discharge} \\right)^{\\frac{t^{\\text{per period}} \cdot \\tau^{hours}}{h}}
+            SoC^{inter}_{loc,ip,p+1} - SoC^{inter}_{loc,ip,p} \\cdot \\left( 1 - \\eta^{self-discharge} \\right)^{\\frac{t^{\\text{per period}} \\cdot \\tau^{hours}}{h}}
             \\ SoC^{comp}_{loc,ip,map(p),t^{\\text{per period}}} = 0
             \\end{eqnarray*}
 
@@ -1090,20 +1088,19 @@ class StorageModel(ComponentModel):
                 ] + (
                     offsetUp_ - offsetDown_
                 )
-            else:
-                return SOCInter[loc, compName, ip, pInter + 1] == SOCInter[
-                    loc, compName, ip, pInter
-                ] * (1 - compDict[compName].selfDischarge) ** (
-                    (esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep
-                ) + SOC[
-                    loc,
-                    compName,
-                    ip,
-                    esM.periodsOrder[ip][pInter],
-                    esM.segmentsPerPeriod[-1] + 1,
-                ] + (
-                    offsetUp_ - offsetDown_
-                )
+            return SOCInter[loc, compName, ip, pInter + 1] == SOCInter[
+                loc, compName, ip, pInter
+            ] * (1 - compDict[compName].selfDischarge) ** (
+                (esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep
+            ) + SOC[
+                loc,
+                compName,
+                ip,
+                esM.periodsOrder[ip][pInter],
+                esM.segmentsPerPeriod[-1] + 1,
+            ] + (
+                offsetUp_ - offsetDown_
+            )
 
         setattr(
             pyM,
@@ -1213,7 +1210,7 @@ class StorageModel(ComponentModel):
 
             \\begin{eqnarray*}
             & & \\underline{SoC}^{comp,sup}_{loc,ip,p,t} \\geq \\text{SoC}^{min} \\cdot cap^{comp}_{loc,ip} \\\\  
-            & & \overline{SoC}^{comp,sup}_{loc,ip,p,t} \\leq \\text{SoC}^{max} \\cdot cap^{comp}_{loc,ip} \\\\
+            & & \\overline{SoC}^{comp,sup}_{loc,ip,p,t} \\leq \\text{SoC}^{max} \\cdot cap^{comp}_{loc,ip} \\\\
             \\text{with } \\\\ 
             & & \\underline{SoC}^{comp,sup}_{loc,ip,p,t} = SoC^{inter}_{loc,ip,p} \\cdot (1 - \\eta^{\\text{self-discharge}})^{\\frac{t^{\\text{per period}} \\cdot \\tau^{hours}}{h}}+ SoC^{min}_{loc,ip,map(p)} \\\\
             & &\\overline{SoC}^{comp,sup}_{loc,ip,p,t} = SoC^{inter}_{loc,ip,p} + SoC^{max}_{loc,ip,map(p)}
@@ -1277,14 +1274,13 @@ class StorageModel(ComponentModel):
                     <= capVar[loc, compName, ip]
                     * compDict[compName].processedStateOfChargeMax[ip][loc].loc[esM.periodsOrder[ip][pInter]].min()
                 )
-            else:
-                return (
-                    SOCInter[loc, compName, ip, pInter]
-                    * (1 - compDict[compName].selfDischarge)
-                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
-                    + SOCmax[loc, compName, ip, esM.periodsOrder[ip][pInter]]
-                    <= compDict[compName].stateOfChargeMax
-                )
+            return (
+                SOCInter[loc, compName, ip, pInter]
+                * (1 - compDict[compName].selfDischarge)
+                ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
+                + SOCmax[loc, compName, ip, esM.periodsOrder[ip][pInter]]
+                <= compDict[compName].stateOfChargeMax
+            )
 
         setattr(
             pyM,
@@ -1305,14 +1301,13 @@ class StorageModel(ComponentModel):
                     >= capVar[loc, compName, ip]
                     * compDict[compName].processedStateOfChargeMin[ip][loc].loc[esM.periodsOrder[ip][pInter]].max()
                 )
-            else:
-                return (
-                    SOCInter[loc, compName, ip, pInter]
-                    * (1 - compDict[compName].selfDischarge)
-                    ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
-                    + SOCmin[loc, compName, ip, esM.periodsOrder[ip][pInter]]
-                    >= compDict[compName].processedStateOfChargeMin[ip][loc].loc[esM.periodsOrder[ip][pInter]].max()
-                )
+            return (
+                SOCInter[loc, compName, ip, pInter]
+                * (1 - compDict[compName].selfDischarge)
+                ** ((esM.timeStepsPerPeriod[-1] + 1) * esM.hoursPerTimeStep)
+                + SOCmin[loc, compName, ip, esM.periodsOrder[ip][pInter]]
+                >= compDict[compName].processedStateOfChargeMin[ip][loc].loc[esM.periodsOrder[ip][pInter]].max()
+            )
 
 
 
@@ -1366,7 +1361,7 @@ class StorageModel(ComponentModel):
 
         .. math::
 
-            SoC^{inter}_{loc,ip,p} \cdot (1 - \eta^{\\text{self-discharge}})^{\\frac{t \cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,ip,map(p),t} \leq \\text{SoC}^{max} \cdot cap^{comp}_{loc,ip}
+            SoC^{inter}_{loc,ip,p} \\cdot (1 - \\eta^{\\text{self-discharge}})^{\\frac{t \\cdot \\tau^{hours}}{h}} + SoC^{comp}_{loc,ip,map(p),t} \\leq \\text{SoC}^{max} \\cdot cap^{comp}_{loc,ip}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1395,24 +1390,22 @@ class StorageModel(ComponentModel):
                         <= capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeMax[ip][loc].loc[pInter, t]
                     )
-                else:
-                    return (
-                        SOCinter[loc, compName, ip, pInter]
-                        * (
-                            (1 - compDict[compName].selfDischarge)
-                            ** (
-                                esM.segmentStartTime[ip].to_dict()[
-                                    esM.periodsOrder[ip][pInter], t
-                                ]
-                                * esM.hoursPerTimeStep
-                            )
+                return (
+                    SOCinter[loc, compName, ip, pInter]
+                    * (
+                        (1 - compDict[compName].selfDischarge)
+                        ** (
+                            esM.segmentStartTime[ip].to_dict()[
+                                esM.periodsOrder[ip][pInter], t
+                            ]
+                            * esM.hoursPerTimeStep
                         )
-                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                        <= capVar[loc, compName, ip]
-                        * compDict[compName].processedStateOfChargeMax[ip][loc].loc[pInter, t]
                     )
-            else:
-                return pyomo.Constraint.Skip
+                    + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                    <= capVar[loc, compName, ip]
+                    * compDict[compName].processedStateOfChargeMax[ip][loc].loc[pInter, t]
+                )
+            return pyomo.Constraint.Skip
 
         setattr(
             pyM,
@@ -1460,33 +1453,6 @@ class StorageModel(ComponentModel):
                         >= capVar[loc, compName, ip]
                         * compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
                     )
-                else:
-                    return (
-                        SOCinter[loc, compName, ip, pInter]
-                        * (
-                            (1 - compDict[compName].selfDischarge)
-                            ** (
-                                esM.segmentStartTime[ip].to_dict()[
-                                    esM.periodsOrder[ip][pInter], t
-                                ]
-                                * esM.hoursPerTimeStep
-                            )
-                        )
-                        + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                        >= capVar[loc, compName, ip]
-                        * compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
-                    )
-            elif not pyM.hasSegmentation:
-                return (
-                    SOCinter[loc, compName, ip, pInter]
-                    * (
-                        (1 - compDict[compName].selfDischarge)
-                        ** (t * esM.hoursPerTimeStep)
-                    )
-                    + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
-                    >= compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
-                )
-            else:
                 return (
                     SOCinter[loc, compName, ip, pInter]
                     * (
@@ -1499,8 +1465,33 @@ class StorageModel(ComponentModel):
                         )
                     )
                     + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                    >= capVar[loc, compName, ip]
+                    * compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
+                )
+            if not pyM.hasSegmentation:
+                return (
+                    SOCinter[loc, compName, ip, pInter]
+                    * (
+                        (1 - compDict[compName].selfDischarge)
+                        ** (t * esM.hoursPerTimeStep)
+                    )
+                    + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
                     >= compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
                 )
+            return (
+                SOCinter[loc, compName, ip, pInter]
+                * (
+                    (1 - compDict[compName].selfDischarge)
+                    ** (
+                        esM.segmentStartTime[ip].to_dict()[
+                            esM.periodsOrder[ip][pInter], t
+                        ]
+                        * esM.hoursPerTimeStep
+                    )
+                )
+                + SOC[loc, compName, ip, esM.periodsOrder[ip][pInter], t]
+                >= compDict[compName].processedStateOfChargeMin[ip][loc].loc[pInter, t]
+            )
 
         setattr(
             pyM,
@@ -2027,9 +2018,7 @@ class StorageModel(ComponentModel):
                 if simultaneousChargeDischarge:
                     if esM.verbose < 2:
                         warnings.warn(
-                            "Charge and discharge at the same time for component {}".format(
-                                compName
-                            ),
+                            f"Charge and discharge at the same time for component {compName}",
                             UserWarning,
                         )
 
@@ -2243,77 +2232,76 @@ class StorageModel(ComponentModel):
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
-        elif name == "commissioningVariablesOptimum":
+        if name == "commissioningVariablesOptimum":
             return {
                 "values": self._commissioningVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
-        elif name == "decommissioningVariablesOptimum":
+        if name == "decommissioningVariablesOptimum":
             return {
                 "values": self._decommissioningVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
-        elif name == "isBuiltVariablesOptimum":
+        if name == "isBuiltVariablesOptimum":
             return {
                 "values": self._isBuiltVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
-        elif name == "chargeOperationVariablesOptimum":
+        if name == "chargeOperationVariablesOptimum":
             return {
                 "values": self._chargeOperationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
-        elif name == "dischargeOperationVariablesOptimum":
+        if name == "dischargeOperationVariablesOptimum":
             return {
                 "values": self._dischargeOperationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
-        elif name == "stateOfChargeOperationVariablesOptimum":
+        if name == "stateOfChargeOperationVariablesOptimum":
             return {
                 "values": self._stateOfChargeOperationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
-        else:
-            return {
-                "commissioningVariablesOptimum": {
-                    "values": self._commissioningVariablesOptimum[ip],
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "decommissioningVariablesOptimum": {
-                    "values": self._decommissioningVariablesOptimum[ip],
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "capacityVariablesOptimum": {
-                    "values": self._capacityVariablesOptimum[ip],
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "isBuiltVariablesOptimum": {
-                    "values": self._isBuiltVariablesOptimum[ip],
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "chargeOperationVariablesOptimum": {
-                    "values": self._chargeOperationVariablesOptimum[ip],
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-                "dischargeOperationVariablesOptimum": {
-                    "values": self._dischargeOperationVariablesOptimum[ip],
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-                "stateOfChargeOperationVariablesOptimum": {
-                    "values": self._stateOfChargeOperationVariablesOptimum[ip],
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-            }
+        return {
+            "commissioningVariablesOptimum": {
+                "values": self._commissioningVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "decommissioningVariablesOptimum": {
+                "values": self._decommissioningVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "capacityVariablesOptimum": {
+                "values": self._capacityVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "isBuiltVariablesOptimum": {
+                "values": self._isBuiltVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "chargeOperationVariablesOptimum": {
+                "values": self._chargeOperationVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": self.dimension,
+            },
+            "dischargeOperationVariablesOptimum": {
+                "values": self._dischargeOperationVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": self.dimension,
+            },
+            "stateOfChargeOperationVariablesOptimum": {
+                "values": self._stateOfChargeOperationVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": self.dimension,
+            },
+        }

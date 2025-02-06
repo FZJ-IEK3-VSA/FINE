@@ -50,7 +50,7 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     for transmission_class in ["LinearOptimalPowerFlow", "Transmission"]:
         for tech in component_dict[transmission_class].keys():
             _mapC_dict[tech] = esM.getComponent(tech)._mapC
-            
+
     # STEP 4. Add all df variables to xr_ds
     xr_dss = utilsIO.addDFVariablesToXarray(
         xr_dss, component_dict, df_iteration_dict, _mapC_dict, list(esM.locations)
@@ -151,7 +151,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
                             combine_attrs="drop_conflicts",
-                            )                           
+                            )
                             # if a variable occurs twice keep both in separate lines, example: operation_annual, operation
                             df = df_o.iloc[1].copy()
                             df.name = f"{variable}_{1}"
@@ -160,7 +160,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[1].name
-                            xr_da.attrs[df.name] = unit    
+                            xr_da.attrs[df.name] = unit
                         else:
                             df = df_o.iloc[-1]
                             df.name = variable
@@ -170,7 +170,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[-1].name
                             xr_da.attrs[variable] = unit
-                        
+
                         # merge to overall xr_ds
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
@@ -673,7 +673,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 [optSum_df_comp, _optSum_df],
                                 axis=0,
                             )
-    
+
                         if "operation" in variable and "_1" in variable:                                            # operation needed to be renamed in conversion
                             optSum_df_comp = optSum_df_comp.rename(index={variable:variable.replace("_1", "")})     # to dataset and xarray and now is renamed to operation again
 

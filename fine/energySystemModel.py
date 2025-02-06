@@ -484,17 +484,16 @@ class EnergySystemModel:
             ].componentsDict:  # False if dict is empty
                 del self.componentModelingDict[modelingClass]
             return removedComp
-        else:
-            # Remove component from the componentNames dict:
-            del self.componentNames[componentName]
-            # Remove component from the componentModelingDict:
-            del self.componentModelingDict[modelingClass].componentsDict[componentName]
-            # Test if all components of one modelingClass are removed. If so, remove modelingClass:
-            if not self.componentModelingDict[
-                modelingClass
-            ].componentsDict:  # False if dict is empty
-                del self.componentModelingDict[modelingClass]
-            return None
+        # Remove component from the componentNames dict:
+        del self.componentNames[componentName]
+        # Remove component from the componentModelingDict:
+        del self.componentModelingDict[modelingClass].componentsDict[componentName]
+        # Test if all components of one modelingClass are removed. If so, remove modelingClass:
+        if not self.componentModelingDict[
+            modelingClass
+        ].componentsDict:  # False if dict is empty
+            del self.componentModelingDict[modelingClass]
+        return None
 
     def getComponent(self, componentName):
         """
@@ -592,8 +591,7 @@ class EnergySystemModel:
         attr = getattr(self.getComponent(componentName), attributeName)
         if isinstance(attr, dict) and list(attr.keys()) == [0]:
             return attr[0]
-        else:
-            return attr
+        return attr
 
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
         """
@@ -621,29 +619,28 @@ class EnergySystemModel:
                 + "Please define a valid investment period  "
                 + f"(from '{self.investmentPeriodNames}')"
             )
-        
+
         # adjust columns name and remove "space" or "space_2" in case it exists
-        self.componentModelingDict[modelingClass]._optSummary[ip].columns.name=None    
+        self.componentModelingDict[modelingClass]._optSummary[ip].columns.name=None
 
         if outputLevel == 0:
             return self.componentModelingDict[modelingClass]._optSummary[ip]
-        elif outputLevel == 1:
+        if outputLevel == 1:
             return (
                 self.componentModelingDict[modelingClass]
                 ._optSummary[ip]
                 .dropna(how="all")
             )
-        else:
-            if outputLevel != 2 and self.verbose < 2:
-                warnings.warn(
-                    "Invalid input. An outputLevel parameter of 2 is assumed."
-                )
-            df = (
-                self.componentModelingDict[modelingClass]
-                ._optSummary[ip]
-                .dropna(how="all")
+        if outputLevel != 2 and self.verbose < 2:
+            warnings.warn(
+                "Invalid input. An outputLevel parameter of 2 is assumed."
             )
-            return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
+        df = (
+            self.componentModelingDict[modelingClass]
+            ._optSummary[ip]
+            .dropna(how="all")
+        )
+        return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
     def aggregateSpatially(
         self,
@@ -1389,8 +1386,7 @@ class EnergySystemModel:
                 # Check whether we want to consider an upper or lower bound.
                 if lowerBound == 0:
                     return balanceSum <= value
-                else:
-                    return balanceSum >= value
+                return balanceSum >= value
 
             pyM.yearlyBalanceLimitConstraint = pyomo.Constraint(
                 pyM.yearlyBalanceLimitDict.keys(),
@@ -1465,8 +1461,7 @@ class EnergySystemModel:
                 # Check whether we want to consider an upper or lower bound.
                 if lowerBound == 0:
                     return balanceSum * temporalScope <= value
-                else:
-                    return balanceSum * temporalScope >= value
+                return balanceSum * temporalScope >= value
 
             pyM.pathwayBalanceLimitConstraint = pyomo.Constraint(
                 pyM.pathwayBalanceLimitDict.keys(),

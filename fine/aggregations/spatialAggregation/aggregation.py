@@ -46,7 +46,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values)
 
         shape_union = unary_union(temp_shape_list)
-        
+
         shape_list.append(shape_union)
 
     if len(shape_list) == 1:
@@ -55,7 +55,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         )
 
     shape_list = np.array(shape_list, dtype=object)
-    
+
     xr_data_array_out = xr.DataArray(shape_list, coords=[space], dims=["space"])
 
     return xr_data_array_out
@@ -414,7 +414,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                         "Weights must be passed in order to perform weighted mean"
                     )
                 ## get corresponding weight data if another variable is supposed to be the weight
-                elif isinstance(aggregation_weight, str):
+                if isinstance(aggregation_weight, str):
                     if varname[:3] == "2d_":
                         try:
                             aggregation_weight = comp_ds[f"2d_{aggregation_weight}"]
@@ -512,9 +512,8 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                         raise NotImplementedError(
                             "Spatial aggregation currently does not support multiple investment periods."
                         )
-                    else:
-                        ## drop the period coordinate
-                        da = da.reset_coords("Period", drop=True)
+                    ## drop the period coordinate
+                    da = da.reset_coords("Period", drop=True)
 
                 ## Time series
                 if var_dim == "ts_":

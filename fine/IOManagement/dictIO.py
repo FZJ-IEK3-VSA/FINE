@@ -128,7 +128,7 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
                                     compDict[classname][componentname][prop][ip] = _data
                             else:
                                 compDict[classname][componentname][prop] = _data
-                            
+
                 # Add aggregatedRate timeseries from TSA
                 if esM.isTimeSeriesDataClustered:
                     prop_list_full_set = component.__dict__.keys()
