@@ -35,9 +35,7 @@ def timer(func):
         before = time.perf_counter()
         rv = func(*args, **kwargs)
         after = time.perf_counter()
-        print(
-            f"elapsed time for {func.__name__}: {(after - before) / 60:.2f} minutes"
-        )
+        print(f"elapsed time for {func.__name__}: {(after - before) / 60:.2f} minutes")
         return rv
 
     return f

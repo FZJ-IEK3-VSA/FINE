@@ -6,24 +6,26 @@ import pandas as pd
 
 pwlf = False
 
-class EndogenousTechnologicalLearningModul:
 
+class EndogenousTechnologicalLearningModul:
     def __init__(
-            self,
-            comp,
-            esM,
-            learningRate,
-            initCapacity,
-            maxCapacity,
-            initCost=None,
-            noSegments=None,
+        self,
+        comp,
+        esM,
+        learningRate,
+        initCapacity,
+        maxCapacity,
+        initCost=None,
+        noSegments=None,
     ):
-        #utilsETL.checkEsmLocations(esM)
+        # utilsETL.checkEsmLocations(esM)
         self.comp = comp
         self.learningRate = learningRate
         self.learningIndex = utilsETL.checkAndSetLearningIndex(learningRate)
         self.initCost = utilsETL.checkAndSetInitCost(initCost, comp)
-        self.initCapacity, self.maxCapacity = utilsETL.checkCapacities(initCapacity, maxCapacity, comp)
+        self.initCapacity, self.maxCapacity = utilsETL.checkCapacities(
+            initCapacity, maxCapacity, comp
+        )
         utilsETL.checkStock(comp, self.initCapacity)
 
         if noSegments is None:
@@ -38,38 +40,50 @@ class EndogenousTechnologicalLearningModul:
         self.commisYears = comp.processedStockYears + esM.investmentPeriods
 
     def getTotalCost(self, capacity):
-        totalCost = (((self.initCapacity * self.initCost) / (1 - self.learningIndex)) *
-                     (capacity / self.initCapacity) ** (1 - self.learningIndex))
-        return totalCost
+        return ((self.initCapacity * self.initCost) / (1 - self.learningIndex)) * (
+            capacity / self.initCapacity
+        ) ** (1 - self.learningIndex)
 
     def linearizeLearningCurve(self):
-        linEtlParameter = pd.DataFrame(index=range(self.noSegments + 1),
-                                       columns=['experience', 'totalCost', 'slope', 'interception'])
+        linEtlParameter = pd.DataFrame(
+            index=range(self.noSegments + 1),
+            columns=["experience", "totalCost", "slope", "interception"],
+        )
 
-        linEtlParameter['totalCost'].loc[0] = self.getTotalCost(self.initCapacity)
-        linEtlParameter['totalCost'].loc[self.noSegments] = self.getTotalCost(self.maxCapacity)
-        totalCostDiff = linEtlParameter['totalCost'].loc[self.noSegments] - linEtlParameter['totalCost'].loc[0]
+        linEtlParameter["totalCost"].loc[0] = self.getTotalCost(self.initCapacity)
+        linEtlParameter["totalCost"].loc[self.noSegments] = self.getTotalCost(
+            self.maxCapacity
+        )
+        totalCostDiff = (
+            linEtlParameter["totalCost"].loc[self.noSegments]
+            - linEtlParameter["totalCost"].loc[0]
+        )
 
         for segment in range(1, self.noSegments):
-            linEtlParameter['totalCost'].loc[segment] = (
-                    linEtlParameter['totalCost'].loc[segment - 1] + (2 ** (segment - self.noSegments - 1))
-                    * (totalCostDiff / (1 - 0.5 ** self.noSegments))
+            linEtlParameter["totalCost"].loc[segment] = linEtlParameter[
+                "totalCost"
+            ].loc[segment - 1] + (2 ** (segment - self.noSegments - 1)) * (
+                totalCostDiff / (1 - 0.5**self.noSegments)
             )
 
-        linEtlParameter['experience'] = (((1 - self.learningIndex)
-                                          / (self.initCost * self.initCapacity ** self.learningIndex)
-                                          * linEtlParameter['totalCost']) ** (1 / (1 - self.learningIndex)))
+        linEtlParameter["experience"] = (
+            (1 - self.learningIndex)
+            / (self.initCost * self.initCapacity**self.learningIndex)
+            * linEtlParameter["totalCost"]
+        ) ** (1 / (1 - self.learningIndex))
 
-        linEtlParameter['slope'] = linEtlParameter.diff()['totalCost'] / linEtlParameter.diff()['experience']
-        linEtlParameter['interception'] = (linEtlParameter['totalCost']
-                                           - linEtlParameter['slope'] * linEtlParameter['experience'])
+        linEtlParameter["slope"] = (
+            linEtlParameter.diff()["totalCost"] / linEtlParameter.diff()["experience"]
+        )
+        linEtlParameter["interception"] = (
+            linEtlParameter["totalCost"]
+            - linEtlParameter["slope"] * linEtlParameter["experience"]
+        )
 
         return linEtlParameter
 
 
-
 class EndogenousTechnologicalLearningModel:
-
     def __init__(self):
         self.abbrvName = "etl"
         self.modulsDict = {}
@@ -111,10 +125,7 @@ class EndogenousTechnologicalLearningModel:
         :param pyM:
         :return:
         """
-        pyM.binaryEtlVar = pyomo.Var(
-            pyM.etlDesignSegmentSet,
-            domain=pyomo.Binary
-        )
+        pyM.binaryEtlVar = pyomo.Var(pyM.etlDesignSegmentSet, domain=pyomo.Binary)
 
     def declareSegmentCapacityEtlVar(self, esM, pyM):
         pyM.segmentCapacityEtlVar = pyomo.Var(
@@ -130,27 +141,24 @@ class EndogenousTechnologicalLearningModel:
             self.declareSegmentCapacityEtlConstr(pyM)
             self.declareCapacityCommissioningEtlConstr(esM, pyM)
 
-
     def declareBinaryEtlConstr(self, pyM):
-
         def binaryEtlConstr(pyM, modulName, ip, segment):
             return (
-                    sum(
-                        pyM.binaryEtlVar[modulName, ip, segment]
-                        for segment in range(self.modulsDict[modulName].noSegments)
-                    ) == 1
+                sum(
+                    pyM.binaryEtlVar[modulName, ip, segment]
+                    for segment in range(self.modulsDict[modulName].noSegments)
+                )
+                == 1
             )
 
         pyM.ConstrBinaryEtl = pyomo.Constraint(
-            pyM.etlDesignSegmentSet,
-            rule=binaryEtlConstr
+            pyM.etlDesignSegmentSet, rule=binaryEtlConstr
         )
 
     def declareSegmentCapacityEtlConstr(self, pyM):
-
         def lowerSegmentCapacityEtlConstr(pyM, modulName, ip, segment):
             modul = self.modulsDict[modulName]
-            maxCapacityPerSegment = modul.linEtlParameter['experience']
+            maxCapacityPerSegment = modul.linEtlParameter["experience"]
             lowerCapacityBound = maxCapacityPerSegment.loc[segment]
             binVar = pyM.binaryEtlVar[modulName, ip, segment]
             capSegmentVar = pyM.segmentCapacityEtlVar[modulName, ip, segment]
@@ -159,7 +167,7 @@ class EndogenousTechnologicalLearningModel:
 
         def upperSegmentCapacityEtlConstr(pyM, modulName, ip, segment):
             modul = self.modulsDict[modulName]
-            maxCapacityPerSegment = modul.linEtlParameter['experience']
+            maxCapacityPerSegment = modul.linEtlParameter["experience"]
             upperCapacityBound = maxCapacityPerSegment.loc[segment + 1]
             binVar = pyM.binaryEtlVar[modulName, ip, segment]
             capSegmentVar = pyM.segmentCapacityEtlVar[modulName, ip, segment]
@@ -167,15 +175,12 @@ class EndogenousTechnologicalLearningModel:
             return capSegmentVar <= upperCapacityBound * binVar
 
         pyM.ConstrLowerSegmentCapacityEtl = pyomo.Constraint(
-            pyM.etlDesignSegmentSet,
-            rule=lowerSegmentCapacityEtlConstr
+            pyM.etlDesignSegmentSet, rule=lowerSegmentCapacityEtlConstr
         )
 
         pyM.ConstrUpperSegmentCapacityEtl = pyomo.Constraint(
-            pyM.etlDesignSegmentSet,
-            rule=upperSegmentCapacityEtlConstr
+            pyM.etlDesignSegmentSet, rule=upperSegmentCapacityEtlConstr
         )
-
 
     def declarePwlfPyomo(self, esM, pyM):
         """
@@ -207,18 +212,15 @@ class EndogenousTechnologicalLearningModel:
 
             return pyM.totalCapacity[modulName, ip] == commVarSum + modul.initCapacity
 
-        pyM.fixTotalCapacity = pyomo.Constraint(
-            pyM.etlDesignSet,
-            rule=fixTotalCapacity
-        )
+        pyM.fixTotalCapacity = pyomo.Constraint(pyM.etlDesignSet, rule=fixTotalCapacity)
 
         xdata = {
-            idx: list(self.modulsDict[idx[0]].linEtlParameter['experience'])
+            idx: list(self.modulsDict[idx[0]].linEtlParameter["experience"])
             for idx in pyM.etlDesignSet
         }
 
         ydata = {
-            idx: list(self.modulsDict[idx[0]].linEtlParameter['totalCost'])
+            idx: list(self.modulsDict[idx[0]].linEtlParameter["totalCost"])
             for idx in pyM.etlDesignSet
         }
 
@@ -227,14 +229,12 @@ class EndogenousTechnologicalLearningModel:
             pyM.totalCost,
             pyM.totalCapacity,
             pw_pts=xdata,
-            pw_constr_type='EQ',
+            pw_constr_type="EQ",
             f_rule=ydata,
-            pw_repn='SOS2'
+            pw_repn="SOS2",
         )
 
-
     def declareCapacityCommissioningEtlConstr(self, esM, pyM):
-
         def capacityCommissioningEtlConstr(pyM, modulName, ip):
             modul = self.modulsDict[modulName]
             compClass = modul.comp.modelingClass().abbrvName
@@ -251,33 +251,29 @@ class EndogenousTechnologicalLearningModel:
 
             return capSegmentVarSum == commVarSum + modul.initCapacity
 
-
         pyM.ConstrCapacityCommissioningEtl = pyomo.Constraint(
-            pyM.etlDesignSet,
-            rule=capacityCommissioningEtlConstr
+            pyM.etlDesignSet, rule=capacityCommissioningEtlConstr
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         return self.getEconomicsEtl(esM, pyM)
 
     def getEconomicsEtl(
-            self,
-            esM,
-            pyM,
-            getOptValue=False,
-            getOptValueCostType='TAC',
+        self,
+        esM,
+        pyM,
+        getOptValue=False,
+        getOptValueCostType="TAC",
     ):
         componentYears = {
             modulName: esM.getComponentAttribute(modulName, "processedStockYears")
-                       + esM.investmentPeriods
+            + esM.investmentPeriods
             for modulName in self.modulsDict.keys()
         }
 
         costContribution = {
             modulName: {
-                (y, i): 0
-                for y in modul.commisYears
-                for i in esM.investmentPeriods
+                (y, i): 0 for y in modul.commisYears for i in esM.investmentPeriods
             }
             for modulName, modul in self.modulsDict.items()
         }
@@ -285,7 +281,6 @@ class EndogenousTechnologicalLearningModel:
         loc = list(esM.locations)[0]
 
         for modulName, modul in self.modulsDict.items():
-
             ipEconomicLifetime = getattr(
                 esM.getComponent(modulName), "ipEconomicLifetime"
             )[loc]
@@ -293,37 +288,39 @@ class EndogenousTechnologicalLearningModel:
                 esM.getComponent(modulName), "ipTechnicalLifetime"
             )[loc]
 
-            (fullCostIntervals, costInLastEconInterval,
-             costInLastTechInterval) = utils.getParametersForUnevenLifetimes(
-                modulName, loc, 'ipEconomicLifetime', esM)
+            (fullCostIntervals, costInLastEconInterval, costInLastTechInterval) = (
+                utils.getParametersForUnevenLifetimes(
+                    modulName, loc, "ipEconomicLifetime", esM
+                )
+            )
 
             for commisYear in modul.commisYears:
-                annuity = self.getAnnuityEtl(pyM, modulName, commisYear, modul.commisYears, getOptValue)
+                annuity = self.getAnnuityEtl(
+                    pyM, modulName, commisYear, modul.commisYears, getOptValue
+                )
 
                 for i in range(commisYear, commisYear + fullCostIntervals):
-                    costContribution[modulName][
-                        (commisYear, i)
-                    ] = annuity * utils.annuityPresentValueFactor(
-                        esM, modulName, loc, esM.investmentPeriodInterval
+                    costContribution[modulName][(commisYear, i)] = (
+                        annuity
+                        * utils.annuityPresentValueFactor(
+                            esM, modulName, loc, esM.investmentPeriodInterval
+                        )
                     )
 
                 if costInLastEconInterval:
                     partlyCostInLastEconomicInterval = (
-                                                               ipEconomicLifetime % 1
-                                                       ) * esM.investmentPeriodInterval
+                        ipEconomicLifetime % 1
+                    ) * esM.investmentPeriodInterval
                     costContribution[modulName][
                         (commisYear, commisYear + fullCostIntervals)
                     ] = annuity * utils.annuityPresentValueFactor(
                         esM, modulName, loc, partlyCostInLastEconomicInterval
                     )
 
-                if (
-                        costInLastTechInterval
-                        and ipTechnicalLifetime % 1 != 0
-                ):
+                if costInLastTechInterval and ipTechnicalLifetime % 1 != 0:
                     partlyCostInLastTechnicalInterval = (
-                                                                1 - (ipTechnicalLifetime % 1)
-                                                        ) * esM.investmentPeriodInterval
+                        1 - (ipTechnicalLifetime % 1)
+                    ) * esM.investmentPeriodInterval
                     if commisYear + math.ceil(ipTechnicalLifetime) - 1 in [
                         k[1] for k in costContribution[modulName].keys()
                     ]:
@@ -333,23 +330,23 @@ class EndogenousTechnologicalLearningModel:
                                 commisYear + math.ceil(ipTechnicalLifetime) - 1,
                             )
                         ] = costContribution[modulName][
-                                (
-                                    commisYear,
-                                    commisYear + math.ceil(ipTechnicalLifetime) - 1,
-                                )
-                            ] + annuity * (
-                                    utils.annuityPresentValueFactor(
-                                        esM,
-                                        modulName,
-                                        loc,
-                                        partlyCostInLastTechnicalInterval,
-                                    )
-                                    / (1 + esM.getComponent(modulName).interestRate[loc])
-                                    ** (
-                                            esM.investmentPeriodInterval
-                                            - partlyCostInLastTechnicalInterval
-                                    )
+                            (
+                                commisYear,
+                                commisYear + math.ceil(ipTechnicalLifetime) - 1,
                             )
+                        ] + annuity * (
+                            utils.annuityPresentValueFactor(
+                                esM,
+                                modulName,
+                                loc,
+                                partlyCostInLastTechnicalInterval,
+                            )
+                            / (1 + esM.getComponent(modulName).interestRate[loc])
+                            ** (
+                                esM.investmentPeriodInterval
+                                - partlyCostInLastTechnicalInterval
+                            )
+                        )
 
         if getOptValue:
             cost_results = {ip: pd.DataFrame() for ip in esM.investmentPeriods}
@@ -362,29 +359,29 @@ class EndogenousTechnologicalLearningModel:
                         ]
                     )
                     if getOptValueCostType == "NPV":
-                        cost_results[ip].loc[
-                            modulName, loc
-                        ] = cContrSum * utils.discountFactor(esM, ip, modulName, loc)
+                        cost_results[ip].loc[modulName, loc] = (
+                            cContrSum * utils.discountFactor(esM, ip, modulName, loc)
+                        )
                     elif getOptValueCostType == "TAC":
-                        cost_results[ip].loc[
-                            modulName, loc
-                        ] = cContrSum / utils.annuityPresentValueFactor(
-                            esM, modulName, loc, esM.investmentPeriodInterval
+                        cost_results[ip].loc[modulName, loc] = (
+                            cContrSum
+                            / utils.annuityPresentValueFactor(
+                                esM, modulName, loc, esM.investmentPeriodInterval
+                            )
                         )
             return cost_results
         if esM.annuityPerpetuity:
-            for modulName in costContribution.keys(): # noqa: PLC0206
+            for modulName in costContribution.keys():  # noqa: PLC0206
                 for y in componentYears[modulName]:
-                    costContribution[modulName][
-                        (y, esM.investmentPeriods[-1])
-                    ] = costContribution[modulName][
-                            (y, esM.investmentPeriods[-1])
-                        ] / (
-                                utils.annuityPresentValueFactor(
-                                    esM, modulName, loc, esM.investmentPeriodInterval
-                                )
-                                * esM.getComponent(modulName).interestRate[loc]
+                    costContribution[modulName][(y, esM.investmentPeriods[-1])] = (
+                        costContribution[modulName][(y, esM.investmentPeriods[-1])]
+                        / (
+                            utils.annuityPresentValueFactor(
+                                esM, modulName, loc, esM.investmentPeriodInterval
+                            )
+                            * esM.getComponent(modulName).interestRate[loc]
                         )
+                    )
         return sum(
             sum(
                 [
@@ -397,7 +394,9 @@ class EndogenousTechnologicalLearningModel:
             for ip in esM.investmentPeriods
         )
 
-    def getAnnuityEtl(self, pyM, modulName, commisYear, commisYears, getOptValues=False):
+    def getAnnuityEtl(
+        self, pyM, modulName, commisYear, commisYears, getOptValues=False
+    ):
         def getIpTotalCost(ip):
             if ip == commisYears[0] - 1:
                 totalCost = modul.getTotalCost(
@@ -408,10 +407,7 @@ class EndogenousTechnologicalLearningModel:
                     modul.comp.processedStockCommissioning[i].sum()
                     for i in range(ip + 1, 0)
                 )
-                totalCost = modul.getTotalCost(
-                    modul.initCapacity
-                    - unbuildStockUntilIp
-                )
+                totalCost = modul.getTotalCost(modul.initCapacity - unbuildStockUntilIp)
             elif pwlf:
                 if not getOptValues:
                     totalCost = pyM.totalCost[modulName, ip]
@@ -419,17 +415,17 @@ class EndogenousTechnologicalLearningModel:
                     totalCost = pyM.totalCost[modulName, ip].value
             elif not getOptValues:
                 totalCost = sum(
-                    modul.linEtlParameter['interception'].loc[segment + 1]
+                    modul.linEtlParameter["interception"].loc[segment + 1]
                     * pyM.binaryEtlVar[modulName, ip, segment]
-                    + modul.linEtlParameter['slope'].loc[segment + 1]
+                    + modul.linEtlParameter["slope"].loc[segment + 1]
                     * pyM.segmentCapacityEtlVar[modulName, ip, segment]
                     for segment in range(modul.noSegments)
                 )
             else:
                 totalCost = sum(
-                    modul.linEtlParameter['interception'].loc[segment + 1]
+                    modul.linEtlParameter["interception"].loc[segment + 1]
                     * pyM.binaryEtlVar[modulName, ip, segment].value
-                    + modul.linEtlParameter['slope'].loc[segment + 1]
+                    + modul.linEtlParameter["slope"].loc[segment + 1]
                     * pyM.segmentCapacityEtlVar[modulName, ip, segment].value
                     for segment in range(modul.noSegments)
                 )
@@ -439,16 +435,14 @@ class EndogenousTechnologicalLearningModel:
         totalCostCommisYear = getIpTotalCost(commisYear)
         totalCostPreCommisYear = getIpTotalCost(commisYear - 1)
 
-        return (totalCostCommisYear - totalCostPreCommisYear) / modul.comp.CCF[commisYear].mean()
+        return (totalCostCommisYear - totalCostPreCommisYear) / modul.comp.CCF[
+            commisYear
+        ].mean()
 
     def setOptimalValues(self, esM, pyM):
         loc = list(esM.locations)[0]
 
-        props = [
-            "TAC_ETL",
-            "NPVcontribution_ETL",
-            "knowledgeStock_ETL"
-        ]
+        props = ["TAC_ETL", "NPVcontribution_ETL", "knowledgeStock_ETL"]
         units = [
             "[" + esM.costUnit + "/a]",
             "[" + esM.costUnit + "]",
@@ -461,10 +455,10 @@ class EndogenousTechnologicalLearningModel:
         ]
 
         unitDict = {
-            'conv': ('physicalUnit', ''),
-            'srcSnk': ('commodityUnit', ''),
-            'stor': ('commodityUnit', '*h'),
-            'trans': ('commodityUnit', ''),
+            "conv": ("physicalUnit", ""),
+            "srcSnk": ("commodityUnit", ""),
+            "stor": ("commodityUnit", "*h"),
+            "trans": ("commodityUnit", ""),
         }
 
         tuples = list(
@@ -472,10 +466,15 @@ class EndogenousTechnologicalLearningModel:
                 lambda x: (
                     x[0],
                     x[1],
-                    "[" + getattr(
+                    "["
+                    + getattr(
                         self.modulsDict[x[0]].comp,
-                        unitDict[self.modulsDict[x[0]].comp.modelingClass().abbrvName][0]
-                    ) + unitDict[self.modulsDict[x[0]].comp.modelingClass().abbrvName][1] + "]",
+                        unitDict[self.modulsDict[x[0]].comp.modelingClass().abbrvName][
+                            0
+                        ],
+                    )
+                    + unitDict[self.modulsDict[x[0]].comp.modelingClass().abbrvName][1]
+                    + "]",
                 )
                 if x[1] == "knowledgeStock_ETL"
                 else x,
@@ -491,19 +490,21 @@ class EndogenousTechnologicalLearningModel:
             for ip in esM.investmentPeriodNames
         }
 
-        tac = self.getEconomicsEtl(esM, pyM, getOptValue=True, getOptValueCostType='TAC')
-        npv = self.getEconomicsEtl(esM, pyM, getOptValue=True, getOptValueCostType='NPV')
+        tac = self.getEconomicsEtl(
+            esM, pyM, getOptValue=True, getOptValueCostType="TAC"
+        )
+        npv = self.getEconomicsEtl(
+            esM, pyM, getOptValue=True, getOptValueCostType="NPV"
+        )
 
         for ip in esM.investmentPeriods:
             for modulName, modul in self.modulsDict.items():
                 optSummaryEtl[esM.investmentPeriodNames[ip]].loc[
-                    (modulName, 'TAC_ETL', '[' + esM.costUnit + '/a]'),
-                    loc
+                    (modulName, "TAC_ETL", "[" + esM.costUnit + "/a]"), loc
                 ] = tac[ip][loc].loc[modulName]
 
                 optSummaryEtl[esM.investmentPeriodNames[ip]].loc[
-                    (modulName, 'NPVcontribution_ETL', '[' + esM.costUnit + ']'),
-                    loc
+                    (modulName, "NPVcontribution_ETL", "[" + esM.costUnit + "]"), loc
                 ] = npv[ip][loc].loc[modulName]
                 if pwlf:
                     knowledgeStock = pyM.totalCapacity[modulName, ip].value
@@ -515,25 +516,28 @@ class EndogenousTechnologicalLearningModel:
                 optSummaryEtl[esM.investmentPeriodNames[ip]].loc[
                     (
                         modulName,
-                        'knowledgeStock_ETL',
-                        "[" + getattr(
+                        "knowledgeStock_ETL",
+                        "["
+                        + getattr(
                             modul.comp,
-                            unitDict[modul.comp.modelingClass().abbrvName][0]
-                        ) + unitDict[modul.comp.modelingClass().abbrvName][1] + "]"
+                            unitDict[modul.comp.modelingClass().abbrvName][0],
+                        )
+                        + unitDict[modul.comp.modelingClass().abbrvName][1]
+                        + "]",
                     ),
-                    loc
+                    loc,
                 ] = knowledgeStock
-
 
         for model in esM.componentModelingDict.values():
             optSummary = model._optSummary
             for ipName in esM.investmentPeriodNames:
-                etlComps = [comp for comp in model.componentsDict.keys() if comp in self.modulsDict.keys()]
+                etlComps = [
+                    comp
+                    for comp in model.componentsDict.keys()
+                    if comp in self.modulsDict.keys()
+                ]
                 optSummary[ipName] = pd.concat(
-                    [
-                        optSummary[ipName],
-                        optSummaryEtl[ipName].loc[etlComps, :, :]
-                    ],
-                    axis=0
+                    [optSummary[ipName], optSummaryEtl[ipName].loc[etlComps, :, :]],
+                    axis=0,
                 ).sort_index()
             model.optSummary = optSummary[esM.startYear]

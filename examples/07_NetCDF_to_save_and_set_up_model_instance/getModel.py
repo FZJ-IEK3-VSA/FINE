@@ -23,8 +23,7 @@ def getModel():
         balanceLimit=None,
     )
 
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
+
 
     ### Buy electricity at the electricity market
     costs = pd.DataFrame(

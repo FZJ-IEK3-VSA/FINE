@@ -6,6 +6,7 @@ from fine.utils import buildFullTimeSeries
 import pandas as pd
 from fine import utils
 
+
 def reconstruct_full_timeseries(esM, timeseries, ip):
     print("Reconstructing timeseries from TSA")
 
@@ -67,7 +68,7 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
                 _prop_list = prop_list.copy()
                 for prop in _prop_list:
                     # for soc min/max the original input must be used to ensure compatibility with spatial aggregation
-                    if prop in ['stateOfChargeMin', 'stateOfChargeMax']:
+                    if prop in ["stateOfChargeMin", "stateOfChargeMax"]:
                         prop_list.remove(prop)
                         prop_list.append((prop, prop))
                     # for the transmission investment parameters, the preprocessed version
@@ -104,36 +105,46 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
                         _data = getattr(component, prop[1])
                         # useprocessedValues is only used for xarray and we want to have the original investment period names
                         if isinstance(_data, dict):
-                            investmentPeriodMapper = dict(zip(esM.investmentPeriods, esM.investmentPeriodNames))
+                            investmentPeriodMapper = dict(
+                                zip(esM.investmentPeriods, esM.investmentPeriodNames)
+                            )
                             # replace keys with investment period names in _data
-                            _data = {investmentPeriodMapper[k]: v for k, v in _data.items()}
+                            _data = {
+                                investmentPeriodMapper[k]: v for k, v in _data.items()
+                            }
                         compDict[classname][componentname][prop[0]] = _data
             else:
                 # Loop over all input props
                 for prop in prop_list:
                     if class_ is not fn.Transmission:
-                        if (prop != "self") and (prop != "esM"):
+                        if prop not in ("self", "esM"):
                             compDict[classname][componentname][prop] = getattr(
                                 component, prop
                             )
-                    elif (prop != "self") and (prop != "esM"):
-                            _data = getattr(component, prop)
-                            if isinstance(_data, pd.DataFrame) and "operationRate" not in prop:
-                                _data = utils.preprocess2dimData(_data)
-                                compDict[classname][componentname][prop] = _data
-                            elif isinstance(_data, dict):
-                                for ip, _data in _data.items():
-                                    if isinstance(_data, pd.DataFrame) and "operationRate" not in prop:
-                                        _data = utils.preprocess2dimData(_data)
-                                    compDict[classname][componentname][prop][ip] = _data
-                            else:
-                                compDict[classname][componentname][prop] = _data
+                    elif prop not in ("self", "esM"):
+                        _data = getattr(component, prop)
+                        if (
+                            isinstance(_data, pd.DataFrame)
+                            and "operationRate" not in prop
+                        ):
+                            _data = utils.preprocess2dimData(_data)
+                            compDict[classname][componentname][prop] = _data
+                        elif isinstance(_data, dict):
+                            for ip, _data in _data.items():
+                                if (
+                                    isinstance(_data, pd.DataFrame)
+                                    and "operationRate" not in prop
+                                ):
+                                    _data = utils.preprocess2dimData(_data)
+                                compDict[classname][componentname][prop][ip] = _data
+                        else:
+                            compDict[classname][componentname][prop] = _data
 
                 # Add aggregatedRate timeseries from TSA
                 if esM.isTimeSeriesDataClustered:
                     prop_list_full_set = component.__dict__.keys()
                     for prop in prop_list_full_set:
-                        if (prop != "self") and (prop != "esM"):
+                        if prop not in ("self", "esM"):
                             if ("aggregated" in prop) and ("Rate" in prop):
                                 timeseries = getattr(component, prop)
                                 # if only one time series was given by user, independent of the number of investment periods, we only save that

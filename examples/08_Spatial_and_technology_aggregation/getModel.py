@@ -39,7 +39,6 @@ def getModel():
         verboseLogLevel=0,
     )
 
-    CO2_reductionTarget = 1
 
     # 2. Add commodity sources to the energy system model
 

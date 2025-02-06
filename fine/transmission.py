@@ -228,13 +228,19 @@ class Transmission(Component):
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
         preprocessedCommissioningMin = utils.preprocess2dimData(
-            commissioningMin, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningMin,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningMax = utils.preprocess2dimData(
-            commissioningMax, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningMax,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningFix = utils.preprocess2dimData(
-            commissioningFix, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningFix,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         # stockCommissioning
         if stockCommissioning is None:
@@ -543,10 +549,7 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation mode sets
         self.declareOperationModeSets(
-            pyM,
-            "opConstrSet",
-            "processedOperationRateMax",
-            "processedOperationRateFix"
+            pyM, "opConstrSet", "processedOperationRateMax", "processedOperationRateFix"
         )
 
     ####################################################################################################################
@@ -765,8 +768,7 @@ class TransmissionModel(ComponentModel):
         )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance. 
-        
+        """ Get contribution to a commodity balance.
             .. math::
                 :nowrap:
 
@@ -774,7 +776,6 @@ class TransmissionModel(ComponentModel):
                 \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}: loc_{in}=loc}}{ \\sum } \\left(1-\\eta_{(loc_{in},loc_{out})} \\cdot I_{(loc_{in},loc_{out})} \\right) \\cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
                 & - & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}:loc_{out}=loc}}{ \\sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
                 \\end{eqnarray*}
-            
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = (
@@ -836,10 +837,12 @@ class TransmissionModel(ComponentModel):
         :param componentNames: Names of components which contribute to the balance limit
         :type componentNames: list
         """
-        if loc == 'Total':
+        if loc == "Total":
             if set(componentNames).issubset(set(self.componentsDict.keys())):
-                warnings.warn('The balance limit constraint for the all '
-                            'regions is not supported for Transmission components.')
+                warnings.warn(
+                    "The balance limit constraint for the all "
+                    "regions is not supported for Transmission components."
+                )
             return 0
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
@@ -856,7 +859,7 @@ class TransmissionModel(ComponentModel):
         else:
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
-        aut = sum(
+        return sum(
             opVar[loc_ + "_" + loc, compName, ip, p, t]
             * (
                 1
@@ -877,7 +880,6 @@ class TransmissionModel(ComponentModel):
             for p in periods
             for t in timeSteps
         )
-        return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
@@ -1056,9 +1058,7 @@ class TransmissionModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = opSum.values / esM.numberOfYears
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")

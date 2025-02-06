@@ -1068,4 +1068,5 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
                     )
                 assert output_yearly_full_load_hours_min * factor >= fullLoadHoursMin
 
+
 # %%

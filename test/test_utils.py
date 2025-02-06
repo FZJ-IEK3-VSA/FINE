@@ -177,7 +177,6 @@ def test_functionality_checkSimultaneousChargeDischarge():
     ), "Check for simultaneous charge & discharge should have returned True"
 
 
-
 def test_check_and_set_cost_parameter():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
@@ -203,18 +202,19 @@ def test_check_and_set_cost_parameter():
 
     # Test with valid series data (1dim)
     valid_series_1dim = pd.Series([10], index=esM.locations)
-    assert utils.checkAndSetCostParameter(esM, "testParam", valid_series_1dim, "1dim", None).equals(
-        valid_series_1dim.astype(float)
-    )
+    assert utils.checkAndSetCostParameter(
+        esM, "testParam", valid_series_1dim, "1dim", None
+    ).equals(valid_series_1dim.astype(float))
 
     # Test with NaN in integer data (1dim)
     with pytest.raises(AssertionError):
-        assert utils.checkAndSetCostParameter(esM, "testParam", np.nan, "1dim", None).equals(
-            pd.Series([np.nan], index=esM.locations)
-        )
+        assert utils.checkAndSetCostParameter(
+            esM, "testParam", np.nan, "1dim", None
+        ).equals(pd.Series([np.nan], index=esM.locations))
 
     # Test with NaN in series data (2dim)
     with pytest.raises(AssertionError):
         invalid_series_with_nan = pd.Series([10, np.nan], index=["loc1", "loc2"])
-        assert utils.checkAndSetCostParameter(esM, "testParam", invalid_series_with_nan, "2dim", None).equals(
-            invalid_series_with_nan, index=esM.locations)
+        assert utils.checkAndSetCostParameter(
+            esM, "testParam", invalid_series_with_nan, "2dim", None
+        ).equals(invalid_series_with_nan, index=esM.locations)

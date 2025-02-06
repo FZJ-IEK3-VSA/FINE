@@ -500,7 +500,7 @@ class Component(metaclass=ABCMeta):
         self.capacityVariableDomain = capacityVariableDomain
         self.capacityPerPlantUnit = capacityPerPlantUnit
         self.processedCapacityPerPlantUnit = utils.checkAndSetInvestmentPeriodParamters(
-            'capacityPerPlantUnit',
+            "capacityPerPlantUnit",
             capacityPerPlantUnit,
             esM,
         )
@@ -692,7 +692,7 @@ class Component(metaclass=ABCMeta):
         if etlParameter:
             etlModul = fine.subclasses.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModul
             self.etl = etlModul(self, esM, **etlParameter)
-            #TODO: check if needed
+            # TODO: check if needed
 
             # self.processedInvestPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
             #         esM,
@@ -733,13 +733,11 @@ class Component(metaclass=ABCMeta):
 
         if self.etl is not None:
             etlModel = fine.subclasses.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModel
-            if not hasattr(esM, 'etlModel'):
+            if not hasattr(esM, "etlModel"):
                 esM.etlModel = etlModel()
             esM.etlModel.modulsDict.update({self.name: self.etl})
 
-    def prepareTSAInput(
-        self, rate, rateName, rateWeight, weightDict, data, ip
-    ):
+    def prepareTSAInput(self, rate, rateName, rateWeight, weightDict, data, ip):
         """
         Format the time series data of a component to fit the requirements of the time series aggregation package and
         return a list of formatted data.
@@ -779,9 +777,10 @@ class Component(metaclass=ABCMeta):
                 columns={loc: self.name + rateName + loc for loc in data_.columns},
                 inplace=True,
             )
-            weightDict.update(
-                {id: rateWeight for id in uniqueIdentifiers}
-            ), data.append(data_)
+            (
+                weightDict.update({id: rateWeight for id in uniqueIdentifiers}),
+                data.append(data_),
+            )
         return weightDict, data
 
     def getTSAOutput(self, rate, rateName, data, ip):
@@ -1636,7 +1635,7 @@ class ComponentModel(metaclass=ABCMeta):
         """
         abbrvName, compDict = self.abbrvName, self.componentsDict
 
-        def opBounds(pyM, loc, compName, ip, p, t):
+        def opBounds(pyM, loc, compName, ip, p, t):  # noqa: PLR0911
             if not getattr(compDict[compName], "hasCapacityVariable"):
                 if not pyM.hasSegmentation:
                     if getattr(compDict[compName], opRateMaxName)[ip] is not None:
@@ -1649,7 +1648,8 @@ class ComponentModel(metaclass=ABCMeta):
                                 ):
                                     return (0, 0)
                             return (0, rate[loc][p, t])
-                    elif getattr(compDict[compName], opRateFixName)[ip] is not None:
+                        return None
+                    if getattr(compDict[compName], opRateFixName)[ip] is not None:
                         rate = getattr(compDict[compName], opRateFixName)[ip]
                         if rate is not None:
                             if relevanceThreshold is not None:
@@ -1659,9 +1659,9 @@ class ComponentModel(metaclass=ABCMeta):
                                 ):
                                     return (0, 0)
                             return (rate[loc][p, t], rate[loc][p, t])
-                    else:
-                        return (0, None)
-                elif getattr(compDict[compName], opRateMaxName)[ip] is not None:
+                        return None
+                    return (0, None)
+                if getattr(compDict[compName], opRateMaxName)[ip] is not None:
                     rate = getattr(compDict[compName], opRateMaxName)[ip]
                     if rate is not None:
                         if relevanceThreshold is not None:
@@ -1675,7 +1675,8 @@ class ComponentModel(metaclass=ABCMeta):
                             rate[loc][p, t]
                             * esM.timeStepsPerSegment[ip].to_dict()[p, t],
                         )
-                elif getattr(compDict[compName], opRateFixName)[ip] is not None:
+                    return None
+                if getattr(compDict[compName], opRateFixName)[ip] is not None:
                     rate = getattr(compDict[compName], opRateFixName)[ip]
                     if rate is not None:
                         if relevanceThreshold is not None:
@@ -1690,10 +1691,9 @@ class ComponentModel(metaclass=ABCMeta):
                             rate[loc][p, t]
                             * esM.timeStepsPerSegment[ip].to_dict()[p, t],
                         )
-                else:
-                    return (0, None)
-            else:
+                    return None
                 return (0, None)
+            return (0, None)
 
         if isOperationCommisYearDepending:
             # if the operation is depending on the year of commissioning, e.g. due to variable efficiencies over the
@@ -1825,7 +1825,8 @@ class ComponentModel(metaclass=ABCMeta):
         def capToNbInt(pyM, loc, compName, ip):
             return (
                 capVar[loc, compName, ip]
-                == nbIntVar[loc, compName, ip] * compDict[compName].processedCapacityPerPlantUnit[ip]
+                == nbIntVar[loc, compName, ip]
+                * compDict[compName].processedCapacityPerPlantUnit[ip]
             )
 
         setattr(
@@ -1864,9 +1865,7 @@ class ComponentModel(metaclass=ABCMeta):
                 )
             # set binary variables fix for stock years
             hasStockCommissioning = (
-                self.componentsDict[compName]
-                .processedStockCommissioning[ip]
-                .loc[loc]
+                self.componentsDict[compName].processedStockCommissioning[ip].loc[loc]
                 > 0
             )
             if hasStockCommissioning:
@@ -2091,9 +2090,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return commisVar[loc, compName, ip] == 0
             return (
                 commisVar[loc, compName, ip]
-                == self.componentsDict[compName].processedStockCommissioning[ip][
-                    loc
-                ]
+                == self.componentsDict[compName].processedStockCommissioning[ip][loc]
             )
 
         setattr(
@@ -2588,7 +2585,6 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
-
     def additionalMinPartLoad(
         self,
         pyM,
@@ -2615,9 +2611,12 @@ class ComponentModel(metaclass=ABCMeta):
         if opVarBin is not None:
             capVar = getattr(pyM, capVarName + "_" + abbrvName)
             commisVar = getattr(pyM, "commis_" + abbrvName)
-            constrSetMinPartLoad = getattr(pyM, constrSetName + "partLoadMin_" + abbrvName)
+            constrSetMinPartLoad = getattr(
+                pyM, constrSetName + "partLoadMin_" + abbrvName
+            )
 
             if isOperationCommisYearDepending:
+
                 def opMinPartLoad1(pyM, loc, compName, commis, ip, p, t):
                     bigM = getattr(compDict[compName], "bigM")
                     return (
@@ -2625,12 +2624,14 @@ class ComponentModel(metaclass=ABCMeta):
                         <= opVarBin[loc, compName, commis, ip, p, t] * bigM
                     )
             else:
+
                 def opMinPartLoad1(pyM, loc, compName, ip, p, t):
                     bigM = getattr(compDict[compName], "bigM")
                     return (
                         opVar[loc, compName, ip, p, t]
                         <= opVarBin[loc, compName, ip, p, t] * bigM
                     )
+
             setattr(
                 pyM,
                 constrName + "partLoadMin_1_" + abbrvName,
@@ -2640,6 +2641,7 @@ class ComponentModel(metaclass=ABCMeta):
             )
             if not pyM.hasSegmentation:
                 if isOperationCommisYearDepending:
+
                     def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
                         processedPartLoadMin = getattr(
                             compDict[compName], "processedPartLoadMin"
@@ -2651,6 +2653,7 @@ class ComponentModel(metaclass=ABCMeta):
                             - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
                         )
                 else:
+
                     def opMinPartLoad2(pyM, loc, compName, ip, p, t):
                         processedPartLoadMin = getattr(
                             compDict[compName], "processedPartLoadMin"
@@ -2662,6 +2665,7 @@ class ComponentModel(metaclass=ABCMeta):
                             - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
                         )
             elif isOperationCommisYearDepending:
+
                 def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
                     processedPartLoadMin = getattr(
                         compDict[compName], "processedPartLoadMin"
@@ -2669,10 +2673,13 @@ class ComponentModel(metaclass=ABCMeta):
                     bigM = getattr(compDict[compName], "bigM")
                     return (
                         opVar[loc, compName, commis, ip, p, t]
-                        >= processedPartLoadMin * commisVar[loc, compName, commis] * esM.hoursPerSegment[ip][p, t]
+                        >= processedPartLoadMin
+                        * commisVar[loc, compName, commis]
+                        * esM.hoursPerSegment[ip][p, t]
                         - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
-                )
+                    )
             else:
+
                 def opMinPartLoad2(pyM, loc, compName, ip, p, t):
                     processedPartLoadMin = getattr(
                         compDict[compName], "processedPartLoadMin"
@@ -2680,9 +2687,12 @@ class ComponentModel(metaclass=ABCMeta):
                     bigM = getattr(compDict[compName], "bigM")
                     return (
                         opVar[loc, compName, ip, p, t]
-                        >= processedPartLoadMin * capVar[loc, compName, ip] * esM.hoursPerSegment[ip][p, t]
+                        >= processedPartLoadMin
+                        * capVar[loc, compName, ip]
+                        * esM.hoursPerSegment[ip][p, t]
                         - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
                     )
+
             setattr(
                 pyM,
                 constrName + "partLoadMin_2_" + abbrvName,
@@ -3089,9 +3099,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         # initialize dict with (loc,comp) as key and df as values
         costContribution = {}
-        locCompNamesCombinations = list(
-            set([(x[0], x[1]) for x in var.get_values()])
-        )
+        locCompNamesCombinations = list(set([(x[0], x[1]) for x in var.get_values()]))
         componentYears = {}
 
         for loc, compName in locCompNamesCombinations:
@@ -3118,11 +3126,9 @@ class ComponentModel(metaclass=ABCMeta):
                 esM.getComponent(compName), "ipTechnicalLifetime"
             )[loc]
 
-            (fullCostIntervals, costInLastEconInterval,
-             costInLastTechInterval) = utils.getParametersForUnevenLifetimes(
-                compName, loc, lifetimeAttr, esM
+            (fullCostIntervals, costInLastEconInterval, costInLastTechInterval) = (
+                utils.getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM)
             )
-
 
             # calculation of the annuity
             annuity = self.getLocEconomicsDesign(
@@ -3142,10 +3148,11 @@ class ComponentModel(metaclass=ABCMeta):
             # write costs into dataframe
             # a) costs for complete intervals
             for i in range(commisYear, commisYear + fullCostIntervals):
-                costContribution[(loc, compName)][
-                    (commisYear, i)
-                ] = annuity * utils.annuityPresentValueFactor(
-                    esM, compName, loc, esM.investmentPeriodInterval
+                costContribution[(loc, compName)][(commisYear, i)] = (
+                    annuity
+                    * utils.annuityPresentValueFactor(
+                        esM, compName, loc, esM.investmentPeriodInterval
+                    )
                 )
 
             # b) costs for last economic interval
@@ -3166,10 +3173,7 @@ class ComponentModel(metaclass=ABCMeta):
             # c) costs for last technical interval due to additionally required capacity after technical lifetime is over
             # example: interval 5, economic lifetime 5, technical lifetime 7 and is ceiled to 10
             # extra costs for years 8 and 9
-            if (
-                costInLastTechInterval
-                and ipTechnicalLifetime % 1 != 0
-            ):
+            if costInLastTechInterval and ipTechnicalLifetime % 1 != 0:
                 partlyCostInLastTechnicalInterval = (
                     1 - (ipTechnicalLifetime % 1)
                 ) * esM.investmentPeriodInterval
@@ -3228,7 +3232,7 @@ class ComponentModel(metaclass=ABCMeta):
             # contribution, implying the system design and operation
             # will remain constant after the time frame of the
             # transformation pathway.
-            for (loc, compName) in costContribution.keys(): # noqa: PLC0206
+            for loc, compName in costContribution.keys():  # noqa: PLC0206
                 for y in componentYears[compName]:
                     costContribution[(loc, compName)][
                         (y, esM.investmentPeriods[-1])
@@ -3252,7 +3256,7 @@ class ComponentModel(metaclass=ABCMeta):
             if ip in esM.investmentPeriods
         )
 
-    def getLocEconomicsDesign(
+    def getLocEconomicsDesign(  # noqa: PLR0911
         self,
         pyM,
         esM,
@@ -3328,9 +3332,7 @@ class ComponentModel(metaclass=ABCMeta):
             return 0
         # years where component could have commissioning as it is within the technical
         # lifetime, but does not have commissioning
-        if (
-            ip < 0 and self.componentsDict[compName].processedStockCommissioning is None
-        ):
+        if ip < 0 and self.componentsDict[compName].processedStockCommissioning is None:
             return 0
         if (
             ip < 0
@@ -3548,7 +3550,7 @@ class ComponentModel(metaclass=ABCMeta):
             # contribution, implying the system design and operation
             # will remain constant after the time frame of the
             # transformation pathway.
-            for (loc, compName) in costContribution.keys(): # noqa: PLC0206
+            for loc, compName in costContribution.keys():  # noqa: PLC0206
                 for y in componentYears[compName]:
                     costContribution[(loc, compName)][
                         (y, esM.investmentPeriods[-1])

@@ -109,9 +109,10 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
     output_esM_dict.optimize(timeSeriesAggregation=False, solver="glpk")
     output_obj_dict = output_esM_dict.pyM.Obj()
     # test if objective values are the same
-    np.testing.assert_almost_equal(
-        expected_obj, output_obj_dict
-    ), "The expected objective value and the output objective value differ"
+    (
+        np.testing.assert_almost_equal(expected_obj, output_obj_dict),
+        "The expected objective value and the output objective value differ",
+    )
 
     # XARRAY-IO
     esm_datasets = fn.xrIO.writeEnergySystemModelToDatasets(perfectForesight_test_esM)
@@ -136,9 +137,10 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
     output_esM_xarray.optimize(timeSeriesAggregation=False, solver="glpk")
     output_obj_xarray = output_esM_xarray.pyM.Obj()
     # test if objective values are the same
-    np.testing.assert_almost_equal(
-        expected_obj, output_obj_xarray
-    ), "The expected objective value and the output objective value differ"
+    (
+        np.testing.assert_almost_equal(expected_obj, output_obj_xarray),
+        "The expected objective value and the output objective value differ",
+    )
 
 
 def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_esM):
@@ -177,9 +179,10 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
     output_esM_dict.optimize(timeSeriesAggregation=False, solver="glpk")
     output_obj_dict = output_esM_dict.pyM.Obj()
     # test if objective values are the same
-    np.testing.assert_almost_equal(
-        expected_obj, output_obj_dict
-    ), "The expected objective value and the output objective value differ"
+    (
+        np.testing.assert_almost_equal(expected_obj, output_obj_dict),
+        "The expected objective value and the output objective value differ",
+    )
 
     # XARRAY-IO
     esm_datasets = fn.xrIO.writeEnergySystemModelToDatasets(perfectForesight_test_esM)
@@ -204,9 +207,10 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
     output_esM_xarray.optimize(timeSeriesAggregation=False, solver="glpk")
     output_obj_xarray = output_esM_xarray.pyM.Obj()
     # test if objective values are the same
-    np.testing.assert_almost_equal(
-        expected_obj, output_obj_xarray
-    ), "The expected objective value and the output objective value differ"
+    (
+        np.testing.assert_almost_equal(expected_obj, output_obj_xarray),
+        "The expected objective value and the output objective value differ",
+    )
 
     # 3. check consistency in commodity conversion factors
     assert (

@@ -56,9 +56,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
 
     shape_list = np.array(shape_list, dtype=object)
 
-    xr_data_array_out = xr.DataArray(shape_list, coords=[space], dims=["space"])
-
-    return xr_data_array_out
+    return xr.DataArray(shape_list, coords=[space], dims=["space"])
 
 
 def aggregate_time_series_spatially(
@@ -226,8 +224,7 @@ def aggregate_values_spatially(
                     'Please select one of the modes "mean", "bool" or "sum"'
                 )
 
-    xr_data_array_out = xr_data_array_out.fillna(0)
-    return xr_data_array_out
+    return xr_data_array_out.fillna(0)
 
 
 def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="bool"):
@@ -312,8 +309,7 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
                     dict(space=sup_region_id, space_2=sup_region_id_2)
                 ] = 0
 
-    xr_data_array_out = xr_data_array_out.fillna(0)
-    return xr_data_array_out
+    return xr_data_array_out.fillna(0)
 
 
 def aggregate_esm_parameters_spatially(

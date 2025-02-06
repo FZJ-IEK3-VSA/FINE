@@ -49,11 +49,9 @@ def rasterize_geometry(geometry, coords, latitude="y", longitude="x"):
     # STEP 2. Get the raster mask
     out_shape = (len(lat), len(lon))
 
-    raster = features.rasterize(
+    return features.rasterize(
         [geometry], out_shape=out_shape, fill=np.nan, transform=transform, dtype=float
     )
-
-    return raster
 
 
 def rasterize_xr_ds(

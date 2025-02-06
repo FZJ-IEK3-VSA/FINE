@@ -302,8 +302,10 @@ class Source(Component):
 
         # commodityCostTimeSeries
         self.commodityCostTimeSeries = commodityCostTimeSeries
-        self.fullCommodityCostTimeSeries = utils.checkAndSetInvestmentPeriodCostTimeSeries(
-            esM, name, commodityCostTimeSeries, locationalEligibility
+        self.fullCommodityCostTimeSeries = (
+            utils.checkAndSetInvestmentPeriodCostTimeSeries(
+                esM, name, commodityCostTimeSeries, locationalEligibility
+            )
         )
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
@@ -377,7 +379,7 @@ class Source(Component):
             self.fullOperationRateFix,
             self.bigM,
             self.hasCapacityVariable,
-            self.fullOperationRateMin
+            self.fullOperationRateMin,
         )
 
         utils.isPositiveNumber(tsaWeight)
@@ -1157,9 +1159,7 @@ class SourceSinkModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = opSum.values / esM.numberOfYears
 
                 # costs
                 tac_ox = resultsTAC_opexOp[ip]
