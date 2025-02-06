@@ -3,19 +3,14 @@
 # # Workflow for a multi-regional energy system
 #
 import fine as fn
-import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
 
 import sys
 
 sys.path.append(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "examples",
-        "Multi-regional_Energy_System_Workflow",
-    )
+    str(Path(__file__).parent / ".." / "examples" / "Multi-regional_Energy_System_Workflow")
 )
 
 

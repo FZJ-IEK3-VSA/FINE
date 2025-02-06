@@ -14,12 +14,12 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
 
     # create empty directory to save results
     parent__directory = Path(__file__).parent.absolute()
-    dataPath = os.path.join(parent__directory, "data")
-    resultPath = os.path.join(dataPath, "perfect_foresight_results")
-    os.makedirs(resultPath, exist_ok=True)
+    dataPath = parent__directory / "data"
+    resultPath = dataPath / "perfect_foresight_results"
+    resultPath.mkdir(parents=True, exist_ok=True)
 
     # write excel output to results folder
-    files = os.path.join(resultPath, "pf_results")
+    files = str(resultPath / "pf_results")
     writeOptimizationOutputToExcel(
         perfectForesight_test_esM,
         outputFileName=files,
@@ -44,7 +44,7 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
         filePath = files + f"_{ip}.xlsx"
 
         # check if all files are in folder
-        if not os.path.isfile(filePath):
+        if not Path(filePath).is_file():
             raise ValueError(f"Result excel missing for {ip}.")
 
         # check if results (which are different between the ips) are correctly saved

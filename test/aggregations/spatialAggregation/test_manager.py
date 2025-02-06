@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 from fine import xarrayIO as xrIO
 import geopandas as gpd
-
+from pathlib import Path
 
 @pytest.mark.parametrize("use_saved_file", [False, True])
 def test_esm_to_xr_and_back_during_spatial_aggregation(
@@ -18,13 +18,9 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
         - If temporal aggregation and optimization run successfully
     """
 
-    SHAPEFILE_PATH = os.path.join(
-        os.path.dirname(__file__),
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
-    )
+    SHAPEFILE_PATH = Path(__file__).parent / "../../../examples/03_Multi-regional_Energy_System_Workflow/InputData/SpatialData/ShapeFiles/clusteredRegions.shp"
 
-    PATH_TO_SAVE = os.path.join(os.path.dirname(__file__))
+    PATH_TO_SAVE = Path(__file__).parent
     netcdf_file_name = "my_xr.nc"
     shp_file_name = "my_shp"
 
@@ -39,7 +35,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
     )
 
     if use_saved_file:
-        saved_file = os.path.join(PATH_TO_SAVE, netcdf_file_name)
+        saved_file = str(PATH_TO_SAVE / netcdf_file_name)
         xr_dss = xrIO.readNetCDFToDatasets(filePath=saved_file)
         aggregated_esM = xrIO.convertDatasetsToEnergySystemModel(xr_dss)
 

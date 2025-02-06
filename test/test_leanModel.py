@@ -10,7 +10,7 @@ Tests:
 """
 
 import sys
-import os
+from pathlib import Path
 import pytest
 import pandas as pd
 
@@ -18,12 +18,7 @@ import pandas as pd
 import fine as fn
 
 sys.path.append(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "examples",
-        "Multi-regional_Energy_System_Workflow",
-    )
+    str(Path(__file__).parent / ".." / "examples" / "Multi-regional_Energy_System_Workflow")
 )
 from getData import getData
 
