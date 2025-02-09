@@ -1352,6 +1352,7 @@ class EnergySystemModel:
                             :, balanceLimitID
                         ]
                         locs = _elig[_elig == 1].index.tolist()
+                        # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format 
                         if locs:
                             yearlyComponentLimitDict.setdefault(
                                 (
@@ -1360,31 +1361,62 @@ class EnergySystemModel:
                                     data["bound"],
                                     data["type"],
                                     float(data["value"]),
+                                    data["commodity"],
                                 ),
                                 [componentsOfComponentLimit[ip][balanceLimitID], locs],
                             )
             setattr(pyM, "yearlyComponentLimitDict", yearlyComponentLimitDict)
+            from pprint import pprint
+            pprint(yearlyComponentLimitDict)
 
-            def yearlyComponentLimitConstraint(pyM, ID, ip, bound, type, value):
+            def yearlyComponentLimitConstraint(pyM, ID, ip, bound, type, value, commodity):
                 # yearly restriction
-                locs = yearlyComponentLimitDict[(ID, ip, bound, type, value)][1]
-                componentNames = yearlyComponentLimitDict[(ID, ip, bound, type, value)][
+                locs = yearlyComponentLimitDict[(ID, ip, bound, type, value, commodity)][1]
+                componentNames = yearlyComponentLimitDict[(ID, ip, bound, type, value, commodity)][
                     0
                 ][ID]
-                balanceList = [
-                    mdl.getComponentLimitContribution(
-                        esM=self,
-                        pyM=pyM,
-                        timeSeriesAggregation=timeSeriesAggregation,
-                        ip=ip,
-                        loc=loc,
-                        componentNames=componentNames,
-                        type=type,
-                    )
-                    for loc in locs
-                    for mdl_type, mdl in self.componentModelingDict.items()
-                    if (mdl_type in ["SourceSinkModel","StorageModel","TransmissionModel","ConversionModel"])
-                ]
+                balanceList = []
+                for mdl_type, mdl in self.componentModelingDict.items():
+                    if mdl_type == "TransmissionModel":
+                        #TODO: fix when capacity is used. currently not working!
+                        _balanceList = [
+                            mdl.getComponentLimitContribution(
+                                esM=self,
+                                pyM=pyM,
+                                timeSeriesAggregation=timeSeriesAggregation,
+                                ip=ip,
+                                loc=locs,
+                                componentNames=componentNames,
+                                type=type,
+                            )                        ]
+                    elif mdl_type == "ConversionModel":
+                        _balanceList = [
+                            mdl.getComponentLimitContribution(
+                                esM=self,
+                                pyM=pyM,
+                                timeSeriesAggregation=timeSeriesAggregation,
+                                ip=ip,
+                                loc=loc,
+                                componentNames=componentNames,
+                                type=type,
+                                commodity=commodity,
+                            )
+                            for loc in locs
+                        ]
+                    else:
+                        _balanceList = [
+                            mdl.getComponentLimitContribution(
+                                esM=self,
+                                pyM=pyM,
+                                timeSeriesAggregation=timeSeriesAggregation,
+                                ip=ip,
+                                loc=loc,
+                                componentNames=componentNames,
+                                type=type,
+                            )
+                            for loc in locs
+                        ]
+                    balanceList.extend(_balanceList)
                 balanceSum = sum(const for const in balanceList if const is not None)
                 if isinstance(balanceSum, int) or isinstance(balanceSum, float):
                     return pyomo.Constraint.Skip

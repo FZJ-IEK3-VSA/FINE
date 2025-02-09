@@ -1638,10 +1638,10 @@ def checkAndSetComponentLimit(
                     "The componentLimit input argument has to be a pandas.DataFrame."
                 )
 
-            required_columns = ["value", "bound", "type"]
+            required_columns = ["value", "bound", "type", "commodity"]
             if not all([col in _componentLimit.columns for col in required_columns]):
                 raise ValueError(
-                    "componentLimit has to contain the columns 'value', 'bound' and 'type'"
+                    "componentLimit has to contain the columns 'value', 'bound', 'type' and 'commoidty'"
                 )
 
         if _componentLimitEligibility is not None:

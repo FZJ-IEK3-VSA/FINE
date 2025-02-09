@@ -928,7 +928,7 @@ class TransmissionModel(ComponentModel):
         :param ID: ID of the regarded componentLimitConstraint
         :param ID: string
 
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :param loc: Name of the regarded location(s) (locations are defined in the EnergySystemModel instance)
         :type loc: string
 
         :param componentNames: Names of components which contribute to the component limit
@@ -955,29 +955,33 @@ class TransmissionModel(ComponentModel):
         else:
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
-            
         if type == "operation":
-            aut = sum(
-                opVar[loc_ + "_" + loc, compName, ip, p, t]
-                * (
-                    1
-                    - compDict[compName].losses[loc_ + "_" + loc]
-                    * compDict[compName].distances[loc_ + "_" + loc]
+            loc_list = loc
+            aut_list = []
+            for loc in loc_list:
+                _aut = sum(
+                    opVar[loc_ + "_" + loc, compName, ip, p, t]
+                    * (
+                        1
+                        - compDict[compName].losses[loc_ + "_" + loc]
+                        * compDict[compName].distances[loc_ + "_" + loc]
+                    )
+                    * esM.periodOccurrences[ip][p]
+                    for loc_ in opVarDictIn[ip][loc].keys() if loc_ not in loc_list
+                    for compName in opVarDictIn[ip][loc][loc_]
+                    if compName in componentNames
+                    for p in periods
+                    for t in timeSteps
+                ) - sum(
+                    opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                    for loc_ in opVarDictOut[ip][loc].keys() if loc_ not in loc_list
+                    for compName in opVarDictOut[ip][loc][loc_]
+                    if compName in componentNames
+                    for p in periods
+                    for t in timeSteps
                 )
-                * esM.periodOccurrences[ip][p]
-                for loc_ in opVarDictIn[ip][loc].keys()
-                for compName in opVarDictIn[ip][loc][loc_]
-                if compName in componentNames
-                for p in periods
-                for t in timeSteps
-            ) - sum(
-                opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                for loc_ in opVarDictOut[ip][loc].keys()
-                for compName in opVarDictOut[ip][loc][loc_]
-                if compName in componentNames
-                for p in periods
-                for t in timeSteps
-            )
+                aut_list.append(_aut)
+            aut = sum(aut_list)
         elif type == "capacity":
             aut = sum(
                 capVar[loc_ + "_" + loc, compName, ip]

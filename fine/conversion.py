@@ -1098,7 +1098,7 @@ class ConversionModel(ComponentModel):
 
 
     def getComponentLimitContribution(
-        self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type
+        self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type, commodity
     ):
         """
         Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
@@ -1137,6 +1137,14 @@ class ConversionModel(ComponentModel):
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
+        
+        def getFactor(commodCommodityConversionFactors, loc, p, t):
+            if isinstance(commodCommodityConversionFactors, (int, float)):
+                return commodCommodityConversionFactors
+            else:
+                return commodCommodityConversionFactors[loc][p, t]
+
+        
         if type == "operation":
             opVar = getattr(pyM, "op_" + abbrvName)
 
@@ -1152,6 +1160,15 @@ class ConversionModel(ComponentModel):
 
             balance = sum(
                 opVar[loc, compName, ip, p, t]
+                * (
+                    getFactor(  
+                        compDict[compName].processedCommodityConversionFactors[ip][commodity],
+                            loc,
+                            p,
+                            t,
+                        )
+                    if commodity not in ["None", None] else 1
+                )
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
                 if compName in componentNames
