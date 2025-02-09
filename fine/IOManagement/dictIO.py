@@ -110,6 +110,9 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
                 for prop in prop_list_full_set:
                     if (prop != "self") and (prop != "esM"):
                         if ("aggregated" in prop) and ("Rate" in prop):
+                            # check if empty dictionary
+                            if len(getattr(component, prop)) == 0:
+                                continue
                             timeseries = getattr(component, prop)[0]
                             if timeseries is not None:
                                 compDict[classname][componentname][prop] = reconstruct_full_timeseries(esM, timeseries, ip=0) #TODO: what happens for multiple ips?
