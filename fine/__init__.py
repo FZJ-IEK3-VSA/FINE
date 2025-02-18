@@ -1,5 +1,5 @@
 """
-Last edited: February 06, 2020
+Last edited: February 18, 2025
 
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
@@ -16,3 +16,4 @@ from .subclasses import *
 from .IOManagement import *
 from .expansionModules import *
 from .aggregations import *
+from .modellingToGenerateAlternatives import optimize
