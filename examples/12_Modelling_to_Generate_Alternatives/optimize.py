@@ -330,7 +330,6 @@ def mgaOptimize(
 
     """
     
-    esM.objectiveValue = esM.pyM.Obj()
     esM.solutions = {}
     esM.iterations = iterations
     esM.slack = slack
@@ -344,6 +343,7 @@ def mgaOptimize(
         )
     
     else:
+        esM.objectiveValue = esM.pyM.Obj()
         components = []
         sinkComponents = []
         transmissionComponents = []
