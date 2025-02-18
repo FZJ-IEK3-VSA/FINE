@@ -334,8 +334,6 @@ def mgaOptimize(
     esM.iterations = iterations
     esM.slack = slack
 
-    optimalValues(esM, 0)
-
     if esM.solutions[0] is None:
         raise TypeError(
         "The optimization problem for optimal solution doesn't have an optimal solution"
@@ -347,6 +345,8 @@ def mgaOptimize(
         components = []
         sinkComponents = []
         transmissionComponents = []
+
+        optimalValues(esM, 0)
 
         for item in esM.componentModelingDict.values():
             for key,_item in item.componentsDict.items():
