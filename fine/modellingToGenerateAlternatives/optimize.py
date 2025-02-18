@@ -3,11 +3,9 @@ import time
 import importlib.util
 import warnings
 import os
-import sys
 import pandas as pd
 import pyomo.environ as pyomo
 import pyomo.opt as opt
-from tsam.timeseriesaggregation import TimeSeriesAggregation
 import fine as fn
 
 def declareOptimalCostConstraint(esM, pyM):
@@ -414,8 +412,7 @@ def mgaOptimize(
                         timeSeriesAggregation=timeSeriesAggregation,
                         relevanceThreshold=relevanceThreshold,
                         )
-                else:
-                    if esM.pyM is None:
+                elif esM.pyM is None:
                         raise TypeError(
                             "The optimization problem is not declared yet. Set the argument declaresOptimization"
                             " problem to True or call the declareOptimizationProblem function first."
