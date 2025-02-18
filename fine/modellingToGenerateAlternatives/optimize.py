@@ -334,7 +334,7 @@ def mgaOptimize(
     esM.iterations = iterations
     esM.slack = slack
 
-    if esM.solutions[0] is None:
+    if esM.pyM.Obj() is None:
         raise TypeError(
         "The optimization problem for optimal solution doesn't have an optimal solution"
         "Cannot perofrm a MGA optimization if the optimization problem doesn't have an optimal solution."
