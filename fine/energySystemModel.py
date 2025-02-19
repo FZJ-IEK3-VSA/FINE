@@ -2401,14 +2401,15 @@ class EnergySystemModel:
         self.iterations = iterations
         self.slack = slack
 
-        if self.objectiveValue is None:
+        Mgaoptimize.optimalValues(self,0)
+
+        if self.solutions[0] is None:
             raise TypeError(
             "The optimization problem for optimal solution doesn't have an optimal solution"
             "Cannot perofrm a MGA optimization if the optimization problem doesn't have an optimal solution."
             )
         
-        else:
-            
+        else:            
             Mgaoptimize.calculateBeta(
                 self,
                 random_seed,             
@@ -2416,8 +2417,6 @@ class EnergySystemModel:
 
             if not timeSeriesAggregation:
                 self.segmentation = False
-            
-            Mgaoptimize.optimalValues(self,0)
 
             _t = time.time()
 
