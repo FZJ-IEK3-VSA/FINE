@@ -2204,6 +2204,11 @@ class EnergySystemModel:
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
+
+            # optimized solutions are saved in self.solutions
+            self.solutions = {}
+
+            # optimalValues function adds the solved results to self.solutions. This variable is required if modelling to generate alterntaive solutions are required.
             Mgaoptimize.optimalValues(self,0)
 
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
@@ -2398,7 +2403,6 @@ class EnergySystemModel:
 
         """
 
-        self.solutions = {}
         self.iterations = iterations
         self.slack = slack
 
