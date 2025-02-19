@@ -2204,6 +2204,7 @@ class EnergySystemModel:
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
+            Mgaoptimize.optimalValues(self,0)
 
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
@@ -2400,8 +2401,6 @@ class EnergySystemModel:
         self.solutions = {}
         self.iterations = iterations
         self.slack = slack
-
-        Mgaoptimize.optimalValues(self,0)
 
         if self.solutions[0] is None:
             raise TypeError(
