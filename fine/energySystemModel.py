@@ -2406,214 +2406,214 @@ class EnergySystemModel:
         self.iterations = iterations
         self.slack = slack
 
-        if self.objectiveValue is None:
-            raise TypeError(
-            "The optimization problem for optimal solution doesn't have an optimal solution"
-            "Cannot perofrm a MGA optimization if the optimization problem doesn't have an optimal solution."
-            )
+        # if self.objectiveValue is None:
+        #     raise TypeError(
+        #     "The optimization problem for optimal solution doesn't have an optimal solution"
+        #     "Cannot perofrm a MGA optimization if the optimization problem doesn't have an optimal solution."
+        #     )
         
-        else:            
-            Mgaoptimize.calculateBeta(
-                self,
-                random_seed,             
-            )
+        # else:            
+        Mgaoptimize.calculateBeta(
+            self,
+            random_seed,             
+        )
 
-            if not timeSeriesAggregation:
-                self.segmentation = False
+        if not timeSeriesAggregation:
+            self.segmentation = False
 
-            _t = time.time()
+        _t = time.time()
 
-            """ 
-            MGA optimization is an iterative process. It starts with the first iteration and ends with the last iteration (self.iterations). Each iteration has a minimization and a maximization of the optimization problem.
-            therefore, each iteration provides 2 solutions. After the last iteration, there will be a maximum of 2*(self.iterations) times final solutions. The optimization problem is defined in the declareMGAOptimizationProblem function."
-            """
-            iteration =1
-            while iteration <= self.iterations:
-                for sense in ["minimize","maximize"]:    
+        """ 
+        MGA optimization is an iterative process. It starts with the first iteration and ends with the last iteration (self.iterations). Each iteration has a minimization and a maximization of the optimization problem.
+        therefore, each iteration provides 2 solutions. After the last iteration, there will be a maximum of 2*(self.iterations) times final solutions. The optimization problem is defined in the declareMGAOptimizationProblem function."
+        """
+        iteration =1
+        while iteration <= self.iterations:
+            for sense in ["minimize","maximize"]:    
 
-                    if declaresOptimizationProblem:
-                        Mgaoptimize.declareMGAOptimizationProblem(
-                            self,
-                            iteration,
-                            sense,
-                            timeSeriesAggregation=timeSeriesAggregation,
-                            relevanceThreshold=relevanceThreshold,
-                            )
-                    elif self.pyM is None:
-                            raise TypeError(
-                                "The optimization problem is not declared yet. Set the argument declaresOptimization"
-                                " problem to True or call the declareOptimizationProblem function first."
-                            )
-
-                    # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
-                    timeStart = time.time()
-
-                    # Check correctness of inputs
-                    utils.checkOptimizeInput(
-                        timeSeriesAggregation,
-                        self.isTimeSeriesDataClustered,
-                        logFileName,
-                        threads,
-                        solver,
-                        timeLimit,
-                        optimizationSpecs,
-                        warmstart,
-                    )
-
-                    # Store keyword arguments in the EnergySystemModel instance
-                    self.solverSpecs["logFileName"], self.solverSpecs["threads"] = (
-                        logFileName,
-                        threads,
-                    )
-                    self.solverSpecs["solver"], self.solverSpecs["timeLimit"] = solver, timeLimit
-                    self.solverSpecs["optimizationSpecs"], self.solverSpecs["hasTSA"] = (
-                        optimizationSpecs,
-                        timeSeriesAggregation,
-                    )
-
-                    # Check which solvers are available and choose default solver if no solver is specified explicitely
-                    # Order of possible solvers in solverList defines the priority of chosen default solver.
-                    solverList = ["gurobi", "glpk", "cbc"]
-
-                    if solver != "None":
-                        try:
-                            opt.SolverFactory(solver).available()
-                        except Exception:
-                            solver = "None"
-
-                    if solver == "None":
-                        for nSolver in solverList:
-                            if solver == "None":
-                                try:
-                                    if opt.SolverFactory(nSolver).available():
-                                        solver = nSolver
-                                        utils.output(
-                                            "Either solver not selected or specified solver not available."
-                                            + str(nSolver)
-                                            + " is set as solver.",
-                                            self.verbose,
-                                            0,
-                                        )
-                                except Exception:
-                                    pass
-
-                    if solver == "None":
+                if declaresOptimizationProblem:
+                    Mgaoptimize.declareMGAOptimizationProblem(
+                        self,
+                        iteration,
+                        sense,
+                        timeSeriesAggregation=timeSeriesAggregation,
+                        relevanceThreshold=relevanceThreshold,
+                        )
+                elif self.pyM is None:
                         raise TypeError(
-                            "At least one solver must be installed."
-                            " Have a look at the FINE documentation to see how to install possible solvers."
-                            " https://vsa-fine.readthedocs.io/en/latest/"
+                            "The optimization problem is not declared yet. Set the argument declaresOptimization"
+                            " problem to True or call the declareOptimizationProblem function first."
                         )
-                    
-                    ################################################################################################################
-                    #                                  Solve the specified optimization problem                                    #
-                    ################################################################################################################
 
-                    # Set which solver should solve the specified optimization problem
-                    if solver == "gurobi" and importlib.util.find_spec('gurobipy'):
-                        # Use the direct gurobi solver that uses the Python API.
-                        optimizer = opt.SolverFactory(solver, solver_io="python")
-                    else:
-                        optimizer = opt.SolverFactory(solver)
+                # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
+                timeStart = time.time()
 
-                    # Set, if specified, the time limit
-                    if self.solverSpecs["timeLimit"] is not None and solver == "gurobi":
-                        optimizer.options["timelimit"] = timeLimit
+                # Check correctness of inputs
+                utils.checkOptimizeInput(
+                    timeSeriesAggregation,
+                    self.isTimeSeriesDataClustered,
+                    logFileName,
+                    threads,
+                    solver,
+                    timeLimit,
+                    optimizationSpecs,
+                    warmstart,
+                )
 
-                    # Set the specified solver options
-                    if "LogToConsole=" not in optimizationSpecs and solver == "gurobi":
-                        if self.verbose == 2:
-                            optimizationSpecs += " LogToConsole=0"
+                # Store keyword arguments in the EnergySystemModel instance
+                self.solverSpecs["logFileName"], self.solverSpecs["threads"] = (
+                    logFileName,
+                    threads,
+                )
+                self.solverSpecs["solver"], self.solverSpecs["timeLimit"] = solver, timeLimit
+                self.solverSpecs["optimizationSpecs"], self.solverSpecs["hasTSA"] = (
+                    optimizationSpecs,
+                    timeSeriesAggregation,
+                )
 
-                    # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
-                    if solver == "gurobi":
-                        optimizer.set_options(
-                            "Threads="
-                            + str(threads)
-                            + " logfile="
-                            + logFileName
-                            + " "
-                            + optimizationSpecs
-                        )
-                        solver_info = optimizer.solve(
-                            self.pyM,
-                            warmstart=warmstart,
-                            tee=True,
-                        )
-                    elif solver == "glpk":
-                        optimizer.set_options(optimizationSpecs)
-                        solver_info = optimizer.solve(self.pyM, tee=True)
-                    else:
-                        solver_info = optimizer.solve(self.pyM, tee=True)
-                    self.solverSpecs["solvetime"] = time.time() - timeStart
-                    utils.output(solver_info.solver(), self.verbose, 0), utils.output(
-                        solver_info.problem(), self.verbose, 0
+                # Check which solvers are available and choose default solver if no solver is specified explicitely
+                # Order of possible solvers in solverList defines the priority of chosen default solver.
+                solverList = ["gurobi", "glpk", "cbc"]
+
+                if solver != "None":
+                    try:
+                        opt.SolverFactory(solver).available()
+                    except Exception:
+                        solver = "None"
+
+                if solver == "None":
+                    for nSolver in solverList:
+                        if solver == "None":
+                            try:
+                                if opt.SolverFactory(nSolver).available():
+                                    solver = nSolver
+                                    utils.output(
+                                        "Either solver not selected or specified solver not available."
+                                        + str(nSolver)
+                                        + " is set as solver.",
+                                        self.verbose,
+                                        0,
+                                    )
+                            except Exception:
+                                pass
+
+                if solver == "None":
+                    raise TypeError(
+                        "At least one solver must be installed."
+                        " Have a look at the FINE documentation to see how to install possible solvers."
+                        " https://vsa-fine.readthedocs.io/en/latest/"
                     )
+                
+                ################################################################################################################
+                #                                  Solve the specified optimization problem                                    #
+                ################################################################################################################
+
+                # Set which solver should solve the specified optimization problem
+                if solver == "gurobi" and importlib.util.find_spec('gurobipy'):
+                    # Use the direct gurobi solver that uses the Python API.
+                    optimizer = opt.SolverFactory(solver, solver_io="python")
+                else:
+                    optimizer = opt.SolverFactory(solver)
+
+                # Set, if specified, the time limit
+                if self.solverSpecs["timeLimit"] is not None and solver == "gurobi":
+                    optimizer.options["timelimit"] = timeLimit
+
+                # Set the specified solver options
+                if "LogToConsole=" not in optimizationSpecs and solver == "gurobi":
+                    if self.verbose == 2:
+                        optimizationSpecs += " LogToConsole=0"
+
+                # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
+                if solver == "gurobi":
+                    optimizer.set_options(
+                        "Threads="
+                        + str(threads)
+                        + " logfile="
+                        + logFileName
+                        + " "
+                        + optimizationSpecs
+                    )
+                    solver_info = optimizer.solve(
+                        self.pyM,
+                        warmstart=warmstart,
+                        tee=True,
+                    )
+                elif solver == "glpk":
+                    optimizer.set_options(optimizationSpecs)
+                    solver_info = optimizer.solve(self.pyM, tee=True)
+                else:
+                    solver_info = optimizer.solve(self.pyM, tee=True)
+                self.solverSpecs["solvetime"] = time.time() - timeStart
+                utils.output(solver_info.solver(), self.verbose, 0), utils.output(
+                    solver_info.problem(), self.verbose, 0
+                )
+                utils.output(
+                    "Solve time: " + str(self.solverSpecs["solvetime"]) + " sec.",
+                    self.verbose,
+                    0,
+                )
+
+                # Post-process the optimization output by differentiating between different solver statuses and termination
+                # conditions. First, check if the status and termination_condition of the optimization are acceptable.
+                # If not, no output is generated.
+                # TODO check if this is still compatible with the latest pyomo version
+                status, termCondition = (
+                    solver_info.solver.status,
+                    solver_info.solver.termination_condition,
+                )
+                self.solverSpecs["status"] = str(status)
+                self.solverSpecs["terminationCondition"] = str(termCondition)
+                if (
+                    status == opt.SolverStatus.error
+                    or status == opt.SolverStatus.aborted
+                    or status == opt.SolverStatus.unknown
+                ):
                     utils.output(
-                        "Solve time: " + str(self.solverSpecs["solvetime"]) + " sec.",
+                        "Solver status:  "
+                        + str(status)
+                        + ", termination condition:  "
+                        + str(termCondition)
+                        + ". No output is generated.",
                         self.verbose,
                         0,
                     )
-
-                    # Post-process the optimization output by differentiating between different solver statuses and termination
-                    # conditions. First, check if the status and termination_condition of the optimization are acceptable.
-                    # If not, no output is generated.
-                    # TODO check if this is still compatible with the latest pyomo version
-                    status, termCondition = (
-                        solver_info.solver.status,
-                        solver_info.solver.termination_condition,
+                elif (
+                    solver_info.solver.termination_condition
+                    == opt.TerminationCondition.infeasibleOrUnbounded
+                    or solver_info.solver.termination_condition
+                    == opt.TerminationCondition.infeasible
+                    or solver_info.solver.termination_condition
+                    == opt.TerminationCondition.unbounded
+                ):
+                    utils.output(
+                        "Optimization problem is "
+                        + str(solver_info.solver.termination_condition)
+                        + ". No output is generated.",
+                        self.verbose,
+                        0,
                     )
-                    self.solverSpecs["status"] = str(status)
-                    self.solverSpecs["terminationCondition"] = str(termCondition)
+                else:
+                    # If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
+                    # status), show a warning message.
                     if (
-                        status == opt.SolverStatus.error
-                        or status == opt.SolverStatus.aborted
-                        or status == opt.SolverStatus.unknown
+                        not solver_info.solver.termination_condition
+                        == opt.TerminationCondition.optimal
+                        and self.verbose < 2
                     ):
-                        utils.output(
-                            "Solver status:  "
-                            + str(status)
-                            + ", termination condition:  "
-                            + str(termCondition)
-                            + ". No output is generated.",
-                            self.verbose,
-                            0,
-                        )
-                    elif (
-                        solver_info.solver.termination_condition
-                        == opt.TerminationCondition.infeasibleOrUnbounded
-                        or solver_info.solver.termination_condition
-                        == opt.TerminationCondition.infeasible
-                        or solver_info.solver.termination_condition
-                        == opt.TerminationCondition.unbounded
-                    ):
-                        utils.output(
-                            "Optimization problem is "
-                            + str(solver_info.solver.termination_condition)
-                            + ". No output is generated.",
-                            self.verbose,
-                            0,
-                        )
+                        warnings.warn("Output is generated for a non-optimal solution.")
+
+                    """
+                    MGA solutions consist of the operation rate variables and capacity variables of the components. MGA solutions are stored in self.solutions.
+                    """
+
+                    if sense == "minimize":
+                        Mgaoptimize.optimalValues(self,iteration)
+
                     else:
-                        # If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
-                        # status), show a warning message.
-                        if (
-                            not solver_info.solver.termination_condition
-                            == opt.TerminationCondition.optimal
-                            and self.verbose < 2
-                        ):
-                            warnings.warn("Output is generated for a non-optimal solution.")
-
-                        """
-                        MGA solutions consist of the operation rate variables and capacity variables of the components. MGA solutions are stored in self.solutions.
-                        """
-
-                        if sense == "minimize":
-                            Mgaoptimize.optimalValues(self,iteration)
-
-                        else:
-                            Mgaoptimize.optimalValues(self, self.iterations + iteration)
-                    #print(self.pyM.optimalCostConstraint.display())
-                iteration +=1
+                        Mgaoptimize.optimalValues(self, self.iterations + iteration)
+                #print(self.pyM.optimalCostConstraint.display())
+            iteration +=1
 
             utils.output("\n\t\tMGA optimization completed after %.4f" % (time.time() - _t) + " sec\n", self.verbose, 0)
 
