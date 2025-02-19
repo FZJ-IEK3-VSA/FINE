@@ -2406,7 +2406,7 @@ class EnergySystemModel:
         self.iterations = iterations
         self.slack = slack
 
-        if self.solutions[0] is None:
+        if self.objectiveValue is None:
             raise TypeError(
             "The optimization problem for optimal solution doesn't have an optimal solution"
             "Cannot perofrm a MGA optimization if the optimization problem doesn't have an optimal solution."
