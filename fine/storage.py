@@ -61,6 +61,8 @@ class Storage(Component):
         socOffsetDown=-1,
         socOffsetUp=-1,
         stockCommissioning=None,
+        materialConsumption=None,
+        materialRecovery=None,
     ):
         """
         Constructor for creating an Storage class instance.
@@ -1806,6 +1808,27 @@ class StorageModel(ComponentModel):
             + offsetUpOp
             + offsetDownOp
         )
+    
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
+        """Get contribution to a commodity balance.
+
+        .. math::
+
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = op^{comp,discharge}_{loc,ip,p,t} - op^{comp,charge}_{loc,ip,p,t}
+
+        """
+        abbrvName = self.abbrvName
+        chargeOp, dischargeOp = (
+            getattr(pyM, "chargeOp_" + abbrvName),
+            getattr(pyM, "dischargeOp_" + abbrvName),
+        )
+        opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
+        return sum(
+            dischargeOp[loc, compName, ip, p, t] - chargeOp[loc, compName, ip, p, t]
+            for compName in opVarDict[ip][loc]
+            if commod == self.componentsDict[compName].commodity
+        )
+
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #

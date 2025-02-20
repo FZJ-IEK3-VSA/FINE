@@ -50,6 +50,8 @@ class Component(metaclass=ABCMeta):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         etlParameter=None,
+        materialConsumption=None,
+        materialRecovery=None,
     ):
         """
         Constructor for creating an instance of the Component class.
@@ -702,6 +704,13 @@ class Component(metaclass=ABCMeta):
             #         self.locationalEligibility,
             #         self.processedStockYears + esM.investmentPeriods,
             #     )
+        
+        # add materialConsumption and materialRecovery if declared 
+        self.materialConsumption = materialConsumption
+        self.materialRecovery = materialRecovery 
+        ########################
+        # add utility function #
+        ########################
 
     def addToEnergySystemModel(self, esM):
         """
@@ -1164,6 +1173,32 @@ class ComponentModel(metaclass=ABCMeta):
                     for ip in esM.investmentPeriods
                 },
             )
+
+    # declare set for materialConsumption and materialRecovery
+    def declareMaterialComponentVars(self, pyM):
+        """
+        Declare Pyomo variables for material consumption and recovery.
+
+        These variables track the amount of material used when a component is commissioned 
+        and the amount of material recovered when a component is decommissioned.
+        """
+
+        # Step 1: Declare a set of (location, component, material, investment period)
+        def initMaterialSet(pyM):
+            return (
+                (loc, compName, mat, ip)
+                for compName, comp in self.componentsDict.items()
+                for loc in comp.processedLocationalEligibility.index
+                for mat in comp.materialConsumption.keys() | comp.materialRecovery.keys()
+                for ip in self.esM.investmentPeriods
+            )
+
+        pyM.materialSet = pyomo.Set(dimen=4, initialize=initMaterialSet)
+
+        # Step 2: Define Pyomo variables for material consumption and recovery
+        pyM.materialConsumptionVar = pyomo.Var(pyM.materialSet, domain=pyomo.NonNegativeReals)
+        pyM.materialRecoveryVar = pyomo.Var(pyM.materialSet, domain=pyomo.NonNegativeReals)
+
 
     ####################################################################################################################
     #                                   Functions for declaring operation mode sets                                    #
@@ -2922,6 +2957,15 @@ class ComponentModel(metaclass=ABCMeta):
 
     @abstractmethod
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
+        """
+        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        Get contribution to a commodity balance.
+        """
+        raise NotImplementedError
+    
+    # Balance Contributions have to be defined seperately for each component sub-class 
+    @abstractmethod
+    def getMaterialBalanceContribution(self, pyM, commod, loc, ip, p, t):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
         Get contribution to a commodity balance.

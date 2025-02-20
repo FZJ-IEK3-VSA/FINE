@@ -84,6 +84,9 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
+        materials=None, 
+        materialUnitsDict=None,
+        materialBalanceLimit=None,
     ):
         """
         Constructor for creating an EnergySystemModel class instance
@@ -362,6 +365,17 @@ class EnergySystemModel:
         )
         self.processedPathwayBalanceLimit = utils.checkAndSetPathwayBalanceLimit(
             self, pathwayBalanceLimit, locations
+        )
+        # Declare materials as commodities 
+        self.materials = materials 
+        self.materialUnitsDict = materialUnitsDict 
+        # Balance Limit (for now just a simple one further need to be included probably)
+        self.materialBalanceLimit = materialBalanceLimit 
+        #########################################
+        # util function has still to be defined #
+        #########################################
+        self.processedMaterialBalanceLimit = utils.checkAndSetMaterialBalanceLimits(
+            self, materialBalanceLimit, locations
         )
 
         ################################################################################################################
@@ -1637,6 +1651,54 @@ class EnergySystemModel:
             pyM.locationCommoditySet, pyM.timeSet, rule=commodityBalanceConstraint
         )
 
+    def declareMaterialBalanceConstraints(self, pyM):
+        """
+        Declare material balance constraints to ensure material consumption (through commissioning)
+        does not exceed available material supply.
+
+        .. math::
+            \\sum_{comp \\in \\mathcal{C}^{mat}_{loc}} \\left(
+            M^{comp,mat}_{loc,ip} \\cdot \\text{commis}^{comp}_{loc,ip} 
+            - R^{comp,mat}_{loc,ip} \\cdot \\text{decommis}^{comp}_{loc,ip} 
+            \\right) \\leq \\text{S}^{mat}_{loc,ip}
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+            constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
+        """
+        utils.output("Declaring material balance constraints...", self.verbose, 0)
+
+        # Step 1: Declare a set that tracks locations and materials where balance constraints apply
+        def initLocationMaterialSet(pyM):
+            return (
+                (loc, mat)
+                for loc in self.locations
+                for mat in self.materials
+                if any(
+                    mdl.hasMaterialVariablesForLocation(self, loc, mat)
+                    for mdl in self.componentModelingDict.values()
+                )
+            )
+
+        pyM.locationMaterialSet = pyomo.Set(
+            dimen=2, initialize=initLocationMaterialSet
+        )
+
+        # Step 2: Declare the material balance constraint function
+        def materialBalanceConstraint(pyM, loc, mat, ip):
+            return (
+                sum(
+                    mdl.getMaterialBalanceContribution(pyM, mat, loc, ip)
+                    for mdl in self.componentModelingDict.values()
+                )
+                <= self.processedMaterialBalanceLimit.get(ip, pd.DataFrame()).get(mat, {}).get(loc, 0)
+            )
+
+        # Step 3: Apply the constraint to Pyomo
+        pyM.materialBalanceConstraint = pyomo.Constraint(
+            pyM.locationMaterialSet, pyM.investSet, rule=materialBalanceConstraint
+        )
+        
     def declareObjective(self, pyM):
         """
         Declare the objective function by obtaining the contributions to the objective function from all modeling

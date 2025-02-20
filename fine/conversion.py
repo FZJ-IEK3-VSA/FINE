@@ -1391,6 +1391,22 @@ class ConversionModel(ComponentModel):
 
         return sumCommisYearIndependent + sumCommisYearDependent + sumCommisYearIndependentFlex + sumFlexEmission
 
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
+        """Get contribution to a commodity balance.
+
+        .. math::
+
+            \\text{C}^{comp,comm}_{loc,ip,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,ip,p,t}^{comp,op}
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar = getattr(pyM, "op_" + abbrvName)
+        return sum(
+            opVar[loc, compName, ip, p, t]
+            * compDict[compName].processedCommodityConversionFactors[ip][commod]
+            for compName in opVar
+            if commod in compDict[compName].processedCommodityConversionFactors[ip]
+        )
+
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
         Get contribution to the objective function.

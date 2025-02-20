@@ -57,6 +57,8 @@ class Source(Component):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         etlParameter=None,
+        materialConsumption=None,
+        materialRecovery=None,
     ):
         """
         Constructor for creating an Source class instance.
@@ -1031,6 +1033,38 @@ class SourceSinkModel(ComponentModel):
             for compName in opVarDict[ip][loc]
             if compDict[compName].commodity == commod
         )
+    
+    def getMaterialBalanceContribution(self, pyM, mat, loc, ip):
+        """
+        Returns the material balance contribution from sources and sinks.
+
+        - Sources contribute positively to material balance (supply).
+        - Sinks contribute negatively (consumption via commissioning).
+
+        :param pyM: Pyomo model instance.
+        :param mat: Material name.
+        :param loc: Location.
+        :param ip: Investment period.
+        :return: Pyomo expression tracking net material balance.
+        """
+        balance = 0
+
+        # Contribution from material sources
+        balance += sum(
+            pyM.materialSupplyVar[loc, compName, mat, ip]
+            for compName, comp in self.componentsDict.items()
+            if comp.isSource and mat == comp.commodity
+        )
+
+        # Contribution from material sinks (consumption)
+        balance -= sum(
+            pyM.materialConsumptionVar[loc, compName, mat, ip]
+            for compName, comp in self.componentsDict.items()
+            if comp.isSink and mat in comp.materialConsumption
+        )
+
+        return balance
+
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """

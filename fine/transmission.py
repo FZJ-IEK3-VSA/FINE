@@ -48,6 +48,8 @@ class Transmission(Component):
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
+        materialConsumption=None,
+        materialRecovery=None,
     ):
         """
         Constructor for creating an Transmission class instance.
@@ -796,6 +798,41 @@ class TransmissionModel(ComponentModel):
             for compName in opVarDictOut[ip][loc][loc_]
             if commod == compDict[compName].commodity
         )
+    
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
+        """ Get contribution to a commodity balance. 
+        
+            .. math::
+                :nowrap:
+
+                \\begin{eqnarray*}
+                \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
+                & - & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
+                \\end{eqnarray*}
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar, opVarDictIn = (
+            getattr(pyM, "op_" + abbrvName),
+            getattr(pyM, "operationVarDictIn_" + abbrvName),
+        )
+        opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
+        return sum(
+            opVar[loc_ + "_" + loc, compName, ip, p, t]
+            * (
+                1
+                - compDict[compName].losses[loc_ + "_" + loc]
+                * compDict[compName].distances[loc_ + "_" + loc]
+            )
+            for loc_ in opVarDictIn[ip][loc].keys()
+            for compName in opVarDictIn[ip][loc][loc_]
+            if commod == compDict[compName].commodity
+        ) - sum(
+            opVar[loc + "_" + loc_, compName, ip, p, t]
+            for loc_ in opVarDictOut[ip][loc].keys()
+            for compName in opVarDictOut[ip][loc][loc_]
+            if commod == compDict[compName].commodity
+        )
+
 
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, loc, timeSeriesAggregation, componentNames
