@@ -138,6 +138,21 @@ def test_esm_output_to_dataset_and_back(minimal_test_esM):
     compare_esm_inputs(esm_original, esm_from_datasets)
     compare_esm_outputs(esm_original, esm_from_datasets)
 
+def test_esm_output_to_netcdf_folder_and_back(minimal_test_esM):
+    import os
+    from pathlib import Path
+    esm_original = deepcopy(minimal_test_esM)
+    esm_original.optimize()
+    esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
+    # current folder path
+    _base_path = Path(__file__).parent
+    base_path = os.path.join(_base_path, "test_esM")
+    xrIO.writeDatasetsToNetCDFfolder(esm_datasets, base_path=base_path, parallel=False)
+    esm_from_datasets = xrIO.readNetCDFfolderToDatasets(base_path=base_path)
+    esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_from_datasets)
+
+    compare_esm_inputs(esm_original, esm_from_datasets)
+    compare_esm_outputs(esm_original, esm_from_datasets)
 
 def test_input_esm_to_netcdf_and_back(minimal_test_esM):
     """Write an esM to netCDF, then load the esM from this file. Compare if both

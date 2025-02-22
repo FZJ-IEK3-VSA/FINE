@@ -297,6 +297,217 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
 
     return xr_dss
 
+def processDataset(datasets):
+    """
+    Process a dataset to make it saveable.
+    """
+
+    for group in datasets.keys():
+        if group == "Parameters" or group == "PerformanceSummary":
+            xarray_dataset = datasets[group]
+            _xarray_dataset = (
+                xarray_dataset.copy()
+            )  # Copying to avoid errors due to change of size during iteration
+
+            for attr_name, attr_value in _xarray_dataset.attrs.items():
+                # if the attribute is set, convert into sorted list
+                if isinstance(attr_value, set):
+                    xarray_dataset.attrs[attr_name] = sorted(
+                        xarray_dataset.attrs[attr_name]
+                    )
+
+                # if the attribute is dict, convert into a "flattened" list
+                elif isinstance(attr_value, dict):
+                    xarray_dataset.attrs[attr_name] = list(
+                        f"{k} : {v}"
+                        for (k, v) in xarray_dataset.attrs[attr_name].items()
+                    )
+
+                # if the attribute is pandas series, add a new attribute corresponding
+                # to each row.
+                elif isinstance(attr_value, pd.Series):
+                    for idx, value in attr_value.items():
+                        xarray_dataset.attrs.update({f"{attr_name}.{idx}": value})
+
+                    # Delete the original attribute
+                    del xarray_dataset.attrs[attr_name]
+
+                # if the attribute is pandas df, add a new attribute corresponding
+                # to each row by converting the column into a numpy array.
+                elif isinstance(attr_value, pd.DataFrame):
+                    _df = attr_value
+                    _df = _df.reindex(sorted(_df.columns), axis=1)
+                    for idx, row in _df.iterrows():
+                        xarray_dataset.attrs.update(
+                            {f"{attr_name}.{idx}": row.to_list()}
+                        )
+
+                    # Delete the original attribute
+                    del xarray_dataset.attrs[attr_name]
+
+                # if the attribute is bool, add a corresponding string
+                elif isinstance(attr_value, bool):
+                    xarray_dataset.attrs[attr_name] = (
+                        "True" if attr_value is True else "False"
+                    )
+
+                # if the attribute is None, add a corresponding string
+                elif attr_value is None:
+                    xarray_dataset.attrs[attr_name] = "None"
+    
+    return datasets
+    
+
+def writeDatasetsToNetCDFfolder(
+    data_dict,
+    base_path="my_esm",
+    compression=True,
+    parallel=False, # currently not working
+    chunks=None,
+    mode="w",
+):
+    """
+    Save a nested dictionary of xarray datasets to disk with optimized performance.
+    
+    Parameters:
+    -----------
+    data_dict : dict
+        Nested dictionary containing xarray datasets
+    base_path : str
+        Base directory to save the files
+    compression : bool, optional
+        Whether to enable compression (default: True)
+    parallel : bool, optional
+        Whether to use parallel processing (default: True)
+    chunks : dict, optional
+        Chunk sizes for dask arrays (e.g., {'time': 100, 'lat': 50})
+    
+    Returns:
+    --------
+    dict
+        Dictionary with the same structure but containing paths to saved files
+    """
+    
+    import xarray as xr
+    import os
+    from pathlib import Path
+    from concurrent.futures import ProcessPoolExecutor
+    import dask
+
+    def save_dataset(args):
+        """Helper function for parallel saving"""
+        filepath, dataset, compression_settings = args
+        dataset.to_netcdf(filepath, encoding={
+            var: compression_settings for var in dataset.data_vars
+        }, mode=mode)
+        return filepath
+
+
+    import json
+    base_path = Path(base_path)
+    base_path.mkdir(parents=True, exist_ok=True)
+    
+    # Optimize compression settings for speed
+    compression_settings = {
+        'zlib': True,
+        'complevel': 5,  # Lower compression level for better speed
+        'shuffle': True
+    } if compression else {}
+    
+    save_tasks = []
+    paths_dict = {}
+    
+    def collect_save_tasks(item, current_path, current_dict):
+        if isinstance(item, dict):
+            current_dict_level = {}
+            for key, value in item.items():
+                new_path = current_path / str(key)
+                new_path.mkdir(exist_ok=True)
+                current_dict_level[key] = collect_save_tasks(value, new_path, {})
+            return current_dict_level
+        
+        elif isinstance(item, xr.Dataset):
+            filename = current_path / "data.nc"
+            
+            # Optimize dataset for saving
+            if chunks is not None:
+                item = item.chunk(chunks)
+            
+            save_tasks.append((str(filename), item, compression_settings))
+            return str(filename)
+        
+        else:
+            raise ValueError(f"Unsupported type: {type(item)}")
+    
+    # Process datasets
+    data_dict = processDataset(data_dict)
+    
+    paths_dict = collect_save_tasks(data_dict, base_path, paths_dict)
+    
+    # Save structure metadata
+    with open(base_path / "structure.json", 'w') as f:
+        json.dump(paths_dict, f, indent=2)
+    
+    # Save datasets in parallel if enabled
+    if parallel and save_tasks:
+        with ProcessPoolExecutor() as executor:
+            list(executor.map(save_dataset, save_tasks))
+    else:
+        for task in save_tasks:
+            save_dataset(task)
+    
+    return paths_dict
+        
+
+def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None):
+    """
+    Load nested xarray datasets with optimized performance.
+    
+    Parameters:
+    -----------
+    paths_dict : dict
+        Dictionary containing paths to saved datasets
+    parallel : bool, optional
+        Whether to use parallel processing (default: True)
+    chunks : dict, optional
+        Chunk sizes for lazy loading (e.g., {'time': 100, 'lat': 50})
+    
+    Returns:
+    --------
+    dict
+        Dictionary with the same structure containing loaded datasets
+    """
+    import json
+    import os
+    from pathlib import Path
+    import xarray as xr
+    import dask
+
+    # Load structure metadata
+    with open(os.path.join(base_path,"structure.json"), 'r') as f:
+        paths_dict = json.load(f)
+    
+    def load_single_dataset(path):
+        return xr.open_dataset(path, chunks=chunks)
+    
+    def process_item(item):
+        if isinstance(item, dict):
+            return {k: process_item(v) for k, v in item.items()}
+        elif isinstance(item, str):
+            if parallel:
+                # Use dask for parallel loading
+                return dask.delayed(load_single_dataset)(item)
+            return load_single_dataset(item)
+        else:
+            raise ValueError(f"Unsupported type: {type(item)}")
+    
+    result = process_item(paths_dict)
+    
+    # Compute all delayed objects if using parallel loading
+    if parallel:
+        result = dask.compute(result)[0]
+    
+    return result
 
 def writeDatasetsToNetCDF(
     datasets,
@@ -491,6 +702,10 @@ def convertDatasetsToEnergySystemModel(datasets):
             for variable, comp_var_xr in comp_xr.data_vars.items():
                 if not pd.isnull(comp_var_xr.values).all():  # Skip if all are NAs
                     component = f"{model}; {component_name}"
+                    
+                    blacklist = ["aggregated"]
+                    if any(blacklisted in variable for blacklisted in blacklist):
+                        continue
 
                     # STEP 4 (i). Set regional time series (region, time)
                     if variable[:3] == "ts_":
