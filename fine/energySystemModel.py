@@ -1377,7 +1377,7 @@ class EnergySystemModel:
                 ][ID]
                 balanceList = []
                 for mdl_type, mdl in self.componentModelingDict.items():
-                    if mdl_type == "TransmissionModel":
+                    if (mdl_type == "TransmissionModel") and (type == "operation"):
                         #TODO: fix when capacity is used. currently not working!
                         _balanceList = [
                             mdl.getComponentLimitContribution(
