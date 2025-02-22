@@ -459,14 +459,37 @@ def writeDatasetsToNetCDFfolder(
     return paths_dict
         
 
+def _load_single_dataset(path, chunks=None):
+    """Helper function to load a single dataset."""
+    import xarray as xr
+    return xr.load_dataset(path, chunks=chunks)
+
+def _collect_paths(item, path=()):
+    """Helper function to collect all paths from nested dictionary."""
+    if isinstance(item, dict):
+        return {k: _collect_paths(v, path + (k,)) for k, v in item.items()}
+    elif isinstance(item, str):
+        return item
+    else:
+        raise ValueError(f"Unsupported type: {type(item)}")
+
+def _rebuild_structure(item, loaded_datasets):
+    """Helper function to rebuild dictionary structure with loaded datasets."""
+    if isinstance(item, dict):
+        return {k: _rebuild_structure(v, loaded_datasets) for k, v in item.items()}
+    elif isinstance(item, str):
+        return loaded_datasets[item]
+    else:
+        raise ValueError(f"Unsupported type: {type(item)}")
+
 def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None):
     """
     Load nested xarray datasets with optimized performance.
     
     Parameters:
     -----------
-    paths_dict : dict
-        Dictionary containing paths to saved datasets
+    base_path : str
+        Base directory containing the dataset files
     parallel : bool, optional
         Whether to use parallel processing (default: True)
     chunks : dict, optional
@@ -479,33 +502,38 @@ def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None):
     """
     import json
     import os
-    from pathlib import Path
-    import xarray as xr
-    import dask
+    from concurrent.futures import ProcessPoolExecutor
+    from functools import partial
 
     # Load structure metadata
-    with open(os.path.join(base_path,"structure.json"), 'r') as f:
+    with open(os.path.join(base_path, "structure.json"), 'r') as f:
         paths_dict = json.load(f)
     
-    def load_single_dataset(path):
-        return xr.open_dataset(path, chunks=chunks)
+    # Collect all paths that need to be loaded
+    paths_to_load = []
+    def collect_all_paths(d):
+        if isinstance(d, dict):
+            for v in d.values():
+                collect_all_paths(v)
+        elif isinstance(d, str):
+            paths_to_load.append(d)
     
-    def process_item(item):
-        if isinstance(item, dict):
-            return {k: process_item(v) for k, v in item.items()}
-        elif isinstance(item, str):
-            if parallel:
-                # Use dask for parallel loading
-                return dask.delayed(load_single_dataset)(item)
-            return load_single_dataset(item)
-        else:
-            raise ValueError(f"Unsupported type: {type(item)}")
+    collect_all_paths(paths_dict)
     
-    result = process_item(paths_dict)
+    # Load datasets (in parallel if requested)
+    loaded_datasets = {}
+    load_fn = partial(_load_single_dataset, chunks=chunks)
     
-    # Compute all delayed objects if using parallel loading
-    if parallel:
-        result = dask.compute(result)[0]
+    if parallel and paths_to_load:
+        with ProcessPoolExecutor() as executor:
+            results = executor.map(load_fn, paths_to_load)
+            loaded_datasets = dict(zip(paths_to_load, results))
+    else:
+        for path in paths_to_load:
+            loaded_datasets[path] = load_fn(path)
+    
+    # Rebuild the original structure
+    result = _rebuild_structure(paths_dict, loaded_datasets)
     
     return result
 
