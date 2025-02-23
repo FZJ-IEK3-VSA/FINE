@@ -357,12 +357,11 @@ def processDataset(datasets):
     
     return datasets
     
-
 def writeDatasetsToNetCDFfolder(
     data_dict,
     base_path="my_esm",
     compression=True,
-    parallel=False, # currently not working
+    parallel=False,
     chunks=None,
     mode="w",
 ):
@@ -378,9 +377,11 @@ def writeDatasetsToNetCDFfolder(
     compression : bool, optional
         Whether to enable compression (default: True)
     parallel : bool, optional
-        Whether to use parallel processing (default: True)
+        Whether to use parallel processing (default: False)
     chunks : dict, optional
         Chunk sizes for dask arrays (e.g., {'time': 100, 'lat': 50})
+    mode : str, optional
+        Write mode ('w' or 'a') (default: 'w')
     
     Returns:
     --------
@@ -393,6 +394,7 @@ def writeDatasetsToNetCDFfolder(
     from pathlib import Path
     from concurrent.futures import ProcessPoolExecutor
     import dask
+    import json
 
     def save_dataset(args):
         """Helper function for parallel saving"""
@@ -402,15 +404,12 @@ def writeDatasetsToNetCDFfolder(
         }, mode=mode)
         return filepath
 
-
-    import json
     base_path = Path(base_path)
     base_path.mkdir(parents=True, exist_ok=True)
     
-    # Optimize compression settings for speed
     compression_settings = {
         'zlib': True,
-        'complevel': 5,  # Lower compression level for better speed
+        'complevel': 5,
         'shuffle': True
     } if compression else {}
     
@@ -429,26 +428,22 @@ def writeDatasetsToNetCDFfolder(
         elif isinstance(item, xr.Dataset):
             filename = current_path / "data.nc"
             
-            # Optimize dataset for saving
             if chunks is not None:
                 item = item.chunk(chunks)
             
+            # Store absolute path in save_tasks but relative path in paths_dict
             save_tasks.append((str(filename), item, compression_settings))
-            return str(filename)
+            return str(filename.relative_to(base_path))
         
         else:
             raise ValueError(f"Unsupported type: {type(item)}")
     
-    # Process datasets
     data_dict = processDataset(data_dict)
-    
     paths_dict = collect_save_tasks(data_dict, base_path, paths_dict)
     
-    # Save structure metadata
     with open(base_path / "structure.json", 'w') as f:
         json.dump(paths_dict, f, indent=2)
     
-    # Save datasets in parallel if enabled
     if parallel and save_tasks:
         with ProcessPoolExecutor() as executor:
             list(executor.map(save_dataset, save_tasks))
@@ -457,7 +452,6 @@ def writeDatasetsToNetCDFfolder(
             save_dataset(task)
     
     return paths_dict
-        
 
 def _load_single_dataset(path, chunks=None):
     """Helper function to load a single dataset."""
@@ -500,13 +494,14 @@ def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None):
     dict
         Dictionary with the same structure containing loaded datasets
     """
+    base_path = Path(base_path)
     import json
     import os
     from concurrent.futures import ProcessPoolExecutor
     from functools import partial
 
     # Load structure metadata
-    with open(os.path.join(base_path, "structure.json"), 'r') as f:
+    with open(base_path / "structure.json", 'r') as f:
         paths_dict = json.load(f)
     
     # Collect all paths that need to be loaded
@@ -516,7 +511,8 @@ def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None):
             for v in d.values():
                 collect_all_paths(v)
         elif isinstance(d, str):
-            paths_to_load.append(d)
+            # Convert relative path from structure.json to absolute path
+            paths_to_load.append(str(base_path / d))
     
     collect_all_paths(paths_dict)
     
@@ -527,10 +523,14 @@ def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None):
     if parallel and paths_to_load:
         with ProcessPoolExecutor() as executor:
             results = executor.map(load_fn, paths_to_load)
-            loaded_datasets = dict(zip(paths_to_load, results))
+            # Use relative paths as keys in loaded_datasets
+            loaded_datasets = dict(zip(
+                (str(Path(p).relative_to(base_path)) for p in paths_to_load),
+                results
+            ))
     else:
         for path in paths_to_load:
-            loaded_datasets[path] = load_fn(path)
+            loaded_datasets[str(Path(path).relative_to(base_path))] = load_fn(path)
     
     # Rebuild the original structure
     result = _rebuild_structure(paths_dict, loaded_datasets)
