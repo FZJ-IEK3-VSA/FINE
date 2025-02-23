@@ -453,10 +453,13 @@ def writeDatasetsToNetCDFfolder(
     
     return paths_dict
 
-def _load_single_dataset(path, chunks=None):
+def _load_single_dataset(path, chunks=None, lazy_load=False):
     """Helper function to load a single dataset."""
     import xarray as xr
-    return xr.load_dataset(path, chunks=chunks)
+    if lazy_load:
+        return xr.open_dataset(path, chunks=chunks)
+    else:
+        return xr.load_dataset(path, chunks=chunks)
 
 def _collect_paths(item, path=()):
     """Helper function to collect all paths from nested dictionary."""
@@ -476,7 +479,7 @@ def _rebuild_structure(item, loaded_datasets):
     else:
         raise ValueError(f"Unsupported type: {type(item)}")
 
-def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None):
+def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None, lazy_load=False):
     """
     Load nested xarray datasets with optimized performance.
     
@@ -518,7 +521,7 @@ def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None):
     
     # Load datasets (in parallel if requested)
     loaded_datasets = {}
-    load_fn = partial(_load_single_dataset, chunks=chunks)
+    load_fn = partial(_load_single_dataset, chunks=chunks, lazy_load=lazy_load)
     
     if parallel and paths_to_load:
         with ProcessPoolExecutor() as executor:
