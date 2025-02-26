@@ -374,7 +374,7 @@ class EnergySystemModel:
         #########################################
         # util function has still to be defined #
         #########################################
-        self.processedMaterialBalanceLimit = utils.checkAndSetMaterialBalanceLimits(
+        self.processedMaterialBalanceLimit = utils.checkAndSetMaterialBalanceLimit(
             self, materialBalanceLimit, locations
         )
 
@@ -1666,6 +1666,11 @@ class EnergySystemModel:
             constraints and objective required for the optimization set up and solving.
         :type pyM: pyomo ConcreteModel
         """
+
+        print("❓ Existiert investSet?", hasattr(pyM, "investSet"))
+        print("📊 Inhalt von investSet:", list(pyM.investSet) if hasattr(pyM, "investSet") else "Nicht vorhanden")
+
+
         utils.output("Declaring material balance constraints...", self.verbose, 0)
 
         # Step 1: Declare a set that tracks locations and materials where balance constraints apply
@@ -1885,6 +1890,11 @@ class EnergySystemModel:
         # Declare constraint for balanceLimit
         _t = time.time()
         self.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+
+        # Declare material balance constraints (one balance constraint for each commodity, location and time step)
+        _t = time.time()
+        self.declareMaterialBalanceConstraints(pyM)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################

@@ -283,6 +283,8 @@ class Storage(Component):
             technicalLifetime=technicalLifetime,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            materialConsumption=materialConsumption,
+            materialRecovery=materialRecovery,
         )
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,
@@ -1706,6 +1708,41 @@ class StorageModel(ComponentModel):
                 for comp in self.componentsDict.values()
             ]
         )
+    
+
+    def hasMaterialVariablesForLocation(self, esM, loc, mat):
+        """
+        Check if material variables exist in the modeling class at a location for a given material.
+        """
+        print(f"🔍 Prüfe Material {mat} an Standort {loc}...")  # Debugging
+
+        for comp_name, comp in self.componentsDict.items():
+            print(f"  🔹 Komponente: {comp_name}, Typ: {type(comp)}")
+
+            # Prüfe, ob die Komponente `materialConsumption` oder `materialSupply` hat
+            has_consumption = getattr(comp, "materialConsumption", None)
+            if has_consumption is not None and mat in has_consumption:
+                has_consumption = True
+            else:
+                has_consumption = False
+            has_supply = getattr(comp, "materialRecovery", None)
+            if has_supply is not None and mat in has_supply:
+                has_supply = True
+            else:
+                has_supply = False
+            is_active = comp.processedLocationalEligibility.get(loc, 0) == 1
+
+            print(f"  - MaterialConsumption enthält {mat}? {has_consumption}")
+            print(f"  - MaterialRecovery enthält {mat}? {has_supply}")
+            print(f"  - Standort aktiv? {is_active}")
+
+            if (has_consumption or has_supply) and is_active:
+                print(f"✅ Material {mat} ist an {loc} vorhanden!")
+                return True  # Sobald eine gültige Kombination gefunden wird, abbrechen
+
+        print(f"❌ Material {mat} ist an {loc} NICHT vorhanden!")
+        return False  # Falls keine passende Kombination gefunden wird
+    
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         """Get contribution to a commodity balance.
@@ -1726,6 +1763,38 @@ class StorageModel(ComponentModel):
             for compName in opVarDict[ip][loc]
             if commod == self.componentsDict[compName].commodity
         )
+    
+    def getMaterialBalanceContribution(self, pyM, mat, loc, ip):
+        """
+        Returns the material balance contribution from sources and sinks.
+
+        - Sources contribute positively to material balance (supply).
+        - Sinks contribute negatively (consumption via commissioning).
+
+        :param pyM: Pyomo model instance.
+        :param mat: Material name.
+        :param loc: Location.
+        :param ip: Investment period.
+        :return: Pyomo expression tracking net material balance.
+        """
+        balance = 0
+
+        # Contribution from material sources
+        balance += sum(
+            pyM.materialSupplyVar[loc, compName, mat, ip]
+            for compName, comp in self.componentsDict.items()
+            if comp.isSource and mat == comp.commodity
+        )
+
+        # Contribution from material sinks (consumption)
+        balance -= sum(
+            pyM.materialConsumptionVar[loc, compName, mat, ip]
+            for compName, comp in self.componentsDict.items()
+            if comp.isSink and mat in comp.materialConsumption
+        )
+
+        return balance
+
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """

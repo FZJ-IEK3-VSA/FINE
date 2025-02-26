@@ -288,6 +288,8 @@ class Source(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
             etlParameter=etlParameter,
+            materialConsumption=materialConsumption,
+            materialRecovery=materialRecovery,
         )
 
         # Set general source/sink data: ID and yearly limit
@@ -940,6 +942,41 @@ class SourceSinkModel(ComponentModel):
                 for comp in self.componentsDict.values()
             ]
         )
+    
+    def hasMaterialVariablesForLocation(self, esM, loc, mat):
+        """
+        Check if material variables exist in the modeling class at a location for a given material.
+        """
+        print(f"🔍 Prüfe Material {mat} an Standort {loc}...")  # Debugging
+
+        for comp_name, comp in self.componentsDict.items():
+            print(f"  🔹 Komponente: {comp_name}, Typ: {type(comp)}")
+
+            # Prüfe, ob die Komponente `materialConsumption` oder `materialSupply` hat
+            has_consumption = getattr(comp, "materialConsumption", None)
+            if has_consumption is not None and mat in has_consumption:
+                has_consumption = True
+            else:
+                has_consumption = False
+            has_supply = getattr(comp, "materialRecovery", None)
+            if has_supply is not None and mat in has_supply:
+                has_supply = True
+            else:
+                has_supply = False
+            is_active = comp.processedLocationalEligibility.get(loc, 0) == 1
+
+            print(f"  - MaterialConsumption enthält {mat}? {has_consumption}")
+            print(f"  - MaterialRecovery enthält {mat}? {has_supply}")
+            print(f"  - Standort aktiv? {is_active}")
+
+            if (has_consumption or has_supply) and is_active:
+                print(f"✅ Material {mat} ist an {loc} vorhanden!")
+                return True  # Sobald eine gültige Kombination gefunden wird, abbrechen
+
+        print(f"❌ Material {mat} ist an {loc} NICHT vorhanden!")
+        return False  # Falls keine passende Kombination gefunden wird
+
+
 
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, timeSeriesAggregation, loc, componentNames

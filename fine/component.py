@@ -2937,6 +2937,15 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         raise NotImplementedError
+    
+    @abstractmethod
+    def hasMaterialVariablesForLocation(self, esM, loc, mat):
+        """
+        Check if material variables exist in the modeling class at a location which are connected to a commodity.
+        """
+
+        raise NotImplementedError
+
 
     @abstractmethod
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
