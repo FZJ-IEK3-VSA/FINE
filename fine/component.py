@@ -1175,29 +1175,37 @@ class ComponentModel(metaclass=ABCMeta):
             )
 
     # declare set for materialConsumption and materialRecovery
-    def declareMaterialComponentVars(self, pyM):
+    def declareMaterialComponentVars(self, esM, pyM):
         """
         Declare Pyomo variables for material consumption and recovery.
-
-        These variables track the amount of material used when a component is commissioned 
-        and the amount of material recovered when a component is decommissioned.
         """
+        print(f"🛠️ Definiere Materialvariablen für {self}...")
 
-        # Step 1: Declare a set of (location, component, material, investment period)
+        # ❌ Falls das Set bereits existiert, lösche es
+        if hasattr(pyM, "materialSet"):
+            pyM.del_component("materialSet")
+        if hasattr(pyM, "materialConsumptionVar"):
+            pyM.del_component("materialConsumptionVar")
+        if hasattr(pyM, "materialRecoveryVar"):
+            pyM.del_component("materialRecoveryVar")
+
+        # 🔄 Jetzt die Variablen neu erstellen
         def initMaterialSet(pyM):
             return (
                 (loc, compName, mat, ip)
                 for compName, comp in self.componentsDict.items()
                 for loc in comp.processedLocationalEligibility.index
                 for mat in comp.materialConsumption.keys() | comp.materialRecovery.keys()
-                for ip in self.esM.investmentPeriods
+                for ip in esM.investmentPeriods
             )
 
         pyM.materialSet = pyomo.Set(dimen=4, initialize=initMaterialSet)
 
-        # Step 2: Define Pyomo variables for material consumption and recovery
         pyM.materialConsumptionVar = pyomo.Var(pyM.materialSet, domain=pyomo.NonNegativeReals)
         pyM.materialRecoveryVar = pyomo.Var(pyM.materialSet, domain=pyomo.NonNegativeReals)
+
+        print(f"✅ Materialvariablen für {self} erfolgreich definiert!")
+
 
 
     ####################################################################################################################
@@ -2974,7 +2982,7 @@ class ComponentModel(metaclass=ABCMeta):
     
     # Balance Contributions have to be defined seperately for each component sub-class 
     @abstractmethod
-    def getMaterialBalanceContribution(self, pyM, commod, loc, ip, p, t):
+    def getMaterialBalanceContribution(self, pyM, mat, loc, ip, p, t):
         """
         Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
         Get contribution to a commodity balance.

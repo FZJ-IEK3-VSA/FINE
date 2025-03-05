@@ -1667,9 +1667,6 @@ class EnergySystemModel:
         :type pyM: pyomo ConcreteModel
         """
 
-        print("❓ Existiert investSet?", hasattr(pyM, "investSet"))
-        print("📊 Inhalt von investSet:", list(pyM.investSet) if hasattr(pyM, "investSet") else "Nicht vorhanden")
-
 
         utils.output("Declaring material balance constraints...", self.verbose, 0)
 
@@ -1689,21 +1686,23 @@ class EnergySystemModel:
             dimen=2, initialize=initLocationMaterialSet
         )
 
-        # Step 2: Declare the material balance constraint function
-        def materialBalanceConstraint(pyM, loc, mat, ip):
+
+        def materialBalanceConstraint(pyM, loc, mat, ip, p, t):
             return (
                 sum(
-                    mdl.getMaterialBalanceContribution(pyM, mat, loc, ip)
+                    mdl.getMaterialBalanceContribution(pyM, mat, loc, ip, p, t)
                     for mdl in self.componentModelingDict.values()
                 )
-                <= self.processedMaterialBalanceLimit.get(ip, pd.DataFrame()).get(mat, {}).get(loc, 0)
+                == 0
             )
 
+        
         # Step 3: Apply the constraint to Pyomo
         pyM.materialBalanceConstraint = pyomo.Constraint(
-            pyM.locationMaterialSet, pyM.investSet, rule=materialBalanceConstraint
+            pyM.locationMaterialSet, pyM.timeSet, rule=materialBalanceConstraint
         )
         
+
     def declareObjective(self, pyM):
         """
         Declare the objective function by obtaining the contributions to the objective function from all modeling
