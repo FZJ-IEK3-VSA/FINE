@@ -14,8 +14,9 @@ class Source(Component):
         self,
         esM,
         name,
-        commodity,
-        hasCapacityVariable,
+        commodity = None,
+        materials = None,
+        hasCapacityVariable = True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
         hasIsBuiltBinaryVariable=False,
@@ -293,11 +294,17 @@ class Source(Component):
         )
 
         # Set general source/sink data: ID and yearly limit
-        utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
-        self.commodity, self.commodityUnit = (
-            commodity,
-            esM.commodityUnitsDict[commodity],
-        )
+        #utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
+        self.commodity = commodity
+        if commodity:
+            utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
+            self.commodityUnit = esM.commodityUnitsDict[commodity]
+
+        self.materials = materials    
+        if materials:
+            self.materialsUnit = esM.materialUnitsDict[materials]
+
+
         # TODO check value and type correctness
         self.commodityLimitID = commodityLimitID
         self.balanceLimitID = balanceLimitID
@@ -1072,7 +1079,7 @@ class SourceSinkModel(ComponentModel):
         return sum(
             opVar[loc, compName, ip] * compDict[compName].sign
             for compName in opVarDict[ip][loc]
-            if compDict[compName].material == mat 
+            if compDict[compName].materialConsumption == mat 
         )
 
 

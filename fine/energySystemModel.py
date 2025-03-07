@@ -70,8 +70,8 @@ class EnergySystemModel:
     def __init__(
         self,
         locations,
-        commodities,
-        commodityUnitsDict,
+        commodities = None,
+        commodityUnitsDict = None,
         numberOfTimeSteps=8760,
         hoursPerTimeStep=1,
         startYear=0,

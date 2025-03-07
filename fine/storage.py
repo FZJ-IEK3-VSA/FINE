@@ -15,7 +15,8 @@ class Storage(Component):
         self,
         esM,
         name,
-        commodity,
+        commodity = None,
+        materials = None,
         chargeRate=1,
         dischargeRate=1,
         chargeEfficiency=1,
@@ -290,11 +291,15 @@ class Storage(Component):
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,
         # selfDischarge, cyclicLifetime, stateOfChargeMin, stateOfChargeMax, isPeriodicalStorage, doPreciseTsaModeling,
         # relaxedPeriodConnection
-        utils.checkCommodities(esM, {commodity})
-        self.commodity, self.commodityUnit = (
-            commodity,
-            esM.commodityUnitsDict[commodity],
-        )
+        self.commodity = commodity
+        if commodity:
+            utils.checkCommodities(esM, {commodity})
+            self.commodityUnit = esM.commodityUnitsDict[commodity]
+
+        self.materials = materials 
+        if materials:
+            utils.checkMaterials(esM, {materials})
+            self.materialsUnit = esM.materialUnitsDict[materials]
         
         utils.isStrictlyPositiveNumber(chargeRate)
         self.chargeRate = chargeRate
@@ -1765,7 +1770,7 @@ class StorageModel(ComponentModel):
         return sum(
             dischargeOp[loc, compName, ip, p, t] - chargeOp[loc, compName, ip, p, t]
             for compName in opVarDict[ip][loc]
-            if mat == self.componentsDict[compName].material
+            if mat == self.componentsDict[compName].materials
         )
 
 
