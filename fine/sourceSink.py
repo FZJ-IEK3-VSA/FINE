@@ -302,7 +302,8 @@ class Source(Component):
 
         self.materials = materials    
         if materials:
-            self.materialsUnit = esM.materialUnitsDict[materials]
+            utils.isEnergySystemModelInstance(esM), utils.checkMaterials(esM, {materials})
+            self.commodityUnit = esM.materialUnitsDict[materials]
 
 
         # TODO check value and type correctness
@@ -577,8 +578,9 @@ class Sink(Source):
         self,
         esM,
         name,
-        commodity,
-        hasCapacityVariable,
+        commodity = None,
+        materials = None,
+        hasCapacityVariable = True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
         hasIsBuiltBinaryVariable=False,
@@ -630,6 +632,7 @@ class Sink(Source):
             esM,
             name,
             commodity=commodity,
+            materials = materials,
             hasCapacityVariable=hasCapacityVariable,
             capacityVariableDomain=capacityVariableDomain,
             capacityPerPlantUnit=capacityPerPlantUnit,
@@ -1133,7 +1136,7 @@ class SourceSinkModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
+    def setOptimalValues(self, esM, pyM, unitType = None):
         """
         Set the optimal values of the components.
 

@@ -237,6 +237,19 @@ def checkCommodities(esM, commodities):
             + "Energy system model commodities: "
             + str(esM.commodities)
         )
+    
+def checkMaterials(esM, materials):
+    """Check if the material is considered in the energy system model."""
+    if not materials.issubset(esM.materials):
+        raise ValueError(
+            "Material does not match the ones of the specified energy system model.\n"
+            + "Materials provided: "
+            + str(set(materials))
+            + "\n"
+            + "Energy system model materials: "
+            + str(esM.materials)
+        )
+
 
 
 def checkCommodityUnits(esM, commodityUnit):
@@ -248,7 +261,7 @@ def checkCommodityUnits(esM, commodityUnit):
             + str(commodityUnit)
             + "\n"
             + "Energy system model commodityUnits: "
-            + str(esM.commodityUnitsDict.values())
+            + str(esM.materialsUnitsDict.values())
         )
 
 
