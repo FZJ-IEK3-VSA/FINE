@@ -1082,7 +1082,7 @@ class SourceSinkModel(ComponentModel):
         return sum(
             opVar[loc, compName, ip] * compDict[compName].sign
             for compName in opVarDict[ip][loc]
-            if compDict[compName].materialConsumption == mat 
+            if compDict[compName].materialConsumption != mat 
         )
 
 

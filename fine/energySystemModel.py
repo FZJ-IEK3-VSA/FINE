@@ -1689,11 +1689,12 @@ class EnergySystemModel:
 
         def materialBalanceConstraint(pyM, loc, mat, ip, p, t):
             return (
+                0,  # Lower bound set to 0
                 sum(
                     mdl.getMaterialBalanceContribution(pyM, mat, loc, ip, p, t)
                     for mdl in self.componentModelingDict.values()
-                )
-                <= self.processedMaterialBalanceLimit[ip][mat][loc]
+                ),
+                self.processedMaterialBalanceLimit[ip][mat][loc]
             )
 
         
