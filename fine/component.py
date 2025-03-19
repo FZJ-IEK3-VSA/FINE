@@ -1174,38 +1174,6 @@ class ComponentModel(metaclass=ABCMeta):
                 },
             )
 
-    # declare set for materialConsumption and materialRecovery
-    def declareMaterialComponentVars(self, esM, pyM):
-        """
-        Declare Pyomo variables for material consumption and recovery.
-        """
-        print(f"🛠️ Definiere Materialvariablen für {self}...")
-
-        # ❌ Falls das Set bereits existiert, lösche es
-        if hasattr(pyM, "materialSet"):
-            pyM.del_component("materialSet")
-        if hasattr(pyM, "materialConsumptionVar"):
-            pyM.del_component("materialConsumptionVar")
-        if hasattr(pyM, "materialRecoveryVar"):
-            pyM.del_component("materialRecoveryVar")
-
-        # 🔄 Jetzt die Variablen neu erstellen
-        def initMaterialSet(pyM):
-            return (
-                (loc, compName, mat, ip)
-                for compName, comp in self.componentsDict.items()
-                for loc in comp.processedLocationalEligibility.index
-                for mat in comp.materialConsumption.keys() | comp.materialRecovery.keys()
-                for ip in esM.investmentPeriods
-            )
-
-        pyM.materialSet = pyomo.Set(dimen=4, initialize=initMaterialSet)
-
-        pyM.materialConsumptionVar = pyomo.Var(pyM.materialSet, domain=pyomo.NonNegativeReals)
-        pyM.materialRecoveryVar = pyomo.Var(pyM.materialSet, domain=pyomo.NonNegativeReals)
-
-        print(f"✅ Materialvariablen für {self} erfolgreich definiert!")
-
 
 
     ####################################################################################################################

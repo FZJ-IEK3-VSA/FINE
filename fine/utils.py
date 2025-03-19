@@ -261,7 +261,7 @@ def checkCommodityUnits(esM, commodityUnit):
             + str(commodityUnit)
             + "\n"
             + "Energy system model commodityUnits: "
-            + str(esM.materialsUnitsDict.values())
+            + str(esM.commodityUnitsDict.values())
         )
 
 

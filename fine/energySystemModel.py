@@ -1893,11 +1893,10 @@ class EnergySystemModel:
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Declare material balance constraints (one balance constraint for each commodity, location and time step)
-        """
         _t = time.time()
         self.declareMaterialBalanceConstraints(pyM)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
-        """
+
         ################################################################################################################
         #                                         Declare objective function                                           #
         ################################################################################################################

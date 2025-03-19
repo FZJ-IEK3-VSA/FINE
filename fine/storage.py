@@ -296,10 +296,10 @@ class Storage(Component):
             utils.checkCommodities(esM, {commodity})
             self.commodityUnit = esM.commodityUnitsDict[commodity]
 
-        self.materials = materials 
+        self.materials = materials    
         if materials:
-            utils.checkMaterials(esM, {materials})
-            self.materialsUnit = esM.materialUnitsDict[materials]
+            utils.isEnergySystemModelInstance(esM), utils.checkMaterials(esM, {materials})
+            self.commodityUnit = esM.materialUnitsDict[materials]
         
         utils.isStrictlyPositiveNumber(chargeRate)
         self.chargeRate = chargeRate
@@ -1716,23 +1716,13 @@ class StorageModel(ComponentModel):
     
 
     def hasMaterialVariablesForLocation(self, esM, loc, mat):
-        """
-        Check if material variables exist in the modeling class at a location for a given material.
-        
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-        
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
-        
-        :param mat: Name of the regarded material
-        :type mat: string
-        """
+        """Check if material variables exist for a given material at a location."""
+       
         return any(
-            mat in getattr(comp, "materialConsumption", []) or 
-            mat in getattr(comp, "materialRecovery", []) and
-            comp.processedLocationalEligibility.get(loc, 0) == 1
+            comp.materials == mat  
+            and comp.processedLocationalEligibility.get(loc, 0) == 1  
             for comp in self.componentsDict.values()
+            if comp.commodity is None
         )
     
 
