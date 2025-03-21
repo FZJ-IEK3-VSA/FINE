@@ -605,6 +605,8 @@ def convertDatasetsToEnergySystemModel(datasets):
             operationVariablesOptimum_dict = {}
             capacityVariablesOptimum_dict = {}
             isBuiltVariablesOptimum_dict = {}
+            commissioningVariablesOptimum_dict = {}
+            decommissioningVariablesOptimum_dict = {}
             chargeOperationVariablesOptimum_dict = {}
             dischargeOperationVariablesOptimum_dict = {}
             stateOfChargeOperationVariablesOptimum_dict = {}
@@ -691,6 +693,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                 operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 capacityVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 isBuiltVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                commissioningVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                decommissioningVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 chargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 dischargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 stateOfChargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
@@ -699,6 +703,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                     _operationVariablesOptimum_df = pd.DataFrame([])
                     _capacityVariablesOptimum_df = pd.DataFrame([])
                     _isBuiltVariablesOptimum_df = pd.DataFrame([])
+                    _commissioningVariablesOptimum_df = pd.DataFrame([])
+                    _decommissioningVariablesOptimum_df = pd.DataFrame([])                    
                     _chargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
@@ -715,7 +721,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                         else:
                             continue
 
-                        if opt_variable == "_operationVariablesOptimum":
+                        if opt_variable == "operationVariablesOptimum":
                             if "space_2" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
@@ -735,7 +741,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     _operationVariablesOptimum_df = pd.concat(
                                         [_operationVariablesOptimum_df, _df],
                                         axis=0,
-                                    )
+                                    ).rename_axis(len(idx.names) * [None], axis=0)
 
                             else:
                                 _operationVariablesOptimum_df = (
@@ -751,9 +757,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 )
                                 _operationVariablesOptimum_df = (
                                     _operationVariablesOptimum_df.set_index(idx)
-                                )
+                                ).rename_axis(len(idx.names) * [None], axis=0)
 
-                        if opt_variable == "_capacityVariablesOptimum":
+                        if opt_variable == "capacityVariablesOptimum":
                             if "space_2" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
@@ -764,14 +770,14 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     [[component], list(df.index)]
                                 )
                                 _df = df.set_index(idx)
-                                _capacityVariablesOptimum_df = _df
+                                _capacityVariablesOptimum_df = _df.rename_axis(None, axis=1)
                             else:
                                 _capacityVariablesOptimum_df = xr_opt.to_dataframe().T
                                 _capacityVariablesOptimum_df = (
                                     _capacityVariablesOptimum_df.set_axis([component])
-                                )
+                                ).rename_axis(None, axis=1)
 
-                        if opt_variable == "_isBuiltVariablesOptimum":
+                        if opt_variable == "isBuiltVariablesOptimum":
                             _isBuiltVariablesOptimum_df = (
                                 xr_opt.to_dataframe()
                                 .unstack(level=0)
@@ -782,7 +788,41 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                             _isBuiltVariablesOptimum_df = (
                                 _isBuiltVariablesOptimum_df.set_index(idx)
-                            )
+                            ).rename_axis(None, axis=1)
+                        if opt_variable == "commissioningVariablesOptimum":
+                            if "space_2" in list(xr_opt.coords):
+                                df = (
+                                    xr_opt.to_dataframe()
+                                    .unstack(level=0)
+                                    .droplevel(0, axis=1)
+                                )
+                                idx = pd.MultiIndex.from_product(
+                                    [[component], list(df.index)]
+                                )
+                                _df = df.set_index(idx)
+                                _commissioningVariablesOptimum_df = _df.rename_axis(None, axis=1)
+                            else:
+                                _commissioningVariablesOptimum_df = xr_opt.to_dataframe().T
+                                _commissioningVariablesOptimum_df = (
+                                    _commissioningVariablesOptimum_df.set_axis([component])
+                                ).rename_axis(None, axis=1)
+                        if opt_variable == "decommissioningVariablesOptimum":
+                            if "space_2" in list(xr_opt.coords):
+                                df = (
+                                    xr_opt.to_dataframe()
+                                    .unstack(level=0)
+                                    .droplevel(0, axis=1)
+                                )
+                                idx = pd.MultiIndex.from_product(
+                                    [[component], list(df.index)]
+                                )
+                                _df = df.set_index(idx)
+                                _decommissioningVariablesOptimum_df = _df.rename_axis(None, axis=1)
+                            else:
+                                _decommissioningVariablesOptimum_df = xr_opt.to_dataframe().T
+                                _decommissioningVariablesOptimum_df = (
+                                    _decommissioningVariablesOptimum_df.set_axis([component])
+                                ).rename_axis(None, axis=1)
 
                         if opt_variable == "chargeOperationVariablesOptimum":
                             _chargeOperationVariablesOptimum_df = (
@@ -795,7 +835,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                             _chargeOperationVariablesOptimum_df = (
                                 _chargeOperationVariablesOptimum_df.set_index(idx)
-                            )
+                            ).rename_axis(len(idx.names) * [None], axis=0).rename_axis(None, axis=1)
 
                         if opt_variable == "dischargeOperationVariablesOptimum":
                             _dischargeOperationVariablesOptimum_df = (
@@ -811,7 +851,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                             _dischargeOperationVariablesOptimum_df = (
                                 _dischargeOperationVariablesOptimum_df.set_index(idx)
-                            )
+                            ).rename_axis(len(idx.names) * [None], axis=0).rename_axis(None, axis=1)
 
                         if opt_variable == "stateOfChargeOperationVariablesOptimum":
                             _stateOfChargeOperationVariablesOptimum_df = (
@@ -829,7 +869,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 _stateOfChargeOperationVariablesOptimum_df.set_index(
                                     idx
                                 )
-                            )
+                            ).rename_axis(len(idx.names) * [None], axis=0).rename_axis(None, axis=1)
                     if isinstance(_operationVariablesOptimum_df, pd.Series):
                         _operationVariablesOptimum_df = (
                             _operationVariablesOptimum_df.to_frame().T
@@ -863,6 +903,28 @@ def convertDatasetsToEnergySystemModel(datasets):
                         ],
                         axis=0,
                     )
+                    if isinstance(_commissioningVariablesOptimum_df, pd.Series):
+                        _commissioningVariablesOptimum_df = (
+                            _commissioningVariablesOptimum_df.to_frame().T
+                        )
+                    commissioningVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            commissioningVariablesOptimum_dict[int(ip)],
+                            _commissioningVariablesOptimum_df,
+                        ],
+                        axis=0,
+                    )
+                    if isinstance(_decommissioningVariablesOptimum_df, pd.Series):
+                        _decommissioningVariablesOptimum_df = (
+                            _decommissioningVariablesOptimum_df.to_frame().T
+                        )
+                    decommissioningVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            decommissioningVariablesOptimum_dict[int(ip)],
+                            _decommissioningVariablesOptimum_df,
+                        ],
+                        axis=0,
+                    )                   
                     if isinstance(_chargeOperationVariablesOptimum_df, pd.Series):
                         _chargeOperationVariablesOptimum_df = (
                             _chargeOperationVariablesOptimum_df.to_frame().T
@@ -906,6 +968,10 @@ def convertDatasetsToEnergySystemModel(datasets):
                     capacityVariablesOptimum_dict[int(ip)] = None
                 if isBuiltVariablesOptimum_dict[int(ip)].empty:
                     isBuiltVariablesOptimum_dict[int(ip)] = None
+                if commissioningVariablesOptimum_dict[int(ip)].empty:
+                    commissioningVariablesOptimum_dict[int(ip)] = None
+                if decommissioningVariablesOptimum_dict[int(ip)].empty:
+                    decommissioningVariablesOptimum_dict[int(ip)] = None
                 if chargeOperationVariablesOptimum_dict[int(ip)].empty:
                     chargeOperationVariablesOptimum_dict[int(ip)] = None
                 if dischargeOperationVariablesOptimum_dict[int(ip)].empty:
@@ -927,6 +993,16 @@ def convertDatasetsToEnergySystemModel(datasets):
                 esM.componentModelingDict[model],
                 "_isBuiltVariablesOptimum",
                 isBuiltVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_commissioningVariablesOptimum",
+                commissioningVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_decommissioningVariablesOptimum",
+                decommissioningVariablesOptimum_dict,
             )
             setattr(
                 esM.componentModelingDict[model],
