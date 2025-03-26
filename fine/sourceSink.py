@@ -15,7 +15,6 @@ class Source(Component):
         esM,
         name,
         commodity = None,
-        materials = None,
         hasCapacityVariable = True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -58,7 +57,7 @@ class Source(Component):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         etlParameter=None,
-        materialConsumption=None,
+        materialIntensity=None,
         materialRecovery=None,
     ):
         """
@@ -289,7 +288,7 @@ class Source(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
             etlParameter=etlParameter,
-            materialConsumption=materialConsumption,
+            materialIntensity=materialIntensity,
             materialRecovery=materialRecovery,
         )
 
@@ -299,11 +298,6 @@ class Source(Component):
         if commodity:
             utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
             self.commodityUnit = esM.commodityUnitsDict[commodity]
-
-        self.materials = materials    
-        if materials:
-            utils.isEnergySystemModelInstance(esM), utils.checkMaterials(esM, {materials})
-            self.commodityUnit = esM.materialUnitsDict[materials]
 
 
         # TODO check value and type correctness
@@ -579,7 +573,6 @@ class Sink(Source):
         esM,
         name,
         commodity = None,
-        materials = None,
         hasCapacityVariable = True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -632,7 +625,6 @@ class Sink(Source):
             esM,
             name,
             commodity=commodity,
-            materials = materials,
             hasCapacityVariable=hasCapacityVariable,
             capacityVariableDomain=capacityVariableDomain,
             capacityPerPlantUnit=capacityPerPlantUnit,
@@ -953,17 +945,6 @@ class SourceSinkModel(ComponentModel):
             ]
         )
     
-    def hasMaterialVariablesForLocation(self, esM, loc, mat):
-        """Check if material variables exist for a given material at a location."""
-       
-        return any(
-            comp.materials == mat  
-            and comp.processedLocationalEligibility.get(loc, 0) == 1  
-            for comp in self.componentsDict.values()
-            if comp.commodity is None
-        )
-
-
 
 
     def getBalanceLimitContribution(
@@ -1059,24 +1040,6 @@ class SourceSinkModel(ComponentModel):
             if compDict[compName].commodity == commod
         )
     
-    def getMaterialBalanceContribution(self, pyM, mat, loc, ip, p, t):
-        """Get contribution to a material balance.
-        """
-
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, opVarDict = (
-            getattr(pyM, "op_" + abbrvName),
-            getattr(pyM, "operationVarDict_" + abbrvName),
-        )
-
-        return sum(
-            opVar[loc, compName, ip, p, t] * compDict[compName].sign
-            for compName in opVarDict[ip][loc]
-            if compDict[compName].materials == mat 
-        )
-
-
-
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """

@@ -48,7 +48,7 @@ class Transmission(Component):
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
-        materialConsumption=None,
+        materialIntensity=None,
         materialRecovery=None,
     ):
         """
@@ -290,6 +290,8 @@ class Transmission(Component):
             technicalLifetime=self.technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
             stockCommissioning=self.stockCommissioning,
+            materialIntensity=materialIntensity, 
+            materialRecovery=materialRecovery,
         )
         # Set general component data
         utils.checkCommodities(esM, {commodity})

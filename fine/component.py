@@ -50,7 +50,7 @@ class Component(metaclass=ABCMeta):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         etlParameter=None,
-        materialConsumption=None,
+        materialIntensity=None,
         materialRecovery=None,
     ):
         """
@@ -706,8 +706,10 @@ class Component(metaclass=ABCMeta):
             #     )
         
         # add materialConsumption and materialRecovery if declared 
-        self.materialConsumption = materialConsumption
+        self.materialIntensity = materialIntensity
         self.materialRecovery = materialRecovery 
+
+
         ########################
         # add utility function #
         ########################
@@ -2914,14 +2916,6 @@ class ComponentModel(metaclass=ABCMeta):
         """
         raise NotImplementedError
     
-    @abstractmethod
-    def hasMaterialVariablesForLocation(self, esM, loc, mat):
-        """
-        Check if material variables exist in the modeling class at a location which are connected to a commodity.
-        """
-
-        raise NotImplementedError
-
 
     @abstractmethod
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -2948,14 +2942,6 @@ class ComponentModel(metaclass=ABCMeta):
         """
         raise NotImplementedError
     
-    # Balance Contributions have to be defined seperately for each component sub-class 
-    @abstractmethod
-    def getMaterialBalanceContribution(self, pyM, mat, loc, ip, p, t):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
-        Get contribution to a commodity balance.
-        """
-        raise NotImplementedError
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """

@@ -54,7 +54,7 @@ class Conversion(Component):
         emissionFactors=None,
         flowShares=None,
         etlParameter=None, 
-        materialConsumption=None,
+        materialIntensity=None,
         materialRecovery=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
@@ -262,7 +262,7 @@ class Conversion(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
             etlParameter=etlParameter,
-            materialConsumption=materialConsumption,
+            materialIntensity=materialIntensity,
             materialRecovery=materialRecovery,
         )
 
@@ -1218,18 +1218,6 @@ class ConversionModel(ComponentModel):
         ) or commod in flexible_commods
 
 
-    def hasMaterialVariablesForLocation(self, esM, loc, mat):
-        """Check if material variables exist for a given material at a location."""
-       
-        return any(
-            comp.materials == mat  
-            and comp.processedLocationalEligibility.get(loc, 0) == 1  
-            for comp in self.componentsDict.values()
-            if comp.commodity is None
-        )
-    
-
-
     def flexConversionConstraint(self, pyM, esM):
         """
         Declare constraint that ensures that the sum of all flexible operation variables of one component are equal
@@ -1409,23 +1397,6 @@ class ConversionModel(ComponentModel):
         return sumCommisYearIndependent + sumCommisYearDependent + sumCommisYearIndependentFlex + sumFlexEmission
 
     
-
-    def getMaterialBalanceContribution(self, pyM, mat, loc, ip, p, t):
-        """Get contribution to a material balance for conversion.
-
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
-
-        return sum(
-            opVar[loc, compName, ip, p, t]
-            * compDict[compName].processedCommodityConversionFactors[ip][mat]  ##hier noch anpassen 
-            for compName in opVar
-            if mat in compDict[compName].processedCommodityConversionFactors[ip] ##hier noch anpassen 
-        )
-
-
-
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """

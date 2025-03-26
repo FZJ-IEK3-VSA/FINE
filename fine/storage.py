@@ -16,7 +16,6 @@ class Storage(Component):
         esM,
         name,
         commodity = None,
-        materials = None,
         chargeRate=1,
         dischargeRate=1,
         chargeEfficiency=1,
@@ -62,7 +61,7 @@ class Storage(Component):
         socOffsetDown=-1,
         socOffsetUp=-1,
         stockCommissioning=None,
-        materialConsumption=None,
+        materialIntensity=None,
         materialRecovery=None,
     ):
         """
@@ -284,7 +283,7 @@ class Storage(Component):
             technicalLifetime=technicalLifetime,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
-            materialConsumption=materialConsumption,
+            materialIntensity=materialIntensity,
             materialRecovery=materialRecovery,
         )
 
@@ -296,10 +295,6 @@ class Storage(Component):
             utils.checkCommodities(esM, {commodity})
             self.commodityUnit = esM.commodityUnitsDict[commodity]
 
-        self.materials = materials    
-        if materials:
-            utils.isEnergySystemModelInstance(esM), utils.checkMaterials(esM, {materials})
-            self.commodityUnit = esM.materialUnitsDict[materials]
         
         utils.isStrictlyPositiveNumber(chargeRate)
         self.chargeRate = chargeRate
@@ -1715,16 +1710,6 @@ class StorageModel(ComponentModel):
         )
     
 
-    def hasMaterialVariablesForLocation(self, esM, loc, mat):
-        """Check if material variables exist for a given material at a location."""
-       
-        return any(
-            comp.materials == mat  
-            and comp.processedLocationalEligibility.get(loc, 0) == 1  
-            for comp in self.componentsDict.values()
-            if comp.commodity is None
-        )
-    
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         """Get contribution to a commodity balance.
@@ -1746,22 +1731,6 @@ class StorageModel(ComponentModel):
             if commod == self.componentsDict[compName].commodity
         )
     
-    def getMaterialBalanceContribution(self, pyM, mat, loc, ip, p, t):
-        """Get contribution to a material balance for storage.
-        
-        """
-        abbrvName = self.abbrvName
-        chargeOp, dischargeOp = (
-            getattr(pyM, "chargeOp_" + abbrvName),
-            getattr(pyM, "dischargeOp_" + abbrvName),
-        )
-        opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
-
-        return sum(
-            dischargeOp[loc, compName, ip, p, t] - chargeOp[loc, compName, ip, p, t]
-            for compName in opVarDict[ip][loc]
-            if mat == self.componentsDict[compName].materials
-        )
 
 
 

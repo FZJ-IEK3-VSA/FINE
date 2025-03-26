@@ -70,8 +70,8 @@ def isEnergySystemModelInstance(esM):
 
 def checkEnergySystemModelInput(
     locations,
-    commodities,
-    commodityUnitsDict,
+    onlycommodities,
+    onlycommodityUnitsDict,
     numberOfTimeSteps,
     hoursPerTimeStep,
     numberOfInvestmentPeriods,
@@ -84,17 +84,17 @@ def checkEnergySystemModelInput(
     """Check input arguments of an EnergySystemModel instance for value/type correctness."""
 
     # Locations and commodities have to be sets
-    isSetOfStrings(locations), isSetOfStrings(commodities)
+    isSetOfStrings(locations), isSetOfStrings(onlycommodities)
 
     # The commodityUnitDict has to be a dictionary which keys equal the specified commodities and which values are
     # strings
-    if not type(commodityUnitsDict) == dict:
+    if not type(onlycommodityUnitsDict) == dict:
         raise TypeError("The commodityUnitsDict input argument has to be a dictionary.")
-    if commodities != set(commodityUnitsDict.keys()):
+    if onlycommodities != set(onlycommodityUnitsDict.keys()):
         raise ValueError(
             "The keys of the commodityUnitDict must equal the specified commodities."
         )
-    isSetOfStrings(set(commodityUnitsDict.values()))
+    isSetOfStrings(set(onlycommodityUnitsDict.values()))
 
     isStrictlyPositiveInt(numberOfTimeSteps), isStrictlyPositiveNumber(hoursPerTimeStep)
 
@@ -238,19 +238,6 @@ def checkCommodities(esM, commodities):
             + str(esM.commodities)
         )
     
-def checkMaterials(esM, materials):
-    """Check if the material is considered in the energy system model."""
-    if not materials.issubset(esM.materials):
-        raise ValueError(
-            "Material does not match the ones of the specified energy system model.\n"
-            + "Materials provided: "
-            + str(set(materials))
-            + "\n"
-            + "Energy system model materials: "
-            + str(esM.materials)
-        )
-
-
 
 def checkCommodityUnits(esM, commodityUnit):
     """Check if the commodity unit matches the in the energy system model defined commodity units."""
@@ -1687,65 +1674,6 @@ def checkAndSetBalanceLimit(esM, balanceLimit, locations):
             )
     return processedBalanceLimit
 
-# Utility function for to check correct declaration of material balance limit as well as setting it for each ip
-def checkAndSetMaterialBalanceLimit(esM, materialBalanceLimit, locations):
-    """
-    Processes and validates the material balance limit.
-
-    This function ensures that the material balance limit is correctly structured, 
-    includes all relevant locations, and is assigned properly to investment periods.
-
-    :param esM: EnergySystemModel instance.
-    :param materialBalanceLimit: Dictionary of material balance limits per investment period.
-    :param locations: List of locations in the energy system.
-    :return: Processed material balance limit as a structured dictionary.
-    """
-    
-    # Step 1: If no material balance limit is defined, return an empty structure
-    if materialBalanceLimit is None:
-        return {ip: pd.DataFrame(columns=["Total"] + list(locations)) for ip in esM.investmentPeriods}
-
-    # Step 2: Ensure the material balance limit is a dictionary (for multiple investment periods)
-    if not isinstance(materialBalanceLimit, dict):
-        raise TypeError("materialBalanceLimit must be a dictionary with investment periods as keys.")
-
-    # Step 3: Validate and structure the balance limit for each investment period
-    processedMaterialBalanceLimit = {}
-    
-    for ip in esM.investmentPeriods:
-        _ip = esM.investmentPeriodNames[ip]
-
-        # Extract the balance limit for the given investment period
-        if isinstance(materialBalanceLimit, dict):
-            if _ip not in materialBalanceLimit or materialBalanceLimit[_ip] is None:
-                _materialBalanceLimit = None
-            else:
-                _materialBalanceLimit = materialBalanceLimit[_ip].copy()
-        else:
-            _materialBalanceLimit = materialBalanceLimit.copy()
-
-        # Step 4: Ensure it is a Pandas DataFrame
-        if _materialBalanceLimit is not None:
-            if not isinstance(_materialBalanceLimit, pd.DataFrame):
-                raise TypeError(
-                    f"Material balance limit for investment period {_ip} must be a Pandas DataFrame."
-                )
-            
-            # Step 5: Ensure that all required locations exist
-            for loc in locations:
-                if loc not in _materialBalanceLimit.columns:
-                    _materialBalanceLimit[loc] = None  # Fill missing locations with None
-            
-            # Step 6: Ensure a "Total" column exists for system-wide constraints
-            if "Total" not in _materialBalanceLimit.columns:
-                _materialBalanceLimit["Total"] = None
-            
-            # Store processed material balance limits
-            processedMaterialBalanceLimit[ip] = _materialBalanceLimit
-        else:
-            processedMaterialBalanceLimit[ip] = None
-
-    return processedMaterialBalanceLimit
 
 def checkAndSetFullLoadHoursParameter(
     esM, name, data, dimension, locationalEligibility

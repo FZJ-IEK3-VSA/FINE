@@ -70,8 +70,8 @@ class EnergySystemModel:
     def __init__(
         self,
         locations,
-        commodities = None,
-        commodityUnitsDict = None,
+        onlycommodities = None,
+        onlycommodityUnitsDict = None,
         numberOfTimeSteps=8760,
         hoursPerTimeStep=1,
         startYear=0,
@@ -84,9 +84,8 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
-        materials=None, 
-        materialUnitsDict=None,
-        materialBalanceLimit=None,
+        onlymaterials=None, 
+        onlymaterialUnitsDict=None,
     ):
         """
         Constructor for creating an EnergySystemModel class instance
@@ -253,8 +252,8 @@ class EnergySystemModel:
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(
             locations,
-            commodities,
-            commodityUnitsDict,
+            onlycommodities,
+            onlycommodityUnitsDict,
             numberOfTimeSteps,
             hoursPerTimeStep,
             numberOfInvestmentPeriods,
@@ -354,8 +353,9 @@ class EnergySystemModel:
         # optimization.
         # The commodityUnitsDict parameter is a dictionary which assigns each considered commodity (string) a
         # unit (string) which can be used by results output functions.
-        self.commodities = commodities
-        self.commodityUnitsDict = commodityUnitsDict
+        self.onlycommodities = onlycommodities if onlycommodities is not None else []
+        self.onlycommodityUnitsDict = onlycommodityUnitsDict if onlycommodityUnitsDict is not None else {}
+
 
         # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
         self.balanceLimit = balanceLimit
@@ -367,16 +367,14 @@ class EnergySystemModel:
             self, pathwayBalanceLimit, locations
         )
         # Declare materials as commodities 
-        self.materials = materials 
-        self.materialUnitsDict = materialUnitsDict 
-        # Balance Limit (for now just a simple one further need to be included probably)
-        self.materialBalanceLimit = materialBalanceLimit 
-        #########################################
-        # util function has still to be defined #
-        #########################################
-        self.processedMaterialBalanceLimit = utils.checkAndSetMaterialBalanceLimit(
-            self, materialBalanceLimit, locations
-        )
+        self.onlymaterials = onlymaterials if onlymaterials is not None else []
+        self.onlymaterialUnitsDict = onlymaterialUnitsDict if onlymaterialUnitsDict is not None else {} 
+
+        # Merge commodity and material lists
+        self.commodities = list(sorted(self.onlycommodities)) + list(sorted(self.onlymaterials)) 
+        self.commodityUnitsDict = {c: self.onlycommodityUnitsDict[c] for c in sorted(self.onlycommodities)}
+        self.commodityUnitsDict.update({m: self.onlymaterialUnitsDict[m] for m in sorted(self.onlymaterials)})
+
 
         ################################################################################################################
         #                                        Component specific parameters                                         #
@@ -1651,58 +1649,6 @@ class EnergySystemModel:
             pyM.locationCommoditySet, pyM.timeSet, rule=commodityBalanceConstraint
         )
 
-    def declareMaterialBalanceConstraints(self, pyM):
-        """
-        Declare material balance constraints to ensure material consumption (through commissioning)
-        does not exceed available material supply.
-
-        .. math::
-            \\sum_{comp \\in \\mathcal{C}^{mat}_{loc}} \\left(
-            M^{comp,mat}_{loc,ip} \\cdot \\text{commis}^{comp}_{loc,ip} 
-            - R^{comp,mat}_{loc,ip} \\cdot \\text{decommis}^{comp}_{loc,ip} 
-            \\right) \\leq \\text{S}^{mat}_{loc,ip}
-
-        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
-            constraints and objective required for the optimization set up and solving.
-        :type pyM: pyomo ConcreteModel
-        """
-
-
-        utils.output("Declaring material balance constraints...", self.verbose, 0)
-
-        # Step 1: Declare a set that tracks locations and materials where balance constraints apply
-        def initLocationMaterialSet(pyM):
-            return (
-                (loc, mat)
-                for loc in self.locations
-                for mat in self.materials
-                if any(
-                    mdl.hasMaterialVariablesForLocation(self, loc, mat)
-                    for mdl in self.componentModelingDict.values()
-                )
-            )
-
-        pyM.locationMaterialSet = pyomo.Set(
-            dimen=2, initialize=initLocationMaterialSet
-        )
-
-
-        def materialBalanceConstraint(pyM, loc, mat, ip, p, t):
-            return (
-                0,  # Lower bound set to 0
-                sum(
-                    mdl.getMaterialBalanceContribution(pyM, mat, loc, ip, p, t)
-                    for mdl in self.componentModelingDict.values()
-                ),
-                self.processedMaterialBalanceLimit[ip][mat][loc]
-            )
-
-        
-        # Step 3: Apply the constraint to Pyomo
-        pyM.materialBalanceConstraint = pyomo.Constraint(
-            pyM.locationMaterialSet, pyM.timeSet, rule=materialBalanceConstraint
-        )
-        
 
     def declareObjective(self, pyM):
         """
@@ -1892,10 +1838,6 @@ class EnergySystemModel:
         self.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
-        # Declare material balance constraints (one balance constraint for each commodity, location and time step)
-        _t = time.time()
-        self.declareMaterialBalanceConstraints(pyM)
-        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################
         #                                         Declare objective function                                           #
