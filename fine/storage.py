@@ -290,7 +290,7 @@ class Storage(Component):
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,
         # selfDischarge, cyclicLifetime, stateOfChargeMin, stateOfChargeMax, isPeriodicalStorage, doPreciseTsaModeling,
         # relaxedPeriodConnection
-        self.commodity = commodity
+        self.commodity = commodity        # is this required for storage? Maybe later if stocks are inculded 
         if commodity:
             utils.checkCommodities(esM, {commodity})
             self.commodityUnit = esM.commodityUnitsDict[commodity]

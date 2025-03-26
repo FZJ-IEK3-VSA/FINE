@@ -1271,6 +1271,29 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet4),
         )
 
+    def declareOpConstrSet5(self, pyM, constrSetName):
+        """
+        Declare operating mode set 5 for material consumption.
+        This set is used for constraints where the operation (i.e. material consumption)
+        is defined without the high-resolution time index 't'.
+        Typically, the index is (loc, compName, ip, p) instead of (loc, compName, ip, p, t).
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        def declareOpConstrSet5(pyM):
+            return(
+                (loc, compName, ip)
+                for loc, compName, ip in varSet
+                if compDict[compName].materials is not None                              # here the materials bool is called which is not implemented properly (I guess)
+            )
+        
+        setattr(
+            pyM,
+            constrSetName + "5_" + abbrvName,
+            pyomo.Set(dimen=3, initialize=declareOpConstrSet5)                           # check if p as a parameter has to be called
+        )
+
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
         """
         Declare set of locations and components for which partLoadMin is not None.
@@ -1317,7 +1340,9 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet3(pyM, constrSetName, rateMax)
         if rateMin:
             self.declareOpConstrSet4(pyM, constrSetName, rateMin)
-
+        if materials: 
+            self.declareOpConstrSet5(pyM, constrSetName)
+            
         self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
 
     def declareYearlyFullLoadHoursMinSet(self, pyM):
@@ -2610,6 +2635,51 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
+    def operationMaterialConsumption(
+        self,
+        pyM,
+        esM,
+        constrName,
+        constrSetName,
+        opVarName,
+        materialIntensityName
+    ):
+        """
+        Define operation mode 5 for material sinks.
+    
+        This mode calculates the material consumption flow as:
+    
+            opVar[loc, comp, ip, p, t] = commisVar[loc, comp, ip] * materialIntensity
+
+        where:
+          - opVar is the sink's operation variable (interpreted as material consumption),
+          - commisVar is the commissioning variable,
+          - materialIntensity is a component attribute (accessed via materialIntensityName),
+          - The constraint is applied over a set (e.g. a design set for material consumption indices)
+            defined in pyM as: constrSetName + "5_" + abbrvName.
+    
+        This equality sets the consumption flow; then, a separate system-level constraint should ensure
+        that the sum of material consumption across components does not exceed the available material supply.
+        """
+                                                                                                 
+        # call arguments
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar = getattr(pyM, opVarName + "_" + abbrvName)
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+        materialIntensity = getattr(pyM, materialIntensityName + "_" + abbrvName)                 # add to op5 Set
+        constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)                               # constraint set 5 yet to be defined 
+
+        def materialConsConstr(pyM, loc, compName, ip):                                                       # for now include p for intra year variations
+            # Get material intensity for given component
+            intensity = getattr(compDict[compName], materialIntensityName)
+            # Enforce equality that defines material consumption
+            return sum(opVar[loc, compName, ip, p, t] for p in esM.typicalPeriods for t in esM.hoursPerSegment) == commisVar[loc, compName, ip] * materialIntensity[loc, compName, ip, materialIndex] # add material index
+        
+        setattr(
+            pyM,
+            constrName,
+            pyomo.Constraint(constrSet5, pyM.intraYearTimeSet, rule=materialConsConstr)
+        )
 
     def additionalMinPartLoad(
         self,

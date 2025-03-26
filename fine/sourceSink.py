@@ -299,6 +299,11 @@ class Source(Component):
             utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
             self.commodityUnit = esM.commodityUnitsDict[commodity]
 
+        self.materials = materials    
+        if materials:
+            utils.isEnergySystemModelInstance(esM), utils.checkMaterials(esM, {materials}) # are utils functions called?
+            self.commodityUnit = esM.materialUnitsDict[materials]
+
 
         # TODO check value and type correctness
         self.commodityLimitID = commodityLimitID
@@ -913,11 +918,16 @@ class SourceSinkModel(ComponentModel):
         # Operation [commodityUnit*h] limited(min) by the installed capacity [commodityUnit] multiplied by operation time
         # series [-] and the hours per time step [h])
         self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+
+        ############################################################
+        #              here, call materialOperation                #
+        ############################################################
+        
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )
-
+        
         self.yearlyLimitationConstraint(pyM, esM)
 
     ####################################################################################################################
