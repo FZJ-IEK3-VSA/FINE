@@ -59,6 +59,7 @@ class Source(Component):
         etlParameter=None,
         materialIntensity=None,
         materialRecovery=None,
+        material=None,
     ):
         """
         Constructor for creating an Source class instance.
@@ -292,18 +293,21 @@ class Source(Component):
             materialRecovery=materialRecovery,
         )
 
-        # Set general source/sink data: ID and yearly limit
-        #utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
-        self.commodity = commodity
-        if commodity:
+        # if materials are called then only the material subset as a commodity is initiated 
+        if material:
+            self.material = material
+            self.onlymaterials, self.onlymaterialUnit = (
+                material, 
+                esM.onlymaterialUnitsDict[material],
+            )
+        # else, the energy commodity from the subset is initiated 
+        else:
+            # Set general source/sink data: ID and yearly limit
             utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
-            self.commodityUnit = esM.commodityUnitsDict[commodity]
-
-        self.materials = materials    
-        if materials:
-            utils.isEnergySystemModelInstance(esM), utils.checkMaterials(esM, {materials}) # are utils functions called?
-            self.commodityUnit = esM.materialUnitsDict[materials]
-
+            self.commodity, self.commodityUnit = (
+                commodity,
+                esM.commodityUnitsDict[commodity],
+            )
 
         # TODO check value and type correctness
         self.commodityLimitID = commodityLimitID
@@ -567,6 +571,7 @@ class Source(Component):
             ip,
         )
 
+# inclusion of material arguments required? architecture of sourceSink construction not clear yet 
 
 class Sink(Source):
     """
@@ -617,6 +622,9 @@ class Sink(Source):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        materialIntensity=None,
+        materialRecovery=None,
+        material=None,
     ):
         """
         Constructor for creating a Sink class instance.
@@ -669,6 +677,9 @@ class Sink(Source):
             pathwayBalanceLimitID=pathwayBalanceLimitID,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            materialIntensity=materialIntensity,
+            materialRecovery=materialRecovery,
+            material=material,
         )
 
         self.sign = -1

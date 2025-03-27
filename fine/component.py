@@ -52,6 +52,7 @@ class Component(metaclass=ABCMeta):
         etlParameter=None,
         materialIntensity=None,
         materialRecovery=None,
+        material=None,    # add attribute consistently
     ):
         """
         Constructor for creating an instance of the Component class.
@@ -708,6 +709,7 @@ class Component(metaclass=ABCMeta):
         # add materialConsumption and materialRecovery if declared 
         self.materialIntensity = materialIntensity
         self.materialRecovery = materialRecovery 
+        self.materials = materials 
 
 
         ########################
@@ -1340,7 +1342,8 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet3(pyM, constrSetName, rateMax)
         if rateMin:
             self.declareOpConstrSet4(pyM, constrSetName, rateMin)
-        if materials: 
+        # if sink is supposed to capture material consumption, initiate material consumption set 
+        if material: 
             self.declareOpConstrSet5(pyM, constrSetName)
             
         self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
