@@ -709,7 +709,7 @@ class Component(metaclass=ABCMeta):
         # add materialConsumption and materialRecovery if declared 
         self.materialIntensity = materialIntensity
         self.materialRecovery = materialRecovery 
-        self.materials = materials 
+        self.material= material
 
 
         ########################
@@ -962,6 +962,26 @@ class ComponentModel(metaclass=ABCMeta):
             "designDimensionVarSet_" + abbrvName,
             pyomo.Set(dimen=3, initialize=declareDesignVarSet),
         )
+
+
+    def declareMaterialVarSet(self, pyM, esM):
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+
+        def declareMaterialSet(pyM):
+            return (
+                (loc, compName, mat, ip)
+                for compName, comp in compDict.items()
+                for loc in comp['processedLocationalEligibility'].keys()
+                for mat in comp['materialIntensity'].keys() | comp['materialRecovery'].keys() 
+                for ip in esM.investmentPeriods
+            )
+
+        setattr(
+            pyM,
+            "materialSet_" + abbrvName,
+            pyomo.Set(dimen=4, initialize=declareMaterialSet),
+        )
+
 
     def declareLocationComponentSet(self, pyM):
         """
@@ -1287,7 +1307,7 @@ class ComponentModel(metaclass=ABCMeta):
             return(
                 (loc, compName, ip)
                 for loc, compName, ip in varSet
-                if compDict[compName].materials is not None                              # here the materials bool is called which is not implemented properly (I guess)
+                if compDict[compName].material is not None                              # here the material bool is called which is not implemented properly (I guess)
             )
         
         setattr(
@@ -1317,7 +1337,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareOperationModeSets(
-        self, pyM, constrSetName, rateMax, rateFix, rateMin=None
+        self, pyM, constrSetName, rateMax, rateFix, rateMin=None, material=None
     ):
         """
         Declare operating mode sets.
@@ -1526,6 +1546,40 @@ class ComponentModel(metaclass=ABCMeta):
                 domain=pyomo.NonNegativeReals,
             ),
         )
+
+
+    def declareMaterialVars(self, pyM, esM):
+        """
+        Declare variables for material intensity and recovery.
+
+        :param pyM: Pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo.ConcreteModel
+
+        :param esM: Energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+        """
+
+        abbrvName = self.abbrvName
+
+        setattr(
+            pyM,
+            "materialIntensity_" + abbrvName,
+            pyomo.Var(
+                getattr(pyM, "materialSet_" + abbrvName),
+                domain=pyomo.NonNegativeReals,
+            ),
+        )
+
+        setattr(
+            pyM,
+            "materialRecovery_" + abbrvName,
+            pyomo.Var(
+                getattr(pyM, "materialSet_" + abbrvName),
+                domain=pyomo.NonNegativeReals,
+            ),
+        )
+
+
 
     def declareRealNumbersVars(self, pyM):
         """
@@ -2645,7 +2699,8 @@ class ComponentModel(metaclass=ABCMeta):
         constrName,
         constrSetName,
         opVarName,
-        materialIntensityName
+        materialIntensity,
+        material
     ):
         """
         Define operation mode 5 for material sinks.
@@ -2669,14 +2724,14 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
         commisVar = getattr(pyM, "commis_" + abbrvName)
-        materialIntensity = getattr(pyM, materialIntensityName + "_" + abbrvName)                 # add to op5 Set
+        materialIntensity = getattr(pyM, materialIntensity + "_" + abbrvName)                 # add to op5 Set
         constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)                               # constraint set 5 yet to be defined 
 
         def materialConsConstr(pyM, loc, compName, ip):                                                       # for now include p for intra year variations
             # Get material intensity for given component
-            intensity = getattr(compDict[compName], materialIntensityName)
+            #intensity = getattr(compDict[compName], materialIntensityName)
             # Enforce equality that defines material consumption
-            return sum(opVar[loc, compName, ip, p, t] for p in esM.typicalPeriods for t in esM.hoursPerSegment) == commisVar[loc, compName, ip] * materialIntensity[loc, compName, ip, materialIndex] # add material index
+            return sum(opVar[loc, compName, ip, p, t] for p in esM.typicalPeriods for t in esM.hoursPerSegment) == commisVar[loc, compName, ip] * materialIntensity[loc, compName, ip, material] # add material index
         
         setattr(
             pyM,
