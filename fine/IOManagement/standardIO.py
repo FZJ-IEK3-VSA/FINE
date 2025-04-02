@@ -8,6 +8,12 @@ import warnings
 from functools import wraps
 import matplotlib.patches as mpatches
 
+
+#abbreviated class names necessary for saving into excel files as sheet names are restricted by string length
+abbreviatedClassName = {"ConversionDynamicModel" : "ConvDyn",
+                         "ConversionPartLoad" : "ConvPartLoad" }
+
+
 try:
     import geopandas as gpd
 except ImportError:
@@ -87,6 +93,11 @@ def writeOptimizationOutputToExcel(
         writer = pd.ExcelWriter(_outputFileName + ".xlsx")
 
         for name in esM.componentModelingDict.keys():
+            if name in abbreviatedClassName.keys():
+                abbreviatedName = abbreviatedClassName[name]
+            else: 
+                abbreviatedName = name[:-5] #last 5 letters are "Model" and cut off
+                
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
             oL_ = oL[name] if isinstance(oL, dict) else oL
@@ -95,7 +106,7 @@ def writeOptimizationOutputToExcel(
             if not optSum.empty:
                 optSum.to_excel(
                     writer,
-                    sheet_name=name[:-5]
+                    sheet_name=abbreviatedName
                     + "OptSummary_"
                     + esM.componentModelingDict[name].dimension,
                 )
@@ -123,7 +134,7 @@ def writeOptimizationOutputToExcel(
                         ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
                     ]
                 if not dfTD1dim.empty:
-                    dfTD1dim.to_excel(writer, sheet_name=name[:-5] + "_TDoptVar_1dim")
+                    dfTD1dim.to_excel(writer, sheet_name=abbreviatedName + "_TDoptVar_1dim")
             if dataTD2dim:
                 names = ["Variable", "Component", "LocationIn", "LocationOut"]
                 dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
@@ -132,7 +143,7 @@ def writeOptimizationOutputToExcel(
                         ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
                     ]
                 if not dfTD2dim.empty:
-                    dfTD2dim.to_excel(writer, sheet_name=name[:-5] + "_TDoptVar_2dim")
+                    dfTD2dim.to_excel(writer, sheet_name=abbreviatedName + "_TDoptVar_2dim")
             if dataTI:
                 if esM.componentModelingDict[name].dimension == "1dim":
                     names = ["Variable type", "Component"]
@@ -144,7 +155,7 @@ def writeOptimizationOutputToExcel(
                 if not dfTI.empty:
                     dfTI.to_excel(
                         writer,
-                        sheet_name=name[:-5]
+                        sheet_name=abbreviatedName
                         + "_TIoptVar_"
                         + esM.componentModelingDict[name].dimension,
                     )
