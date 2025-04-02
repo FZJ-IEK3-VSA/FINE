@@ -50,7 +50,7 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     for transmission_class in ["LinearOptimalPowerFlow", "Transmission"]:
         for tech in component_dict[transmission_class].keys():
             _mapC_dict[tech] = esM.getComponent(tech)._mapC
-            
+
     # STEP 4. Add all df variables to xr_ds
     xr_dss = utilsIO.addDFVariablesToXarray(
         xr_dss, component_dict, df_iteration_dict, _mapC_dict, list(esM.locations)
@@ -72,9 +72,7 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     attributes_xr = xr.Dataset()
     attributes_xr.attrs = esm_dict
 
-    xr_dss = {"Input": xr_dss, "Parameters": attributes_xr}
-
-    return xr_dss
+    return {"Input": xr_dss, "Parameters": attributes_xr}
 
 
 def convertPerformanceSummaryToDatasets(esM):
@@ -92,9 +90,7 @@ def convertPerformanceSummaryToDatasets(esM):
     summary_xr = xr.Dataset()
     summary_xr.attrs = summary_dict
 
-    xr_dss = {"PerformanceSummary": summary_xr}
-
-    return xr_dss
+    return {"PerformanceSummary": summary_xr}
 
 
 def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
@@ -135,10 +131,10 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 for component in optSum.index.get_level_values(0).unique():
                     for variable in (
                         optSum.loc[component].index.get_level_values(0).unique()
-                        ):
+                    ):
                         df_o = optSum.loc[(component, variable)]
                         # differentiate if two entries per variable
-                        if df_o.shape[0]==2:
+                        if df_o.shape[0] == 2:
                             df = df_o.iloc[0].copy()
                             df.name = variable
                             df.index.rename("space", inplace=True)
@@ -149,9 +145,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             xr_da.attrs[variable] = unit
                             # merge to overall xr_dss
                             xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da],
-                            combine_attrs="drop_conflicts",
-                            )                           
+                                [xr_dss[ip][name][component], xr_da],
+                                combine_attrs="drop_conflicts",
+                            )
                             # if a variable occurs twice keep both in separate lines, example: operation_annual, operation
                             df = df_o.iloc[1].copy()
                             df.name = f"{variable}_{1}"
@@ -160,7 +156,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[1].name
-                            xr_da.attrs[df.name] = unit    
+                            xr_da.attrs[df.name] = unit
                         else:
                             df = df_o.iloc[-1]
                             df.name = variable
@@ -170,7 +166,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[-1].name
                             xr_da.attrs[variable] = unit
-                        
+
                         # merge to overall xr_ds
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
@@ -182,8 +178,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         optSum.loc[component].index.get_level_values(0).unique()
                     ):
                         df_o = optSum.loc[(component, variable)]
-                        if "operation" in variable or variable=="operation":
-                            df = df_o.iloc[0:2,:].copy()
+                        if "operation" in variable or variable == "operation":
+                            df = df_o.iloc[0:2, :].copy()
                             if len(df.index.get_level_values(0).unique()) > 1:
                                 idx = df.index.get_level_values(0).unique()[-1]
                                 df = df.xs(idx, level=0)
@@ -195,7 +191,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df = pd.to_numeric(df)
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            unit = df_o.iloc[0:2,:].index.get_level_values(0)[0]
+                            unit = df_o.iloc[0:2, :].index.get_level_values(0)[0]
                             xr_da.attrs[variable] = unit
                             # merge to overall xr_ds
                             xr_dss[ip][name][component] = xr.merge(
@@ -204,7 +200,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             )
 
                             # if a variable occurs twice keep both in separate lines, example: operation_annual, operation
-                            df = df_o.iloc[2:4,:].copy()
+                            df = df_o.iloc[2:4, :].copy()
                             if len(df.index.get_level_values(0).unique()) > 1:
                                 idx = df.index.get_level_values(0).unique()[-1]
                                 df = df.xs(idx, level=0)
@@ -216,7 +212,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df = pd.to_numeric(df)
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            unit = df_o.iloc[2:4,:].index.get_level_values(0)[0]
+                            unit = df_o.iloc[2:4, :].index.get_level_values(0)[0]
                             xr_da.attrs[df.name] = unit
 
                         else:
@@ -351,9 +347,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             xr_dss[ip][name][component].coords["space_2"].astype(str)
                         )
 
-    xr_dss = {"Results": xr_dss}
-
-    return xr_dss
+    return {"Results": xr_dss}
 
 
 def writeDatasetsToNetCDF(
@@ -408,7 +402,7 @@ def writeDatasetsToNetCDF(
             pass
 
     for group in datasets.keys():
-        if group == "Parameters" or group == "PerformanceSummary":
+        if group in ("Parameters", "PerformanceSummary"):
             xarray_dataset = datasets[group]
             _xarray_dataset = (
                 xarray_dataset.copy()
@@ -673,9 +667,13 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 [optSum_df_comp, _optSum_df],
                                 axis=0,
                             )
-    
-                        if "operation" in variable and "_1" in variable:                                            # operation needed to be renamed in conversion
-                            optSum_df_comp = optSum_df_comp.rename(index={variable:variable.replace("_1", "")})     # to dataset and xarray and now is renamed to operation again
+
+                        if (
+                            "operation" in variable and "_1" in variable
+                        ):  # operation needed to be renamed in conversion
+                            optSum_df_comp = optSum_df_comp.rename(
+                                index={variable: variable.replace("_1", "")}
+                            )  # to dataset and xarray and now is renamed to operation again
 
                     if isinstance(optSum_df_comp, pd.Series):
                         optSum_df_comp = optSum_df_comp.to_frame().T
@@ -1195,6 +1193,5 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     xr_dss = readNetCDFToDatasets(filePath, groupPrefix)
 
     # xarray dataset to esm
-    esM = convertDatasetsToEnergySystemModel(xr_dss)
-
-    return esM
+    # return esm
+    return convertDatasetsToEnergySystemModel(xr_dss)

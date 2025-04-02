@@ -49,11 +49,9 @@ def rasterize_geometry(geometry, coords, latitude="y", longitude="x"):
     # STEP 2. Get the raster mask
     out_shape = (len(lat), len(lon))
 
-    raster = features.rasterize(
+    return features.rasterize(
         [geometry], out_shape=out_shape, fill=np.nan, transform=transform, dtype=float
     )
-
-    return raster
 
 
 def rasterize_xr_ds(
@@ -126,8 +124,7 @@ def rasterize_xr_ds(
     if isinstance(shp_file, str):
         if not os.path.isfile(shp_file):
             raise FileNotFoundError("The shp_file path specified is not valid")
-        else:
-            shp_file = gpd.read_file(shp_file)
+        shp_file = gpd.read_file(shp_file)
 
     elif not isinstance(shp_file, gpd.geodataframe.GeoDataFrame):
         raise TypeError(

@@ -43,7 +43,6 @@ def test_export_to_dict_minimal(minimal_test_esM):
             ),
         )
     )
-    
 
     expected_Electrolyzers_investPerCapacity = minimal_test_esM.getComponentAttribute(
         "Electrolyzers", "investPerCapacity"
@@ -55,32 +54,38 @@ def test_export_to_dict_minimal(minimal_test_esM):
         "Industry site", "operationRateFix"
     )
     import pandas as pd
+
     investPerCapacity = pd.DataFrame(
-                [[0.177, 0.17], [0.177, 0.14]],
-                index=["ElectrolyzerLocation", "IndustryLocation"],
-                columns=["ElectrolyzerLocation", "IndustryLocation"],
-            )
+        [[0.177, 0.17], [0.177, 0.14]],
+        index=["ElectrolyzerLocation", "IndustryLocation"],
+        columns=["ElectrolyzerLocation", "IndustryLocation"],
+    )
     operationRateMax = pd.DataFrame(
-            0.8,
-            index=range(0, 4),
-            columns=[
-                "ElectrolyzerLocation_IndustryLocation",
-                "IndustryLocation_ElectrolyzerLocation",
-            ],
-        )
-    
-    minimal_test_esM.updateComponent("Pipelines",{"investPerCapacity": investPerCapacity})
-    minimal_test_esM.updateComponent("Pipelines",{"operationRateMax": operationRateMax})
+        0.8,
+        index=range(0, 4),
+        columns=[
+            "ElectrolyzerLocation_IndustryLocation",
+            "IndustryLocation_ElectrolyzerLocation",
+        ],
+    )
+
+    minimal_test_esM.updateComponent(
+        "Pipelines", {"investPerCapacity": investPerCapacity}
+    )
+    minimal_test_esM.updateComponent(
+        "Pipelines", {"operationRateMax": operationRateMax}
+    )
     expected_Transmission_investPerCapacity = minimal_test_esM.getComponentAttribute(
         "Pipelines", "investPerCapacity"
     )
     # for xarray, 2dim data that is not a transmission is converted to series
-    expected_Transmission_investPerCapacity = fn.utils.preprocess2dimData(expected_Transmission_investPerCapacity)
-    
+    expected_Transmission_investPerCapacity = fn.utils.preprocess2dimData(
+        expected_Transmission_investPerCapacity
+    )
+
     expected_Transmission_operationRateMax = minimal_test_esM.getComponentAttribute(
         "Pipelines", "operationRateMax"
     )
-
 
     # FUNCTION CALL
     output_esm_dict, output_comp_dict = fn.dictIO.exportToDict(minimal_test_esM)
@@ -96,8 +101,8 @@ def test_export_to_dict_minimal(minimal_test_esM):
     )
     output_Transmission_investPerCapacity = (
         output_comp_dict.get("Transmission").get("Pipelines").get("investPerCapacity")
-    ) # invest per capacity should be processed as pandas series
-    
+    )  # invest per capacity should be processed as pandas series
+
     output_Transmission_operationRateMax = (
         output_comp_dict.get("Transmission").get("Pipelines").get("operationRateMax")
     )
@@ -111,8 +116,13 @@ def test_export_to_dict_minimal(minimal_test_esM):
         output_Source_operationRateMax
     )
     assert expected_Industrysite_operationRateFix.equals(output_Sink_operationRateFix)
-    assert expected_Transmission_investPerCapacity.equals(output_Transmission_investPerCapacity)
-    assert expected_Transmission_operationRateMax.equals(output_Transmission_operationRateMax)
+    assert expected_Transmission_investPerCapacity.equals(
+        output_Transmission_investPerCapacity
+    )
+    assert expected_Transmission_operationRateMax.equals(
+        output_Transmission_operationRateMax
+    )
+
 
 def test_export_to_dict_singlenode(single_node_test_esM):
     # EXPECTED

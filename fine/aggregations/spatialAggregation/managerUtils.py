@@ -1,5 +1,5 @@
 """
-Functions to assist spatial aggregation 
+Functions to assist spatial aggregation
 """
 
 import warnings

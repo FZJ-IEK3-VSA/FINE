@@ -7,6 +7,7 @@ import warnings
 
 # ruff: noqa
 
+
 class ConversionDynamic(Conversion):
     """
     Extension of the conversion class with more specific ramping behavior

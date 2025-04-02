@@ -1,5 +1,4 @@
-"""Functions to assist spatial grouping algorithms. 
-"""
+"""Functions to assist spatial grouping algorithms."""
 
 import warnings
 import numpy as np
