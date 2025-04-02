@@ -20,7 +20,11 @@ def test_CO2ReductionTargets():
     numberOfTimeSteps, hoursPerTimeStep = 8760, 1
     costUnit, lengthUnit = "1e6 Euro", "km"
     CO2_reductionTarget = 0.8
-    balanceLimit = pd.DataFrame(index=["CO2 limit"], columns=["Total", "lowerBound"], data=[[-366 * (1 - CO2_reductionTarget), True]])
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -31,7 +35,7 @@ def test_CO2ReductionTargets():
         costUnit=costUnit,
         lengthUnit=lengthUnit,
         verboseLogLevel=0,
-        balanceLimit=balanceLimit
+        balanceLimit=balanceLimit,
     )
 
     # Add Source Components
@@ -280,7 +284,7 @@ def test_CO2ReductionTargets():
             name=name,
             commodity=commodity,
             hasCapacityVariable=hasCapacityVariable,
-            balanceLimitID = "CO2 limit"
+            balanceLimitID="CO2 limit",
         )
     )
 

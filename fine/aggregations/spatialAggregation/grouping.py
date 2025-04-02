@@ -1,5 +1,5 @@
 """
-Grouping algorithms determine how to reduce the number of input regions to 
+Grouping algorithms determine how to reduce the number of input regions to
 fewer regions while minimizing information loss.
 """
 

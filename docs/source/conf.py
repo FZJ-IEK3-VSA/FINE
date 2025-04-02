@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # FINE documentation build configuration file, created by
 # sphinx-quickstart on Sat Nov 10 21:04:19 2018.
