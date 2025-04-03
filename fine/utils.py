@@ -2012,9 +2012,15 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
         if data is not None and isinstance(data, pd.DataFrame):
             if mapC is None:
                 index, data_ = [], []
+                counter=0
+                if data.isnull().values.any():
+                    data.fillna(0,inplace=True)
+                    warnings.warn('Invalid input.  A matrix contains NaNs. NaN-values are adapted to Zero automatically. Please check your input!')
+
                 for loc1 in data.columns:
                     for loc2 in data.index:
                         if loc1 != loc2:
+
                             if discard:
                                 # Structure: data[column][row]
                                 if data[loc1][loc2] > 0:
@@ -2028,6 +2034,13 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                                         index.append(loc1 + "_" + loc2),
                                         data_.append(data[loc1][loc2]),
                                     )
+                        else:
+                            if counter==0:
+                                if data[loc1][loc2]!=0:
+                                    warnings.warn('Matrix diagonale contains Non-Zeros. Location is connected to itself. Matrix adapted automatically. Please check your input!')
+                                    counter=counter+1
+
+
                 data_ = pd.Series(data_, index=index)
                 data_.sort_index(inplace=True)
                 return data_
