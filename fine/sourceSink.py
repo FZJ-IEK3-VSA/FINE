@@ -59,7 +59,7 @@ class Source(Component):
         etlParameter=None,
         materialIntensity=None,
         materialRecovery=None,
-        material=None,
+        material=False,
     ):
         """
         Constructor for creating an Source class instance.
@@ -291,23 +291,15 @@ class Source(Component):
             etlParameter=etlParameter,
             materialIntensity=materialIntensity,
             materialRecovery=materialRecovery,
+            material=material,
         )
 
-        # if materials are called then only the material subset as a commodity is initiated 
-        if material:
-            self.material = material
-            self.onlymaterials, self.onlymaterialUnit = (
-                material, 
-                esM.onlymaterialUnitsDict[material],
-            )
-        # else, the energy commodity from the subset is initiated 
-        else:
-            # Set general source/sink data: ID and yearly limit
-            utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
-            self.commodity, self.commodityUnit = (
-                commodity,
-                esM.commodityUnitsDict[commodity],
-            )
+        # Set general source/sink data: ID and yearly limit
+        utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
+        self.commodity, self.commodityUnit = (
+            commodity,
+            esM.commodityUnitsDict[commodity],
+        )
 
         # TODO check value and type correctness
         self.commodityLimitID = commodityLimitID
@@ -454,6 +446,10 @@ class Source(Component):
             self.hasCapacityVariable,
             operationTimeSeries,
         )
+
+        # set material bool #########
+        self.material =material 
+        #############################
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -624,7 +620,7 @@ class Sink(Source):
         floorTechnicalLifetime=True,
         materialIntensity=None,
         materialRecovery=None,
-        material=None,
+        material=False,
     ):
         """
         Constructor for creating a Sink class instance.
@@ -931,10 +927,10 @@ class SourceSinkModel(ComponentModel):
         self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
 
         ############################################################
-        #              here, call materialOperation                #
+        self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
         ############################################################
         
-        # Operation [physicalUnit*h] is limited by minimum part Load
+        # Operation [physicalUnit*h] is limited by minimum part LoadHahah 
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )

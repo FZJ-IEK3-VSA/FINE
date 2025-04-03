@@ -1298,22 +1298,24 @@ class ComponentModel(metaclass=ABCMeta):
         Declare operating mode set 5 for material consumption.
         This set is used for constraints where the operation (i.e. material consumption)
         is defined without the high-resolution time index 't'.
-        Typically, the index is (loc, compName, ip, p) instead of (loc, compName, ip, p, t).
+        Typically, the index is (loc, compName, mat, ip).
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationVarSet_" + abbrvName)
-
+    
         def declareOpConstrSet5(pyM):
-            return(
-                (loc, compName, ip)
+            # For each tuple (loc, compName ip) in the existing operation variable set,
+            # iterate over all materials for the given component.
+            return (
+                (loc, compName, mat, ip)
                 for loc, compName, ip in varSet
-                if compDict[compName].material is not None                              # here the material bool is called which is not implemented properly (I guess)
+                for mat in compDict[compName].material
             )
-        
+    
         setattr(
             pyM,
             constrSetName + "5_" + abbrvName,
-            pyomo.Set(dimen=3, initialize=declareOpConstrSet5)                           # check if p as a parameter has to be called
+            pyomo.Set(dimen=4, initialize=declareOpConstrSet5)
         )
 
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
@@ -1558,7 +1560,11 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: Energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
+        # Check if materialSet exists before declaring variables
+        if not hasattr(pyM, "materialSet_" + abbrvName):
+            raise AttributeError(f"Set materialSet_{abbrvName} is missing in pyM! Make sure declareMaterialVarSet() is called first.")
 
+        print(f"Declaring material variables for {abbrvName}")
         abbrvName = self.abbrvName
 
         setattr(
@@ -2692,6 +2698,7 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
+    # gain understanding of variable calls in operationModes
     def operationMaterialConsumption(
         self,
         pyM,
@@ -2699,8 +2706,6 @@ class ComponentModel(metaclass=ABCMeta):
         constrName,
         constrSetName,
         opVarName,
-        materialIntensity,
-        material
     ):
         """
         Define operation mode 5 for material sinks.
@@ -2719,23 +2724,23 @@ class ComponentModel(metaclass=ABCMeta):
         This equality sets the consumption flow; then, a separate system-level constraint should ensure
         that the sum of material consumption across components does not exceed the available material supply.
         """
-                                                                                                 
+        print("Vorhandene Attribute im Modell:", dir(pyM))                                                                                          
         # call arguments
+        
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
         commisVar = getattr(pyM, "commis_" + abbrvName)
-        materialIntensity = getattr(pyM, materialIntensity + "_" + abbrvName)                 # add to op5 Set
+        materialIntensity = getattr(pyM, "materialIntensity_" + abbrvName)                        # add to op5 Set
         constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)                               # constraint set 5 yet to be defined 
 
-        def materialConsConstr(pyM, loc, compName, ip):                                                       # for now include p for intra year variations
+        def materialConsConstr(pyM, loc, compName, mat, ip):                                                       # for now include p for intra year variations
             # Get material intensity for given component
-            #intensity = getattr(compDict[compName], materialIntensityName)
             # Enforce equality that defines material consumption
-            return sum(opVar[loc, compName, ip, p, t] for p in esM.typicalPeriods for t in esM.hoursPerSegment) == commisVar[loc, compName, ip] * materialIntensity[loc, compName, ip, material] # add material index
+            return sum(opVar[loc, compName, ip, p, t] for p in esM.typicalPeriods for t in esM.hoursPerSegment) == commisVar[loc, compName, ip] * materialIntensity[loc, compName, mat, ip]
         
         setattr(
             pyM,
-            constrName,
+            constrName + "5_" + abbrvName,
             pyomo.Constraint(constrSet5, pyM.intraYearTimeSet, rule=materialConsConstr)
         )
 
