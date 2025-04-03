@@ -5,32 +5,31 @@ Created on Thu Nov  8 10:02:46 2018
 """
 
 import pandas as pd
-import os
 from pathlib import Path
 
 
 def getData(engine="openpyxl"):
     current_directory = Path(__file__).parent.absolute()
-    inputDataPath = os.path.join(current_directory, "InputData")
+    inputDataPath = Path(current_directory) / "InputData"
     data = {}
 
     # Locations
     locations = set(
-        pd.read_excel(os.path.join(inputDataPath, "Locations.xlsx"), engine=engine)
+        pd.read_excel(Path(inputDataPath) / "Locations.xlsx", engine=engine)
     )
 
     data.update({"locations": locations})
 
     # PV data
     gen_capacityMax = pd.read_excel(
-        os.path.join(inputDataPath, "PV_Capacity.xlsx"),
+        Path(inputDataPath) / "PV_Capacity.xlsx",
         sheet_name="GenerationCapacities",
         index_col=0,
         engine=engine,
     )
     gen_capacityMax = gen_capacityMax.loc["PV_south"].T
     gen_operationRateMax = pd.read_excel(
-        os.path.join(inputDataPath, "PV_Generation.xlsx"), engine=engine
+        Path(inputDataPath) / "PV_Generation.xlsx", engine=engine
     )
 
     data.update({"PV, capacityMax": gen_capacityMax})
@@ -38,7 +37,7 @@ def getData(engine="openpyxl"):
 
     # Heat & Battery Storage
     st_capacityMax = pd.read_excel(
-        os.path.join(inputDataPath, "Storage_capacities.xlsx"),
+        Path(inputDataPath) / "Storage_capacities.xlsx",
         index_col=0,
         engine=engine,
     )
@@ -50,12 +49,12 @@ def getData(engine="openpyxl"):
 
     # Transmission Technologies
     tr_distances_el = pd.read_excel(
-        os.path.join(inputDataPath, "grid_length_matrix.xlsx"),
+        Path(inputDataPath) / "grid_length_matrix.xlsx",
         index_col=0,
         engine=engine,
     )
     tr_capacityFix_el = pd.read_excel(
-        os.path.join(inputDataPath, "grid_capacity_matrix.xlsx"),
+        Path(inputDataPath) / "grid_capacity_matrix.xlsx",
         index_col=0,
         engine=engine,
     )
@@ -68,10 +67,10 @@ def getData(engine="openpyxl"):
 
     # Denand Data
     Edemand_operationRateFix = pd.read_excel(
-        os.path.join(inputDataPath, "E_Demand.xlsx"), engine=engine
+        Path(inputDataPath) / "E_Demand.xlsx", engine=engine
     )
     Hdemand_operationRateFix = pd.read_excel(
-        os.path.join(inputDataPath, "Heat_Demand.xlsx"), engine=engine
+        Path(inputDataPath) / "Heat_Demand.xlsx", engine=engine
     )
 
     data.update({"Electricity demand, operationRateFix": Edemand_operationRateFix})
@@ -79,12 +78,12 @@ def getData(engine="openpyxl"):
 
     # Purchase Data
     Pu_operationRateMax_El = pd.read_excel(
-        os.path.join(inputDataPath, "purchaseElectricity.xlsx"),
+        Path(inputDataPath) / "purchaseElectricity.xlsx",
         index_col=0,
         engine=engine,
     )
     Pu_operationRateMax_NG = pd.read_excel(
-        os.path.join(inputDataPath, "purchaseNaturalGas.xlsx"),
+        Path(inputDataPath) / "purchaseNaturalGas.xlsx",
         index_col=0,
         engine=engine,
     )

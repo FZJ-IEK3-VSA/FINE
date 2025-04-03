@@ -1,4 +1,3 @@
-import os
 import pytest
 import numpy as np
 from fine import xarrayIO as xrIO
@@ -88,12 +87,12 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
     aggregated_esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     # if there are no problems, delete the saved files
-    os.remove(os.path.join(PATH_TO_SAVE, netcdf_file_name))
+    Path.unlink(Path(PATH_TO_SAVE) / netcdf_file_name)
 
     file_extensions_list = [".cpg", ".dbf", ".prj", ".shp", ".shx"]
 
     for ext in file_extensions_list:
-        os.remove(os.path.join(PATH_TO_SAVE, f"{shp_file_name}{ext}"))
+        Path.unlink(Path(PATH_TO_SAVE) / f"{shp_file_name}{ext}")
 
 
 def test_error_in_reading_shp(test_esM_for_spagat):
@@ -103,11 +102,7 @@ def test_error_in_reading_shp(test_esM_for_spagat):
 
     ## Case 1: invalid path
     with pytest.raises(FileNotFoundError):
-        SHAPEFILE_PATH = os.path.join(
-            os.path.dirname(__file__),
-            "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-            "InputData/SpatialData/ShapeFiles",
-        )
+        SHAPEFILE_PATH = Path(__file__).parent / "../../../examples/03_Multi-regional_Energy_System_Workflow/" / "InputData/SpatialData/ShapeFiles"
 
         _ = test_esM_for_spagat.aggregateSpatially(
             shapefile=SHAPEFILE_PATH, n_groups=2, solver="glpk"
@@ -121,11 +116,7 @@ def test_error_in_reading_shp(test_esM_for_spagat):
 
     ## Case 3: invalid nRegionsForRepresentation for the shapefile
     with pytest.raises(ValueError):
-        SHAPEFILE_PATH = os.path.join(
-            os.path.dirname(__file__),
-            "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-            "InputData/SpatialData/ShapeFiles/three_regions.shp",
-        )
+        SHAPEFILE_PATH = Path(__file__).parent / "../../../examples/03_Multi-regional_Energy_System_Workflow/" / "InputData/SpatialData/ShapeFiles/three_regions.shp"
 
         _ = test_esM_for_spagat.aggregateSpatially(
             shapefile=SHAPEFILE_PATH, n_groups=5, solver="glpk"
@@ -133,11 +124,7 @@ def test_error_in_reading_shp(test_esM_for_spagat):
 
 
 def test_spatial_aggregation_string_based(test_esM_for_spagat):
-    SHAPEFILE_PATH = os.path.join(
-        os.path.dirname(__file__),
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
-    )
+    SHAPEFILE_PATH = Path(__file__).parent / "../../../examples/03_Multi-regional_Energy_System_Workflow/" / "InputData/SpatialData/ShapeFiles/clusteredRegions.shp"
 
     # FUNCTION CALL
     aggregated_esM = test_esM_for_spagat.aggregateSpatially(
@@ -178,11 +165,7 @@ def test_spatial_aggregation_string_based(test_esM_for_spagat):
 def test_spatial_aggregation_distance_based(
     test_esM_for_spagat, skip_regions, enforced_groups, n_expected_groups
 ):
-    SHAPEFILE_PATH = os.path.join(
-        os.path.dirname(__file__),
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
-    )
+    SHAPEFILE_PATH = Path(__file__).parent / "../../../examples/03_Multi-regional_Energy_System_Workflow/" / "InputData/SpatialData/ShapeFiles/clusteredRegions.shp"
 
     # FUNCTION CALL
     aggregated_esM = test_esM_for_spagat.aggregateSpatially(
@@ -215,11 +198,7 @@ def test_spatial_aggregation_distance_based(
 def test_spatial_aggregation_parameter_based(
     test_esM_for_spagat, aggregation_function_dict, n_regions
 ):
-    SHAPEFILE_PATH = os.path.join(
-        os.path.dirname(__file__),
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
-    )
+    SHAPEFILE_PATH = Path(__file__).parent / "../../../examples/03_Multi-regional_Energy_System_Workflow/" / "InputData/SpatialData/ShapeFiles/clusteredRegions.shp"
 
     # FUNCTION CALL
     aggregated_esM = test_esM_for_spagat.aggregateSpatially(
@@ -241,11 +220,7 @@ def test_spatial_aggregation_parameter_based(
 
 def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):
     esM = balanceLimitConstraint_test_esM[0]
-    SHAPEFILE_PATH = os.path.join(
-        os.path.dirname(__file__),
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
-    )
+    SHAPEFILE_PATH = Path(__file__).parent / "../../../examples/03_Multi-regional_Energy_System_Workflow/" / "InputData/SpatialData/ShapeFiles/clusteredRegions.shp"
 
     gdf = gpd.read_file(SHAPEFILE_PATH)
     gdf = gdf.iloc[:2]

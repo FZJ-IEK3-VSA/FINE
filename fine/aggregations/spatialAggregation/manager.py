@@ -1,6 +1,6 @@
 """Manager function that calls spatial grouping and aggregation algorithm."""
 
-import os
+from pathlib import Path
 import logging
 import warnings
 import difflib

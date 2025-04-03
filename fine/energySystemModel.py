@@ -1,8 +1,9 @@
 import inspect
-import os
+from pathlib import Path
 import time
 import warnings
 import importlib.util
+import os
 
 import gurobi_logtools as glt
 import pandas as pd
@@ -2247,10 +2248,10 @@ class EnergySystemModel:
                 if logFileName == "":
                     gurobi_summary_dict = {}
                 else:
-                    absolute_logFilePath = os.path.abspath(logFileName)
+                    absolute_logFilePath = Path.resolve(logFileName)
                     gurobi_summary_dict = glt.get_dataframe(
                         [
-                            os.path.join(absolute_logFilePath)
+                            Path(absolute_logFilePath)
                         ]  # passed path has to be a list
                     ).T.to_dict()[0]
             else:

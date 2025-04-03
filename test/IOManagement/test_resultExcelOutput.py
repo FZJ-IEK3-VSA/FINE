@@ -1,6 +1,4 @@
-import os
 from pathlib import Path
-
 import pandas as pd
 
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
@@ -8,13 +6,12 @@ from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
 def test_compareResults_miniSystem(minimal_test_esM):
     module_directory = Path(__file__).parent.absolute()
-    dataPath = os.path.join(module_directory, "..", "data")
+    dataPath = Path(module_directory) / ".."/ "data"
 
     # create new result excel files
-    pathWithoutSegmentation_output = os.path.join(dataPath, "output_result_minisystem")
-    pathWithSegmentation_output = os.path.join(
-        dataPath, "output_result_minisystem_segmentation"
-    )
+    pathWithoutSegmentation_output = Path(dataPath) / "output_result_minisystem"
+    pathWithSegmentation_output = Path(
+        dataPath) / "output_result_minisystem_segmentation"
     saveExcelResultsWithSegmentation(
         minimal_test_esM, pathWithoutSegmentation_output, pathWithSegmentation_output
     )
@@ -22,12 +19,10 @@ def test_compareResults_miniSystem(minimal_test_esM):
     # compare to correct result excel files
     pathWithoutSegmentation_output = pathWithoutSegmentation_output + ".xlsx"
     pathWithSegmentation_output = pathWithSegmentation_output + ".xlsx"
-    pathWithoutSegmentation_expected = os.path.join(
-        dataPath, "expected_result_minisystem.xlsx"
-    )
-    pathWithSegmentation_expected = os.path.join(
-        dataPath, "expected_result_minisystem_segmentation.xlsx"
-    )
+    pathWithoutSegmentation_expected = Path(
+        dataPath) / "expected_result_minisystem.xlsx"
+    pathWithSegmentation_expected = Path(
+        dataPath) / "expected_result_minisystem_segmentation.xlsx"
 
     compareTwoExcelFiles(
         pathWithoutSegmentation_expected, pathWithoutSegmentation_output
@@ -37,10 +32,9 @@ def test_compareResults_miniSystem(minimal_test_esM):
 
 def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
     module_directory = Path(__file__).parent.absolute()
-    dataPath = os.path.join(module_directory, "..", "data")
-
+    dataPath = Path(module_directory) / ".."/  "data"
     # create new result excel files
-    pathMultiNode_output = os.path.join(dataPath, "output_result_multinode")
+    pathMultiNode_output = Path(dataPath) / "output_result_multinode"
     saveExcelResults(
         multi_node_test_esM_init,
         pathMultiNode_output,
@@ -55,12 +49,11 @@ def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
     # 2.X: 282042.9
     # -- KK
     pathMultiNodeExcel_output = pathMultiNode_output + ".xlsx"
-    pathMultiNodeExcel_expected = os.path.join(
-        dataPath, "expected_result_multinode.xlsx"
-    )
-    pathMultiNodeExcel_expected_pandas1 = os.path.join(
-        dataPath, "expected_result_multinode_pandas1.xlsx"
-    )  # An adaptation of the expected output was necessary due to the changes in MR 368 / Issue 367 which affected the storage (if there is self-discharge and no precise TSA)
+    pathMultiNodeExcel_expected = Path(
+        dataPath) / "expected_result_multinode.xlsx"
+    pathMultiNodeExcel_expected_pandas1 = Path(
+        dataPath) / "expected_result_multinode_pandas1.xlsx"
+      # An adaptation of the expected output was necessary due to the changes in MR 368 / Issue 367 which affected the storage (if there is self-discharge and no precise TSA)
 
     try:
         compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)

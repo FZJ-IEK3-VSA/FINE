@@ -1,13 +1,12 @@
 import pandas as pd
-import os
 from pathlib import Path
 
 
 def getData(engine="openpyxl"):
     current_directory = Path(__file__).parent.absolute()
-    inProfileDataPath = os.path.join(current_directory, "Input_profiles_fine.xlsx")
-    outProfileDataPath = os.path.join(current_directory, "Output_profiles_fine.xlsx")
-    esDataPath = os.path.join(current_directory, "Potentials.xlsx")
+    inProfileDataPath = Path(current_directory) / "Input_profiles_fine.xlsx"
+    outProfileDataPath = Path(current_directory) /  "Output_profiles_fine.xlsx"
+    esDataPath = Path(current_directory) / "Potentials.xlsx"
 
     data = {}
 
