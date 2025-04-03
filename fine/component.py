@@ -690,7 +690,7 @@ class Component(metaclass=ABCMeta):
         self.etlParameter = etlParameter
         self.etl = None
         if etlParameter:
-            etlModul = fine.subclasses.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModul
+            etlModul = fine.expansionModules.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModul
             self.etl = etlModul(self, esM, **etlParameter)
             # TODO: check if needed
 
@@ -732,7 +732,7 @@ class Component(metaclass=ABCMeta):
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
         if self.etl is not None:
-            etlModel = fine.subclasses.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModel
+            etlModel = fine.expansionModules.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModel
             if not hasattr(esM, "etlModel"):
                 esM.etlModel = etlModel()
             esM.etlModel.modulsDict.update({self.name: self.etl})
@@ -2594,7 +2594,6 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         opVarBinName,
         capVarName,
-        isOperationCommisYearDepending=False,
     ):
         """
         Set, if applicable, the minimal part load of a component.
@@ -2610,28 +2609,16 @@ class ComponentModel(metaclass=ABCMeta):
         # only create constraint when partLoadMin specified
         if opVarBin is not None:
             capVar = getattr(pyM, capVarName + "_" + abbrvName)
-            commisVar = getattr(pyM, "commis_" + abbrvName)
             constrSetMinPartLoad = getattr(
-                pyM, constrSetName + "partLoadMin_" + abbrvName
+                    pyM, constrSetName + "partLoadMin_" + abbrvName
             )
 
-            if isOperationCommisYearDepending:
-
-                def opMinPartLoad1(pyM, loc, compName, commis, ip, p, t):
-                    bigM = getattr(compDict[compName], "bigM")
-                    return (
-                        opVar[loc, compName, commis, ip, p, t]
-                        <= opVarBin[loc, compName, commis, ip, p, t] * bigM
-                    )
-            else:
-
-                def opMinPartLoad1(pyM, loc, compName, ip, p, t):
-                    bigM = getattr(compDict[compName], "bigM")
-                    return (
-                        opVar[loc, compName, ip, p, t]
-                        <= opVarBin[loc, compName, ip, p, t] * bigM
-                    )
-
+            def opMinPartLoad1(pyM, loc, compName, ip, p, t):
+                bigM = getattr(compDict[compName], "bigM")
+                return (
+                    opVar[loc, compName, ip, p, t]
+                    <= opVarBin[loc, compName, ip, p, t] * bigM
+                )
             setattr(
                 pyM,
                 constrName + "partLoadMin_1_" + abbrvName,
@@ -2640,20 +2627,6 @@ class ComponentModel(metaclass=ABCMeta):
                 ),
             )
             if not pyM.hasSegmentation:
-                if isOperationCommisYearDepending:
-
-                    def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
-                        processedPartLoadMin = getattr(
-                            compDict[compName], "processedPartLoadMin"
-                        )[ip]
-                        bigM = getattr(compDict[compName], "bigM")
-                        return (
-                            opVar[loc, compName, commis, ip, p, t]
-                            >= processedPartLoadMin * commisVar[loc, compName, commis]
-                            - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
-                        )
-                else:
-
                     def opMinPartLoad2(pyM, loc, compName, ip, p, t):
                         processedPartLoadMin = getattr(
                             compDict[compName], "processedPartLoadMin"
@@ -2664,20 +2637,6 @@ class ComponentModel(metaclass=ABCMeta):
                             >= processedPartLoadMin * capVar[loc, compName, ip]
                             - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
                         )
-            elif isOperationCommisYearDepending:
-
-                def opMinPartLoad2(pyM, loc, compName, commis, ip, p, t):
-                    processedPartLoadMin = getattr(
-                        compDict[compName], "processedPartLoadMin"
-                    )[ip]
-                    bigM = getattr(compDict[compName], "bigM")
-                    return (
-                        opVar[loc, compName, commis, ip, p, t]
-                        >= processedPartLoadMin
-                        * commisVar[loc, compName, commis]
-                        * esM.hoursPerSegment[ip][p, t]
-                        - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
-                    )
             else:
 
                 def opMinPartLoad2(pyM, loc, compName, ip, p, t):

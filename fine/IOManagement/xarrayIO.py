@@ -702,7 +702,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                     _capacityVariablesOptimum_df = pd.DataFrame([])
                     _isBuiltVariablesOptimum_df = pd.DataFrame([])
                     _commissioningVariablesOptimum_df = pd.DataFrame([])
-                    _decommissioningVariablesOptimum_df = pd.DataFrame([])                    
+                    _decommissioningVariablesOptimum_df = pd.DataFrame([])
                     _chargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
@@ -922,7 +922,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                             _decommissioningVariablesOptimum_df,
                         ],
                         axis=0,
-                    )                   
+                    )
                     if isinstance(_chargeOperationVariablesOptimum_df, pd.Series):
                         _chargeOperationVariablesOptimum_df = (
                             _chargeOperationVariablesOptimum_df.to_frame().T
