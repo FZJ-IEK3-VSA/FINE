@@ -22,21 +22,20 @@ def test_compareResults_longClassNames():
         #check whether it is empty
         if len(obj.__bases__) == 0: #obj is empty and not component
             return False
-        elif "component" in str(obj.__bases__[0]):
+        if "component" in str(obj.__bases__[0]):
             return True
-        else:
-            return recursive_check_inherits_from_component(obj.__bases__[0])
+        return recursive_check_inherits_from_component(obj.__bases__[0])
 
 
     subclass_objects = []
-    for name, obj in inspect.getmembers(subclasses):  
+    for name, obj in inspect.getmembers(subclasses):
         try:
             inheritsFromComponent = recursive_check_inherits_from_component(obj)
         except Exception:
             inheritsFromComponent = False
         if inheritsFromComponent:
-            subclass_objects.append(obj) 
- 
+            subclass_objects.append(obj)
+
     #create ESM:
     esM = fn.EnergySystemModel(locations={"Test", "Test1"},
         commodities={"TestCom", "TargetCom"},
@@ -78,10 +77,6 @@ def test_compareResults_longClassNames():
         optSumOutputLevel=2,
         optValOutputLevel=2
     )
-    
-
-
-
 
 def test_compareResults_miniSystem(minimal_test_esM):
     module_directory = Path(__file__).parent.absolute()

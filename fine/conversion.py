@@ -1123,16 +1123,7 @@ class ConversionModel(ComponentModel):
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )
-        self.additionalMinPartLoad(
-            pyM,
-            esM,
-            "ConstrOperationCommis",
-            "opCommisConstrSet",
-            "op",
-            "op_bin",
-            "cap",
-            isOperationCommisYearDepending=True,
-        )
+
         # Operation for components with commissioning year dependent commodity conversion factors
         self.getTotalOperationCommissioningDependentOperation(pyM)
 

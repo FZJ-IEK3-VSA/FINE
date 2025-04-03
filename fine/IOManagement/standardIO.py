@@ -91,9 +91,9 @@ def writeOptimizationOutputToExcel(
         for name in esM.componentModelingDict.keys():
             if name in abbreviatedClassName.keys():
                 abbreviatedName = abbreviatedClassName[name]
-            else: 
+            else:
                 abbreviatedName = name[:-5] #last 5 letters are "Model" and cut off
-                
+
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
             oL_ = oL[name] if isinstance(oL, dict) else oL
