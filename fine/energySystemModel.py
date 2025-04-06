@@ -2076,15 +2076,15 @@ class EnergySystemModel:
             optimizer.set_options(optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, tee=True)
         elif solver == "appsi_highs":
-            solver_options = {"output_flag": False, "log_to_console": False}
-            solver_info = optimizer.solve(self.pyM, options=solver_options)
+            optimizer.set_options({"output_flag": False, "log_to_console": False})
+            optimizer.set_options(optimizationSpecs)
+            solver_info = optimizer.solve(self.pyM)
         else:
             solver_info = optimizer.solve(self.pyM, tee=True)
         self.solverSpecs["solvetime"] = time.time() - timeStart
-        (
-            utils.output(solver_info.solver(), self.verbose, 0),
-            utils.output(solver_info.problem(), self.verbose, 0),
-        )
+        utils.output(solver_info.solver(), self.verbose, 0)
+        utils.output(solver_info.problem(), self.verbose, 0)
+
         utils.output(
             "Solve time: " + str(self.solverSpecs["solvetime"]) + " sec.",
             self.verbose,
