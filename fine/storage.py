@@ -61,6 +61,7 @@ class Storage(Component):
         socOffsetDown=-1,
         socOffsetUp=-1,
         stockCommissioning=None,
+        pwlcfParameters=None,
     ):
         """
         Constructor for creating an Storage class instance.
@@ -281,6 +282,7 @@ class Storage(Component):
             technicalLifetime=technicalLifetime,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            pwlcfParameters=pwlcfParameters,
         )
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,

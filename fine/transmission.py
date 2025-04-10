@@ -50,6 +50,7 @@ class Transmission(Component):
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
+        pwlcfParameters=None,
     ):
         """
         Constructor for creating an Transmission class instance.
@@ -296,6 +297,7 @@ class Transmission(Component):
             technicalLifetime=self.technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
             stockCommissioning=self.stockCommissioning,
+            pwlcfParameters=pwlcfParameters,
         )
         # Set general component data
         utils.checkCommodities(esM, {commodity})

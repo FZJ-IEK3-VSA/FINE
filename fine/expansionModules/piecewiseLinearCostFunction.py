@@ -1,57 +1,65 @@
-from fine import utils, utilsETL
+from fine import utils, utilsPWLCF
 import math
 import pyomo.environ as pyomo
 from pyomo.core import Piecewise
 import pandas as pd
 
-pwlf = False
+pyomo_pwlf = False
 
 
-class EndogenousTechnologicalLearningModul:
+class PiecewiseLinearCostFunctionModul:
     def __init__(
         self,
         comp,
         esM,
-        learningRate,
-        initCapacity,
-        maxCapacity,
-        initCost=None,
-        noSegments=None,
+        etlParameters = None,
+        eosParameters = None,
     ):
-        # utilsETL.checkEsmLocations(esM)
         self.comp = comp
-        self.learningRate = learningRate
-        self.learningIndex = utilsETL.checkAndSetLearningIndex(learningRate)
-        self.initCost = utilsETL.checkAndSetInitCost(initCost, comp)
-        self.initCapacity, self.maxCapacity = utilsETL.checkCapacities(
-            initCapacity, maxCapacity, comp
-        )
-        utilsETL.checkStock(comp, self.initCapacity)
 
-        if noSegments is None:
-            self.noSegments = 4
-        else:
-            utils.isStrictlyPositiveInt(int(noSegments))
-            self.noSegments = int(noSegments)
+        if etlParameters and eosParameters:
+            raise NotImplementedError(f"Specifying both, endogenous technology learning (etl) and economies of scale (eos) is not valid. Check component: {self.comp}.")
+        if etlParameters:
+            self.pwlcf_type = 'etl'
+            self.learningRate = etlParameters['learningRate']
+            self.learningIndex = utilsPWLCF.checkAndSetLearningIndex(etlParameters['learningRate'])
+            self.initCost = utilsPWLCF.checkAndSetInitCost(etlParameters['initCost'], comp)
+            self.initCapacity, self.maxCapacity = utilsPWLCF.checkCapacitiesEtl(
+                etlParameters['initCapacity'], etlParameters['maxCapacity'], comp
+            )
+            utilsPWLCF.checkStock(comp, self.initCapacity)
 
-        self.linEtlParameter = self.linearizeLearningCurve()
+            if etlParameters['noSegments'] is None:
+                self.noSegments = 4
+            else:
+                utils.isStrictlyPositiveInt(int(etlParameters['noSegments']))
+                self.noSegments = int(etlParameters['noSegments'])
 
-        self.commisYears = esM.investmentPeriods
+                self.linEtlParameter = self.linearizeLearningCurveEtl()
+
+        elif eosParameters:
+            if pyomo_pwlf:
+                raise NotImplementedError("SOS2 Constraints via pyomo.pwlf currently not implemented for economies of scale.")
+            self.pwlcf_type = 'eos'
+            utilsPWLCF.checkInvestmentPeriods(esM)
+            self.eosParameters = utilsPWLCF.checkAndSetEosParameters(comp, eosParameters)
+            self.noSegments = len(eosParameters["capacity"])
+
         self.commisYears = comp.processedStockYears + esM.investmentPeriods
 
-    def getTotalCost(self, capacity):
+    def getTotalCostEtl(self, capacity):
         return ((self.initCapacity * self.initCost) / (1 - self.learningIndex)) * (
             capacity / self.initCapacity
         ) ** (1 - self.learningIndex)
 
-    def linearizeLearningCurve(self):
+    def linearizeLearningCurveEtl(self):
         linEtlParameter = pd.DataFrame(
             index=range(self.noSegments + 1),
             columns=["experience", "totalCost", "slope", "interception"],
         )
 
-        linEtlParameter["totalCost"].loc[0] = self.getTotalCost(self.initCapacity)
-        linEtlParameter["totalCost"].loc[self.noSegments] = self.getTotalCost(
+        linEtlParameter["totalCost"].loc[0] = self.getTotalCostEtl(self.initCapacity)
+        linEtlParameter["totalCost"].loc[self.noSegments] = self.getTotalCostEtl(
             self.maxCapacity
         )
         totalCostDiff = (
@@ -83,17 +91,17 @@ class EndogenousTechnologicalLearningModul:
         return linEtlParameter
 
 
-class EndogenousTechnologicalLearningModel:
+class PiecewiseLinearCostFunctionModel:
     def __init__(self):
-        self.abbrvName = "etl"
+        self.abbrvName = "pwlcf"
         self.modulsDict = {}
 
     def declareSets(self, esM, pyM):
-        self.declareEtlDesignSet(pyM, esM)
-        if not pwlf:
-            self.declareEtlDesignSegmentSet(pyM, esM)
+        self.declarePwlcfDesignSet(pyM, esM)
+        if not pyomo_pwlf:
+            self.declarePwlcfDesignSegmentSet(pyM, esM)
 
-    def declareEtlDesignSet(self, pyM, esM):
+    def declarePwlcfDesignSet(self, pyM, esM):
         def declareDesignSet(pyM):
             return (
                 (modulName, ip)
@@ -101,9 +109,9 @@ class EndogenousTechnologicalLearningModel:
                 for ip in esM.investmentPeriods
             )
 
-        pyM.etlDesignSet = pyomo.Set(dimen=2, initialize=declareDesignSet)
+        pyM.pwlcfDesignSet = pyomo.Set(dimen=2, initialize=declareDesignSet)
 
-    def declareEtlDesignSegmentSet(self, pyM, esM):
+    def declarePwlcfDesignSegmentSet(self, pyM, esM):
         def declareDesignSegmentSet(pyM):
             return (
                 (modulName, ip, segment)
@@ -112,82 +120,124 @@ class EndogenousTechnologicalLearningModel:
                 for segment in range(modul.noSegments)
             )
 
-        pyM.etlDesignSegmentSet = pyomo.Set(dimen=3, initialize=declareDesignSegmentSet)
+        pyM.pwlcfDesignSegmentSet = pyomo.Set(dimen=3, initialize=declareDesignSegmentSet)
 
     def declareVariables(self, esM, pyM):
-        if not pwlf:
-            self.declareBinaryEtlVar(esM, pyM)
-            self.declareSegmentCapacityEtlVar(esM, pyM)
+        if not pyomo_pwlf:
+            self.declareBinaryPwlcfVar(esM, pyM)
+            self.declareSegmentCapacityPwlcfVar(esM, pyM)
 
-    def declareBinaryEtlVar(self, esM, pyM):
-        """
-        :param esM:
-        :param pyM:
-        :return:
-        """
-        pyM.binaryEtlVar = pyomo.Var(pyM.etlDesignSegmentSet, domain=pyomo.Binary)
+    def declareBinaryPwlcfVar(self, esM, pyM):
+        pyM.binaryPwlcfVar = pyomo.Var(pyM.pwlcfDesignSegmentSet, domain=pyomo.Binary)
 
-    def declareSegmentCapacityEtlVar(self, esM, pyM):
-        pyM.segmentCapacityEtlVar = pyomo.Var(
-            pyM.etlDesignSegmentSet,
+    def declareSegmentCapacityPwlcfVar(self, esM, pyM):
+        pyM.segmentCapacityPwlcfVar = pyomo.Var(
+            pyM.pwlcfDesignSegmentSet,
             domain=pyomo.NonNegativeReals,
         )
 
     def declareComponentConstraints(self, esM, pyM):
-        if pwlf:
+        if pyomo_pwlf:
             self.declarePwlfPyomo(esM, pyM)
         else:
-            self.declareBinaryEtlConstr(pyM)
-            self.declareSegmentCapacityEtlConstr(pyM)
-            self.declareCapacityCommissioningEtlConstr(esM, pyM)
+            self.declareBinaryPwlcfConstr(pyM)
+            self.declareSegmentCapacityPwlcfConstr(pyM)
+            self.declareCapacityCommissioningPwlcfConstr(esM, pyM)
+            self.declareCapacityMaxEosConstr(esM, pyM)
 
-    def declareBinaryEtlConstr(self, pyM):
-        def binaryEtlConstr(pyM, modulName, ip, segment):
+    def declareBinaryPwlcfConstr(self, pyM):
+        def binaryPwlcfConstr(pyM, modulName, ip, segment):
             return (
                 sum(
-                    pyM.binaryEtlVar[modulName, ip, segment]
+                    pyM.binaryPwlcfVar[modulName, ip, segment]
                     for segment in range(self.modulsDict[modulName].noSegments)
                 )
                 == 1
             )
 
-        pyM.ConstrBinaryEtl = pyomo.Constraint(
-            pyM.etlDesignSegmentSet, rule=binaryEtlConstr
+        pyM.ConstrBinaryPwlcf = pyomo.Constraint(
+            pyM.pwlcfDesignSegmentSet, rule=binaryPwlcfConstr
         )
 
-    def declareSegmentCapacityEtlConstr(self, pyM):
-        def lowerSegmentCapacityEtlConstr(pyM, modulName, ip, segment):
+    def declareSegmentCapacityPwlcfConstr(self, pyM):
+        def lowerSegmentCapacityPwlcfConstr(pyM, modulName, ip, segment):
             modul = self.modulsDict[modulName]
-            maxCapacityPerSegment = modul.linEtlParameter["experience"]
+            if modul.pwlcf_type == "etl":
+                maxCapacityPerSegment = modul.linEtlParameter["experience"]
+            else:
+                maxCapacityPerSegment = modul.eosParameters["capacity"]
             lowerCapacityBound = maxCapacityPerSegment.loc[segment]
-            binVar = pyM.binaryEtlVar[modulName, ip, segment]
-            capSegmentVar = pyM.segmentCapacityEtlVar[modulName, ip, segment]
+            binVar = pyM.binaryPwlcfVar[modulName, ip, segment]
+            capSegmentVar = pyM.segmentCapacityPwlcfVar[modulName, ip, segment]
 
             return lowerCapacityBound * binVar <= capSegmentVar
 
-        def upperSegmentCapacityEtlConstr(pyM, modulName, ip, segment):
+        def upperSegmentCapacityPwlcfConstr(pyM, modulName, ip, segment):
             modul = self.modulsDict[modulName]
-            maxCapacityPerSegment = modul.linEtlParameter["experience"]
+            if modul.pwlcf_type == "etl":
+                maxCapacityPerSegment = modul.linEtlParameter["experience"]
+            else:
+                maxCapacityPerSegment = modul.eosParameters["capacity"]
             upperCapacityBound = maxCapacityPerSegment.loc[segment + 1]
-            binVar = pyM.binaryEtlVar[modulName, ip, segment]
-            capSegmentVar = pyM.segmentCapacityEtlVar[modulName, ip, segment]
+            binVar = pyM.binaryPwlcfVar[modulName, ip, segment]
+            capSegmentVar = pyM.segmentCapacityPwlcfVar[modulName, ip, segment]
 
             return capSegmentVar <= upperCapacityBound * binVar
 
-        pyM.ConstrLowerSegmentCapacityEtl = pyomo.Constraint(
-            pyM.etlDesignSegmentSet, rule=lowerSegmentCapacityEtlConstr
+        pyM.ConstrLowerSegmentCapacityPwlcf = pyomo.Constraint(
+            pyM.pwlcfDesignSegmentSet, rule=lowerSegmentCapacityPwlcfConstr
         )
 
-        pyM.ConstrUpperSegmentCapacityEtl = pyomo.Constraint(
-            pyM.etlDesignSegmentSet, rule=upperSegmentCapacityEtlConstr
+        pyM.ConstrUpperSegmentCapacityPwlcf = pyomo.Constraint(
+            pyM.pwlcfDesignSegmentSet, rule=upperSegmentCapacityPwlcfConstr
         )
+
+    def declareCapacityCommissioningPwlcfConstr(self, esM, pyM):
+        def capacityCommissioningPwlcfConstr(pyM, modulName, ip):
+            modul = self.modulsDict[modulName]
+            compClass = modul.comp.modelingClass().abbrvName
+            commVar = getattr(pyM, "commis_" + compClass)
+            commVarSum = sum(
+                commVar[loc, modulName, _ip]
+                for _ip in range(ip + 1)
+                for loc in esM.locations
+            )
+            capSegmentVarSum = sum(
+                pyM.segmentCapacityPwlcfVar[modulName, ip, segment]
+                for segment in range(modul.noSegments)
+            )
+            if self.modulsDict[modulName].pwlcf_type == "eos":
+                return capSegmentVarSum == commVarSum
+            elif self.modulsDict[modulName].pwlcf_type == "etl":
+                return capSegmentVarSum == commVarSum + modul.initCapacity
+
+        pyM.ConstrCapacityCommissioningPwlcf = pyomo.Constraint(
+            pyM.pwlcfDesignSet, rule=capacityCommissioningPwlcfConstr
+        )
+
+    def declareCapacityMaxEosConstr(self, esM, pyM):
+        def capacityMaxEosConstr(pyM, modulName, ip):
+            modul = self.modulsDict[modulName]
+            compClass = modul.comp.modelingClass().abbrvName
+            commVar = getattr(pyM, "commis_" + compClass)
+            maxCapacity = modul.eosParameters["capacity"][-1]
+            loc = list(esM.locations)[0]
+            if modul.pwlcf_type == "eos": 
+                return commVar[loc, modulName, ip] <= maxCapacity
+            else:
+                return pyM.Constraint.Skip()
+
+        pyM.ConstrCapacityMaxEos = pyomo.Constraint(
+            pyM.pwlcfDesignSet, rule=capacityMaxEosConstr
+        )
+
 
     def declarePwlfPyomo(self, esM, pyM):
         """
         https://pyomo.readthedocs.io/en/latest/pyomo_modeling_components/Expressions.html#piecewise-linear-expressions
         """
         pyM.totalCost = pyomo.Var(
-            pyM.etlDesignSet,
+            pyM.pwlfDesignSet,
             domain=pyomo.NonNegativeReals,
         )
 
@@ -195,7 +245,7 @@ class EndogenousTechnologicalLearningModel:
             return (0, self.modulsDict[modulName].maxCapacity)
 
         pyM.totalCapacity = pyomo.Var(
-            pyM.etlDesignSet,
+            pyM.pwlfDesignSet,
             domain=pyomo.NonNegativeReals,
             bounds=totalCapacityBounds,
         )
@@ -212,47 +262,26 @@ class EndogenousTechnologicalLearningModel:
 
             return pyM.totalCapacity[modulName, ip] == commVarSum + modul.initCapacity
 
-        pyM.fixTotalCapacity = pyomo.Constraint(pyM.etlDesignSet, rule=fixTotalCapacity)
+        pyM.fixTotalCapacity = pyomo.Constraint(pyM.pwlfDesignSet, rule=fixTotalCapacity)
 
         xdata = {
             idx: list(self.modulsDict[idx[0]].linEtlParameter["experience"])
-            for idx in pyM.etlDesignSet
+            for idx in pyM.pwlfDesignSet
         }
 
         ydata = {
             idx: list(self.modulsDict[idx[0]].linEtlParameter["totalCost"])
-            for idx in pyM.etlDesignSet
+            for idx in pyM.pwlfDesignSet
         }
 
         pyM.pwlf = Piecewise(
-            pyM.etlDesignSet,
+            pyM.pwlfDesignSet,
             pyM.totalCost,
             pyM.totalCapacity,
             pw_pts=xdata,
             pw_constr_type="EQ",
             f_rule=ydata,
             pw_repn="SOS2",
-        )
-
-    def declareCapacityCommissioningEtlConstr(self, esM, pyM):
-        def capacityCommissioningEtlConstr(pyM, modulName, ip):
-            modul = self.modulsDict[modulName]
-            compClass = modul.comp.modelingClass().abbrvName
-            commVar = getattr(pyM, "commis_" + compClass)
-            commVarSum = sum(
-                commVar[loc, modulName, _ip]
-                for _ip in range(ip + 1)
-                for loc in esM.locations
-            )
-            capSegmentVarSum = sum(
-                pyM.segmentCapacityEtlVar[modulName, ip, segment]
-                for segment in range(modul.noSegments)
-            )
-
-            return capSegmentVarSum == commVarSum + modul.initCapacity
-
-        pyM.ConstrCapacityCommissioningEtl = pyomo.Constraint(
-            pyM.etlDesignSet, rule=capacityCommissioningEtlConstr
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
@@ -295,13 +324,19 @@ class EndogenousTechnologicalLearningModel:
             )
 
             for commisYear in modul.commisYears:
-                annuity = self.getAnnuityEtl(
-                    pyM, modulName, commisYear, modul.commisYears, getOptValue
-                )
+
+                if self.modulsDict[modulName].pwlcf_type == "eos":
+                    opex = self.getOpexEos()
+                    annuity = self.getAnnuityEos()
+                else:
+                    opex = 0
+                    annuity = self.getAnnuityEtl(
+                        pyM, modulName, commisYear, modul.commisYears, getOptValue
+                    )
 
                 for i in range(commisYear, commisYear + fullCostIntervals):
                     costContribution[modulName][(commisYear, i)] = (
-                        annuity
+                        (annuity + opex)
                         * utils.annuityPresentValueFactor(
                             esM, modulName, loc, esM.investmentPeriodInterval
                         )
@@ -394,12 +429,20 @@ class EndogenousTechnologicalLearningModel:
             for ip in esM.investmentPeriods
         )
 
+    def getAnnuityEos(self, pyM, modulName):
+        totalInvest = sum(utilsPWLCF.interpolateFromDataframe(self.modulsDict[modulName].eosParameters, pyM.segmentCapacityPwlcfVar[modulName, 0, segment].value, "capacity", "totalInvest") for segment in self.modulsDict[modulName].noSegements)
+        return totalInvest / self.modulsDict[modulName].comp.CCF[0]
+    
+    def getOpexEos(self, pyM, modulName):
+        totalOpexFix = sum(utilsPWLCF.interpolateFromDataframe(self.modulsDict[modulName].eosParameters, pyM.segmentCapacityPwlcfVar[modulName, 0, segment].value, "capacity", "totalOpex") for segment in self.modulsDict[modulName].noSegements)
+        return totalOpexFix
+
     def getAnnuityEtl(
         self, pyM, modulName, commisYear, commisYears, getOptValues=False
     ):
         def getIpTotalCost(ip):
             if ip == commisYears[0] - 1:
-                totalCost = modul.getTotalCost(
+                totalCost = modul.getTotalCostEtl(
                     modul.initCapacity - modul.comp.stockCapacityStartYear.sum()
                 )
             elif ip < 0:
@@ -407,8 +450,8 @@ class EndogenousTechnologicalLearningModel:
                     modul.comp.processedStockCommissioning[i].sum()
                     for i in range(ip + 1, 0)
                 )
-                totalCost = modul.getTotalCost(modul.initCapacity - unbuildStockUntilIp)
-            elif pwlf:
+                totalCost = modul.getTotalCostEtl(modul.initCapacity - unbuildStockUntilIp)
+            elif pyomo_pwlf:
                 if not getOptValues:
                     totalCost = pyM.totalCost[modulName, ip]
                 else:
@@ -416,17 +459,17 @@ class EndogenousTechnologicalLearningModel:
             elif not getOptValues:
                 totalCost = sum(
                     modul.linEtlParameter["interception"].loc[segment + 1]
-                    * pyM.binaryEtlVar[modulName, ip, segment]
+                    * pyM.binaryPwlcfVar[modulName, ip, segment]
                     + modul.linEtlParameter["slope"].loc[segment + 1]
-                    * pyM.segmentCapacityEtlVar[modulName, ip, segment]
+                    * pyM.segmentCapacityPwlcfVar[modulName, ip, segment]
                     for segment in range(modul.noSegments)
                 )
             else:
                 totalCost = sum(
                     modul.linEtlParameter["interception"].loc[segment + 1]
-                    * pyM.binaryEtlVar[modulName, ip, segment].value
+                    * pyM.binaryPwlcfVar[modulName, ip, segment].value
                     + modul.linEtlParameter["slope"].loc[segment + 1]
-                    * pyM.segmentCapacityEtlVar[modulName, ip, segment].value
+                    * pyM.segmentCapacityPwlcfVar[modulName, ip, segment].value
                     for segment in range(modul.noSegments)
                 )
             return totalCost
@@ -485,7 +528,7 @@ class EndogenousTechnologicalLearningModel:
             tuples, names=["Component", "Property", "Unit"]
         )
 
-        optSummaryEtl = {
+        optSummaryPwlcf = {
             ip: pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
             for ip in esM.investmentPeriodNames
         }
@@ -499,21 +542,21 @@ class EndogenousTechnologicalLearningModel:
 
         for ip in esM.investmentPeriods:
             for modulName, modul in self.modulsDict.items():
-                optSummaryEtl[esM.investmentPeriodNames[ip]].loc[
+                optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
                     (modulName, "TAC_ETL", "[" + esM.costUnit + "/a]"), loc
                 ] = tac[ip][loc].loc[modulName]
 
-                optSummaryEtl[esM.investmentPeriodNames[ip]].loc[
+                optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
                     (modulName, "NPVcontribution_ETL", "[" + esM.costUnit + "]"), loc
                 ] = npv[ip][loc].loc[modulName]
-                if pwlf:
+                if pyomo_pwlf:
                     knowledgeStock = pyM.totalCapacity[modulName, ip].value
                 else:
                     knowledgeStock = sum(
-                        pyM.segmentCapacityEtlVar[modulName, ip, segment]._value
+                        pyM.segmentCapacityPwlcfVar[modulName, ip, segment]._value
                         for segment in range(modul.noSegments)
                     )
-                optSummaryEtl[esM.investmentPeriodNames[ip]].loc[
+                optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
                     (
                         modulName,
                         "knowledgeStock_ETL",
@@ -535,9 +578,22 @@ class EndogenousTechnologicalLearningModel:
                     comp
                     for comp in model.componentsDict.keys()
                     if comp in self.modulsDict.keys()
+                    if self.modulsDict[comp].pwlcf_type == "etl"
+                ]
+                eosComps = [
+                    comp
+                    for comp in model.componentsDict.keys()
+                    if comp in self.modulsDict.keys()
+                    if self.modulsDict[comp].pwlcf_type == "eos"
                 ]
                 optSummary[ipName] = pd.concat(
-                    [optSummary[ipName], optSummaryEtl[ipName].loc[etlComps, :, :]],
+                    [optSummary[ipName], optSummaryPwlcf[ipName].loc[etlComps, :, :]],
                     axis=0,
                 ).sort_index()
+                if len(eosComps) > 0:
+                    optSummary[ipName].loc[eosComps,'TAC',:] += optSummaryPwlcf[ipName].loc[:,'TAC_EOS',:]
+                    optSummary[ipName].loc[eosComps,'NPVcontribution',:] += optSummaryPwlcf[ipName].loc[:,'NPVcontribution_EOS',:]
+                if len(etlComps) > 0:
+                    optSummary[ipName].loc[etlComps,'TAC',:] += optSummaryPwlcf[ipName].loc[:,'TAC_ETL',:]
+                    optSummary[ipName].loc[etlComps,'NPVcontribution',:] += optSummaryPwlcf[ipName].loc[:,'NPVcontribution_ETL',:]
             model.optSummary = optSummary[esM.startYear]

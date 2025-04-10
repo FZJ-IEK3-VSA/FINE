@@ -2,11 +2,42 @@ import warnings
 import numpy as np
 from fine import utils
 
+def checkValuesIncreasing(data):
+    return all(data[i] <= data[i+1] for i in range(len(data)-1))
+
+def interpolateFromDataframe(df, xValue, xName, yName):
+    df_sorted = df.sort_values(xName)
+    df_interp = df_sorted.set_index(xName)
+    df_interp = df_interp.reindex(df_interp.index.union([xValue]))
+    df_interp = df_interp.sort_index().interpolate(method='linear')
+    return df_interp.loc[xValue, yName]
+
+def checkAndSetEosParameters(comp, eosParameters):
+    #check that capacity/totalInvest/totalFixOpex grid points are increasing:
+    if not checkValuesIncreasing(eosParameters["capacity"]):
+        raise ValueError(f"Capacity grid points for economies of scale do not increase for component {comp}.")
+    if not checkValuesIncreasing(eosParameters["totalInvest"]):
+        raise ValueError(f"totalInvest grid points for economies of scale do not increase with increasing capacity for component {comp}.")
+    if not checkValuesIncreasing(eosParameters["totalOpex"]):
+        raise ValueError(f"totalInvest grid points for economies of scale do not increase with increasing capacity for component {comp}.")
+
+    #Check capacity variable:
+    if not comp.hasCapacityVariable:
+        raise ValueError(f"EOS Component ({comp}) must have Capacity Variable")
+
+    return eosParameters
+
+def checkInvestmentPeriods(esM):
+    if len(esM.numberOfInvestmentPeriods) != 1: 
+        raise NotImplementedError(
+            "Economies of Scale are currently only "
+            "implemented for single investment period energy system models"
+        )
 
 def checkEsmLocations(esM):
     if len(esM.locations) != 1:
         raise NotImplementedError(
-            "Endogenous Technological Learning is currently only "
+            "Piecewise Linear Cost Functions are currently only "
             "implemented for single node energy system models"
         )
 
@@ -16,7 +47,7 @@ def checkStock(comp, initCapacity):
     if comp.stockCapacityStartYear.sum() > initCapacity:
         raise ValueError(
             f"Stock of component {comp.name} must be smaller than "
-            "the specified initial etl capacity."
+            "the specified initial pwlcf capacity."
         )
 
 
@@ -42,7 +73,7 @@ def checkAndSetInitCost(initCost, comp):
     return initCost
 
 
-def checkCapacities(initCapacity, maxCapacity, comp):
+def checkCapacitiesEtl(initCapacity, maxCapacity, comp):
     if not comp.hasCapacityVariable:
         raise ValueError("ETL Component must have Capacity Variable")
 
@@ -64,12 +95,3 @@ def checkCapacities(initCapacity, maxCapacity, comp):
 
     return initCapacity, maxCapacity
 
-
-def getTotalCost(etlModul, capacity):
-    return (
-        (etlModul.initCapacity * etlModul.initCost) / (1 - etlModul.learningIndex)
-    ) * (capacity / etlModul.initCapacity) ** (1 - etlModul.learningIndex)
-
-
-# def linearizeLearningCurve(etlModul):
-#     totalCostsPerSegment =
