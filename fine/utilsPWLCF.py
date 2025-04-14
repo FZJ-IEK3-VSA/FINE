@@ -5,12 +5,6 @@ from fine import utils
 def checkValuesIncreasing(data):
     return all(data[i] <= data[i+1] for i in range(len(data)-1))
 
-def interpolateFromDataframe(df, xValue, xName, yName):
-    df_sorted = df.sort_values(xName)
-    df_interp = df_sorted.set_index(xName)
-    df_interp = df_interp.reindex(df_interp.index.union([xValue]))
-    df_interp = df_interp.sort_index().interpolate(method='linear')
-    return df_interp.loc[xValue, yName]
 
 def checkAndSetEosParameters(comp, eosParameters):
     #check that capacity/totalInvest/totalFixOpex grid points are increasing:
@@ -24,11 +18,25 @@ def checkAndSetEosParameters(comp, eosParameters):
     #Check capacity variable:
     if not comp.hasCapacityVariable:
         raise ValueError(f"EOS Component ({comp}) must have Capacity Variable")
+    #Preprocess slope and interception:
+    eosParameters["slopeTotalInvest"] = np.nan
+    eosParameters["slopeTotalOpex"] = np.nan
+    eosParameters["interceptionTotalInvest"] = np.nan
+    eosParameters["interceptionTotalOpex"]=np.nan
+    for idx in range(len(eosParameters["capacity"])-1):
+        eosParameters["slopeTotalInvest"].iloc[idx] = ((eosParameters["totalInvest"].iloc[idx+1] - eosParameters["totalInvest"].iloc[idx])
+        / (eosParameters["capacity"].iloc[idx+1] - eosParameters["capacity"].iloc[idx])
+        )
+        eosParameters["slopeTotalOpex"].iloc[idx] = ((eosParameters["totalOpex"].iloc[idx+1] - eosParameters["totalOpex"].iloc[idx])
+        / (eosParameters["capacity"].iloc[idx+1] - eosParameters["capacity"].iloc[idx])
+        )
+        eosParameters["interceptionTotalInvest"].iloc[idx] = eosParameters["totalInvest"].iloc[idx+1] - eosParameters["slopeTotalInvest"].iloc[idx] * eosParameters["capacity"].iloc[idx+1]
+        eosParameters["interceptionTotalOpex"].iloc[idx] = eosParameters["totalOpex"].iloc[idx+1] - eosParameters["slopeTotalOpex"].iloc[idx] * eosParameters["capacity"].iloc[idx+1]
 
     return eosParameters
 
 def checkInvestmentPeriods(esM):
-    if len(esM.numberOfInvestmentPeriods) != 1: 
+    if esM.numberOfInvestmentPeriods != 1: 
         raise NotImplementedError(
             "Economies of Scale are currently only "
             "implemented for single investment period energy system models"

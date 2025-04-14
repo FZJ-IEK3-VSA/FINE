@@ -17,7 +17,7 @@ class PiecewiseLinearCostFunctionModul:
     ):
         self.comp = comp
 
-        if etlParameters and eosParameters:
+        if etlParameters and  eosParameters is not None:
             raise NotImplementedError(f"Specifying both, endogenous technology learning (etl) and economies of scale (eos) is not valid. Check component: {self.comp}.")
         if etlParameters:
             self.pwlcf_type = 'etl'
@@ -37,13 +37,13 @@ class PiecewiseLinearCostFunctionModul:
 
                 self.linEtlParameter = self.linearizeLearningCurveEtl()
 
-        elif eosParameters:
+        elif eosParameters is not None:
             if pyomo_pwlf:
                 raise NotImplementedError("SOS2 Constraints via pyomo.pwlf currently not implemented for economies of scale.")
             self.pwlcf_type = 'eos'
             utilsPWLCF.checkInvestmentPeriods(esM)
             self.eosParameters = utilsPWLCF.checkAndSetEosParameters(comp, eosParameters)
-            self.noSegments = len(eosParameters["capacity"])
+            self.noSegments = len(eosParameters["capacity"]) - 1
 
         self.commisYears = comp.processedStockYears + esM.investmentPeriods
 
@@ -218,14 +218,14 @@ class PiecewiseLinearCostFunctionModel:
     def declareCapacityMaxEosConstr(self, esM, pyM):
         def capacityMaxEosConstr(pyM, modulName, ip):
             modul = self.modulsDict[modulName]
-            compClass = modul.comp.modelingClass().abbrvName
-            commVar = getattr(pyM, "commis_" + compClass)
-            maxCapacity = modul.eosParameters["capacity"][-1]
-            loc = list(esM.locations)[0]
-            if modul.pwlcf_type == "eos": 
-                return commVar[loc, modulName, ip] <= maxCapacity
+            if modul.pwlcf_type == "etl":
+                return pyomo.Constraint.Skip
             else:
-                return pyM.Constraint.Skip()
+                compClass = modul.comp.modelingClass().abbrvName
+                commVar = getattr(pyM, "commis_" + compClass)
+                maxCapacity = modul.eosParameters["capacity"].iloc[-1]
+                loc = list(esM.locations)[0]
+                return commVar[loc, modulName, ip] <= maxCapacity
 
         pyM.ConstrCapacityMaxEos = pyomo.Constraint(
             pyM.pwlcfDesignSet, rule=capacityMaxEosConstr
@@ -285,9 +285,9 @@ class PiecewiseLinearCostFunctionModel:
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
-        return self.getEconomicsEtl(esM, pyM)
+        return self.getEconomicsPwlcf(esM, pyM)
 
-    def getEconomicsEtl(
+    def getEconomicsPwlcf(
         self,
         esM,
         pyM,
@@ -326,8 +326,8 @@ class PiecewiseLinearCostFunctionModel:
             for commisYear in modul.commisYears:
 
                 if self.modulsDict[modulName].pwlcf_type == "eos":
-                    opex = self.getOpexEos()
-                    annuity = self.getAnnuityEos()
+                    opex = self.getOpexEos(pyM, modulName, getOptValue)
+                    annuity = self.getAnnuityEos(pyM, modulName, getOptValue)
                 else:
                     opex = 0
                     annuity = self.getAnnuityEtl(
@@ -429,12 +429,36 @@ class PiecewiseLinearCostFunctionModel:
             for ip in esM.investmentPeriods
         )
 
-    def getAnnuityEos(self, pyM, modulName):
-        totalInvest = sum(utilsPWLCF.interpolateFromDataframe(self.modulsDict[modulName].eosParameters, pyM.segmentCapacityPwlcfVar[modulName, 0, segment].value, "capacity", "totalInvest") for segment in self.modulsDict[modulName].noSegements)
-        return totalInvest / self.modulsDict[modulName].comp.CCF[0]
-    
-    def getOpexEos(self, pyM, modulName):
-        totalOpexFix = sum(utilsPWLCF.interpolateFromDataframe(self.modulsDict[modulName].eosParameters, pyM.segmentCapacityPwlcfVar[modulName, 0, segment].value, "capacity", "totalOpex") for segment in self.modulsDict[modulName].noSegements)
+    def getAnnuityEos(self, pyM, modulName, getOptValue=False):
+        modul = self.modulsDict[modulName]
+        if not getOptValue:
+            totalCost = sum(
+                pyM.binaryPwlcfVar[modulName, 0, segment] * modul.eosParameters["interceptionTotalInvest"].iloc[segment] +
+                pyM.segmentCapacityPwlcfVar[modulName, 0, segment] * modul.eosParameters["slopeTotalInvest"].iloc[segment]
+                for segment in range(modul.noSegments)
+            )
+        else:
+            totalCost = sum(
+                pyM.binaryPwlcfVar[modulName, 0, segment].value * modul.eosParameters["interceptionTotalInvest"].iloc[segment] +
+                pyM.segmentCapacityPwlcfVar[modulName, 0, segment].value * modul.eosParameters["slopeTotalInvest"].iloc[segment]
+                for segment in range(modul.noSegments)
+            )
+        return totalCost / self.modulsDict[modulName].comp.CCF[0].mean()
+
+    def getOpexEos(self, pyM, modulName, getOptValue=False):
+        modul = self.modulsDict[modulName]
+        if not getOptValue:
+            totalOpexFix = sum(
+                pyM.binaryPwlcfVar[modulName, 0, segment] * modul.eosParameters["interceptionTotalOpex"].iloc[segment] +
+                pyM.segmentCapacityPwlcfVar[modulName, 0, segment] * modul.eosParameters["slopeTotalOpex"].iloc[segment]
+                for segment in range(modul.noSegments)
+            )
+        else:
+            totalOpexFix = sum(
+                pyM.binaryPwlcfVar[modulName, 0, segment].value * modul.eosParameters["interceptionTotalOpex"].iloc[segment] +
+                pyM.segmentCapacityPwlcfVar[modulName, 0, segment].value * modul.eosParameters["slopeTotalOpex"].iloc[segment]
+                for segment in range(modul.noSegments)
+            )
         return totalOpexFix
 
     def getAnnuityEtl(
@@ -485,91 +509,108 @@ class PiecewiseLinearCostFunctionModel:
     def setOptimalValues(self, esM, pyM):
         loc = list(esM.locations)[0]
 
-        props = ["TAC_ETL", "NPVcontribution_ETL", "knowledgeStock_ETL"]
-        units = [
-            "[" + esM.costUnit + "/a]",
-            "[" + esM.costUnit + "]",
-            "[-]",
-        ]
-        tuples = [
-            (modulName, prop, unit)
-            for modulName in self.modulsDict.keys()
-            for prop, unit in zip(props, units)
-        ]
-
-        unitDict = {
-            "conv": ("physicalUnit", ""),
-            "srcSnk": ("commodityUnit", ""),
-            "stor": ("commodityUnit", "*h"),
-            "trans": ("commodityUnit", ""),
-        }
-
-        tuples = list(
-            map(
-                lambda x: (
-                    x[0],
-                    x[1],
-                    "["
-                    + getattr(
-                        self.modulsDict[x[0]].comp,
-                        unitDict[self.modulsDict[x[0]].comp.modelingClass().abbrvName][
-                            0
-                        ],
-                    )
-                    + unitDict[self.modulsDict[x[0]].comp.modelingClass().abbrvName][1]
-                    + "]",
-                )
-                if x[1] == "knowledgeStock_ETL"
-                else x,
-                tuples,
-            )
-        )
-        mIndex = pd.MultiIndex.from_tuples(
-            tuples, names=["Component", "Property", "Unit"]
-        )
-
-        optSummaryPwlcf = {
-            ip: pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
-            for ip in esM.investmentPeriodNames
-        }
-
-        tac = self.getEconomicsEtl(
+        tac = self.getEconomicsPwlcf(
             esM, pyM, getOptValue=True, getOptValueCostType="TAC"
         )
-        npv = self.getEconomicsEtl(
+        npv = self.getEconomicsPwlcf(
             esM, pyM, getOptValue=True, getOptValueCostType="NPV"
         )
 
         for ip in esM.investmentPeriods:
             for modulName, modul in self.modulsDict.items():
+
+                #initialize different dataframe for ETL/EOS:
+                if modul.pwlcf_type == "etl":
+                    curPWLCFtype = "ETL"
+                    props = ["TAC_ETL", "NPVcontribution_ETL", "knowledgeStock_ETL"]
+                    units = [
+                        "[" + esM.costUnit + "/a]",
+                        "[" + esM.costUnit + "]",
+                        "[-]",
+                    ]
+                else: 
+                    curPWLCFtype = "EOS"
+                    props = ["TAC_EOS", "NPVcontribution_EOS"]
+                    units = [
+                        "[" + esM.costUnit + "/a]",
+                        "[" + esM.costUnit + "]",
+                        "[-]",
+                    ]
+
+                tuples = [
+                    (modName, prop, unit)
+                    for modName in self.modulsDict.keys()
+                    for prop, unit in zip(props, units)
+                ]
+
+                unitDict = {
+                    "conv": ("physicalUnit", ""),
+                    "srcSnk": ("commodityUnit", ""),
+                    "stor": ("commodityUnit", "*h"),
+                    "trans": ("commodityUnit", ""),
+                }
+
+                tuples = list(
+                    map(
+                        lambda x: (
+                            x[0],
+                            x[1],
+                            "["
+                            + getattr(
+                                self.modulsDict[x[0]].comp,
+                                unitDict[self.modulsDict[x[0]].comp.modelingClass().abbrvName][
+                                    0
+                                ],
+                            )
+                            + unitDict[self.modulsDict[x[0]].comp.modelingClass().abbrvName][1]
+                            + "]",
+                        )
+                        if x[1] == "knowledgeStock_ETL"
+                        else x,
+                        tuples,
+                    )
+                )
+                mIndex = pd.MultiIndex.from_tuples(
+                    tuples, names=["Component", "Property", "Unit"]
+                )
+
+                optSummaryPwlcf = {
+                    ip: pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
+                    for ip in esM.investmentPeriodNames
+                }
+
+
+
+
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
-                    (modulName, "TAC_ETL", "[" + esM.costUnit + "/a]"), loc
+                    (modulName, f"TAC_{curPWLCFtype}", "[" + esM.costUnit + "/a]"), loc
                 ] = tac[ip][loc].loc[modulName]
 
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
-                    (modulName, "NPVcontribution_ETL", "[" + esM.costUnit + "]"), loc
+                    (modulName, "NPVcontribution_{curPWLCFtype}", "[" + esM.costUnit + "]"), loc
                 ] = npv[ip][loc].loc[modulName]
-                if pyomo_pwlf:
+                if pyomo_pwlf and curPWLCFtype == "ETL":
                     knowledgeStock = pyM.totalCapacity[modulName, ip].value
-                else:
+                elif curPWLCFtype == "ETL":
                     knowledgeStock = sum(
                         pyM.segmentCapacityPwlcfVar[modulName, ip, segment]._value
                         for segment in range(modul.noSegments)
                     )
-                optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
-                    (
-                        modulName,
-                        "knowledgeStock_ETL",
-                        "["
-                        + getattr(
-                            modul.comp,
-                            unitDict[modul.comp.modelingClass().abbrvName][0],
-                        )
-                        + unitDict[modul.comp.modelingClass().abbrvName][1]
-                        + "]",
-                    ),
-                    loc,
-                ] = knowledgeStock
+                if curPWLCFtype == "ETL":
+                    optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
+                        (
+                            modulName,
+                            "knowledgeStock_ETL",
+                            "["
+                            + getattr(
+                                modul.comp,
+                                unitDict[modul.comp.modelingClass().abbrvName][0],
+                            )
+                            + unitDict[modul.comp.modelingClass().abbrvName][1]
+                            + "]",
+                        ),
+                        loc,
+                    ] = knowledgeStock
 
         for model in esM.componentModelingDict.values():
             optSummary = model._optSummary
