@@ -50,9 +50,9 @@ class Component(metaclass=ABCMeta):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         etlParameter=None,
-        materialIntensity=None,
-        materialRecovery=None,
-        material=None,    # add attribute consistently
+        materialIntensity=0,
+        materialRecovery=0,
+        material=False,    # add attribute consistently
     ):
         """
         Constructor for creating an instance of the Component class.
@@ -551,6 +551,7 @@ class Component(metaclass=ABCMeta):
             esM.investmentPeriodInterval,
             self.ipTechnicalLifetime,
         )
+        ############################################################
         # invest per capacity
         self.investPerCapacity = investPerCapacity
         self.processedInvestPerCapacity = (
@@ -563,6 +564,7 @@ class Component(metaclass=ABCMeta):
                 self.processedStockYears + esM.investmentPeriods,
             )
         )
+        ############################################################
         # invest if built
         self.investIfBuilt = investIfBuilt
         self.processedInvestIfBuilt = utils.checkAndSetInvestmentPeriodCostParameter(
@@ -573,6 +575,7 @@ class Component(metaclass=ABCMeta):
             locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
+        #############################################################
         # opex per capacity
         self.opexPerCapacity = opexPerCapacity
         self.processedOpexPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
@@ -711,10 +714,20 @@ class Component(metaclass=ABCMeta):
         self.materialRecovery = materialRecovery 
         self.material= material
 
+        ############################################################
+        # correct utility function for processed materialIntensity # 
+        ############################################################
 
-        ########################
-        # add utility function #
-        ########################
+        # call for processed materialIntensity 
+        if material==False:
+            self.processedMaterialIntensity = (
+                utils.checkAndSetMaterialIntensity(
+                    esM, 
+                    materialIntensity, 
+                    esM.locations, 
+                    esM.investmentPeriods, 
+                    esM.onlymaterials) 
+            )
 
     def addToEnergySystemModel(self, esM):
         """
@@ -963,26 +976,6 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareDesignVarSet),
         )
 
-
-    def declareMaterialVarSet(self, pyM, esM):
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-
-        def declareMaterialSet(pyM):
-            return (
-                (loc, compName, mat, ip)
-                for compName, comp in compDict.items()
-                for loc in comp['processedLocationalEligibility'].keys()
-                for mat in comp['materialIntensity'].keys() | comp['materialRecovery'].keys() 
-                for ip in esM.investmentPeriods
-            )
-
-        setattr(
-            pyM,
-            "materialSet_" + abbrvName,
-            pyomo.Set(dimen=4, initialize=declareMaterialSet),
-        )
-
-
     def declareLocationComponentSet(self, pyM):
         """
         Declare set with location and component in the pyomo object for a modeling class.
@@ -1204,7 +1197,7 @@ class ComponentModel(metaclass=ABCMeta):
     #                                   Functions for declaring operation mode sets                                    #
     ####################################################################################################################
 
-    def declareOpConstrSet1(self, pyM, constrSetName, rateMax, rateFix):
+    def declareOpConstrSet1(self, esM, pyM, constrSetName, rateMax, rateFix):
         """
         Declare set of locations and components for which hasCapacityVariable is set to True and neither the
         maximum nor the fixed operation rate is given.
@@ -1227,7 +1220,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet1),
         )
 
-    def declareOpConstrSet2(self, pyM, constrSetName, rateFix):
+    def declareOpConstrSet2(self, esM, pyM, constrSetName, rateFix):
         """
         Declare set of locations and components for which hasCapacityVariable is set to True and a fixed
         operation rate is given.
@@ -1249,7 +1242,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet2),
         )
 
-    def declareOpConstrSet3(self, pyM, constrSetName, rateMax):
+    def declareOpConstrSet3(self, esM, pyM, constrSetName, rateMax):
         """
         Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
         operation rate is given.
@@ -1271,7 +1264,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet3),
         )
 
-    def declareOpConstrSet4(self, pyM, constrSetName, rateMin):
+    def declareOpConstrSet4(self, esM, pyM, constrSetName, rateMin):
         """
         Declare set of locations and components for which  hasCapacityVariable is set to True and a minimum
         operation rate is given.
@@ -1293,7 +1286,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet4),
         )
 
-    def declareOpConstrSet5(self, pyM, constrSetName):
+    def declareOpConstrSet5(self, esM, pyM, constrSetName):
         """
         Declare operating mode set 5 for material consumption.
         This set is used for constraints where the operation (i.e. material consumption)
@@ -1306,19 +1299,20 @@ class ComponentModel(metaclass=ABCMeta):
         def declareOpConstrSet5(pyM):
             # For each tuple (loc, compName ip) in the existing operation variable set,
             # iterate over all materials for the given component.
+            print(esM.onlymaterials)
             return (
                 (loc, compName, mat, ip)
                 for loc, compName, ip in varSet
-                for mat in compDict[compName].material
+                for mat in esM.onlymaterials                               # here an issue occurs 
             )
-    
+        ########################################################
         setattr(
             pyM,
             constrSetName + "5_" + abbrvName,
             pyomo.Set(dimen=4, initialize=declareOpConstrSet5)
         )
 
-    def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
+    def declareOpConstrSetMinPartLoad(self, esM, pyM, constrSetName):
         """
         Declare set of locations and components for which partLoadMin is not None.
         """
@@ -1338,8 +1332,8 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSetMinPartLoad),
         )
 
-    def declareOperationModeSets(
-        self, pyM, constrSetName, rateMax, rateFix, rateMin=None, material=None
+    def declareOperationModeSets(                                      #############
+        self, esM, pyM, constrSetName, rateMax, rateFix, rateMin=None  ## Baustelle
     ):
         """
         Declare operating mode sets.
@@ -1359,16 +1353,16 @@ class ComponentModel(metaclass=ABCMeta):
         :param rateFix: attribute of the considered component which stores the fixed operation rate data.
         :type rateFix: string
         """
-        self.declareOpConstrSet1(pyM, constrSetName, rateMax, rateFix)
-        self.declareOpConstrSet2(pyM, constrSetName, rateFix)
-        self.declareOpConstrSet3(pyM, constrSetName, rateMax)
+        self.declareOpConstrSet1(pyM, esM, constrSetName, rateMax, rateFix)
+        self.declareOpConstrSet2(pyM, esM, constrSetName, rateFix)
+        self.declareOpConstrSet3(pyM, esM, constrSetName, rateMax)
         if rateMin:
-            self.declareOpConstrSet4(pyM, constrSetName, rateMin)
+            self.declareOpConstrSet4(pyM, esM, constrSetName, rateMin)
         # if sink is supposed to capture material consumption, initiate material consumption set 
-        if material: 
-            self.declareOpConstrSet5(pyM, constrSetName)
+        # if materialRate: ########################################################################### self, pyM, constrSetName
+        self.declareOpConstrSet5(pyM, esM, constrSetName)
             
-        self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
+        self.declareOpConstrSetMinPartLoad(pyM, esM, constrSetName)
 
     def declareYearlyFullLoadHoursMinSet(self, pyM):
         """
@@ -1548,44 +1542,6 @@ class ComponentModel(metaclass=ABCMeta):
                 domain=pyomo.NonNegativeReals,
             ),
         )
-
-
-    def declareMaterialVars(self, pyM, esM):
-        """
-        Declare variables for material intensity and recovery.
-
-        :param pyM: Pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo.ConcreteModel
-
-        :param esM: Energy system model containing general information.
-        :type esM: EnergySystemModel instance from the FINE package
-        """
-        # Check if materialSet exists before declaring variables
-        if not hasattr(pyM, "materialSet_" + abbrvName):
-            raise AttributeError(f"Set materialSet_{abbrvName} is missing in pyM! Make sure declareMaterialVarSet() is called first.")
-
-        print(f"Declaring material variables for {abbrvName}")
-        abbrvName = self.abbrvName
-
-        setattr(
-            pyM,
-            "materialIntensity_" + abbrvName,
-            pyomo.Var(
-                getattr(pyM, "materialSet_" + abbrvName),
-                domain=pyomo.NonNegativeReals,
-            ),
-        )
-
-        setattr(
-            pyM,
-            "materialRecovery_" + abbrvName,
-            pyomo.Var(
-                getattr(pyM, "materialSet_" + abbrvName),
-                domain=pyomo.NonNegativeReals,
-            ),
-        )
-
-
 
     def declareRealNumbersVars(self, pyM):
         """
@@ -2660,7 +2616,7 @@ class ComponentModel(metaclass=ABCMeta):
                         if isStateOfCharge
                         else esM.hoursPerSegment[ip].to_dict()
                     )
-                    rate = getattr(compDict[compName], opRateName)[ip]
+                    rate = getattr(compDict[compName], opRateName)[ip]                                ####################################
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
                         if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
@@ -2698,7 +2654,8 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
-    # gain understanding of variable calls in operationModes
+     # gain understanding of variable calls in operationModes
+     # gain understanding of variable calls in operationModes
     def operationMaterialConsumption(
         self,
         pyM,
@@ -2706,42 +2663,45 @@ class ComponentModel(metaclass=ABCMeta):
         constrName,
         constrSetName,
         opVarName,
+        
     ):
         """
         Define operation mode 5 for material sinks.
-    
+
         This mode calculates the material consumption flow as:
-    
+
             opVar[loc, comp, ip, p, t] = commisVar[loc, comp, ip] * materialIntensity
 
         where:
-          - opVar is the sink's operation variable (interpreted as material consumption),
-          - commisVar is the commissioning variable,
-          - materialIntensity is a component attribute (accessed via materialIntensityName),
-          - The constraint is applied over a set (e.g. a design set for material consumption indices)
+            - opVar is the sink's operation variable (interpreted as material consumption),
+            - commisVar is the commissioning variable,
+            - materialIntensity is a component attribute (accessed via materialIntensityName),
+            - The constraint is applied over a set (e.g. a design set for material consumption indices)
             defined in pyM as: constrSetName + "5_" + abbrvName.
-    
+
         This equality sets the consumption flow; then, a separate system-level constraint should ensure
         that the sum of material consumption across components does not exceed the available material supply.
         """
-        print("Vorhandene Attribute im Modell:", dir(pyM))                                                                                          
-        # call arguments
-        
+    
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
         commisVar = getattr(pyM, "commis_" + abbrvName)
-        materialIntensity = getattr(pyM, "materialIntensity_" + abbrvName)                        # add to op5 Set
-        constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)                               # constraint set 5 yet to be defined 
+        constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)
+        
+        def materialConsConstr(pyM, loc, compName, mat, ip):
 
-        def materialConsConstr(pyM, loc, compName, mat, ip):                                                       # for now include p for intra year variations
-            # Get material intensity for given component
-            # Enforce equality that defines material consumption
-            return sum(opVar[loc, compName, ip, p, t] for p in esM.typicalPeriods for t in esM.hoursPerSegment) == commisVar[loc, compName, ip] * materialIntensity[loc, compName, mat, ip]
+            lhs = sum(
+                opVar[loc, compName, ip, p, t]
+                for p in esM.typicalPeriods
+                for t in esM.hoursPerSegment[ip]
+            )
+            rhs = commisVar[loc, compName, ip] * compDict[compName].materialIntensity[loc][mat][ip]
+            return lhs == rhs
         
         setattr(
             pyM,
             constrName + "5_" + abbrvName,
-            pyomo.Constraint(constrSet5, pyM.intraYearTimeSet, rule=materialConsConstr)
+            pyomo.Constraint(constrSet5, rule=materialConsConstr)
         )
 
     def additionalMinPartLoad(

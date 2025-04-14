@@ -57,8 +57,8 @@ class Source(Component):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         etlParameter=None,
-        materialIntensity=None,
-        materialRecovery=None,
+        materialIntensity=0,
+        materialRecovery=0,
         material=False,
     ):
         """
@@ -449,6 +449,25 @@ class Source(Component):
 
         # set material bool #########
         self.material =material 
+        # add materialConsumption and materialRecovery if declared 
+        self.materialIntensity = materialIntensity
+        self.materialRecovery = materialRecovery 
+        self.material= material
+
+        ############################################################
+        # correct utility function for processed materialIntensity # 
+        ############################################################
+
+        # call for processed materialIntensity 
+        if material==False:
+            self.processedMaterialIntensity = (
+                utils.checkAndSetMaterialIntensity(
+                    esM, 
+                    materialIntensity, 
+                    esM.locations, 
+                    esM.investmentPeriods, 
+                    esM.onlymaterials) 
+            )
         #############################
 
     def setTimeSeriesData(self, hasTSA):
@@ -618,8 +637,8 @@ class Sink(Source):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
-        materialIntensity=None,
-        materialRecovery=None,
+        materialIntensity=0,
+        materialRecovery=0,
         material=False,
     ):
         """
@@ -761,10 +780,11 @@ class SourceSinkModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
-
+        
         # Declare sets for case differentiation of operating modes
         self.declareOperationModeSets(
             pyM,
+            esM,
             "opConstrSet",
             "processedOperationRateMax",
             "processedOperationRateFix",
@@ -926,9 +946,9 @@ class SourceSinkModel(ComponentModel):
         # series [-] and the hours per time step [h])
         self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
 
-        ############################################################
+        ###################################################################################      
         self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
-        ############################################################
+        ###################################################################################
         
         # Operation [physicalUnit*h] is limited by minimum part LoadHahah 
         self.additionalMinPartLoad(

@@ -1484,6 +1484,34 @@ def checkAndSetInvestmentPeriodCostParameter(
             )
     return parameter
 
+###############################################################################################################################################
+# here materialIntensity processing 
+# MaterialIntensity check
+def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPeriods, onlymaterials):
+    if materialIntensity is None or materialIntensity == 0:
+        return 0
+ 
+    processedMaterialIntensity = {}
+ 
+    for location in locations:
+        if location not in processedMaterialIntensity:
+            processedMaterialIntensity[location] = {}
+        for ip in investmentPeriods:
+            _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
+            if _ip not in processedMaterialIntensity[location]:
+                processedMaterialIntensity[location][_ip] = {}
+            for mat in onlymaterials:
+                if (
+                    location in materialIntensity and
+                    _ip in materialIntensity[location] and
+                    mat in materialIntensity[location][_ip]
+                ):
+                    processedMaterialIntensity[location][_ip][mat] = materialIntensity[location][_ip][mat]
+ 
+    return processedMaterialIntensity
+ 
+
+###############################################################################################################################################
 
 def checkAndSetLifetimeInvestmentPeriod(esM, name, lifetime):
     ip_LifeTime = lifetime / esM.investmentPeriodInterval
