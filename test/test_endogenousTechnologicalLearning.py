@@ -156,15 +156,15 @@ def test_etl_stock_NPV():
     ]
     slope = esM.pwlcfModel.modulsDict["PV_with_etl"].linEtlParameter.loc[2, "slope"]
     initCapacity = esM.pwlcfModel.modulsDict["PV_with_etl"].initCapacity
-    initTotalCost = esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCost(initCapacity)
+    initTotalCost = esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(initCapacity)
     stockCost2010 = (
-        esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCost(8)
-        - esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCost(7)
+        esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(8)
+        - esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(7)
     ) / 3
     stockCost2015 = (
         (
-            esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCost(10)
-            - esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCost(8)
+            esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(10)
+            - esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(8)
         )
         * 2
         / 3
