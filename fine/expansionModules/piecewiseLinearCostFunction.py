@@ -404,6 +404,11 @@ class PiecewiseLinearCostFunctionModel:
                                 esM, modulName, loc, esM.investmentPeriodInterval
                             )
                         )
+                    elif getOptValueCostType == "invest":
+                        cost_results[ip].loc[modulName, loc] = (
+                            annuity * self.modulsDict[modulName].comp.CCF[0].mean()
+                        )
+
             return cost_results
         if esM.annuityPerpetuity:
             for modulName in costContribution.keys():  # noqa: PLC0206
@@ -515,6 +520,9 @@ class PiecewiseLinearCostFunctionModel:
         npv = self.getEconomicsPwlcf(
             esM, pyM, getOptValue=True, getOptValueCostType="NPV"
         )
+        invest = self.getEconomicsPwlcf(
+            esM, pyM, getOptValue=True, getOptValueCostType="invest"
+        )
 
         for ip in esM.investmentPeriods:
             for modulName, modul in self.modulsDict.items():
@@ -522,19 +530,20 @@ class PiecewiseLinearCostFunctionModel:
                 #initialize different dataframe for ETL/EOS:
                 if modul.pwlcf_type == "etl":
                     curPWLCFtype = "ETL"
-                    props = ["TAC_ETL", "NPVcontribution_ETL", "knowledgeStock_ETL"]
+                    props = ["TAC_ETL", "NPVcontribution_ETL", "invest_ETL", "knowledgeStock_ETL"]
                     units = [
                         "[" + esM.costUnit + "/a]",
+                        "[" + esM.costUnit + "]",
                         "[" + esM.costUnit + "]",
                         "[-]",
                     ]
                 else: 
                     curPWLCFtype = "EOS"
-                    props = ["TAC_EOS", "NPVcontribution_EOS"]
+                    props = ["TAC_EOS", "NPVcontribution_EOS", "invest_EOS"]
                     units = [
                         "[" + esM.costUnit + "/a]",
                         "[" + esM.costUnit + "]",
-                        "[-]",
+                        "[" + esM.costUnit + "]",
                     ]
 
                 tuples = [
@@ -587,8 +596,13 @@ class PiecewiseLinearCostFunctionModel:
                 ] = tac[ip][loc].loc[modulName]
 
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
-                    (modulName, "NPVcontribution_{curPWLCFtype}", "[" + esM.costUnit + "]"), loc
+                    (modulName, f"NPVcontribution_{curPWLCFtype}", "[" + esM.costUnit + "]"), loc
                 ] = npv[ip][loc].loc[modulName]
+                
+                optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
+                    (modulName, f"invest_{curPWLCFtype}", "[" + esM.costUnit + "]"), loc
+                ] = invest[ip][loc].loc[modulName]
+                
                 if pyomo_pwlf and curPWLCFtype == "ETL":
                     knowledgeStock = pyM.totalCapacity[modulName, ip].value
                 elif curPWLCFtype == "ETL":
@@ -631,10 +645,16 @@ class PiecewiseLinearCostFunctionModel:
                     [optSummary[ipName], optSummaryPwlcf[ipName].loc[etlComps, :, :]],
                     axis=0,
                 ).sort_index()
+                optSummary[ipName] = pd.concat(
+                    [optSummary[ipName], optSummaryPwlcf[ipName].loc[eosComps, :, :]],
+                    axis=0,
+                ).sort_index()
                 if len(eosComps) > 0:
                     optSummary[ipName].loc[eosComps,'TAC',:] += optSummaryPwlcf[ipName].loc[:,'TAC_EOS',:]
                     optSummary[ipName].loc[eosComps,'NPVcontribution',:] += optSummaryPwlcf[ipName].loc[:,'NPVcontribution_EOS',:]
+                    optSummary[ipName].loc[eosComps,'invest',:] += optSummaryPwlcf[ipName].loc[:,'invest_EOS',:]
                 if len(etlComps) > 0:
                     optSummary[ipName].loc[etlComps,'TAC',:] += optSummaryPwlcf[ipName].loc[:,'TAC_ETL',:]
                     optSummary[ipName].loc[etlComps,'NPVcontribution',:] += optSummaryPwlcf[ipName].loc[:,'NPVcontribution_ETL',:]
+                    optSummary[ipName].loc[eosComps,'invest',:] += optSummaryPwlcf[ipName].loc[:,'invest_ETL',:]          
             model.optSummary = optSummary[esM.startYear]
