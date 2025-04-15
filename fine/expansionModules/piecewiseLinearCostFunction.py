@@ -210,6 +210,7 @@ class PiecewiseLinearCostFunctionModel:
                 return capSegmentVarSum == commVarSum
             elif self.modulsDict[modulName].pwlcf_type == "etl":
                 return capSegmentVarSum == commVarSum + modul.initCapacity
+            return None
 
         pyM.ConstrCapacityCommissioningPwlcf = pyomo.Constraint(
             pyM.pwlcfDesignSet, rule=capacityCommissioningPwlcfConstr
@@ -537,7 +538,7 @@ class PiecewiseLinearCostFunctionModel:
                         "[" + esM.costUnit + "]",
                         "[-]",
                     ]
-                else: 
+                else:
                     curPWLCFtype = "EOS"
                     props = ["TAC_EOS", "NPVcontribution_EOS", "invest_EOS"]
                     units = [
@@ -598,11 +599,9 @@ class PiecewiseLinearCostFunctionModel:
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
                     (modulName, f"NPVcontribution_{curPWLCFtype}", "[" + esM.costUnit + "]"), loc
                 ] = npv[ip][loc].loc[modulName]
-                
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
                     (modulName, f"invest_{curPWLCFtype}", "[" + esM.costUnit + "]"), loc
                 ] = invest[ip][loc].loc[modulName]
-                
                 if pyomo_pwlf and curPWLCFtype == "ETL":
                     knowledgeStock = pyM.totalCapacity[modulName, ip].value
                 elif curPWLCFtype == "ETL":
@@ -656,5 +655,5 @@ class PiecewiseLinearCostFunctionModel:
                 if len(etlComps) > 0:
                     optSummary[ipName].loc[etlComps,'TAC',:] += optSummaryPwlcf[ipName].loc[:,'TAC_ETL',:]
                     optSummary[ipName].loc[etlComps,'NPVcontribution',:] += optSummaryPwlcf[ipName].loc[:,'NPVcontribution_ETL',:]
-                    optSummary[ipName].loc[eosComps,'invest',:] += optSummaryPwlcf[ipName].loc[:,'invest_ETL',:]          
+                    optSummary[ipName].loc[eosComps,'invest',:] += optSummaryPwlcf[ipName].loc[:,'invest_ETL',:]
             model.optSummary = optSummary[esM.startYear]
