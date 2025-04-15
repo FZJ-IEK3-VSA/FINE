@@ -36,7 +36,7 @@ def checkAndSetEosParameters(comp, eosParameters):
     return eosParameters
 
 def checkInvestmentPeriods(esM):
-    if esM.numberOfInvestmentPeriods != 1: 
+    if esM.numberOfInvestmentPeriods != 1:
         raise NotImplementedError(
             "Economies of Scale are currently only "
             "implemented for single investment period energy system models"

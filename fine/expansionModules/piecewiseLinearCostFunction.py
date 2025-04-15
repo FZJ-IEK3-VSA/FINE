@@ -221,12 +221,11 @@ class PiecewiseLinearCostFunctionModel:
             modul = self.modulsDict[modulName]
             if modul.pwlcf_type == "etl":
                 return pyomo.Constraint.Skip
-            else:
-                compClass = modul.comp.modelingClass().abbrvName
-                commVar = getattr(pyM, "commis_" + compClass)
-                maxCapacity = modul.eosParameters["capacity"].iloc[-1]
-                loc = list(esM.locations)[0]
-                return commVar[loc, modulName, ip] <= maxCapacity
+            compClass = modul.comp.modelingClass().abbrvName
+            commVar = getattr(pyM, "commis_" + compClass)
+            maxCapacity = modul.eosParameters["capacity"].iloc[-1]
+            loc = list(esM.locations)[0]
+            return commVar[loc, modulName, ip] <= maxCapacity
 
         pyM.ConstrCapacityMaxEos = pyomo.Constraint(
             pyM.pwlcfDesignSet, rule=capacityMaxEosConstr
