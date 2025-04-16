@@ -448,7 +448,7 @@ class Source(Component):
         )
 
         # set material bool #########
-        self.material =material 
+        # self.material=material 
         # add materialConsumption and materialRecovery if declared 
         self.materialIntensity = materialIntensity
         self.materialRecovery = materialRecovery 
@@ -946,7 +946,8 @@ class SourceSinkModel(ComponentModel):
         # series [-] and the hours per time step [h])
         self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
 
-        ###################################################################################      
+        ################################################################################### 
+          
         self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
         ###################################################################################
         

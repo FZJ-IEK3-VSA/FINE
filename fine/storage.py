@@ -684,6 +684,7 @@ class StorageModel(ComponentModel):
         # * Charge operation
         self.declareOperationModeSets(
             pyM,
+            esM,
             "chargeOpConstrSet",
             "processedChargeOpRateMax",
             "processedChargeOpRateFix",
@@ -691,6 +692,7 @@ class StorageModel(ComponentModel):
         # * Discharge operation
         self.declareOperationModeSets(
             pyM,
+            esM,
             "dischargeOpConstrSet",
             "processedDischargeOpRateMax",
             "processedDischargeOpRateFix",
