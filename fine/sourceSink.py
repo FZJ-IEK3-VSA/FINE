@@ -459,15 +459,15 @@ class Source(Component):
         ############################################################
 
         # call for processed materialIntensity 
-        if material==False:
-            self.processedMaterialIntensity = (
-                utils.checkAndSetMaterialIntensity(
-                    esM, 
-                    materialIntensity, 
-                    esM.locations, 
-                    esM.investmentPeriods, 
-                    esM.onlymaterials) 
-            )
+        # if material==False:
+        #     self.processedMaterialIntensity = (
+        #         utils.checkAndSetMaterialIntensity(
+        #             esM, 
+        #             materialIntensity, 
+        #             esM.locations, 
+        #             esM.investmentPeriods, 
+        #             esM.onlymaterials) 
+        #     )
         #############################
 
     def setTimeSeriesData(self, hasTSA):
@@ -949,8 +949,10 @@ class SourceSinkModel(ComponentModel):
         ################################################################################### 
           
         self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
+        self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
+
         ###################################################################################
-        
+
         # Operation [physicalUnit*h] is limited by minimum part LoadHahah 
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
