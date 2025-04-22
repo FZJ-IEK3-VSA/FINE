@@ -1193,6 +1193,27 @@ class ComponentModel(metaclass=ABCMeta):
             )
 
 
+    def declareMaterialSets(self, esM, pyM):
+        compDict = self.componentsDict  # or however you reach componentsDict
+
+        # 1) SinkSet: all material=True sinks
+        pyM.SinkSet = pyomo.Set(initialize=[
+            compName
+            for mdl in esM.componentModelingDict.values()
+            for compName, comp in mdl.componentsDict.items()
+            if getattr(comp, "material", False)
+            and comp.__class__.__name__ == "Sink"
+        ])
+
+        # 2) SourceSet: all components with a non‑empty materialIntensity
+        pyM.SourceSet = pyomo.Set(initialize=[
+            compName
+            for mdl in esM.componentModelingDict.values()
+            for compName, comp in mdl.componentsDict.items()
+            if hasattr(comp, "materialIntensity") and comp.materialIntensity
+    ])
+
+
 
     ####################################################################################################################
     #                                   Functions for declaring operation mode sets                                    #
@@ -1297,23 +1318,30 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationVarSet_" + abbrvName)
    
-        def declareOpConstrSet5(pyM):
-            # For each tuple (loc, compName ip) in the existing operation variable set,
-            # iterate over all materials for the given component.
+        # def declareOpConstrSet5(pyM):
+        #     # For each tuple (loc, compName ip) in the existing operation variable set,
+        #     # iterate over all materials for the given component.
  
-            return (
-                (loc, compName, mat, ip)
-                for loc, compName, ip in varSet
-                for mat in getattr(esM, "onlymaterials", [])
-                if (hasattr(compDict[compName], "materialIntensity") and compDict[compName].materialIntensity)
-                   
-               
-            )
-        
+        #     return (
+        #         (loc, compName, mat, ip)
+        #         for loc, compName, ip in varSet
+        #         for mat in getattr(esM, "onlymaterials", [])
+        #         if (hasattr(compDict[compName], "materialIntensity") and compDict[compName].materialIntensity)
+        #         )
+        def declareOpConstrSet5(m):
+            for loc, sinkName, ip in varSet:
+                # only sinks were put into varSet if they have an opVar
+                if sinkName not in m.SinkSet:
+                    continue
+                for sourceName in m.SourceSet:
+                    for mat in esM.onlymaterials:
+                        yield (loc, sinkName, sourceName, mat, ip)
+                        print((loc, sinkName, sourceName, mat, ip))
+
         setattr(
             pyM,
             constrSetName + "5_" + abbrvName,
-            pyomo.Set(dimen=4, initialize=declareOpConstrSet5)
+            pyomo.Set(dimen=5, initialize=declareOpConstrSet5)
         )
  
     def declareOpConstrSet6(self, esM, pyM, constrSetName):
@@ -1365,8 +1393,8 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSetMinPartLoad),
         )
 
-    def declareOperationModeSets(                                      #############
-        self, esM, pyM, constrSetName, rateMax, rateFix, rateMin=None  ## Baustelle
+    def declareOperationModeSets(                                      
+        self, esM, pyM, constrSetName, rateMax, rateFix, rateMin=None  
     ):
         """
         Declare operating mode sets.
@@ -2651,7 +2679,7 @@ class ComponentModel(metaclass=ABCMeta):
                         if isStateOfCharge
                         else esM.hoursPerSegment[ip].to_dict()
                     )
-                    rate = getattr(compDict[compName], opRateName)[ip]                                ####################################
+                    rate = getattr(compDict[compName], opRateName)[ip]
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
                         if validTreshold and (rate[loc][p, t] <= relevanceThreshold):
@@ -2719,42 +2747,55 @@ class ComponentModel(metaclass=ABCMeta):
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
         commisVar = getattr(pyM, "commis_" + abbrvName)
         constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)
-        print("commisVar", commisVar)
-        print("operation", opVar )
 
 
-        def materialConsConstr(pyM, loc, compName, mat, ip):              # for loop over components that should call this constraint 
+        def materialConsConstr(m, loc, sink, source, mat, ip):              # for loop over components that should call this constraint 
             
-            # Filter components that have a materialIntensity given 
-            comps_with_intensity = [comp for comp in compDict.values() if hasattr(comp, 'materialIntensity') and comp.materialIntensity]
-            print("comps_with_intensity", comps_with_intensity)
-            # Filter components that have a material flag and are sinks with all respective indices 
-            isMaterialFlagged = [
-                (compName, loc, ip, p, t)
-                for mdl in esM.componentModelingDict.values()
-                for compName, comp in mdl.componentsDict.items()
-                if getattr(comp, "material", False) and comp.__class__.__name__ == 'Sink'
-                for loc in comp.processedLocationalEligibility.index
-                for ip in esM.investmentPeriods
-                for p, t in esM.pyM.intraYearTimeSet
-            ]
-            print("isMaterialFlagged", isMaterialFlagged)
-            
-            # Skip constrain contribution for components that do not have a material intensity 
-            if compName not in comps_with_intensity:
-                return pyomo.Constraint.Skip
-            print("commisVar", commisVar[loc, compName, ip])
-            print("materialIntensity", compDict[compName].materialIntensity[loc][mat][ip])
-            # Execute left hand side of the constraint equation i.e. material flagged components 
+            # LHS: only this one sink, sum over intra‐year (p,t)
             lhs = sum(
-                opVar[loc, compName, ip, p, t]
-                for compName, loc, ip, p, t in isMaterialFlagged
+                opVar[loc, sink, ip, p, t]
+                for p, t in m.intraYearTimeSet
             )
-            # Execute right hand side of the constraint equation i.e. materialIntensity components 
-            rhs = commisVar[loc, compName, ip] * compDict[compName].materialIntensity[loc][mat][ip]
+            print(f"Left hand side for {sink} at {loc}, {ip}: {lhs}")
+            # RHS: source’s commissioning var * its materialIntensity
+            intensity = compDict[source].materialIntensity[loc][mat][ip]
+            rhs = commisVar[loc, source, ip] * intensity
+            print(f"Right hand side for {source} at {loc}, {ip}: {rhs}")
             return lhs == rhs
+            # # Filter components that have a materialIntensity given 
+            # comps_with_intensity = [comp for comp in compDict.values() if hasattr(comp, 'materialIntensity') and comp.materialIntensity]
+            # # print(comps_with_intensity)
+            # # Filter components that have a material flag and are sinks with all respective indices 
+            # isMaterialFlagged = [
+            #     (compName, loc, ip, p, t)
+            #     for mdl in esM.componentModelingDict.values()
+            #     for compName, comp in mdl.componentsDict.items()
+            #     if getattr(comp, "material", False) and comp.__class__.__name__ == 'Sink'
+            #     for loc in comp.processedLocationalEligibility.index
+            #     for ip in esM.investmentPeriods
+            #     for p, t in esM.pyM.intraYearTimeSet
+            # ]
+            
+            # # Skip constrain contribution for components that do not have a material intensity 
+            # if compDict[compName] not in comps_with_intensity:
+            #     print(f"Skipping constraint for {compName} at {loc}, {ip} due to missing material intensity.")
+            #     return pyomo.Constraint.Skip
+            
+            # Execute left hand side of the constraint equation i.e. material flagged components 
+            # lhs = sum(
+            #     opVar[loc, compName, ip, p, t]
+            #     for compName, loc, ip, p, t in isMaterialFlagged
+            # )
+            # print(f"Left hand side for {compName} at {loc}, {ip}: {lhs}")
+            # if compDict[compName].materialIntensity is None:
+            #     print(f"Material intensity for {compName} is None.")
+            #     return pyomo.Constraint.Skip
+            
+            # Execute right hand side of the constraint equation i.e. materialIntensity components 
+            # rhs = commisVar[loc, compName, ip] * compDict[compName].materialIntensity[loc][mat][ip]
+            # print(f"Right hand side for {compName} at {loc}, {ip}: {rhs}")
+            # return lhs == rhs
         
-        print(f"Haaaaaaaallllooo: Constraint '{constrName}' wurde gecalled")
         setattr(
             pyM,
             constrName + "5_" + abbrvName,
@@ -2764,79 +2805,79 @@ class ComponentModel(metaclass=ABCMeta):
 #######################################################################################################
 #######################################################################################################
 
-    def operationMaterialRecovery(
-        self,
-        pyM,
-        esM,
-        constrName,
-        constrSetName,
-        opVarName,
+    # def operationMaterialRecovery(
+    #     self,
+    #     pyM,
+    #     esM,
+    #     constrName,
+    #     constrSetName,
+    #     opVarName,
         
-    ):
-        """
-        Define operation mode 5 for material sources.
+    # ):
+    #     """
+    #     Define operation mode 5 for material sources.
 
-        This mode calculates the material consumption flow as:
+    #     This mode calculates the material consumption flow as:
 
-            opVar[loc, comp, ip, p, t] = commisVar[loc, comp, ip] * materialIntensity
+    #         opVar[loc, comp, ip, p, t] = commisVar[loc, comp, ip] * materialIntensity
 
-        where:
-            - opVar is the sink's operation variable (interpreted as material consumption),
-            - commisVar is the commissioning variable,
-            - materialIntensity is a component attribute (accessed via materialIntensityName),
-            - The constraint is applied over a set (e.g. a design set for material consumption indices)
-            defined in pyM as: constrSetName + "5_" + abbrvName.
+    #     where:
+    #         - opVar is the sink's operation variable (interpreted as material consumption),
+    #         - commisVar is the commissioning variable,
+    #         - materialIntensity is a component attribute (accessed via materialIntensityName),
+    #         - The constraint is applied over a set (e.g. a design set for material consumption indices)
+    #         defined in pyM as: constrSetName + "5_" + abbrvName.
 
-        This equality sets the consumption flow; then, a separate system-level constraint should ensure
-        that the sum of material consumption across components does not exceed the available material supply.
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, opVarName + "_" + abbrvName)
-        decommisVar = getattr(pyM, "decommis_" + abbrvName)
-        constrSet6 = getattr(pyM, constrSetName + "6_" + abbrvName)
+    #     This equality sets the consumption flow; then, a separate system-level constraint should ensure
+    #     that the sum of material consumption across components does not exceed the available material supply.
+    #     """
+    #     compDict, abbrvName = self.componentsDict, self.abbrvName
+    #     opVar = getattr(pyM, opVarName + "_" + abbrvName)
+    #     decommisVar = getattr(pyM, "decommis_" + abbrvName)
+    #     constrSet6 = getattr(pyM, constrSetName + "6_" + abbrvName)
         
-        def materialRecConstr(pyM, loc, compName, mat, ip):              # for loop over components that should call this constraint 
+    #     def materialRecConstr(pyM, loc, compName, mat, ip):              # for loop over components that should call this constraint 
             
-            # Filter components that have a materialIntensity given 
-            comps_with_recovery = [comp for comp in compDict.values() if hasattr(comp, 'materialRecovery') and comp.materialRecovery]
-            # Filter components that have a material flag and are sinks with all respective indices 
-            isMaterialFlagged = [
-                (compName, loc, ip, p, t)
-                for mdl in esM.componentModelingDict.values()
-                for compName, comp in mdl.componentsDict.items()
-                if getattr(comp, "material", False) and comp.__class__.__name__ == 'Source'
-                for loc in comp.processedLocationalEligibility.index
-                for ip in esM.investmentPeriods
-                for p, t in esM.pyM.intraYearTimeSet
-            ]
+    #         # Filter components that have a materialIntensity given 
+    #         comps_with_recovery = [comp for comp in compDict.values() if hasattr(comp, 'materialRecovery') and comp.materialRecovery]
+    #         # Filter components that have a material flag and are sinks with all respective indices 
+    #         isMaterialFlagged = [
+    #             (compName, loc, ip, p, t)
+    #             for mdl in esM.componentModelingDict.values()
+    #             for compName, comp in mdl.componentsDict.items()
+    #             if getattr(comp, "material", False) and comp.__class__.__name__ == 'Source'
+    #             for loc in comp.processedLocationalEligibility.index
+    #             for ip in esM.investmentPeriods
+    #             for p, t in esM.pyM.intraYearTimeSet
+    #         ]
 
-            # Skip constrain contribution for components that do not have a material intensity 
-            if compName not in comps_with_recovery:
-                return pyomo.Constraint.Skip
+    #         # Skip constrain contribution for components that do not have a material intensity 
+    #         if compName not in comps_with_recovery:
+    #             return pyomo.Constraint.Skip
 
-            tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
+    #         tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
 
-            tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
-            if self.componentsDict[compName].floorTechnicalLifetime:
-                comm_date = ip - math.floor(tech_lifetime)
-            else:
-                comm_date = ip - math.ceil(tech_lifetime)
+    #         tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
+    #         if self.componentsDict[compName].floorTechnicalLifetime:
+    #             comm_date = ip - math.floor(tech_lifetime)
+    #         else:
+    #             comm_date = ip - math.ceil(tech_lifetime)
 
-            # Execute left hand side of the constraint equation i.e. material flagged components 
-            lhs = sum(
-                opVar[loc, compName, ip, p, t]
-                for compName, loc, ip, p, t in isMaterialFlagged
-            )
-            # Execute right hand side of the constraint equation i.e. materialIntensity components 
-            rhs = decommisVar[loc, compName, ip] * compDict[compName].materialIntensity[loc][mat][comm_date] * compDict[compName].materialRecovery[loc][mat][ip]
-            return lhs == rhs
+    #         # Execute left hand side of the constraint equation i.e. material flagged components 
+    #         lhs = sum(
+    #             opVar[loc, compName, ip, p, t]
+    #             for compName, loc, ip, p, t in isMaterialFlagged
+    #         )
+    #         # Execute right hand side of the constraint equation i.e. materialIntensity components 
+    #         rhs = decommisVar[loc, compName, ip] * compDict[compName].materialIntensity[loc][mat][comm_date] * compDict[compName].materialRecovery[loc][mat][ip]
+    #         return lhs == rhs
         
         
-        setattr(
-            pyM,
-            constrName + "6_" + abbrvName,
-            pyomo.Constraint(constrSet6, rule=materialRecConstr)
-        )
+    #     setattr(
+    #         pyM,
+    #         constrName + "6_" + abbrvName,
+    #         pyomo.Constraint(constrSet6, rule=materialRecConstr)
+    #     )
 
 ###################################################################################################
 
@@ -3613,7 +3654,10 @@ class ComponentModel(metaclass=ABCMeta):
             factor *= factor_
 
         _var = var[loc, compName, ip]
-
+        print("var name", varName)
+        print("var value", _var.value)
+        print("var", _var)
+        print(" ")
         if self.componentsDict[compName].processedQPcostScale[ip][loc] == 0:
             if not getOptValue:
                 return factor * _var

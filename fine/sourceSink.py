@@ -767,6 +767,22 @@ class SourceSinkModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
 
+        pyM.SinkSet = pyomo.Set(initialize=[
+            compName
+            for mdl in esM.componentModelingDict.values()
+            for compName, comp in mdl.componentsDict.items()
+            if getattr(comp, "material", False)
+                and comp.__class__.__name__ == "Sink"
+        ])
+
+        pyM.SourceSet = pyomo.Set(initialize=[
+            compName
+            for mdl in esM.componentModelingDict.values()
+            for compName, comp in mdl.componentsDict.items()
+            if hasattr(comp, "materialIntensity")
+                and comp.materialIntensity
+        ])
+
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
@@ -949,7 +965,7 @@ class SourceSinkModel(ComponentModel):
         ################################################################################### 
           
         self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
-        self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
+        # self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
 
         ###################################################################################
 
@@ -959,6 +975,14 @@ class SourceSinkModel(ComponentModel):
         )
         
         self.yearlyLimitationConstraint(pyM, esM)
+
+        cs5 = esM.pyM.opConstrSet5_srcSnk
+        print("→ opConstrSet5_srcSnk exists;", "dimen=", cs5._dimen, " size=", len(cs5))
+        print("  sample members:", list(cs5)[:10])
+
+        con5 = esM.pyM.ConstrOperation5_srcSnk
+        print("→ ConstrOperation5_srcSnk exists;", "rows=", len(con5))
+        print("  sample indices:", list(con5.keys())[:10])
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #

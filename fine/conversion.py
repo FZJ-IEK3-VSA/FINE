@@ -1115,6 +1115,12 @@ class ConversionModel(ComponentModel):
             "op_commis",
             isOperationCommisYearDepending=True,
         )
+        
+        ###################################################################################
+        # Add material consumption constraints 
+        # self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
+        # self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
+        ###################################################################################
 
         # # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
