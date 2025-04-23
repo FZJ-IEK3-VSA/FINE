@@ -1,9 +1,7 @@
 # %%
 import numpy as np
 import pandas as pd
-from pathlib import Path
 import fine as fn
-import fine.IOManagement.xarrayIO as xrIO
 
 # %%
 def test_eos_NPV():
