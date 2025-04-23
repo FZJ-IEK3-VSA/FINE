@@ -208,7 +208,7 @@ class PiecewiseLinearCostFunctionModel:
             )
             if self.modulesDict[moduleName].pwlcf_type == "eos":
                 return capSegmentVarSum == commVarSum
-            elif self.modulesDict[moduleName].pwlcf_type == "etl":
+            if self.modulesDict[moduleName].pwlcf_type == "etl":
                 return capSegmentVarSum == commVarSum + module.initCapacity
             return None
 

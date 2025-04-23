@@ -489,14 +489,10 @@ class Component(metaclass=ABCMeta):
         :param floorTechnicalLifetime: if a technical lifetime is not a multiple of the interval, this
             parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval,
             by default True. The costs will then be applied to the corrected interval.
-        
-        :param: pwlcfParameters: paramter dict for piecewise linear cost functions. Enables a standardized endogenous technological 
+
+        :param: pwlcfParameters: paramter dict for piecewise linear cost functions. Enables a standardized endogenous technological
             learning approach with a fixed learning rate. In that case, the learning is conducted in each investment period and connected throughout.
             Alternatively enables an economies of scale approach. In that case, the cost scaling is indepent in each investment period.
-        
-        
-        
-        
         """
         # Set general component data
         utils.isEnergySystemModelInstance(esM)
