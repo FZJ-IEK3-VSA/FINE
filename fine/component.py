@@ -1318,30 +1318,22 @@ class ComponentModel(metaclass=ABCMeta):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationVarSet_" + abbrvName)
    
-        # def declareOpConstrSet5(pyM):
-        #     # For each tuple (loc, compName ip) in the existing operation variable set,
-        #     # iterate over all materials for the given component.
- 
-        #     return (
-        #         (loc, compName, mat, ip)
-        #         for loc, compName, ip in varSet
-        #         for mat in getattr(esM, "onlymaterials", [])
-        #         if (hasattr(compDict[compName], "materialIntensity") and compDict[compName].materialIntensity)
-        #         )
         def declareOpConstrSet5(m):
+            # For each tuple (loc, compName ip) in the existing operation variable set,
+            # iterate over all materials for the given component.
+ 
             for loc, sinkName, ip in varSet:
-                # only sinks were put into varSet if they have an opVar
+                # only keep the sinks we flagged
                 if sinkName not in m.SinkSet:
                     continue
-                for sourceName in m.SourceSet:
-                    for mat in esM.onlymaterials:
-                        yield (loc, sinkName, sourceName, mat, ip)
-                        print((loc, sinkName, sourceName, mat, ip))
+                # each sink has exactly one commodity = the material it demands
+                mat = self.componentsDict[sinkName].commodity
+                yield (loc, sinkName, mat, ip)
 
         setattr(
             pyM,
             constrSetName + "5_" + abbrvName,
-            pyomo.Set(dimen=5, initialize=declareOpConstrSet5)
+            pyomo.Set(dimen=4, initialize=declareOpConstrSet5)
         )
  
     def declareOpConstrSet6(self, esM, pyM, constrSetName):
@@ -2748,20 +2740,48 @@ class ComponentModel(metaclass=ABCMeta):
         commisVar = getattr(pyM, "commis_" + abbrvName)
         constrSet5 = getattr(pyM, constrSetName + "5_" + abbrvName)
 
+        # ─── Build the commissioning‐variable map now that they exist ───
+        commis_map = {}
+        for varname in dir(pyM):
+            if not varname.startswith("commis_"):
+                continue
+            varblk = getattr(pyM, varname)
+            # varblk.index_set() yields tuples (loc, compName, ip)
+            for loc, compName, ip in varblk.index_set():
+                # only keep those components that have materialIntensity
+                if getattr(compDict.get(compName, None), "materialIntensity", None):
+                    commis_map.setdefault(compName, varblk)
+        # stash it for the rule
+        pyM._material_commis_map = commis_map
+        print("COMMIS MAP", commis_map)
 
-        def materialConsConstr(m, loc, sink, source, mat, ip):              # for loop over components that should call this constraint 
-            
+        def materialConsConstr(m, loc, sinkName, mat, ip):      
+
+            # pseudo code: name_sink = mat + "_sink" 
             # LHS: only this one sink, sum over intra‐year (p,t)
+            
             lhs = sum(
-                opVar[loc, sink, ip, p, t]
+                opVar[loc, sinkName, ip, p, t]
                 for p, t in m.intraYearTimeSet
             )
-            print(f"Left hand side for {sink} at {loc}, {ip}: {lhs}")
-            # RHS: source’s commissioning var * its materialIntensity
-            intensity = compDict[source].materialIntensity[loc][mat][ip]
-            rhs = commisVar[loc, source, ip] * intensity
-            print(f"Right hand side for {source} at {loc}, {ip}: {rhs}")
+            print("LHS:", lhs)
+
+            # Baustelle
+            rhs = sum(
+                commisVarBlock[loc, srcName, ip]
+                * compDict[srcName].materialIntensity[loc][mat][ip]
+                for srcName, commisVarBlock in m._material_commis_map.items()
+                if (
+                    loc in compDict[srcName].materialIntensity
+                    and mat in compDict[srcName].materialIntensity[loc]
+                    and ip  in compDict[srcName].materialIntensity[loc][mat]
+                )
+            )
+         
+
             return lhs == rhs
+        
+            # Previous way of filtering right components 
             # # Filter components that have a materialIntensity given 
             # comps_with_intensity = [comp for comp in compDict.values() if hasattr(comp, 'materialIntensity') and comp.materialIntensity]
             # # print(comps_with_intensity)

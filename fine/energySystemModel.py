@@ -1857,10 +1857,10 @@ class EnergySystemModel:
 
         # Store the build time of the optimize function call in the EnergySystemModel instance
         self.solverSpecs["buildtime"] = time.time() - timeStart
-        cs = getattr(pyM, "opConstrSet5_srcSnk")
-        print("  opConstrSet5 has", cs)
-        pyM.pprint()
-        list(pyM.commis_srcSnk.index_set())[:10]
+        # cs = getattr(pyM, "opConstrSet5_srcSnk")
+        # print("  opConstrSet5 has", cs)
+        # pyM.pprint()
+        # list(pyM.commis_srcSnk.index_set())[:10]
         # right after declareComponentConstraints but before solve
 
     def optimize(
