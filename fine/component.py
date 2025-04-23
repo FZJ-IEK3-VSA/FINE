@@ -698,8 +698,8 @@ class Component(metaclass=ABCMeta):
         self.pwlcfParameters = pwlcfParameters
         self.pwlcf = None
         if pwlcfParameters and not all(param is None for param in pwlcfParameters.values()):
-            pwlcfModul = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModul
-            self.pwlcf = pwlcfModul(self, esM, **pwlcfParameters)
+            pwlcfModule = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModule
+            self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
 
     def addToEnergySystemModel(self, esM):
         """
@@ -733,7 +733,7 @@ class Component(metaclass=ABCMeta):
             pwlcfModel = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModel
             if not hasattr(esM, "pwlcfModel"):
                 esM.pwlcfModel = pwlcfModel()
-            esM.pwlcfModel.modulsDict.update({self.name: self.pwlcf})
+            esM.pwlcfModel.modulesDict.update({self.name: self.pwlcf})
 
     def prepareTSAInput(self, rate, rateName, rateWeight, weightDict, data, ip):
         """

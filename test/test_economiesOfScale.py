@@ -8,7 +8,7 @@ import fine.IOManagement.xarrayIO as xrIO
 # %%
 def test_eos_NPV():
     """
-    Test case for basic npv calculation with eos modul.
+    Test case for basic npv calculation with eos module.
     """
     # %%
     esM = fn.EnergySystemModel(

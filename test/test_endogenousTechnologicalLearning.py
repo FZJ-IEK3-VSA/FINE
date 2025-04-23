@@ -7,7 +7,7 @@ import fine.IOManagement.xarrayIO as xrIO
 
 def test_etl_NPV():
     """
-    Test case for basic npv calculation with etl modul and Input Output test.
+    Test case for basic npv calculation with etl module and Input Output test.
     """
 
     esM = fn.EnergySystemModel(
@@ -68,10 +68,10 @@ def test_etl_NPV():
     ]
     np.testing.assert_almost_equal(commissioning, [1] * 5)
 
-    slope = esM.pwlcfModel.modulsDict["PV"].linEtlParameter.loc[2, "slope"]
-    interception = esM.pwlcfModel.modulsDict["PV"].linEtlParameter.loc[2, "interception"]
-    initCapacity = esM.pwlcfModel.modulsDict["PV"].initCapacity
-    initTotalCost = esM.pwlcfModel.modulsDict["PV"].linEtlParameter.loc[0, "totalCost"]
+    slope = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[2, "slope"]
+    interception = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[2, "interception"]
+    initCapacity = esM.pwlcfModel.modulesDict["PV"].initCapacity
+    initTotalCost = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[0, "totalCost"]
 
     np.testing.assert_almost_equal(
         esM.pyM.Obj(),
@@ -91,7 +91,7 @@ def test_etl_NPV():
 
 def test_etl_stock_NPV():
     """
-    Test case for basic npv calculation with etl modul when stock is considered.
+    Test case for basic npv calculation with etl module when stock is considered.
     """
 
     esM = fn.EnergySystemModel(
@@ -151,20 +151,20 @@ def test_etl_stock_NPV():
     ]
     np.testing.assert_almost_equal(commis, [1, 1, 2, 1, 1])
 
-    interception = esM.pwlcfModel.modulsDict["PV_with_etl"].linEtlParameter.loc[
+    interception = esM.pwlcfModel.modulesDict["PV_with_etl"].linEtlParameter.loc[
         2, "interception"
     ]
-    slope = esM.pwlcfModel.modulsDict["PV_with_etl"].linEtlParameter.loc[2, "slope"]
-    initCapacity = esM.pwlcfModel.modulsDict["PV_with_etl"].initCapacity
-    initTotalCost = esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(initCapacity)
+    slope = esM.pwlcfModel.modulesDict["PV_with_etl"].linEtlParameter.loc[2, "slope"]
+    initCapacity = esM.pwlcfModel.modulesDict["PV_with_etl"].initCapacity
+    initTotalCost = esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(initCapacity)
     stockCost2010 = (
-        esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(8)
-        - esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(7)
+        esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(8)
+        - esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(7)
     ) / 3
     stockCost2015 = (
         (
-            esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(10)
-            - esM.pwlcfModel.modulsDict["PV_with_etl"].getTotalCostEtl(8)
+            esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(10)
+            - esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(8)
         )
         * 2
         / 3
