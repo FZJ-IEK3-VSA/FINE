@@ -767,14 +767,23 @@ class SourceSinkModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
 
-        # 1a) the set of *all* material‐flagged sinks
+        # 1) SinkSet: all material=True sinks
         pyM.SinkSet = pyomo.Set(initialize=[
             compName
             for mdl in esM.componentModelingDict.values()
             for compName, comp in mdl.componentsDict.items()
             if getattr(comp, "material", False)
+            and comp.__class__.__name__ == "Sink"
         ])
 
+        # 2) SourceSet: all components with a non‑empty materialIntensity
+        pyM.SourceSet = pyomo.Set(initialize=[
+            compName
+            for mdl in esM.componentModelingDict.values()
+            for compName, comp in mdl.componentsDict.items()
+            if hasattr(comp, "materialIntensity") and comp.materialIntensity
+        ])
+        
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
