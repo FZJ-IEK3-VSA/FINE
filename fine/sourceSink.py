@@ -776,8 +776,25 @@ class SourceSinkModel(ComponentModel):
             and comp.__class__.__name__ == "Sink"
         ])
 
-        # 2) SourceSet: all components with a non‑empty materialIntensity
+        # 2) IntSinkSet: all components with a non‑empty materialIntensity
+        pyM.IntSinkSet = pyomo.Set(initialize=[
+            compName
+            for mdl in esM.componentModelingDict.values()
+            for compName, comp in mdl.componentsDict.items()
+            if hasattr(comp, "materialIntensity") and comp.materialIntensity
+        ])
+
+        # 1) SourceSet: all material=True sinks
         pyM.SourceSet = pyomo.Set(initialize=[
+            compName
+            for mdl in esM.componentModelingDict.values()
+            for compName, comp in mdl.componentsDict.items()
+            if getattr(comp, "material", False)
+            and comp.__class__.__name__ == "Source"
+        ])
+
+        # 2) IntSourceSet: all components with a non‑empty materialIntensity
+        pyM.IntSourceSet = pyomo.Set(initialize=[
             compName
             for mdl in esM.componentModelingDict.values()
             for compName, comp in mdl.componentsDict.items()
@@ -966,6 +983,7 @@ class SourceSinkModel(ComponentModel):
         ################################################################################### 
           
         self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
+        self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
         # self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
 
         ###################################################################################
