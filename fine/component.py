@@ -2738,19 +2738,22 @@ class ComponentModel(metaclass=ABCMeta):
 
         compDict, abbrv = self.componentsDict, self.abbrvName
         opVar    = getattr(pyM, opVarName + "_" + abbrv)
-        commVar  = getattr(pyM, "commis_"   + abbrv)
+        commisVar  = getattr(pyM, "commis_"   + abbrv)
 
         sinkSet   = getattr(pyM, constrSetName + "5_sinks_"  + abbrv)
         IntSinkSet = getattr(pyM, constrSetName + "5_int_sink_"+ abbrv)
+        
 
         def matConsRule(m, loc, sinkName, mat, ip):
             # LHS: this one sink's op‐var summed over (p,t)
+            print("IntSinkSet Inhalt:", list(IntSinkSet))
+
             lhs = sum(opVar[loc, sinkName, ip, p, t]
                     for p, t in m.intraYearTimeSet)
             print("LHS_sinks", lhs)
             # RHS: sum over *all* sources that supply mat at (loc,ip)
             rhs = sum(
-                commVar[ loc, intsinkName, ip ]
+                commisVar[ loc, intsinkName, ip ]
                 * compDict[intsinkName].materialIntensity[loc][mat][ip]
                 for loc2, intsinkName, mat2, ip2 in IntSinkSet
                 if loc2==loc and mat2==mat and ip2==ip             # clarify
@@ -2771,7 +2774,8 @@ class ComponentModel(metaclass=ABCMeta):
 
         compDict, abbrv = self.componentsDict, self.abbrvName
         opVar    = getattr(pyM, opVarName + "_" + abbrv)
-        commVar  = getattr(pyM, "commis_"   + abbrv)
+        decommisVar  = getattr(pyM, "decommis_"   + abbrv)
+        print("decommis", decommisVar)
 
         sourceSet   = getattr(pyM, constrSetName + "6_sources_"  + abbrv)
         IntSourceSet = getattr(pyM, constrSetName + "6_int_source_"+ abbrv)
@@ -2781,14 +2785,30 @@ class ComponentModel(metaclass=ABCMeta):
             lhs = sum(opVar[loc, sourceName, ip, p, t]
                     for p, t in m.intraYearTimeSet)
             print("LHS_sources", lhs)
+            print("IntSourceSet Inhalt:", list(IntSourceSet))
 
-            # RHS: sum over *all* sources that supply mat at (loc,ip)
-            rhs = sum(
-                commVar[ loc, intsourceName, ip ]
-                * compDict[intsourceName].materialIntensity[loc][mat][ip]
-                for loc2, intsourceName, mat2, ip2 in IntSourceSet
-                if loc2==loc and mat2==mat and ip2==ip             # clarify
-            )
+            rhs = 0
+            for loc2, intsourceName, mat2, ip2 in IntSourceSet:
+                if loc2 == loc and mat2 == mat and ip2 == ip:
+                    print("Checking:", loc2, intsourceName, mat2, ip2)
+
+                    tech_lifetime = self.componentsDict[intsourceName].ipTechnicalLifetime[loc]
+
+                    if self.componentsDict[intsourceName].floorTechnicalLifetime:
+                        comm_date = ip - math.floor(tech_lifetime)
+                    else:
+                         comm_date = ip - math.ceil(tech_lifetime)
+ 
+                    if comm_date < 0:
+                         return pyomo.Constraint.Skip
+                    
+                    print("comm_date:", comm_date, "ip:", ip, "lifetime:", tech_lifetime)
+                    rhs = sum(
+                        decommisVar[loc, intsourceName, ip]
+                        * compDict[intsourceName].materialIntensity[loc][mat][comm_date]
+                        * compDict[intsourceName].materialRecovery[loc][mat][ip]
+                    )
+
             print("RHS_sources", rhs)
             return lhs == rhs
 
