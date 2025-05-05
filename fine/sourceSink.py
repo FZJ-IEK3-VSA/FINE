@@ -798,7 +798,8 @@ class SourceSinkModel(ComponentModel):
             compName
             for mdl in esM.componentModelingDict.values()
             for compName, comp in mdl.componentsDict.items()
-            if hasattr(comp, "materialIntensity") and comp.materialIntensity
+            #if hasattr(comp, "materialIntensity") and comp.materialIntensity
+            if hasattr(comp, "materialIntensity") and comp.materialIntensity and hasattr(comp, "materialRecovery") and comp.materialRecovery
         ])
         
         # Declare design variable sets
@@ -984,7 +985,6 @@ class SourceSinkModel(ComponentModel):
           
         self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
         self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
-        # self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
 
         ###################################################################################
 
