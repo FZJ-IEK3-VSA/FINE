@@ -1,15 +1,17 @@
 import random
 import time
+import os
 import warnings
 import importlib.util
+import copy
 
-from . import writeSolutionsOutput
-
+import pandas as pd
 import pyomo.environ as pyomo
 from pyomo import opt
 import fine as fn
+from fine.IOManagement import writeOptimizationOutputToExcel
 
-def declareOptimalCostConstraint(esM, pyM):
+def declareOptimalCostConstraint(esM, pyM, objectiveValue, slack):
 
     """ Optimum cost should not be more than the objective value obtained in the original optimization + slack value. 
     """
@@ -21,12 +23,13 @@ def declareOptimalCostConstraint(esM, pyM):
                 mdl.getObjectiveFunctionContribution(esM, pyM)
                 for mdl in esM.componentModelingDict.values()
             )
-            <= esM.objectiveValue*(1+esM.slack)
+            <= objectiveValue*(1+slack)
         )
     pyM.optimalCostConstraint = pyomo.Constraint(rule=optimalCostConstraint) 
 
-def declareMGAObjective(esM, pyM,iteration,sense):
+def declareMGAObjective(esM, beta,pyM,iteration,sense):
 
+    beta = beta
     fn.utils.output("Declaring MGA objective function...", esM.verbose, 0)
 
     def mgaOperation(
@@ -55,17 +58,17 @@ def declareMGAObjective(esM, pyM,iteration,sense):
 
         if isOperationCommisYearDepending:
 
-            opsum = sum(opVar[loc, compName, commis, ip, p, t]  * esM.beta[loc][iteration][compName]
+            opsum = sum(opVar[loc, compName, commis, ip, p, t]  * beta[loc][iteration][compName]
                 for loc,compName,commis,ip in opVarSet for p,t in pyM.intraYearTimeSet
             )
 
         else:
 
-            opsum = sum(opVar[loc, compName, ip, p, t] * esM.beta[loc][iteration][compName]
+            opsum = sum(opVar[loc, compName, ip, p, t] * beta[loc][iteration][compName]
                 for loc,compName,ip in opVarSet for p,t in pyM.intraYearTimeSet 
             )
             
-        capsum = sum(capVar[loc, compName, ip]  * esM.beta[loc][iteration][compName]
+        capsum = sum(capVar[loc, compName, ip]  * beta[loc][iteration][compName]
                             for loc, compName, ip in capVarSet)
         
         return (opsum + capsum)
@@ -86,6 +89,9 @@ def declareMGAObjective(esM, pyM,iteration,sense):
 
 def declareMGAOptimizationProblem(
     esM,
+    objectiveValue,
+    slack,
+    beta,
     iteration,
     sense,
     timeSeriesAggregation=False,
@@ -179,7 +185,7 @@ def declareMGAOptimizationProblem(
 
     # Declare constraint for optimal cost
     _t = time.time()
-    declareOptimalCostConstraint(esM, pyM)
+    declareOptimalCostConstraint(esM, pyM, objectiveValue, slack)
     fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
 
     ###############################################################################################################
@@ -188,37 +194,37 @@ def declareMGAOptimizationProblem(
 
     # Declare objective function by obtaining the contributions to the objective function from all modeling classes
     _t = time.time()
-    declareMGAObjective(esM, pyM,iteration,sense)
+    declareMGAObjective(esM,beta, pyM,iteration,sense)
     fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
 
     # Store the build time of the optimize function call in the EnergySystemModel instance
     esM.solverSpecs["buildtime"] = time.time() - timeStart  
 
-def optimalValues(esM, iteration, outputLevel):
+def optimalValues(esM, solutions,summary, iteration, outputLevel):
 
-    esM.solutions[iteration] = {}
+    solutions[iteration] = {}
 
     for ip in esM.investmentPeriods:
-        esM.summary[ip][iteration] = {}
+        summary[ip][iteration] = {}
 
-    esM.optimalValueParameters = [
+    optimalValueParameters = [
     "op_",
     "cap_",
     ]
-    esM.storageParameters = ["chargeOp_","dischargeOp_"]
+    storageParameters = ["chargeOp_","dischargeOp_"]
 
     for key, mdl in esM.componentModelingDict.items():
         for ip in esM.investmentPeriods:
-            esM.summary[ip][iteration][key] = esM.getOptimizationSummary(key, ip=ip,outputLevel = outputLevel)
-        esM.solutions[iteration][key] = {}
-        for parameter in esM.optimalValueParameters:
+            summary[ip][iteration][key] = esM.getOptimizationSummary(key, ip=ip,outputLevel = outputLevel)
+        solutions[iteration][key] = {}
+        for parameter in optimalValueParameters:
             if not (parameter == "op_" and mdl.abbrvName == "stor"):
-                esM.solutions[iteration][key][parameter] = getattr(esM.pyM, parameter + mdl.abbrvName).get_values()
+                solutions[iteration][key][parameter] = getattr(esM.pyM, parameter + mdl.abbrvName).get_values()
             else:
-                for action in esM.storageParameters:
-                    esM.solutions[iteration][key][action] = getattr(esM.pyM, action + mdl.abbrvName).get_values()
+                for action in storageParameters:
+                    solutions[iteration][key][action] = getattr(esM.pyM, action + mdl.abbrvName).get_values()
 
-def calculateBeta(esM, random_seed):
+def calculateBeta(esM, random_seed, iterations):
 
     components = []
     transmissionComponents = []
@@ -241,12 +247,12 @@ def calculateBeta(esM, random_seed):
         for loc2 in esM.locations:
             transmission_locations.append(loc1 + "_" + loc2)
 
-    esM.beta = {location: 
+    beta = {location: 
             {iteration+1: 
             {component: random.random() if component not in transmissionComponents 
              else None for component in components 
             }  
-            for iteration in range(esM.iterations)
+            for iteration in range(iterations)
             } 
             for location in esM.locations
             }
@@ -255,14 +261,19 @@ def calculateBeta(esM, random_seed):
             {iteration+1: 
             {component: random.random() for component in transmissionComponents
             }  
-            for iteration in range(esM.iterations)
+            for iteration in range(iterations)
             } 
             for location in transmission_locations
             }
 
-    esM.beta.update(new_data)
+    beta.update(new_data)
+    return beta
 def identifySolutions(
     esM,
+    iterations,
+    solutions,
+    get_solutions,
+    summary,
     writeSolutionsasExcels,
     getOptimizationSummary,
     operationRateinOutput
@@ -282,10 +293,10 @@ def identifySolutions(
         for iteration in range(len(set_solutions)):
             sel_sum = 0
 
-            sel_sum += sum((esM.solutions[i][key][parameter][item]-set_solutions[iteration][key][parameter][item])**2 
-                        for key in esM.solutions[i] 
-                        for parameter in esM.solutions[i][key] 
-                        for item in esM.solutions[i][key][parameter]) 
+            sel_sum += sum((solutions[i][key][parameter][item]-set_solutions[iteration][key][parameter][item])**2 
+                        for key in solutions[i] 
+                        for parameter in solutions[i][key] 
+                        for item in solutions[i][key][parameter]) 
             if sel_sum == 0:
                 x_sum += m
             else:
@@ -294,7 +305,9 @@ def identifySolutions(
         return 1/x_sum
 
     set_solutions = {}
-    set_solutions[0] = esM.solutions[0]
+    # set_solutions[0] = get_solutions[0]
+    x_solutions = get_solutions[0]
+    set_solutions[0] = solutions[0]
 
     summary_solutions = {}
 
@@ -302,24 +315,26 @@ def identifySolutions(
         summary_solutions[ip] = {}
 
     for ip in esM.investmentPeriods:
-        summary_solutions[ip][0] = esM.summary[ip][0]
+        summary_solutions[ip][0] = summary[ip][0]
 
     fn.utils.output("\nIdentifying maximally different solutions....\n", esM.verbose, 0)
-    for k in range(esM.iterations):
+    for k in range(iterations):
         previous_max = 0
         highest_distance = 0
 
-        for i in range(len(esM.solutions)):
+        for i in range(len(solutions)):
             get_max = supremum(i)
             if get_max > previous_max:
                 highest_distance = i
                 previous_max = get_max
 
         fn.utils.output (f"Maximally different solution {k+1} identified... Solution {highest_distance}", esM.verbose, 0)
-        set_solutions[k+1] = esM.solutions[highest_distance] 
+        set_solutions[k+1] = solutions[highest_distance] 
+        # set_solutions[k+1] = get_solutions[highest_distance]
+        x_solutions[k+1] = get_solutions[highest_distance]
 
         for ip in esM.investmentPeriods:
-            summary_solutions[ip][k+1] = esM.summary[ip][highest_distance] 
+            summary_solutions[ip][k+1] = summary[ip][highest_distance] 
 
     #################################################################################################################
     # #                                      Post-process optimization output                                        #
@@ -329,14 +344,40 @@ def identifySolutions(
 
     if writeSolutionsasExcels:
 
-        writeSolutionsOutput.writeSolutions(
-            esM,
-            operationRateinOutput,
-            set_solutions,
-            summary_solutions,
-            getOptimizationSummary
+        cwd = os.getcwd()
+        directory = os.path.join(cwd, "OutputData")
 
-        )
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+
+        w = str(len(max(esM.componentModelingDict.keys())) + 6)
+
+        for solution in x_solutions.keys():
+            # iterate over investment periods, to get yearly results
+            for key, mdl in esM.componentModelingDict.items():
+                if not isinstance(mdl._capacityVariablesOptimum, dict):
+                    mdl._capacityVariablesOptimum = {}
+                __t = time.time()
+                # if _capacityVariablesOptimum is not a dict, convert to dict
+                # (if single year system is optimized several times)
+
+                mdl.setOptimalValues(esM, set_solutions[solution])
+                outputString = (
+                    ("for {:" + w + "}").format(key + " ...")
+                    + "(%.4f" % (time.time() - __t)
+                    + "sec)"
+                )
+                fn.utils.output(outputString, esM.verbose, 0)
+
+            writeOptimizationOutputToExcel(esM, outputFileName=os.path.join(directory,f"Solution_{solution}"),
+                                optSumOutputLevel={'SourceSinkModel': 0,
+                                                    'ConversionModel': 0,
+                                                    'StorageModel': 0,
+                                                    'TransmissionModel': 0},
+                                optValOutputLevel={'SourceSinkModel': 0,
+                                                    'ConversionModel': 0,
+                                                    'StorageModel': 0,
+                                                    'TransmissionModel': 0})
         # fn.utils.output("\nWriting optimization output to Excel files\n", esM.verbose, 0)
 
         # cwd = os.getcwd()
@@ -553,7 +594,7 @@ def mgaOptimize(
     warmstart=False,
     relevanceThreshold=None,
     slack=0.1,
-    iterations = 5,
+    iterations = 10,
     random_seed = False,
     writeSolutionsasExcels = False,
     getOptimizationSummary = False,
@@ -660,30 +701,33 @@ def mgaOptimize(
     :type operationRateinOutput: boolean
 
     """
-
+    get_solutions = {}
+    get_solutions[0] = esM.pyM.clone()
+    print('--------------------------',get_solutions[0])
     # outputLevel = outputLevel # outputLevel for optimization summary
-    esM.objectiveValue = esM.pyM.Obj() # This holds the optimal value of the initial optimization problem
-    esM.solutions = {}  # This will hold the solutions of the optimization
-    esM.summary = {}  # This will hold the summary data of the optimization, if getOptimizationSummary is True
+    objectiveValue = esM.pyM.Obj() # This holds the optimal value of the initial optimization problem
+    solutions = {}  # This will hold the solutions of the optimization
+    summary = {}  # This will hold the summary data of the optimization, if getOptimizationSummary is True
 
     for ip in esM.investmentPeriods:
-        esM.summary[ip] = {}  # This will hold the summary data of the optimization, if getOptimizationSummary is True
+        summary[ip] = {}  # This will hold the summary data of the optimization, if getOptimizationSummary is True
        
-    esM.iterations = iterations
-    esM.slack = slack
+    iterations = iterations
+    slack = slack
 
-    optimalValues(esM, 0, outputLevel)
+    optimalValues(esM,solutions,summary, 0, outputLevel)
 
-    if esM.solutions[0] is None:
+    if solutions[0] is None:
         raise TypeError(
         "The optimization problem for optimal solution doesn't have an optimal solution"
         "Cannot perofrm a MGA optimization if the optimization problem doesn't have an optimal solution."
         )
     
     else:       
-        calculateBeta(
+        beta = calculateBeta(
             esM,
-            random_seed             
+            random_seed,
+            iterations             
         )
 
         if not timeSeriesAggregation:
@@ -699,12 +743,15 @@ def mgaOptimize(
         the declareMGAOptimizationProblem function."
         """
         iteration =1
-        while iteration <= esM.iterations:
+        while iteration <= iterations:
             for sense in ["minimize","maximize"]:    
 
                 if declaresOptimizationProblem:
                     declareMGAOptimizationProblem(
                         esM,
+                        objectiveValue,
+                        slack,
+                        beta,
                         iteration,
                         sense,
                         timeSeriesAggregation=timeSeriesAggregation,
@@ -849,6 +896,7 @@ def mgaOptimize(
                         esM.verbose,
                         0,
                     )
+                    break
                 elif (
                     solver_info.solver.termination_condition
                     == opt.TerminationCondition.infeasibleOrUnbounded
@@ -864,6 +912,8 @@ def mgaOptimize(
                         esM.verbose,
                         0,
                     )
+
+                    break
                 else:
                     # If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
                     # status), show a warning message.
@@ -879,16 +929,22 @@ def mgaOptimize(
                     """
 
                     if sense == "minimize":
-                        optimalValues(esM,iteration, outputLevel)
+                        optimalValues(esM,solutions,summary,iteration, outputLevel)
+                        get_solutions[iteration] = esM.pyM.clone()
 
                     else:
-                        optimalValues(esM, esM.iterations + iteration, outputLevel)
+                        optimalValues(esM,solutions,summary, iterations + iteration, outputLevel)
+                        get_solutions[iterations + iteration] = esM.pyM.clone()
             iteration +=1
 
             fn.utils.output("\n\t\tMGA optimization completed after %.4f" % (time.time() - _t) + " sec\n", esM.verbose, 0)
 
         identifySolutions(
             esM,
+            iterations,
+            solutions,
+            get_solutions,
+            summary,
             writeSolutionsasExcels,
             getOptimizationSummary,
             operationRateinOutput

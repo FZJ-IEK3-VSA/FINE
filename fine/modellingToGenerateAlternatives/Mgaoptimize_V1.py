@@ -1,10 +1,10 @@
 import random
 import time
+import os
 import warnings
 import importlib.util
 
-from . import writeSolutionsOutput
-
+import pandas as pd
 import pyomo.environ as pyomo
 from pyomo import opt
 import fine as fn
@@ -213,7 +213,11 @@ def optimalValues(esM, iteration, outputLevel):
         esM.solutions[iteration][key] = {}
         for parameter in esM.optimalValueParameters:
             if not (parameter == "op_" and mdl.abbrvName == "stor"):
-                esM.solutions[iteration][key][parameter] = getattr(esM.pyM, parameter + mdl.abbrvName).get_values()
+                if esM.numberOfInvestmentPeriods == 1:
+                    esM.solutions[iteration][key][parameter] = getattr(esM.pyM, parameter + mdl.abbrvName).get_values()
+                else:
+                    # This needs to adjust
+                    esM.solutions[iteration][key][parameter] = getattr(esM.pyM, parameter + mdl.abbrvName).get_values()
             else:
                 for action in esM.storageParameters:
                     esM.solutions[iteration][key][action] = getattr(esM.pyM, action + mdl.abbrvName).get_values()
@@ -295,13 +299,9 @@ def identifySolutions(
 
     set_solutions = {}
     set_solutions[0] = esM.solutions[0]
-
     summary_solutions = {}
 
-    for ip in esM.investmentPeriods:
-        summary_solutions[ip] = {}
-
-    for ip in esM.investmentPeriods:
+    for ip in esM.invetmentPeriods:
         summary_solutions[ip][0] = esM.summary[ip][0]
 
     fn.utils.output("\nIdentifying maximally different solutions....\n", esM.verbose, 0)
@@ -318,7 +318,7 @@ def identifySolutions(
         fn.utils.output (f"Maximally different solution {k+1} identified... Solution {highest_distance}", esM.verbose, 0)
         set_solutions[k+1] = esM.solutions[highest_distance] 
 
-        for ip in esM.investmentPeriods:
+        for ip in esM.invetmentPeriods:
             summary_solutions[ip][k+1] = esM.summary[ip][highest_distance] 
 
     #################################################################################################################
@@ -328,215 +328,180 @@ def identifySolutions(
     # iterate over investment periods, to get yearly results
 
     if writeSolutionsasExcels:
+        fn.utils.output("\nWriting optimization output to Excel files\n", esM.verbose, 0)
 
-        writeSolutionsOutput.writeSolutions(
-            esM,
-            operationRateinOutput,
-            set_solutions,
-            summary_solutions,
-            getOptimizationSummary
+        cwd = os.getcwd()
+        directory = os.path.join(cwd, "OutputData")
 
-        )
-        # fn.utils.output("\nWriting optimization output to Excel files\n", esM.verbose, 0)
+        if not os.path.exists(directory):
+            os.mkdir(directory)
 
-        # cwd = os.getcwd()
-        # directory = os.path.join(cwd, "OutputData")
+        # if optimalValueParameters is True, we do not require operation rate variables in the output anymore.
+        if not operationRateinOutput:   
+            esM.optimalValueParameters = ["cap_"]
 
-        # if not os.path.exists(directory):
-        #     os.mkdir(directory)
-        
-        # fn.utils.output(f"Output saved in {directory}\n", esM.verbose, 0)
+        for ip in esM.investmentPeriods:
 
-        # # if optimalValueParameters is True, we do not require operation rate variables in the output files.
-        # if not operationRateinOutput:   
-        #     esM.optimalValueParameters = ["cap_"]
+            outdir = os.path.join(directory, f"IP{ip}")
+            if not os.path.exists(outdir):
+                os.mkdir(outdir)
 
-        # for ip in esM.investmentPeriods:
+            for key, mdl in esM.componentModelingDict.items():
+                _t = time.time()
+                fn.utils.output(f"\tWriting {key} output....", esM.verbose, 0)
+                outputData = {}
+                file_name = f"{key}.xlsx"
+                outputFile = os.path.join(outdir, file_name)
+                with pd.ExcelWriter(outputFile) as writer: 
+                    for parameter in esM.optimalValueParameters: 
+                        for k in range((esM.iterations+1)):   
+                            if parameter == "op_":
+                                if key != "TransmissionModel" and key != "StorageModel":
+                                    outputData[f'{parameter}_{k}'] = fn.utils.formatOptimizationOutput(
+                                        set_solutions[k][key][parameter],
+                                        "operationVariables",
+                                        "1dim",
+                                        ip,
+                                        esM.periodsOrder[ip],
+                                        esM=esM,
+                                    )
+                                    outputData[f'{parameter}_{k}'].to_excel(writer, sheet_name=f'{parameter}_{k}')
 
-        #     outdir = os.path.join(directory, f"IP{ip}")
-        #     if not os.path.exists(outdir):
-        #         os.mkdir(outdir)
-
-        #     for key, mdl in esM.componentModelingDict.items():
-        #         _t = time.time()
-        #         fn.utils.output(f"\tWriting {key} output....", esM.verbose, 0)
-        #         outputData = {}
-        #         file_name = f"{key}.xlsx"
-        #         outputFile = os.path.join(outdir, file_name)
-        #         with pd.ExcelWriter(outputFile) as writer: 
-        #             for parameter in esM.optimalValueParameters: 
-        #                 for k in range(len(set_solutions)):   
-        #                     if parameter == "op_":
-        #                         if key != "TransmissionModel" and key != "StorageModel":
-        #                             outputData[f'{parameter}_{k}'] = fn.utils.formatOptimizationOutput(
-        #                                 set_solutions[k][key][parameter],
-        #                                 "operationVariables",
-        #                                 "1dim",
-        #                                 ip,
-        #                                 esM.periodsOrder[ip],
-        #                                 esM=esM,
-        #                             )
-        #                             outputData[f'{parameter}_{k}'].to_excel(writer, sheet_name=f'{parameter}_{k}')
-
-        #                         elif key == "StorageModel":  
-        #                             for action in esM.storageParameters:
-        #                                 outputData[f'{action}_{k}'] = fn.utils.formatOptimizationOutput(
-        #                                 set_solutions[k][key][action],
-        #                                 "operationVariables",
-        #                                 "1dim",
-        #                                 ip,
-        #                                 esM.periodsOrder[ip],
-        #                                 esM=esM,
-        #                             )
-        #                                 outputData[f'{action}_{k}'].to_excel(writer, sheet_name=f'{action}_{k}')
+                                elif key == "StorageModel":  
+                                    for action in esM.storageParameters:
+                                        outputData[f'{action}_{k}'] = fn.utils.formatOptimizationOutput(
+                                        set_solutions[k][key][action],
+                                        "operationVariables",
+                                        "1dim",
+                                        ip,
+                                        esM.periodsOrder[ip],
+                                        esM=esM,
+                                    )
+                                        outputData[f'{action}_{k}'].to_excel(writer, sheet_name=f'{action}_{k}')
                                         
-        #                         else:
-        #                             outputData[f'{parameter}_{k}'] = fn.utils.formatOptimizationOutput(
-        #                                 set_solutions[k][key][parameter],
-        #                                 "operationVariables",
-        #                                 "2dim",
-        #                                 ip,
-        #                                 esM.periodsOrder[ip],
-        #                                 compDict=mdl.componentsDict,
-        #                                 esM=esM,
-        #                             )
-        #                             outputData[f'{parameter}_{k}'].to_excel(writer, sheet_name=f'{parameter}_{k}')
+                                else:
+                                    outputData[f'{parameter}_{k}'] = fn.utils.formatOptimizationOutput(
+                                        set_solutions[k][key][parameter],
+                                        "operationVariables",
+                                        "2dim",
+                                        ip,
+                                        esM.periodsOrder[ip],
+                                        compDict=mdl.componentsDict,
+                                        esM=esM,
+                                    )
+                                    outputData[f'{parameter}_{k}'].to_excel(writer, sheet_name=f'{parameter}_{k}')
 
-        #                     else:
-        #                         outputData[f'{parameter}_{k}'] = fn.utils.formatOptimizationOutput(
-        #                             set_solutions[k][key][parameter],
-        #                             "designVariables",
-        #                             mdl.dimension,
-        #                             ip,
-        #                             compDict=mdl.componentsDict,
-        #                         )
-        #                         outputData[f'{parameter}_{k}'].to_excel(writer, sheet_name=f'{parameter}_{k}')                                   
-        #         fn.utils.output("\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verbose, 0)
+                            else:
+                                outputData[f'{parameter}_{k}'] = fn.utils.formatOptimizationOutput(
+                                    set_solutions[k][key][parameter],
+                                    "designVariables",
+                                    mdl.dimension,
+                                    ip,
+                                    compDict=mdl.componentsDict,
+                                )
+                                outputData[f'{parameter}_{k}'].to_excel(writer, sheet_name=f'{parameter}_{k}')                                   
+                fn.utils.output("\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verbose, 0)
 
-        # if getOptimizationSummary:
-        #     print("Writing Optimization Summary....")
-        #     _t = time.time()
-        #     for ip in esM.investmentPeriods:
-        #         outdir = os.path.join(directory, f"IP{ip}")
-        #         for key, mdl in esM.componentModelingDict.items():
-        #             file_name = f"{key}.xlsx"
-        #             outputFile = os.path.join(outdir, file_name)
-        #             with pd.ExcelWriter(outputFile,engine="openpyxl", mode="a") as writer: 
-        #                 for k in range(len(set_solutions)): 
-        #                     summary_solutions[ip][k][key].to_excel(writer, sheet_name=f"summary_{k}")
-        #     fn.utils.output("\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verbose, 0)
+        if getOptimizationSummary:
+            print("Writing Optimization Summary....")
+            _t = time.time()
+            for ip in esM.investmentPeriods:
+                outdir = os.path.join(directory, f"IP{ip}")
+                for key, mdl in esM.componentModelingDict.items():
+                    file_name = f"{key}.xlsx"
+                    outputFile = os.path.join(outdir, file_name)
+                    with pd.ExcelWriter(outputFile,engine="openpyxl", mode="a") as writer: 
+                        for k in range(esM.iterations+1): 
+                            summary_solutions[ip][k][key].to_excel(writer, sheet_name=f"summary_{k}")
+            fn.utils.output("\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verbose, 0)
                         
-        # # Following code is for consolidating output to single sheets. All the capacity and operation rate variables of all the 
-        # # iterations are written to a single sheet. Time series data are summed up over the time steps.
-        # print("\nConsolidating output to single sheets")
+        print("\nClutsering output to single sheets")
+        # if not self.operationRateinOutput:
 
-        # def get_data(df, iteration, parameter, inputFile, multi_index, key):
+        def get_data(df, iteration, parameter, inputFile, components, column_list):
 
-        #     input_data_op = pd.read_excel( inputFile, sheet_name=f"{parameter}__{iteration}")
+            input_data_op = pd.read_excel( inputFile, sheet_name=f"{parameter}__{iteration}")
+            input_data_op['Unnamed: 0'] = input_data_op['Unnamed: 0'].ffill()
+            input_data_op.rename(columns={"Unnamed: 0": "Component", "Unnamed: 1": "Location"}, inplace=True)
 
-        #     if key != "TransmissionModel":
-        #         input_data_op['Unnamed: 0'] = input_data_op['Unnamed: 0'].ffill()
-        #         input_data_op.set_index(['Unnamed: 0','Unnamed: 1'],inplace=True)
+            # locations = []
+            # for item in input_data_op["Location"]:
+            #     item = str(item)
+            #     if len(item) == 11:
+            #         item = "0" + item
+            #     locations.append(item)
+            # input_data_op["Location"] = locations
             
-        #     else:
-        #         input_data_op['Unnamed: 0'] = input_data_op['Unnamed: 0'].ffill()
-        #         input_data_op['Unnamed: 1'] = input_data_op['Unnamed: 1'].ffill()
-        #         input_data_op.set_index(['Unnamed: 0','Unnamed: 1','Unnamed: 2'],inplace=True)
+            input_data_op.set_index(["Component","Location"],inplace=True)
 
-        #     for item in multi_index:
-        #         df.loc[iteration,item] = input_data_op.loc[item].sum()
+            for component in components:
+                for location in column_list:
+                    try:
+                        df.loc[iteration,(component,location)] = input_data_op.loc[(component, location)].sum()
+                    except KeyError:
+                        print(f"{key}->{parameter}->{component}->{location} does not exist. Making value 0.0")
+                        df.loc[iteration,(component,location)] = 0.0
             
-        #     return df
+            return df
 
-        # for ip in esM.investmentPeriods:
-        #     outdir = os.path.join(directory, f"IP{ip}")
+        for ip in esM.investmentPeriods:
+            outdir = os.path.join(directory, f"IP{ip}")
 
-        #     for key, mdl in esM.componentModelingDict.items():
+            for key, mdl in esM.componentModelingDict.items():
 
-        #         _t = time.time()
-        #         file_name = f"{key}.xlsx"
-        #         new_file_name = f"{key}_consolidated.xlsx"
-        #         inputFile = os.path.join(outdir, file_name)
-        #         outputFile = os.path.join(outdir, new_file_name)
-        #         column_list = list(esM.locations)
-        #         column_list.sort()
-        #         row_index = [iteration for iteration in range(len(set_solutions))]
+                if key != "TransmissionModel":
+                    _t = time.time()
+                    file_name = f"{key}.xlsx"
+                    new_file_name = f"{key}_clustered.xlsx"
+                    inputFile = os.path.join(outdir, file_name)
+                    outputFile = os.path.join(outdir, new_file_name)
+                    column_list = list(esM.locations)
+                    column_list.sort()
+                    row_index = [iteration for iteration in range(esM.iterations)]
 
-        #         if operationRateinOutput:
+                    if operationRateinOutput:
 
-        #             with pd.ExcelWriter(outputFile) as writer:
+                        with pd.ExcelWriter(outputFile) as writer:
 
-        #                 if key == "StorageModel":
-        #                     data = pd.read_excel(inputFile, sheet_name="chargeOp__0")
-        #                     data['Unnamed: 0'] = data['Unnamed: 0'].ffill()
-        #                     multi_index = [(data.loc[i,"Unnamed: 0"],data.loc[i,"Unnamed: 1"]) for i in data.index]
+                            if key == "StorageModel":
+                                data = pd.read_excel(inputFile, sheet_name="chargeOp__0")
+                            else:
+                                data = pd.read_excel(inputFile, sheet_name="op__0")
+                            data['Unnamed: 0'] = data['Unnamed: 0'].ffill()
+                            components = list(set([item for item in data['Unnamed: 0']]))
+                            multi_index = pd.MultiIndex.from_product([components,column_list]) 
 
-        #                     params = ["chargeOp", "dischargeOp"]
-        #                     for param in params:
-        #                         print(f"for {key}_{param}....")
-        #                         df = pd.DataFrame(index=row_index, data=0.0, 
-        #                                             columns=pd.MultiIndex.from_tuples(multi_index))
-        #                         for iteration in row_index:
-        #                             df = get_data(df,iteration,param, inputFile, multi_index, key)
-        #                         df.to_excel(writer, sheet_name=param)
+                            if key == "StorageModel":
+                                    params = ["chargeOp", "dischargeOp"]
+                                    for param in params:
+                                        print(f"for {key}_{param}....")
+                                        df = pd.DataFrame(index=row_index, data=0.0, columns=multi_index)
+                                        for iteration in row_index:
+                                            df = get_data(df,iteration,param, inputFile, components, column_list)
+                                        df.to_excel(writer, sheet_name=param)
+                            else:
+                                print(f"for {key}....")
+                                df = pd.DataFrame(index=row_index, data=0.0, columns=multi_index)
+                                for iteration in row_index:
+                                    df = get_data(df,iteration,"op", inputFile, components, column_list)
+                                df.to_excel(writer, sheet_name="op")
+                                    
+                    mode = "a" if operationRateinOutput else "w"
+                    with pd.ExcelWriter(outputFile,engine="openpyxl", mode=mode) as writer:
+                        data = pd.read_excel(inputFile, sheet_name="cap__0",index_col=0)
+                        index_list = data.index  
+                        multi_index = pd.MultiIndex.from_product([index_list,column_list])  
+                        df = pd.DataFrame(index=row_index, columns=multi_index)
 
-        #                 elif key == "TransmissionModel":
-        #                     data = pd.read_excel(inputFile, sheet_name="op__0")
-        #                     data['Unnamed: 0'] = data['Unnamed: 0'].ffill()
-        #                     data['Unnamed: 1'] = data['Unnamed: 1'].ffill()
-        #                     multi_index = [(data.loc[i,"Unnamed: 0"],
-        #                                     data.loc[i,"Unnamed: 1"],
-        #                                     data.loc[i,"Unnamed: 2"]) 
-        #                                     for i in data.index]
-                            
-        #                     print(f"for {key}....")
-        #                     df = pd.DataFrame(index=row_index, data=0.0, columns=pd.MultiIndex.from_tuples(multi_index))
-        #                     for iteration in row_index:
-        #                         df = get_data(df,iteration,"op", inputFile, multi_index, key)
-        #                     df.to_excel(writer, sheet_name="op")
-                            
-        #                 else:
-        #                     data = pd.read_excel(inputFile, sheet_name="op__0")
-        #                     data['Unnamed: 0'] = data['Unnamed: 0'].ffill()
-        #                     multi_index = [(data.loc[i,"Unnamed: 0"],data.loc[i,"Unnamed: 1"]) for i in data.index]
-
-        #                     print(f"for {key}....")
-        #                     df = pd.DataFrame(index=row_index, data=0.0, columns=pd.MultiIndex.from_tuples(multi_index))
-        #                     for iteration in row_index:
-        #                         df = get_data(df,iteration,"op", inputFile, multi_index, key)
-        #                     df.to_excel(writer, sheet_name="op")
-
-        #         mode = "a" if operationRateinOutput else "w"
-        #         with pd.ExcelWriter(outputFile,engine="openpyxl", mode=mode) as writer:
-        #             if key != "TransmissionModel":
-        #                 data = pd.read_excel(inputFile, sheet_name="cap__0",index_col=0)
-        #                 index_list = data.index  
-        #                 multi_index = pd.MultiIndex.from_product([index_list,column_list])  
-        #                 df = pd.DataFrame(index=row_index, columns=multi_index)
-
-        #                 for item in index_list:
-        #                     for location in column_list:
-        #                         items = []
-        #                         for iteration in row_index:
-        #                             input_data_cap = pd.read_excel( inputFile, sheet_name=f"cap__{iteration}",index_col=0)
-        #                             items.append(input_data_cap.loc[item][location])
-        #                         df.loc[:, (item,location)] = items
-        #             else:
-        #                 data = pd.read_excel(inputFile, sheet_name="cap__0")
-        #                 data['Unnamed: 0'] = data['Unnamed: 0'].ffill()
-        #                 multi_index = [(data.loc[i,"Unnamed: 0"],data.loc[i,"Unnamed: 1"],
-        #                                 column) for i in data.index for column in column_list]
-        #                 df = pd.DataFrame(index=row_index, data=0.0, 
-        #                                             columns=pd.MultiIndex.from_tuples(multi_index))
-        #                 for iteration in row_index:
-        #                     input_data_cap = pd.read_excel(inputFile, sheet_name=f"cap__{iteration}")
-        #                     input_data_cap['Unnamed: 0'] = input_data_cap['Unnamed: 0'].ffill()
-        #                     input_data_cap.set_index(['Unnamed: 0','Unnamed: 1'],inplace=True)
-        #                     for item in multi_index:
-        #                         df.loc[iteration,item] = input_data_cap.loc[(item[0],item[1]),item[2]]
-        #                 # df = df.dropna(axis=1, how='all')
-        #             df.to_excel(writer, sheet_name="cap")
-        #         fn.utils.output("\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verbose, 0)
+                        for item in index_list:
+                            for location in column_list:
+                                items = []
+                                for iteration in row_index:
+                                    input_data_cap = pd.read_excel( inputFile, sheet_name=f"cap__{iteration}",index_col=0)
+                                    items.append(input_data_cap.loc[item][location])
+                                df.loc[:, (item,location)] = items
+                        df.to_excel(writer, sheet_name="cap")
+                    fn.utils.output("\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verbose, 0)
         
     fn.utils.output("\n\t MGA optimization completed", esM.verbose, 0) 
 
@@ -553,7 +518,7 @@ def mgaOptimize(
     warmstart=False,
     relevanceThreshold=None,
     slack=0.1,
-    iterations = 5,
+    iterations = 10,
     random_seed = False,
     writeSolutionsasExcels = False,
     getOptimizationSummary = False,
@@ -891,6 +856,7 @@ def mgaOptimize(
             esM,
             writeSolutionsasExcels,
             getOptimizationSummary,
+            outputLevel,
             operationRateinOutput
         )
 
