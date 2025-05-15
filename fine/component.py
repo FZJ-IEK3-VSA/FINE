@@ -714,20 +714,27 @@ class Component(metaclass=ABCMeta):
         self.materialRecovery = materialRecovery 
         self.material= material
 
-        ############################################################
-        # correct utility function for processed materialIntensity # 
-        ############################################################
 
-        # adapt to material recovery
-        if not material:
-            self.processedMaterialIntensity = (
-                utils.checkAndSetMaterialIntensity(
-                    esM, 
-                    materialIntensity, 
-                    esM.locations, 
-                    esM.investmentPeriods, 
-                    esM.onlymaterials) 
-            )
+
+        # check and set material parameters
+        
+        self.processedMaterialIntensity = (
+            utils.checkAndSetMaterialIntensity(
+                esM, 
+                materialIntensity, 
+                esM.locations, 
+                esM.investmentPeriods) 
+        )
+
+        self.processedMaterialRecovery = (
+            utils.checkAndSetMaterialRecovery(
+                esM, 
+                materialRecovery, 
+                esM.locations, 
+                esM.investmentPeriods) 
+        )
+
+        
 
     def addToEnergySystemModel(self, esM):
         """
@@ -1320,13 +1327,13 @@ class ComponentModel(metaclass=ABCMeta):
             # (loc, sourceName, mat, ip) — one row per source with an intensity for mat at ip
             for loc, intsinkName, ip in varSet:
                 comp = compDict[intsinkName]
-                if getattr(comp, "materialIntensity", None):
+                if getattr(comp, "processedMaterialIntensity", None):
                     for mat in esM.onlymaterials:
                         # only keep those where intensity actually exists
                         if (
-                            loc in comp.materialIntensity
-                            and mat in comp.materialIntensity[loc]
-                            and ip in comp.materialIntensity[loc][mat]
+                            loc in comp.processedMaterialIntensity
+                            and mat in comp.processedMaterialIntensity[loc]
+                            and ip in comp.processedMaterialIntensity[loc][mat]
                         ):
                             yield (loc, intsinkName, mat, ip)
 
@@ -1369,15 +1376,15 @@ class ComponentModel(metaclass=ABCMeta):
             # (loc, sourceName, mat, ip) — one row per source with an intensity for mat at ip
             for loc, intsourceName, ip in varSet:
                 comp = compDict[intsourceName]
-                if getattr(comp, "materialIntensity", None) and getattr(comp, "materialRecovery", None): 
+                if getattr(comp, "processedMaterialIntensity", None) and getattr(comp, "processedMaterialRecovery", None): 
                     for mat in esM.onlymaterials:
                         # only keep those where intensity actually exists
                         if (
-                            loc in comp.materialIntensity
-                            and mat in comp.materialIntensity[loc]
-                            and ip in comp.materialIntensity[loc][mat]
-                            and mat in comp.materialRecovery[loc]  # Und hier ebenfalls für materialRecovery
-                            and ip in comp.materialRecovery[loc][mat]
+                            loc in comp.processedMaterialIntensity
+                            and mat in comp.processedMaterialIntensity[loc]
+                            and ip in comp.processedMaterialIntensity[loc][mat]
+                            and mat in comp.processedMaterialRecovery[loc]  # Und hier ebenfalls für materialRecovery
+                            and ip in comp.processedMaterialRecovery[loc][mat]
                         ):
                             yield (loc, intsourceName, mat, ip)
 
@@ -2735,40 +2742,39 @@ class ComponentModel(metaclass=ABCMeta):
 
     def operationMaterialConsumption(self, pyM, esM, constrName, constrSetName, opVarName):
 
-        # to add: docstring
+            # to add: docstring
 
-        compDict, abbrv = self.componentsDict, self.abbrvName
-        opVar    = getattr(pyM, opVarName + "_" + abbrv)
-        commisVar  = getattr(pyM, "commis_"   + abbrv)
+            compDict, abbrv = self.componentsDict, self.abbrvName
+            opVar    = getattr(pyM, opVarName + "_" + abbrv)
+            commisVar  = getattr(pyM, "commis_"   + abbrv)
 
-        sinkSet   = getattr(pyM, constrSetName + "5_sinks_"  + abbrv)
-        IntSinkSet = getattr(pyM, constrSetName + "5_int_sink_"+ abbrv)
-        print("SinkSet:", list(sinkSet))
-        print("IntSinkSet:", list(IntSinkSet))
+            sinkSet   = getattr(pyM, constrSetName + "5_sinks_"  + abbrv)
+            IntSinkSet = getattr(pyM, constrSetName + "5_int_sink_"+ abbrv)
+            print("SinkSet:", list(sinkSet))
+            print("IntSinkSet:", list(IntSinkSet))
+            
+            def matConsRule(m, loc, sinkName, mat, ip):
+                # LHS: this one sink's op‐var summed over (p,t)
+                #print("IntSinkSet Inhalt:", list(IntSinkSet))
 
-        def matConsRule(m, loc, sinkName, mat, ip):
-            # LHS: this one sink's op‐var summed over (p,t)
-            #print("IntSinkSet Inhalt:", list(IntSinkSet))
+                lhs = sum(opVar[loc, sinkName, ip, p, t] * esM.periodOccurrences[ip][p]
+                        for p, t in m.intraYearTimeSet) 
+                print("LHS_sinks", lhs)
+                # RHS: sum over *all* sources that supply mat at (loc,ip)
+                rhs = sum(
+                    commisVar[ loc, intsinkName, ip ]
+                    * compDict[intsinkName].processedMaterialIntensity[loc][mat][ip]
+                    for loc2, intsinkName, mat2, ip2 in IntSinkSet
+                    if loc2==loc and mat2==mat and ip2==ip             # clarify
+                )
+                print("RHS_sinks", rhs)
+                return lhs == rhs
 
-            lhs = sum(opVar[loc, sinkName, ip, p, t]
-                    for p, t in m.intraYearTimeSet)
-            print("LHS_sinks", lhs)
-            # RHS: sum over *all* sources that supply mat at (loc,ip)
-            rhs = sum(
-                commisVar[ loc, intsinkName, ip ]
-                * compDict[intsinkName].materialIntensity[loc][mat][ip]
-                for loc2, intsinkName, mat2, ip2 in IntSinkSet
-                if loc2==loc and mat2==mat and ip2==ip             # clarify
+            setattr(
+                pyM,
+                constrName + "5_" + abbrv,
+                pyomo.Constraint(sinkSet, rule=matConsRule)
             )
-            print("RHS_sinks", rhs)
-            return lhs == rhs
-
-        setattr(
-            pyM,
-            constrName + "5_" + abbrv,
-            pyomo.Constraint(sinkSet, rule=matConsRule)
-        )
-
 
     def operationMaterialRecovery(self, pyM, esM, constrName, constrSetName, opVarName):
 
@@ -2783,11 +2789,18 @@ class ComponentModel(metaclass=ABCMeta):
         print("SourceSet:", list(sourceSet))
         print("IntSourceSet:", list(IntSourceSet))
 
+        ip_set = set(ip for _, _, _, ip in IntSourceSet)
+
+        # Wenn nur eine IP existiert, abbrechen
+        if len(ip_set) <= 1:
+            print(f"Skipping '{constrName}6_{abbrv}' because only one installation period is defined.")
+            return
+
         def RecConsRule(m, loc, sourceName, mat, ip):
             # LHS: this one sink's op‐var summed over (p,t)
             #print("IntSourceSet Inhalt:", list(IntSourceSet))
 
-            lhs = sum(opVar[loc, sourceName, ip, p, t]
+            lhs = sum(opVar[loc, sourceName, ip, p, t] * esM.periodOccurrences[ip][p]
                     for p, t in m.intraYearTimeSet)
             
             print("LHS_sources", lhs)
@@ -2795,26 +2808,27 @@ class ComponentModel(metaclass=ABCMeta):
 
             rhs = sum(
                 decommisVar[loc, intsourceName, ip] *
-                compDict[intsourceName].materialIntensity[loc][mat][
+                compDict[intsourceName].processedMaterialIntensity[loc][mat][
                     ip - (
                         math.floor(compDict[intsourceName].ipTechnicalLifetime[loc])
                         if compDict[intsourceName].floorTechnicalLifetime
                         else math.ceil(compDict[intsourceName].ipTechnicalLifetime[loc])
                     )
                 ] *
-                compDict[intsourceName].materialRecovery[loc][mat][ip]
+                compDict[intsourceName].processedMaterialRecovery[loc][mat][ip]
                 for loc2, intsourceName, mat2, ip2 in IntSourceSet
                 if loc2 == loc and mat2 == mat and ip2 == ip
             )
 
             print("RHS_sources", rhs)
-            return lhs == rhs
+            return lhs <= rhs
 
         setattr(
             pyM,
             constrName + "6_" + abbrv,
             pyomo.Constraint(sourceSet, rule=RecConsRule)
         )
+
 
 
     # def operationMaterialRecovery(self, pyM, esM, constrName, constrSetName, opVarName):

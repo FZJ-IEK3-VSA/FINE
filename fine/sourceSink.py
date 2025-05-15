@@ -447,28 +447,12 @@ class Source(Component):
             operationTimeSeries,
         )
 
-        # set material bool #########
-        # self.material=material 
+
         # add materialConsumption and materialRecovery if declared 
         self.materialIntensity = materialIntensity
         self.materialRecovery = materialRecovery 
         self.material= material
 
-        ############################################################
-        # correct utility function for processed materialIntensity # 
-        ############################################################
-
-        # call for processed materialIntensity 
-        # if material==False:
-        #     self.processedMaterialIntensity = (
-        #         utils.checkAndSetMaterialIntensity(
-        #             esM, 
-        #             materialIntensity, 
-        #             esM.locations, 
-        #             esM.investmentPeriods, 
-        #             esM.onlymaterials) 
-        #     )
-        #############################
 
     def setTimeSeriesData(self, hasTSA):
         """
@@ -781,7 +765,7 @@ class SourceSinkModel(ComponentModel):
             compName
             for mdl in esM.componentModelingDict.values()
             for compName, comp in mdl.componentsDict.items()
-            if hasattr(comp, "materialIntensity") and comp.materialIntensity
+            if hasattr(comp, "processedMaterialIntensity") and comp.processedMaterialIntensity
         ])
 
         # 1) SourceSet: all material=True sinks
@@ -799,7 +783,7 @@ class SourceSinkModel(ComponentModel):
             for mdl in esM.componentModelingDict.values()
             for compName, comp in mdl.componentsDict.items()
             #if hasattr(comp, "materialIntensity") and comp.materialIntensity
-            if hasattr(comp, "materialIntensity") and comp.materialIntensity and hasattr(comp, "materialRecovery") and comp.materialRecovery
+            if hasattr(comp, "processedMaterialIntensity") and comp.processedMaterialIntensity and hasattr(comp, "processedMaterialRecovery") and comp.processedMaterialRecovery
         ])
         
         # Declare design variable sets

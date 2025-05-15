@@ -607,6 +607,37 @@ class EnergySystemModel:
             return attr[0]
         else:
             return attr
+        
+
+    def generationMaterialSinks(self):
+
+        sinkModel = self.componentModelingDict.get("SourceSinkModel", None)
+        if sinkModel is not None:
+            existingMaterialCommodities = {
+                comp.commodity
+                for comp in sinkModel.componentsDict.values()
+                if getattr(comp, "material", False)
+                and comp.__class__.__name__ == "Sink"
+            }
+            print(f"Existing material sinks: {existingMaterialCommodities}")  
+
+
+            missingMaterials = set(self.onlymaterials) - existingMaterialCommodities
+            print(f"Missing materials sinks: {missingMaterials}")  
+
+            from fine.sourceSink import Sink 
+            for mat in missingMaterials:
+                sinkName = f"{mat.capitalize()} demand"
+                newSink = Sink(
+                    esM=self,
+                    name=sinkName,
+                    commodity=mat,
+                    hasCapacityVariable=False,
+                    material=True,
+                )
+                self.add(newSink)  # wichtig: NICHT sinkModel.addComponent!
+                print(f"New sink added: {newSink.name}")  
+
 
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
         """
@@ -947,6 +978,8 @@ class EnergySystemModel:
             |br| * the default value is False
         :type storeTSAinstance: boolean
         """
+
+        #self.generationMaterialSinks()
 
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(
@@ -1758,6 +1791,33 @@ class EnergySystemModel:
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
         """
+
+        # Automatic generation of material sinks --> but since they are not aggragted after the generation there has to follow another aggragation 
+        # would be better to include it before aggregateTemporally function
+
+        # sinkModel = self.componentModelingDict.get("SourceSinkModel", None)
+
+        # if sinkModel is not None:
+        #     existingComponentCount = len(sinkModel.componentsDict)
+        # else:
+        #     existingComponentCount = 0
+
+        # # Füge Sinks hinzu
+        # self.automaticMaterialSinks()
+
+        # # Wiederhole die Abfrage danach
+        # sinkModel = self.componentModelingDict.get("SourceSinkModel", None)
+        # if sinkModel is not None:
+        #     newComponentCount = len(sinkModel.componentsDict)
+        # else:
+        #     newComponentCount = 0
+
+        # # Prüfe, ob neue Sinks dazugekommen sind
+        # if timeSeriesAggregation and newComponentCount > existingComponentCount:
+        #     self.aggregateTemporally()  ### hier noch Problem dass er dann die selben spezifikationen übergeben bekommen müsste wie die zuvor im Example ausgewählten
+
+
+
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
 
@@ -1840,11 +1900,6 @@ class EnergySystemModel:
         self.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
-
-        # Declare material balance constraints (one balance constraint for each commodity, location and time step)
-        #_t = time.time()
-        #self.declareMaterialBalanceConstraints(pyM)
-        #utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
         
         ################################################################################################################
         #                                         Declare objective function                                           #

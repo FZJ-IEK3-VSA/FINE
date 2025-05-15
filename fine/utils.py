@@ -1485,31 +1485,164 @@ def checkAndSetInvestmentPeriodCostParameter(
     return parameter
 
 ###############################################################################################################################################
-# here materialIntensity processing 
-# MaterialIntensity check
-def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPeriods, onlymaterials):
+# here materialIntensity and recovery processing 
+
+
+def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPeriods):
     if materialIntensity is None or materialIntensity == 0:
-        return 0
- 
+        return {}
+
     processedMaterialIntensity = {}
- 
+
     for location in locations:
-        if location not in processedMaterialIntensity:
-            processedMaterialIntensity[location] = {}
-        for ip in investmentPeriods:
-            _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
-            if _ip not in processedMaterialIntensity[location]:
-                processedMaterialIntensity[location][_ip] = {}
-            for mat in onlymaterials:
-                if (
-                    location in materialIntensity and
-                    _ip in materialIntensity[location] and
-                    mat in materialIntensity[location][_ip]
-                ):
-                    processedMaterialIntensity[location][_ip][mat] = materialIntensity[location][_ip][mat]
- 
+        if location not in materialIntensity:
+            raise KeyError(f"Location '{location}' is missing in material intensity.")
+
+        processedMaterialIntensity[location] = {}
+
+        for mat, series in materialIntensity[location].items():
+            if not isinstance(series, pd.Series):
+                raise TypeError(f"Material '{mat}' in '{location}' should be a pandas Series.")
+
+            # Erlaube genau ein Jahr vor dem Startjahr (z.B. 2015 bei 2020 und Intervall 5)
+            allowed_past_year = esM.startYear - esM.investmentPeriodInterval
+
+            ip_map = {}
+            for year in series.index:
+                if isinstance(year, str):
+                    year = int(year)
+
+                # NEU: Zusätzliche Prüfung für das Jahr vor dem Startjahr
+                if year < esM.startYear:
+                    if year != allowed_past_year:
+                        raise ValueError(
+                            f"Only year {allowed_past_year} is allowed before start year for IP -1. "
+                            f"Got invalid year {year} in '{location}' / '{mat}'."
+                        )
+                    ip_map[year] = -1
+
+                else:
+                    ip = int((year - esM.startYear) / esM.investmentPeriodInterval)
+                    if esM.startYear + ip * esM.investmentPeriodInterval != year:
+                        raise ValueError(
+                            f"Year {year} in '{location}' / '{mat}' is not aligned with investment period interval "
+                            f"(start year: {esM.startYear}, interval: {esM.investmentPeriodInterval})."
+                        )
+                    ip_map[year] = ip
+
+
+            # Check that all required IPs are present (excluding -1)
+            present_ips = [ip_map[y] for y in series.index if ip_map[y] != -1]
+            missing_ips = [ip for ip in investmentPeriods if ip not in present_ips]
+            if missing_ips:
+                missing_years = [esM.startYear + ip * esM.investmentPeriodInterval for ip in missing_ips]
+                expected_years = [esM.startYear + ip * esM.investmentPeriodInterval for ip in investmentPeriods]
+                raise ValueError(
+                    f"Missing material intensity entries for '{location}' / '{mat}' in years: {missing_years}. "
+                    f"Expected years: {expected_years}."
+                )
+
+            for year, value in series.items():
+                if value < 0:
+                    raise ValueError(
+                        f"Material intensity must be positive: {location} / {mat} / {year} : {value}"
+                    )
+
+                ip = ip_map[year]
+
+                if ip != -1 and ip not in investmentPeriods:
+                    raise ValueError(
+                        f"Invalid investment period {ip} derived from year {year} "
+                        f"for '{location}' / '{mat}'. Allowed: {investmentPeriods}"
+                    )
+
+                if mat not in processedMaterialIntensity[location]:
+                    processedMaterialIntensity[location][mat] = {}
+
+                processedMaterialIntensity[location][mat][ip] = value
+
+        # Convert all material entries for this location to Series
+        for mat in processedMaterialIntensity[location]:
+            processedMaterialIntensity[location][mat] = pd.Series(
+                processedMaterialIntensity[location][mat]
+            ).sort_index()
+
     return processedMaterialIntensity
- 
+
+
+
+def checkAndSetMaterialRecovery(esM, materialRecovery, locations, investmentPeriods):
+    if materialRecovery is None or materialRecovery == 0:
+        return {}
+
+    processedMaterialRecovery = {}
+
+    for location in locations:
+        if location not in materialRecovery:
+            raise KeyError(f"Location '{location}' is missing in material recovery.")
+
+        processedMaterialRecovery[location] = {}
+
+        for mat, series in materialRecovery[location].items():
+            if not isinstance(series, pd.Series):
+                raise TypeError(f"Material '{mat}' in '{location}' should be a pandas Series.")
+
+            ip_map = {}
+            for year in series.index:
+                if isinstance(year, str):
+                    year = int(year)
+
+                if year < esM.startYear:
+                    raise ValueError(
+                        f"Year {year} in '{location}' / '{mat}' is before start year {esM.startYear} and not allowed."
+                    )
+
+                ip = int((year - esM.startYear) / esM.investmentPeriodInterval)
+                if esM.startYear + ip * esM.investmentPeriodInterval != year:
+                    raise ValueError(
+                        f"Year {year} in '{location}' / '{mat}' is not aligned with investment period interval "
+                        f"(start year: {esM.startYear}, interval: {esM.investmentPeriodInterval})."
+                    )
+                ip_map[year] = ip
+
+            # Check that all required IPs are present
+            present_ips = [ip_map[y] for y in series.index]
+            missing_ips = [ip for ip in investmentPeriods if ip not in present_ips]
+            if missing_ips:
+                missing_years = [esM.startYear + ip * esM.investmentPeriodInterval for ip in missing_ips]
+                expected_years = [esM.startYear + ip * esM.investmentPeriodInterval for ip in investmentPeriods]
+                raise ValueError(
+                    f"Missing material recovery entries for '{location}' / '{mat}' in years: {missing_years}. "
+                    f"Expected years: {expected_years}."
+                )
+
+            for year, value in series.items():
+                if not (0 <= value <= 1):
+                    raise ValueError(
+                        f"Material recovery must be between 0 and 1: {location} / {mat} / {year} = {value}"
+                    )
+
+                ip = ip_map[year]
+                if ip not in investmentPeriods:
+                    raise ValueError(
+                        f"Invalid investment period {ip} derived from year {year} "
+                        f"for '{location}' / '{mat}'. Allowed: {investmentPeriods}"
+                    )
+
+                if mat not in processedMaterialRecovery[location]:
+                    processedMaterialRecovery[location][mat] = {}
+
+                processedMaterialRecovery[location][mat][ip] = value
+
+        # Convert all material entries for this location to Series
+        for mat in processedMaterialRecovery[location]:
+            processedMaterialRecovery[location][mat] = pd.Series(
+                processedMaterialRecovery[location][mat]
+            ).sort_index()
+
+    return processedMaterialRecovery
+
+
 
 ###############################################################################################################################################
 
