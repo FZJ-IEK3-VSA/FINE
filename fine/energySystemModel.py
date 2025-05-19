@@ -1684,6 +1684,126 @@ class EnergySystemModel:
         )
 
 
+    def declareMaterialDemandConstraints(self, pyM):
+            """
+            Declare material balance constraints (one constraint for each location, sink, material, and investment period).
+    
+            .. math::
+    
+                \\sum_{p,t} op_{loc,sink,ip,p,t} = \\sum_{components} contribution_{loc,mat,ip}
+    
+            :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+                        constraints and objective required for the optimization set up and solving.
+            :type pyM: pyomo ConcreteModel
+            """
+            utils.output("Declaring material balances...", self.verbose, 0)
+    
+            def initMaterialDemandSet(m):
+                compDict = self.componentModelingDict
+                # Only consider SourceSinkModel componentsDict
+                source_sink_model = compDict.get("SourceSinkModel")
+                if source_sink_model is None:
+                    return  
+            
+                components = getattr(source_sink_model, "componentsDict", {})
+                varSet = getattr(pyM, "operationVarSet_srcSnk", [])
+            
+                for loc, sinkName, ip in varSet:
+                    comp = components.get(sinkName)
+                    if comp is None:
+                        continue  # skip if sinkName not in componentsDict
+                
+                    if comp.__class__.__name__ == "Sink" and getattr(comp, "material", False):
+                        mat = comp.commodity
+                        yield (loc, sinkName, mat, ip)
+    
+    
+            pyM.materialDemandSet = pyomo.Set(dimen=4, initialize=initMaterialDemandSet)
+            for elem in pyM.materialDemandSet:
+                print(elem)
+    
+    
+        # Define the material balance constraint function
+            def materialDemandConstraint(m, loc, sinkName, mat, ip):
+            # opVar = getattr(m, "operationVarSet_srcSnk")
+                opVar = m.op_srcSnk
+                lhs = sum(opVar[loc, sinkName, ip, p, t] * self.periodOccurrences[ip][p]
+                            for p, t in m.intraYearTimeSet)
+                print("LHS_demand", lhs)
+                rhs = sum(
+                    mdl.getMaterialDemandContribution(m, mat, loc, ip)
+                    for mdl in self.componentModelingDict.values()
+                    if hasattr(mdl, "getMaterialDemandContribution")
+                )
+                print("RHS_demand", rhs)
+                return lhs == rhs
+    
+            # Attach the constraint to the model indexed by the materialDemandSet
+            pyM.materialDemandConstraint = pyomo.Constraint(
+                pyM.materialDemandSet, rule=materialDemandConstraint
+            )
+
+
+    def declareMaterialRecoveryConstraints(self, pyM):
+            """
+            Declare material balance constraints (one constraint for each location, sink, material, and investment period).
+    
+            .. math::
+    
+                \\sum_{p,t} op_{loc,sink,ip,p,t} = \\sum_{components} contribution_{loc,mat,ip}
+    
+            :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+                        constraints and objective required for the optimization set up and solving.
+            :type pyM: pyomo ConcreteModel
+            """
+            utils.output("Declaring material balances...", self.verbose, 0)
+    
+            def initMaterialRecoverySet(m):
+                compDict = self.componentModelingDict
+                # Only consider SourceSinkModel componentsDict
+                source_sink_model = compDict.get("SourceSinkModel")
+                if source_sink_model is None:
+                    return  
+            
+                components = getattr(source_sink_model, "componentsDict", {})
+                varSet = getattr(pyM, "operationVarSet_srcSnk", [])
+            
+                for loc, sinkName, ip in varSet:
+                    comp = components.get(sinkName)
+                    if comp is None:
+                        continue  # skip if sinkName not in componentsDict
+                
+                    if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
+                        mat = comp.commodity
+                        yield (loc, sinkName, mat, ip)
+    
+    
+            pyM.materialRecoverySet = pyomo.Set(dimen=4, initialize=initMaterialRecoverySet)
+            for elem in pyM.materialRecoverySet:
+                print(elem)
+    
+    
+        # Define the material balance constraint function
+            def materialRecoveryConstraint(m, loc, sinkName, mat, ip):
+            # opVar = getattr(m, "operationVarSet_srcSnk")
+                opVar = m.op_srcSnk
+                lhs = sum(opVar[loc, sinkName, ip, p, t] * self.periodOccurrences[ip][p]
+                            for p, t in m.intraYearTimeSet)
+                print("LHS_recovery", lhs)
+                rhs = sum(
+                    mdl.getMaterialRecoveryContribution(m, mat, loc, ip)
+                    for mdl in self.componentModelingDict.values()
+                    if hasattr(mdl, "getMaterialRecoveryContribution")
+                )
+                print("RHS_recovery", rhs)
+                return lhs <= rhs
+    
+            # Attach the constraint to the model indexed by the materialDemandSet
+            pyM.materialRecoveryConstraint = pyomo.Constraint(
+                pyM.materialRecoverySet, rule=materialRecoveryConstraint
+            )
+
+
 
     def declareObjective(self, pyM):
         """
@@ -1893,6 +2013,16 @@ class EnergySystemModel:
         # Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
         _t = time.time()
         self.declareCommodityBalanceConstraints(pyM)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+
+        # Declare material demand constraints (one balance constraint for each commodity, location and time step)
+        _t = time.time()
+        self.declareMaterialDemandConstraints(pyM)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+
+        # Declare material recovery constraints (one balance constraint for each commodity, location and time step)
+        _t = time.time()
+        self.declareMaterialRecoveryConstraints(pyM)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Declare constraint for balanceLimit

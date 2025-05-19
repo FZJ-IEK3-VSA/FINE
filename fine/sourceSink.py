@@ -3,6 +3,7 @@ from fine import utils
 import pandas as pd
 import pyomo.environ as pyomo
 import warnings
+import math
 
 
 class Source(Component):
@@ -751,40 +752,40 @@ class SourceSinkModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
 
-        # 1) SinkSet: all material=True sinks
-        pyM.SinkSet = pyomo.Set(initialize=[
-            compName
-            for mdl in esM.componentModelingDict.values()
-            for compName, comp in mdl.componentsDict.items()
-            if getattr(comp, "material", False)
-            and comp.__class__.__name__ == "Sink"
-        ])
+        # # 1) SinkSet: all material=True sinks
+        # pyM.SinkSet = pyomo.Set(initialize=[
+        #     compName
+        #     for mdl in esM.componentModelingDict.values()
+        #     for compName, comp in mdl.componentsDict.items()
+        #     if getattr(comp, "material", False)
+        #     and comp.__class__.__name__ == "Sink"
+        # ])
 
-        # 2) IntSinkSet: all components with a non‑empty materialIntensity
-        pyM.IntSinkSet = pyomo.Set(initialize=[
-            compName
-            for mdl in esM.componentModelingDict.values()
-            for compName, comp in mdl.componentsDict.items()
-            if hasattr(comp, "processedMaterialIntensity") and comp.processedMaterialIntensity
-        ])
+        # # 2) IntSinkSet: all components with a non‑empty materialIntensity
+        # pyM.IntSinkSet = pyomo.Set(initialize=[
+        #     compName
+        #     for mdl in esM.componentModelingDict.values()
+        #     for compName, comp in mdl.componentsDict.items()
+        #     if hasattr(comp, "processedMaterialIntensity") and comp.processedMaterialIntensity
+        # ])
 
-        # 1) SourceSet: all material=True sinks
-        pyM.SourceSet = pyomo.Set(initialize=[
-            compName
-            for mdl in esM.componentModelingDict.values()
-            for compName, comp in mdl.componentsDict.items()
-            if getattr(comp, "material", False)
-            and comp.__class__.__name__ == "Source"
-        ])
+        # # 1) SourceSet: all material=True sinks
+        # pyM.SourceSet = pyomo.Set(initialize=[
+        #     compName
+        #     for mdl in esM.componentModelingDict.values()
+        #     for compName, comp in mdl.componentsDict.items()
+        #     if getattr(comp, "material", False)
+        #     and comp.__class__.__name__ == "Source"
+        # ])
 
-        # 2) IntSourceSet: all components with a non‑empty materialIntensity
-        pyM.IntSourceSet = pyomo.Set(initialize=[
-            compName
-            for mdl in esM.componentModelingDict.values()
-            for compName, comp in mdl.componentsDict.items()
-            #if hasattr(comp, "materialIntensity") and comp.materialIntensity
-            if hasattr(comp, "processedMaterialIntensity") and comp.processedMaterialIntensity and hasattr(comp, "processedMaterialRecovery") and comp.processedMaterialRecovery
-        ])
+        # # 2) IntSourceSet: all components with a non‑empty materialIntensity
+        # pyM.IntSourceSet = pyomo.Set(initialize=[
+        #     compName
+        #     for mdl in esM.componentModelingDict.values()
+        #     for compName, comp in mdl.componentsDict.items()
+        #     #if hasattr(comp, "materialIntensity") and comp.materialIntensity
+        #     if hasattr(comp, "processedMaterialIntensity") and comp.processedMaterialIntensity and hasattr(comp, "processedMaterialRecovery") and comp.processedMaterialRecovery
+        # ])
         
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
@@ -967,8 +968,8 @@ class SourceSinkModel(ComponentModel):
 
         ################################################################################### 
           
-        self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
-        self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
+        #self.operationMaterialConsumption(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
+        #self.operationMaterialRecovery(pyM, esM, "ConstrOperation", "opConstrSet", "op") 
 
         ###################################################################################
 
@@ -1099,6 +1100,55 @@ class SourceSinkModel(ComponentModel):
             if compDict[compName].commodity == commod
         )
     
+
+    def getMaterialDemandContribution(self, pyM, mat, loc, ip):
+
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+
+
+        rhs_comp = sum(
+            commisVar[loc, compName, ip]
+            * compDict[compName].processedMaterialIntensity[loc][mat][ip]
+            for (loc2, compName, ip2) in commisVar
+            if loc2 == loc and ip2 == ip
+            and compName in compDict
+            and hasattr(compDict[compName], "processedMaterialIntensity")
+            and ip in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
+        )
+
+        #print("RHS_per_comp_demand", rhs_comp)
+        return rhs_comp
+    
+
+    
+    def getMaterialRecoveryContribution(self, pyM, mat, loc, ip):
+
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        decommisVar = getattr(pyM, "decommis_" + abbrvName)
+
+        rhs_comp = sum(
+            decommisVar[loc, compName, ip] *
+            compDict[compName].processedMaterialIntensity[loc][mat][
+                ip - (
+                    math.floor(compDict[compName].ipTechnicalLifetime[loc])
+                    if compDict[compName].floorTechnicalLifetime
+                    else math.ceil(compDict[compName].ipTechnicalLifetime[loc])
+                )
+            ] *
+            compDict[compName].processedMaterialRecovery[loc][mat][ip]
+            for (loc2, compName, ip2) in decommisVar
+            if loc2 == loc and ip2 == ip
+            and compName in compDict
+            and hasattr(compDict[compName], "processedMaterialIntensity")
+            and ip in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
+        )
+
+        #print("RHS_per_comp_recovery", rhs_comp)
+        return rhs_comp
+    
+    
+
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """

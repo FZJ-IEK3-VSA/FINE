@@ -1293,106 +1293,106 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet4),
         )
  
-    def declareOpConstrSet5_sinks(self, esM, pyM, constrSetName):
+    # def declareOpConstrSet5_sinks(self, esM, pyM, constrSetName):
 
-        # to add: docstring
+    #     # to add: docstring
 
-        compDict, abbrv = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSet_" + abbrv)
+    #     compDict, abbrv = self.componentsDict, self.abbrvName
+    #     varSet = getattr(pyM, "operationVarSet_" + abbrv)
 
-        def initSinkSet(m):
-            # (loc, sinkName, mat, ip) -- one row per material‐demanding sink
-            for loc, sinkName, ip in varSet:
-                comp = compDict[sinkName]
-                if comp.__class__.__name__ == "Sink" and getattr(comp, "material", False):
-                    # assume that sink.commodity == the material it demands
-                    mat = comp.commodity
-                    yield (loc, sinkName, mat, ip)
+    #     def initSinkSet(m):
+    #         # (loc, sinkName, mat, ip) -- one row per material‐demanding sink
+    #         for loc, sinkName, ip in varSet:
+    #             comp = compDict[sinkName]
+    #             if comp.__class__.__name__ == "Sink" and getattr(comp, "material", False):
+    #                 # assume that sink.commodity == the material it demands
+    #                 mat = comp.commodity
+    #                 yield (loc, sinkName, mat, ip)
 
-        setattr(
-            pyM,
-            constrSetName + "5_sinks_" + abbrv,
-            pyomo.Set(dimen=4, initialize=initSinkSet),
-        )
+    #     setattr(
+    #         pyM,
+    #         constrSetName + "5_sinks_" + abbrv,
+    #         pyomo.Set(dimen=4, initialize=initSinkSet),
+    #     )
 
 
-    def declareOpConstrSet5_Int_sinks(self, esM, pyM, constrSetName):
+    # def declareOpConstrSet5_Int_sinks(self, esM, pyM, constrSetName):
 
-        # to add: docstring
+    #     # to add: docstring
 
-        compDict, abbrv = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSet_" + abbrv)
+    #     compDict, abbrv = self.componentsDict, self.abbrvName
+    #     varSet = getattr(pyM, "operationVarSet_" + abbrv)
 
-        def initIntSinkSet(m):
-            # (loc, sourceName, mat, ip) — one row per source with an intensity for mat at ip
-            for loc, intsinkName, ip in varSet:
-                comp = compDict[intsinkName]
-                if getattr(comp, "processedMaterialIntensity", None):
-                    for mat in esM.onlymaterials:
-                        # only keep those where intensity actually exists
-                        if (
-                            loc in comp.processedMaterialIntensity
-                            and mat in comp.processedMaterialIntensity[loc]
-                            and ip in comp.processedMaterialIntensity[loc][mat]
-                        ):
-                            yield (loc, intsinkName, mat, ip)
+    #     def initIntSinkSet(m):
+    #         # (loc, sourceName, mat, ip) — one row per source with an intensity for mat at ip
+    #         for loc, intsinkName, ip in varSet:
+    #             comp = compDict[intsinkName]
+    #             if getattr(comp, "processedMaterialIntensity", None):
+    #                 for mat in esM.onlymaterials:
+    #                     # only keep those where intensity actually exists
+    #                     if (
+    #                         loc in comp.processedMaterialIntensity
+    #                         and mat in comp.processedMaterialIntensity[loc]
+    #                         and ip in comp.processedMaterialIntensity[loc][mat]
+    #                     ):
+    #                         yield (loc, intsinkName, mat, ip)
 
-        setattr(
-            pyM,
-            constrSetName + "5_int_sink_" + abbrv,
-            pyomo.Set(dimen=4, initialize=initIntSinkSet),
-        )
+    #     setattr(
+    #         pyM,
+    #         constrSetName + "5_int_sink_" + abbrv,
+    #         pyomo.Set(dimen=4, initialize=initIntSinkSet),
+    #     )
  
-    def declareOpConstrSet6_sources(self, esM, pyM, constrSetName):
+    # def declareOpConstrSet6_sources(self, esM, pyM, constrSetName):
 
-        # to add: docstring
+    #     # to add: docstring
 
-        compDict, abbrv = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSet_" + abbrv)
+    #     compDict, abbrv = self.componentsDict, self.abbrvName
+    #     varSet = getattr(pyM, "operationVarSet_" + abbrv)
 
-        def initSourceSet(n):
-            # (loc, sinkName, mat, ip) -- one row per material‐demanding sink
-            for loc, sourceName, ip in varSet:
-                comp = compDict[sourceName]
-                if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
-                    mat = comp.commodity
-                    yield (loc, sourceName, mat, ip)
+    #     def initSourceSet(n):
+    #         # (loc, sinkName, mat, ip) -- one row per material‐demanding sink
+    #         for loc, sourceName, ip in varSet:
+    #             comp = compDict[sourceName]
+    #             if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
+    #                 mat = comp.commodity
+    #                 yield (loc, sourceName, mat, ip)
 
-        setattr(
-            pyM,
-            constrSetName + "6_sources_" + abbrv,
-            pyomo.Set(dimen=4, initialize=initSourceSet),
-        )
+    #     setattr(
+    #         pyM,
+    #         constrSetName + "6_sources_" + abbrv,
+    #         pyomo.Set(dimen=4, initialize=initSourceSet),
+    #     )
 
 
-    def declareOpConstrSet6_Int_sources(self, esM, pyM, constrSetName):
+    # def declareOpConstrSet6_Int_sources(self, esM, pyM, constrSetName):
 
-        # to add: docstring
+    #     # to add: docstring
 
-        compDict, abbrv = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSet_" + abbrv)
+    #     compDict, abbrv = self.componentsDict, self.abbrvName
+    #     varSet = getattr(pyM, "operationVarSet_" + abbrv)
 
-        def initIntSourceSet(m):
-            # (loc, sourceName, mat, ip) — one row per source with an intensity for mat at ip
-            for loc, intsourceName, ip in varSet:
-                comp = compDict[intsourceName]
-                if getattr(comp, "processedMaterialIntensity", None) and getattr(comp, "processedMaterialRecovery", None): 
-                    for mat in esM.onlymaterials:
-                        # only keep those where intensity actually exists
-                        if (
-                            loc in comp.processedMaterialIntensity
-                            and mat in comp.processedMaterialIntensity[loc]
-                            and ip in comp.processedMaterialIntensity[loc][mat]
-                            and mat in comp.processedMaterialRecovery[loc]  # Und hier ebenfalls für materialRecovery
-                            and ip in comp.processedMaterialRecovery[loc][mat]
-                        ):
-                            yield (loc, intsourceName, mat, ip)
+    #     def initIntSourceSet(m):
+    #         # (loc, sourceName, mat, ip) — one row per source with an intensity for mat at ip
+    #         for loc, intsourceName, ip in varSet:
+    #             comp = compDict[intsourceName]
+    #             if getattr(comp, "processedMaterialIntensity", None) and getattr(comp, "processedMaterialRecovery", None): 
+    #                 for mat in esM.onlymaterials:
+    #                     # only keep those where intensity actually exists
+    #                     if (
+    #                         loc in comp.processedMaterialIntensity
+    #                         and mat in comp.processedMaterialIntensity[loc]
+    #                         and ip in comp.processedMaterialIntensity[loc][mat]
+    #                         and mat in comp.processedMaterialRecovery[loc]  # Und hier ebenfalls für materialRecovery
+    #                         and ip in comp.processedMaterialRecovery[loc][mat]
+    #                     ):
+    #                         yield (loc, intsourceName, mat, ip)
 
-        setattr(
-            pyM,
-            constrSetName + "6_int_source_" + abbrv,
-            pyomo.Set(dimen=4, initialize=initIntSourceSet),
-        )
+    #     setattr(
+    #         pyM,
+    #         constrSetName + "6_int_source_" + abbrv,
+    #         pyomo.Set(dimen=4, initialize=initIntSourceSet),
+    #     )
  
 
     def declareOpConstrSetMinPartLoad(self, esM, pyM, constrSetName):
@@ -1443,10 +1443,10 @@ class ComponentModel(metaclass=ABCMeta):
             self.declareOpConstrSet4(pyM, esM, constrSetName, rateMin)
         
         # declare material sets for operation constraints
-        self.declareOpConstrSet5_sinks(pyM, esM, constrSetName)
-        self.declareOpConstrSet5_Int_sinks(pyM, esM, constrSetName)
-        self.declareOpConstrSet6_sources(pyM, esM, constrSetName)
-        self.declareOpConstrSet6_Int_sources(pyM, esM, constrSetName)
+        # self.declareOpConstrSet5_sinks(pyM, esM, constrSetName)
+        # self.declareOpConstrSet5_Int_sinks(pyM, esM, constrSetName)
+        # self.declareOpConstrSet6_sources(pyM, esM, constrSetName)
+        # self.declareOpConstrSet6_Int_sources(pyM, esM, constrSetName)
 
         self.declareOpConstrSetMinPartLoad(pyM, esM, constrSetName)
 
@@ -2740,94 +2740,94 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
-    def operationMaterialConsumption(self, pyM, esM, constrName, constrSetName, opVarName):
+    # def operationMaterialConsumption(self, pyM, esM, constrName, constrSetName, opVarName):
 
-            # to add: docstring
+    #         # to add: docstring
 
-            compDict, abbrv = self.componentsDict, self.abbrvName
-            opVar    = getattr(pyM, opVarName + "_" + abbrv)
-            commisVar  = getattr(pyM, "commis_"   + abbrv)
+    #         compDict, abbrv = self.componentsDict, self.abbrvName
+    #         opVar    = getattr(pyM, opVarName + "_" + abbrv)
+    #         commisVar  = getattr(pyM, "commis_"   + abbrv)
 
-            sinkSet   = getattr(pyM, constrSetName + "5_sinks_"  + abbrv)
-            IntSinkSet = getattr(pyM, constrSetName + "5_int_sink_"+ abbrv)
-            print("SinkSet:", list(sinkSet))
-            print("IntSinkSet:", list(IntSinkSet))
+    #         sinkSet   = getattr(pyM, constrSetName + "5_sinks_"  + abbrv)
+    #         IntSinkSet = getattr(pyM, constrSetName + "5_int_sink_"+ abbrv)
+    #         print("SinkSet:", list(sinkSet))
+    #         print("IntSinkSet:", list(IntSinkSet))
             
-            def matConsRule(m, loc, sinkName, mat, ip):
-                # LHS: this one sink's op‐var summed over (p,t)
-                #print("IntSinkSet Inhalt:", list(IntSinkSet))
+    #         def matConsRule(m, loc, sinkName, mat, ip):
+    #             # LHS: this one sink's op‐var summed over (p,t)
+    #             #print("IntSinkSet Inhalt:", list(IntSinkSet))
 
-                lhs = sum(opVar[loc, sinkName, ip, p, t] * esM.periodOccurrences[ip][p]
-                        for p, t in m.intraYearTimeSet) 
-                print("LHS_sinks", lhs)
-                # RHS: sum over *all* sources that supply mat at (loc,ip)
-                rhs = sum(
-                    commisVar[ loc, intsinkName, ip ]
-                    * compDict[intsinkName].processedMaterialIntensity[loc][mat][ip]
-                    for loc2, intsinkName, mat2, ip2 in IntSinkSet
-                    if loc2==loc and mat2==mat and ip2==ip             # clarify
-                )
-                print("RHS_sinks", rhs)
-                return lhs == rhs
+    #             lhs = sum(opVar[loc, sinkName, ip, p, t] * esM.periodOccurrences[ip][p]
+    #                     for p, t in m.intraYearTimeSet) 
+    #             print("LHS_sinks", lhs)
+    #             # RHS: sum over *all* sources that supply mat at (loc,ip)
+    #             rhs = sum(
+    #                 commisVar[ loc, intsinkName, ip ]
+    #                 * compDict[intsinkName].processedMaterialIntensity[loc][mat][ip]
+    #                 for loc2, intsinkName, mat2, ip2 in IntSinkSet
+    #                 if loc2==loc and mat2==mat and ip2==ip             # clarify
+    #             )
+    #             print("RHS_sinks", rhs)
+    #             return lhs == rhs
 
-            setattr(
-                pyM,
-                constrName + "5_" + abbrv,
-                pyomo.Constraint(sinkSet, rule=matConsRule)
-            )
+    #         setattr(
+    #             pyM,
+    #             constrName + "5_" + abbrv,
+    #             pyomo.Constraint(sinkSet, rule=matConsRule)
+    #         )
 
-    def operationMaterialRecovery(self, pyM, esM, constrName, constrSetName, opVarName):
+    # def operationMaterialRecovery(self, pyM, esM, constrName, constrSetName, opVarName):
 
-        # to add: docstring
+    #     # to add: docstring
 
-        compDict, abbrv = self.componentsDict, self.abbrvName
-        opVar    = getattr(pyM, opVarName + "_" + abbrv)
-        decommisVar  = getattr(pyM, "decommis_"   + abbrv)
+    #     compDict, abbrv = self.componentsDict, self.abbrvName
+    #     opVar    = getattr(pyM, opVarName + "_" + abbrv)
+    #     decommisVar  = getattr(pyM, "decommis_"   + abbrv)
 
-        sourceSet   = getattr(pyM, constrSetName + "6_sources_"  + abbrv)
-        IntSourceSet = getattr(pyM, constrSetName + "6_int_source_"+ abbrv)
-        print("SourceSet:", list(sourceSet))
-        print("IntSourceSet:", list(IntSourceSet))
+    #     sourceSet   = getattr(pyM, constrSetName + "6_sources_"  + abbrv)
+    #     IntSourceSet = getattr(pyM, constrSetName + "6_int_source_"+ abbrv)
+    #     print("SourceSet:", list(sourceSet))
+    #     print("IntSourceSet:", list(IntSourceSet))
 
-        ip_set = set(ip for _, _, _, ip in IntSourceSet)
+    #     ip_set = set(ip for _, _, _, ip in IntSourceSet)
 
-        # Wenn nur eine IP existiert, abbrechen
-        if len(ip_set) <= 1:
-            print(f"Skipping '{constrName}6_{abbrv}' because only one installation period is defined.")
-            return
+    #     # Wenn nur eine IP existiert, abbrechen
+    #     if len(ip_set) <= 1:
+    #         print(f"Skipping '{constrName}6_{abbrv}' because only one installation period is defined.")
+    #         return
 
-        def RecConsRule(m, loc, sourceName, mat, ip):
-            # LHS: this one sink's op‐var summed over (p,t)
-            #print("IntSourceSet Inhalt:", list(IntSourceSet))
+    #     def RecConsRule(m, loc, sourceName, mat, ip):
+    #         # LHS: this one sink's op‐var summed over (p,t)
+    #         #print("IntSourceSet Inhalt:", list(IntSourceSet))
 
-            lhs = sum(opVar[loc, sourceName, ip, p, t] * esM.periodOccurrences[ip][p]
-                    for p, t in m.intraYearTimeSet)
+    #         lhs = sum(opVar[loc, sourceName, ip, p, t] * esM.periodOccurrences[ip][p]
+    #                 for p, t in m.intraYearTimeSet)
             
-            print("LHS_sources", lhs)
-            # RHS: sum over *all* sources that supply mat at (loc,ip)
+    #         print("LHS_sources", lhs)
+    #         # RHS: sum over *all* sources that supply mat at (loc,ip)
 
-            rhs = sum(
-                decommisVar[loc, intsourceName, ip] *
-                compDict[intsourceName].processedMaterialIntensity[loc][mat][
-                    ip - (
-                        math.floor(compDict[intsourceName].ipTechnicalLifetime[loc])
-                        if compDict[intsourceName].floorTechnicalLifetime
-                        else math.ceil(compDict[intsourceName].ipTechnicalLifetime[loc])
-                    )
-                ] *
-                compDict[intsourceName].processedMaterialRecovery[loc][mat][ip]
-                for loc2, intsourceName, mat2, ip2 in IntSourceSet
-                if loc2 == loc and mat2 == mat and ip2 == ip
-            )
+    #         rhs = sum(
+    #             decommisVar[loc, intsourceName, ip] *
+    #             compDict[intsourceName].processedMaterialIntensity[loc][mat][
+    #                 ip - (
+    #                     math.floor(compDict[intsourceName].ipTechnicalLifetime[loc])
+    #                     if compDict[intsourceName].floorTechnicalLifetime
+    #                     else math.ceil(compDict[intsourceName].ipTechnicalLifetime[loc])
+    #                 )
+    #             ] *
+    #             compDict[intsourceName].processedMaterialRecovery[loc][mat][ip]
+    #             for loc2, intsourceName, mat2, ip2 in IntSourceSet
+    #             if loc2 == loc and mat2 == mat and ip2 == ip
+    #         )
 
-            print("RHS_sources", rhs)
-            return lhs <= rhs
+    #         print("RHS_sources", rhs)
+    #         return lhs <= rhs
 
-        setattr(
-            pyM,
-            constrName + "6_" + abbrv,
-            pyomo.Constraint(sourceSet, rule=RecConsRule)
-        )
+    #     setattr(
+    #         pyM,
+    #         constrName + "6_" + abbrv,
+    #         pyomo.Constraint(sourceSet, rule=RecConsRule)
+    #     )
 
 
 
@@ -3654,10 +3654,10 @@ class ComponentModel(metaclass=ABCMeta):
             factor *= factor_
 
         _var = var[loc, compName, ip]
-        print("var name", varName)
-        print("var value", _var.value)
-        print("var", _var)
-        print(" ")
+        #print("var name", varName)
+        #print("var value", _var.value)
+        #print("var", _var)
+        #print(" ")
         if self.componentsDict[compName].processedQPcostScale[ip][loc] == 0:
             if not getOptValue:
                 return factor * _var

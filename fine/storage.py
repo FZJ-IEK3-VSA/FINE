@@ -4,6 +4,7 @@ import pyomo.environ as pyomo
 import warnings
 import pandas as pd
 import numpy as np
+import math
 
 
 class Storage(Component):
@@ -1733,7 +1734,50 @@ class StorageModel(ComponentModel):
             if commod == self.componentsDict[compName].commodity
         )
     
+    def getMaterialDemandContribution(self, pyM, mat, loc, ip):
 
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+
+
+        rhs_comp = sum(
+            commisVar[loc, compName, ip]
+            * compDict[compName].processedMaterialIntensity[loc][mat][ip]
+            for (loc2, compName, ip2) in commisVar
+            if loc2 == loc and ip2 == ip
+            and compName in compDict
+            and hasattr(compDict[compName], "processedMaterialIntensity")
+            and ip in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
+        )
+
+        #print("RHS_per_comp", rhs_comp)
+        return rhs_comp
+    
+    def getMaterialRecoveryContribution(self, pyM, mat, loc, ip):
+
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        decommisVar = getattr(pyM, "decommis_" + abbrvName)
+
+        rhs_comp = sum(
+            decommisVar[loc, compName, ip] *
+            compDict[compName].processedMaterialIntensity[loc][mat][
+                ip - (
+                    math.floor(compDict[compName].ipTechnicalLifetime[loc])
+                    if compDict[compName].floorTechnicalLifetime
+                    else math.ceil(compDict[compName].ipTechnicalLifetime[loc])
+                )
+            ] *
+            compDict[compName].processedMaterialRecovery[loc][mat][ip]
+            for (loc2, compName, ip2) in decommisVar
+            if loc2 == loc and ip2 == ip
+            and compName in compDict
+            and hasattr(compDict[compName], "processedMaterialIntensity")
+            and ip in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
+        )
+
+        #print("RHS_per_comp_recovery", rhs_comp)
+        return rhs_comp
+    
 
 
     def getObjectiveFunctionContribution(self, esM, pyM):
