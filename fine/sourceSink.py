@@ -1345,7 +1345,7 @@ class SourceSinkModel(ComponentModel):
             ]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
+                props[0]: ["[-*h]", "[-*h/a]", "[-/a]"],
                 props[1]: ["[" + esM.costUnit + "/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
                 props[3]: ["[" + esM.costUnit + "/a]"],
@@ -1362,19 +1362,23 @@ class SourceSinkModel(ComponentModel):
             ]
             # Replace placeholder with correct unit of component
             tuples = list(
-                map(
-                    lambda x: (
-                        (
-                            x[0],
-                            x[1],
-                            x[2].replace("-", compDict[x[0]].commodityUnit),
-                        )
-                        if x[1] == "operation"
-                        else x
-                    ),
-                    tuples,
-                )
+            map(
+                lambda x: (
+                    (
+                        x[0],
+                        x[1],
+                        x[2]
+                        .replace("-/a", esM.onlymaterialUnitsDict[compDict[x[0]].commodity] + "/a")
+                        if x[1] == "operation" and "-/a" in x[2] and compDict[x[0]].commodity in esM.onlymaterialUnitsDict
+                        else x[2]
+                        .replace("-", compDict[x[0]].commodityUnit)  # handle [-*h] and [-*h/a]
+                    )
+                    if x[1] == "operation"
+                    else x
+                ),
+                tuples,
             )
+        )
             mIndex = pd.MultiIndex.from_tuples(
                 tuples, names=["Component", "Property", "Unit"]
             )
@@ -1384,22 +1388,41 @@ class SourceSinkModel(ComponentModel):
             if optVal is not None:
                 # operation
                 opSum = optVal.sum(axis=1).unstack(-1)
-                optSummary.loc[
-                    [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values
-                optSummary.loc[
-                    [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+
+          
+
+                for ix in opSum.index:
+                    commodity = compDict[ix].commodity
+
+                    if commodity in esM.onlymaterialUnitsDict:
+                        optSummary.loc[
+                            (
+                                ix,
+                                "operation",
+                                "[" + esM.onlymaterialUnitsDict[commodity] + "/a]"
+                            ),
+                            opSum.columns,
+                        ] = opSum.loc[ix].values / esM.numberOfYears
+
+                    else:
+                        optSummary.loc[
+                            (
+                                ix,
+                                "operation",
+                                "[" + compDict[ix].commodityUnit + "*h]"
+                            ),
+                            opSum.columns,
+                        ] = opSum.loc[ix].values
+
+                        optSummary.loc[
+                            (
+                                ix,
+                                "operation",
+                                "[" + compDict[ix].commodityUnit + "*h/a]"
+                            ),
+                            opSum.columns,
+                        ] = opSum.loc[ix].values / esM.numberOfYears
+
 
                 # costs
                 tac_ox = resultsTAC_opexOp[ip]
