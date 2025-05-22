@@ -1594,7 +1594,7 @@ def checkAndSetPathwayBalanceLimit(esM, pathwayBalanceLimit, locations):
 
 
 def checkAndSetComponentLimit(
-    esM, componentLimit, componentLimitEligibility, locations
+    esM, componentLimit, componentLimitEligibility, componentLimitEligibility2dim, locations
 ):
     # componentLimit has to be DataFrame with componentLimitIDs as index, and "value","bound","type" as columns
     # or a dict per investment periods as keys and described dataframe as values,
@@ -1610,6 +1610,7 @@ def checkAndSetComponentLimit(
     )
     processedComponentLimit = {}
     processedComponentLimitEligibility = {}
+    processedComponentLimitEligibility2dim = {}
 
     # check if both componentLimit and componentLimitEligibility are either None or not None
     if (componentLimit is None and componentLimitEligibility is not None) or (
@@ -1631,6 +1632,11 @@ def checkAndSetComponentLimit(
             _componentLimitEligibility = componentLimitEligibility[_ip]
         else:
             _componentLimitEligibility = componentLimitEligibility
+        
+        if isinstance(componentLimitEligibility2dim, dict):
+            _componentLimitEligibility2dim = componentLimitEligibility2dim[_ip]
+        else:
+            _componentLimitEligibility2dim = componentLimitEligibility2dim
 
         if _componentLimit is not None:
             if not type(_componentLimit) == pd.DataFrame:
@@ -1666,8 +1672,25 @@ def checkAndSetComponentLimit(
         else:
             processedComponentLimit[ip] = None
             processedComponentLimitEligibility[ip] = None
+        
+        if _componentLimitEligibility2dim is not None:
+            if not type(_componentLimitEligibility2dim) == pd.DataFrame:
+                raise TypeError(
+                    "The componentLimitEligibility2dim input argument has to be a pandas.DataFrame."
+                )
 
-    return processedComponentLimit, processedComponentLimitEligibility
+            # ComponentLimitEligibility has to be a DataFrame with 0 and 1 as values
+            vals = list(set(_componentLimitEligibility2dim.values.flatten()))
+            if len(vals) > 2 or not all([val in [0, 1] for val in vals]):
+                raise ValueError(
+                    "componentLimitEligibility2dim has to contain only 0 and 1 as values"
+                )
+
+            processedComponentLimitEligibility2dim[ip] = _componentLimitEligibility2dim
+        else:
+            processedComponentLimitEligibility2dim[ip] = None
+
+    return processedComponentLimit, processedComponentLimitEligibility, processedComponentLimitEligibility2dim
 
 
 def checkAndSetBalanceLimit(esM, balanceLimit, locations):
