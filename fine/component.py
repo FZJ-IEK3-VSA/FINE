@@ -3038,7 +3038,7 @@ class ComponentModel(metaclass=ABCMeta):
             commisVar[loc, compName, ip]
             * getattr(esM.getComponent(compName), component_attribute)[ip]
             for loc in esM.locations
-            for compName in self.componentsDict.keys()
+            for compName in self.componentsDict.keys() #sagt johannes :D
             for ip in esM.investmentPeriods
             if self.componentsDict[
                 compName

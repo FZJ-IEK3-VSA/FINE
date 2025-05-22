@@ -2191,6 +2191,7 @@ def checkStockYears(
         if not isinstance(year, int):
             raise ValueError("Years of stockCommissioning must be int")
         if year >= startYear:
+            import ipdb; ipdb.set_trace()
             raise ValueError("Stock years must be smaller than the start year")
         if (year - startYear) % investmentPeriodInterval != 0:
             raise ValueError(
@@ -2737,11 +2738,26 @@ def checkAndSetMaterialDemandPerCapacity(esM, name, materialDemand, years):
     elif isinstance(materialDemand, dict):
         # If materialDemand is a dict, this check ensures that it has the correct
         # keys and prevents "None" as values
-        checkInvestmentPeriodParameters(name, materialDemand, _years)
+        # Fill material demand for stock years with zero -> TODO Ask Rachel/Johannes where this is done for capex etc. and why they are not filled with 0 but with the value for the first investment year
+        if _years != materialDemand.keys():
+            for year in _years:
+                if year not in materialDemand.keys():
+                    materialDemand[year] = 0
+            print("Added stock year to material Demand")
+            
+        # checkInvestmentPeriodParameters(name, materialDemand, _years)
+        print("_years")
+        print(_years)
+        print("years")
+        print(years)
         for ip in years:
             # map of year name (e.g. 2020) to intenral name (e.g. 0)
             _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
             _materialDemand[ip] = materialDemand[_ip]
+        if all(value == 0 for value in _materialDemand.values()):
+            # All values 0 is causing an error -> this aims to fix this 
+            _materialDemand = None
+        print(_materialDemand)
     else:
         # TODO This is only temporary for implementing/testing - remove when done!
         print("############## MATERIAL DEMAND IS NONE OR NOT SUPPORTED #############")
