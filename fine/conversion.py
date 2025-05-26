@@ -866,8 +866,8 @@ class ConversionModel(ComponentModel):
             pyomo.Set(dimen=4, initialize=declareYearlyFullLoadHoursCommisMaxSet()),
         )
 
-    def declareOperationModeSets(self, pyM, esM, constrSetName, rateMax, rateFix, rateMin):
-        super().declareOperationModeSets(pyM, esM, constrSetName, rateMax, rateFix, rateMin)
+    def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix, rateMin):
+        super().declareOperationModeSets(pyM, constrSetName, rateMax, rateFix, rateMin)
         self.declareOpCommisConstrSet1(
             pyM, "opCommisConstrSet", rateMax, rateFix, rateMin
         )
@@ -908,7 +908,6 @@ class ConversionModel(ComponentModel):
         # Declare operation mode sets
         self.declareOperationModeSets(
             pyM,
-            esM,
             "opConstrSet",
             "processedOperationRateMax",
             "processedOperationRateFix",

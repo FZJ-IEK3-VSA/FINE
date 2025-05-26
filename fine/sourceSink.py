@@ -804,7 +804,6 @@ class SourceSinkModel(ComponentModel):
         # Declare sets for case differentiation of operating modes
         self.declareOperationModeSets(
             pyM,
-            esM,
             "opConstrSet",
             "processedOperationRateMax",
             "processedOperationRateFix",
@@ -1371,7 +1370,7 @@ class SourceSinkModel(ComponentModel):
                         .replace("-/a", esM.onlymaterialUnitsDict[compDict[x[0]].commodity] + "/a")
                         if x[1] == "operation" and "-/a" in x[2] and compDict[x[0]].commodity in esM.onlymaterialUnitsDict
                         else x[2]
-                        .replace("-", compDict[x[0]].commodityUnit)  # handle [-*h] and [-*h/a]
+                        .replace("-", compDict[x[0]].commodityUnit) 
                     )
                     if x[1] == "operation"
                     else x

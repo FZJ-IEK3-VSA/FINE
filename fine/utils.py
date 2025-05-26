@@ -1504,35 +1504,25 @@ def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPe
             if not isinstance(series, pd.Series):
                 raise TypeError(f"Material '{mat}' in '{location}' should be a pandas Series.")
 
-            # Erlaube genau ein Jahr vor dem Startjahr (z.B. 2015 bei 2020 und Intervall 5)
-            allowed_past_year = esM.startYear - esM.investmentPeriodInterval
-
             ip_map = {}
             for year in series.index:
                 if isinstance(year, str):
                     year = int(year)
 
-                # NEU: Zusätzliche Prüfung für das Jahr vor dem Startjahr
-                if year < esM.startYear:
-                    if year != allowed_past_year:
-                        raise ValueError(
-                            f"Only year {allowed_past_year} is allowed before start year for IP -1. "
-                            f"Got invalid year {year} in '{location}' / '{mat}'."
-                        )
-                    ip_map[year] = -1
+                # Sicherstellen, dass das Jahr exakt auf das Intervall passt
+                if (year - esM.startYear) % esM.investmentPeriodInterval != 0:
+                    raise ValueError(
+                        f"Year {year} in '{location}' / '{mat}' is not aligned with investment period interval "
+                        f"(start year: {esM.startYear}, interval: {esM.investmentPeriodInterval})."
+                    )
 
-                else:
-                    ip = int((year - esM.startYear) / esM.investmentPeriodInterval)
-                    if esM.startYear + ip * esM.investmentPeriodInterval != year:
-                        raise ValueError(
-                            f"Year {year} in '{location}' / '{mat}' is not aligned with investment period interval "
-                            f"(start year: {esM.startYear}, interval: {esM.investmentPeriodInterval})."
-                        )
-                    ip_map[year] = ip
+                ip = int((year - esM.startYear) / esM.investmentPeriodInterval)
+                ip_map[year] = ip
+
 
 
             # Check that all required IPs are present (excluding -1)
-            present_ips = [ip_map[y] for y in series.index if ip_map[y] != -1]
+            present_ips = [ip_map[y] for y in series.index if ip_map[y] >= 0]
             missing_ips = [ip for ip in investmentPeriods if ip not in present_ips]
             if missing_ips:
                 missing_years = [esM.startYear + ip * esM.investmentPeriodInterval for ip in missing_ips]
@@ -1549,12 +1539,6 @@ def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPe
                     )
 
                 ip = ip_map[year]
-
-                if ip != -1 and ip not in investmentPeriods:
-                    raise ValueError(
-                        f"Invalid investment period {ip} derived from year {year} "
-                        f"for '{location}' / '{mat}'. Allowed: {investmentPeriods}"
-                    )
 
                 if mat not in processedMaterialIntensity[location]:
                     processedMaterialIntensity[location][mat] = {}

@@ -1204,7 +1204,7 @@ class ComponentModel(metaclass=ABCMeta):
     #                                   Functions for declaring operation mode sets                                    #
     ####################################################################################################################
 
-    def declareOpConstrSet1(self, esM, pyM, constrSetName, rateMax, rateFix):
+    def declareOpConstrSet1(self, pyM, constrSetName, rateMax, rateFix):
         """
         Declare set of locations and components for which hasCapacityVariable is set to True and neither the
         maximum nor the fixed operation rate is given.
@@ -1227,7 +1227,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet1),
         )
 
-    def declareOpConstrSet2(self, esM, pyM, constrSetName, rateFix):
+    def declareOpConstrSet2(self, pyM, constrSetName, rateFix):
         """
         Declare set of locations and components for which hasCapacityVariable is set to True and a fixed
         operation rate is given.
@@ -1249,7 +1249,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet2),
         )
 
-    def declareOpConstrSet3(self, esM, pyM, constrSetName, rateMax):
+    def declareOpConstrSet3(self, pyM, constrSetName, rateMax):
         """
         Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
         operation rate is given.
@@ -1271,7 +1271,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSet3),
         )
 
-    def declareOpConstrSet4(self, esM, pyM, constrSetName, rateMin):
+    def declareOpConstrSet4(self, pyM, constrSetName, rateMin):
         """
         Declare set of locations and components for which  hasCapacityVariable is set to True and a minimum
         operation rate is given.
@@ -1395,7 +1395,7 @@ class ComponentModel(metaclass=ABCMeta):
     #     )
  
 
-    def declareOpConstrSetMinPartLoad(self, esM, pyM, constrSetName):
+    def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
         """
         Declare set of locations and components for which partLoadMin is not None.
         """
@@ -1416,7 +1416,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareOperationModeSets(                                      
-        self, esM, pyM, constrSetName, rateMax, rateFix, rateMin=None  
+        self, pyM, constrSetName, rateMax, rateFix, rateMin=None  
     ):
         """
         Declare operating mode sets.
@@ -1436,11 +1436,11 @@ class ComponentModel(metaclass=ABCMeta):
         :param rateFix: attribute of the considered component which stores the fixed operation rate data.
         :type rateFix: string
         """
-        self.declareOpConstrSet1(pyM, esM, constrSetName, rateMax, rateFix)
-        self.declareOpConstrSet2(pyM, esM, constrSetName, rateFix)
-        self.declareOpConstrSet3(pyM, esM, constrSetName, rateMax)
+        self.declareOpConstrSet1(pyM, constrSetName, rateMax, rateFix)
+        self.declareOpConstrSet2(pyM, constrSetName, rateFix)
+        self.declareOpConstrSet3(pyM, constrSetName, rateMax)
         if rateMin:
-            self.declareOpConstrSet4(pyM, esM, constrSetName, rateMin)
+            self.declareOpConstrSet4(pyM, constrSetName, rateMin)
         
         # declare material sets for operation constraints
         # self.declareOpConstrSet5_sinks(pyM, esM, constrSetName)
@@ -1448,7 +1448,7 @@ class ComponentModel(metaclass=ABCMeta):
         # self.declareOpConstrSet6_sources(pyM, esM, constrSetName)
         # self.declareOpConstrSet6_Int_sources(pyM, esM, constrSetName)
 
-        self.declareOpConstrSetMinPartLoad(pyM, esM, constrSetName)
+        self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
 
     def declareYearlyFullLoadHoursMinSet(self, pyM):
         """
