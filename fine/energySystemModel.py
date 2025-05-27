@@ -635,8 +635,38 @@ class EnergySystemModel:
                     hasCapacityVariable=False,
                     material=True,
                 )
-                self.add(newSink)  # wichtig: NICHT sinkModel.addComponent!
+                self.add(newSink)  
                 print(f"New sink added: {newSink.name}")  
+
+
+    def generationSecondaryMaterialSources(self):
+
+        sourceModel = self.componentModelingDict.get("SourceSinkModel", None)
+        if sourceModel is not None:
+            existingMaterialCommodities = {
+                comp.commodity
+                for comp in sourceModel.componentsDict.values()
+                if getattr(comp, "material", False)
+                and comp.__class__.__name__ == "Source"
+            }
+            print(f"Existing material sources: {existingMaterialCommodities}")  
+
+
+            missingMaterials = set(self.onlymaterials) - existingMaterialCommodities
+            print(f"Missing materials sources: {missingMaterials}")  
+
+            from fine.sourceSink import Source 
+            for mat in missingMaterials:
+                sourceName = f"{mat.capitalize()} recovery"
+                newSource = Source(
+                    esM=self,
+                    name=sourceName,
+                    commodity=mat,
+                    hasCapacityVariable=False,
+                    material=True,
+                )
+                self.add(newSource)  
+                print(f"New source added: {newSource.name}")  
 
 
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
@@ -1911,31 +1941,6 @@ class EnergySystemModel:
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
         """
-
-        # Automatic generation of material sinks --> but since they are not aggragted after the generation there has to follow another aggragation 
-        # would be better to include it before aggregateTemporally function
-
-        # sinkModel = self.componentModelingDict.get("SourceSinkModel", None)
-
-        # if sinkModel is not None:
-        #     existingComponentCount = len(sinkModel.componentsDict)
-        # else:
-        #     existingComponentCount = 0
-
-        # # Füge Sinks hinzu
-        # self.automaticMaterialSinks()
-
-        # # Wiederhole die Abfrage danach
-        # sinkModel = self.componentModelingDict.get("SourceSinkModel", None)
-        # if sinkModel is not None:
-        #     newComponentCount = len(sinkModel.componentsDict)
-        # else:
-        #     newComponentCount = 0
-
-        # # Prüfe, ob neue Sinks dazugekommen sind
-        # if timeSeriesAggregation and newComponentCount > existingComponentCount:
-        #     self.aggregateTemporally()  ### hier noch Problem dass er dann die selben spezifikationen übergeben bekommen müsste wie die zuvor im Example ausgewählten
-
 
 
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
