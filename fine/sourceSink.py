@@ -1367,8 +1367,8 @@ class SourceSinkModel(ComponentModel):
                         x[0],
                         x[1],
                         x[2]
-                        .replace("-/a", esM.onlymaterialUnitsDict[compDict[x[0]].commodity] + "/a")
-                        if x[1] == "operation" and "-/a" in x[2] and compDict[x[0]].commodity in esM.onlymaterialUnitsDict
+                        .replace("-/a", esM.materialUnitsDict[compDict[x[0]].commodity] + "/a")
+                        if x[1] == "operation" and "-/a" in x[2] and compDict[x[0]].commodity in esM.materialUnitsDict
                         else x[2]
                         .replace("-", compDict[x[0]].commodityUnit) 
                     )
@@ -1393,12 +1393,12 @@ class SourceSinkModel(ComponentModel):
                 for ix in opSum.index:
                     commodity = compDict[ix].commodity
 
-                    if commodity in esM.onlymaterialUnitsDict:
+                    if commodity in esM.materialUnitsDict:
                         optSummary.loc[
                             (
                                 ix,
                                 "operation",
-                                "[" + esM.onlymaterialUnitsDict[commodity] + "/a]"
+                                "[" + esM.materialUnitsDict[commodity] + "/a]"
                             ),
                             opSum.columns,
                         ] = opSum.loc[ix].values / esM.numberOfYears

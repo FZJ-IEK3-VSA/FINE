@@ -7,10 +7,10 @@ def test_commodity_and_material_merging():
     # Define the Energy System Model
     esM = fn.EnergySystemModel(
         locations={"A"},
-        onlycommodities={"electricity", "hydrogen"},
-        onlycommodityUnitsDict={"electricity": r"GW$_{el}$","hydrogen": r"GW$_{H_{2},LHV}$"},
-        onlymaterials={"steel", "copper", "lithium"},
-        onlymaterialUnitsDict={"steel": r"tons", "copper": r"tons", "lithium": r"tons"},
+        commodities={"electricity", "hydrogen"},
+        commodityUnitsDict={"electricity": r"GW$_{el}$","hydrogen": r"GW$_{H_{2},LHV}$"},
+        materials={"steel", "copper", "lithium"},
+        materialUnitsDict={"steel": r"tons", "copper": r"tons", "lithium": r"tons"},
     )
 
     # Expected merged commodity list 

@@ -6,10 +6,10 @@ from fine import utils
 def test_valid_material_intensity_inputs():
     esM = fn.EnergySystemModel(
         locations={"A"},
-        onlycommodities={"electricity"},
-        onlycommodityUnitsDict={"electricity": "GW"},
-        onlymaterials={"steel", "copper"},
-        onlymaterialUnitsDict={"steel": "tons", "copper": "tons"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "GW"},
+        materials={"steel", "copper"},
+        materialUnitsDict={"steel": "tons", "copper": "tons"},
         numberOfTimeSteps=1,
         hoursPerTimeStep=8760,
         costUnit="1e6 Euro",
@@ -134,10 +134,10 @@ def test_valid_material_intensity_inputs():
 def test_valid_material_recovery_inputs():
     esM = fn.EnergySystemModel(
         locations={"A"},
-        onlycommodities={"electricity"},
-        onlycommodityUnitsDict={"electricity": "GW"},
-        onlymaterials={"steel", "copper"},
-        onlymaterialUnitsDict={"steel": "tons", "copper": "tons"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "GW"},
+        materials={"steel", "copper"},
+        materialUnitsDict={"steel": "tons", "copper": "tons"},
         numberOfTimeSteps=1,
         hoursPerTimeStep=8760,
         costUnit="1e6 Euro",

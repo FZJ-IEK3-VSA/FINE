@@ -70,8 +70,8 @@ class EnergySystemModel:
     def __init__(
         self,
         locations,
-        onlycommodities = None,
-        onlycommodityUnitsDict = None,
+        commodities = None,
+        commodityUnitsDict = None,
         numberOfTimeSteps=8760,
         hoursPerTimeStep=1,
         startYear=0,
@@ -84,8 +84,8 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
-        onlymaterials=None, 
-        onlymaterialUnitsDict=None,
+        materials=None, 
+        materialUnitsDict=None,
     ):
         """
         Constructor for creating an EnergySystemModel class instance
@@ -253,8 +253,8 @@ class EnergySystemModel:
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(
             locations,
-            onlycommodities,
-            onlycommodityUnitsDict,
+            commodities,
+            commodityUnitsDict,
             numberOfTimeSteps,
             hoursPerTimeStep,
             numberOfInvestmentPeriods,
@@ -354,8 +354,8 @@ class EnergySystemModel:
         # optimization.
         # The commodityUnitsDict parameter is a dictionary which assigns each considered commodity (string) a
         # unit (string) which can be used by results output functions.
-        self.onlycommodities = onlycommodities if onlycommodities is not None else []
-        self.onlycommodityUnitsDict = onlycommodityUnitsDict if onlycommodityUnitsDict is not None else {}
+        self.commodities = commodities if commodities is not None else []
+        self.commodityUnitsDict = commodityUnitsDict if commodityUnitsDict is not None else {}
 
 
         # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
@@ -368,13 +368,13 @@ class EnergySystemModel:
             self, pathwayBalanceLimit, locations
         )
         # Declare materials as commodities 
-        self.onlymaterials = onlymaterials if onlymaterials is not None else []
-        self.onlymaterialUnitsDict = onlymaterialUnitsDict if onlymaterialUnitsDict is not None else {} 
+        self.materials = materials if materials is not None else []
+        self.materialUnitsDict = materialUnitsDict if materialUnitsDict is not None else {} 
 
         # Merge commodity and material lists
-        self.commodities = list(sorted(self.onlycommodities)) + list(sorted(self.onlymaterials)) 
-        self.commodityUnitsDict = {c: self.onlycommodityUnitsDict[c] for c in sorted(self.onlycommodities)}
-        self.commodityUnitsDict.update({m: self.onlymaterialUnitsDict[m] for m in sorted(self.onlymaterials)})
+        self.commodities = list(sorted(self.commodities)) + list(sorted(self.materials)) 
+       # self.commodityUnitsDict = {c: self.onlycommodityUnitsDict[c] for c in sorted(self.onlycommodities)}
+        self.commodityUnitsDict.update({m: self.materialUnitsDict[m] for m in sorted(self.materials)})
 
 
         ################################################################################################################
@@ -622,7 +622,7 @@ class EnergySystemModel:
             print(f"Existing material sinks: {existingMaterialCommodities}")  
 
 
-            missingMaterials = set(self.onlymaterials) - existingMaterialCommodities
+            missingMaterials = set(self.materials) - existingMaterialCommodities
             print(f"Missing materials sinks: {missingMaterials}")  
 
             from fine.sourceSink import Sink 
@@ -652,7 +652,7 @@ class EnergySystemModel:
             print(f"Existing material sources: {existingMaterialCommodities}")  
 
 
-            missingMaterials = set(self.onlymaterials) - existingMaterialCommodities
+            missingMaterials = set(self.materials) - existingMaterialCommodities
             print(f"Missing materials sources: {missingMaterials}")  
 
             from fine.sourceSink import Source 

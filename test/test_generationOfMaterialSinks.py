@@ -7,10 +7,10 @@ def test_generation_material_sinks():
     # Define the Energy System Model
     esM = fn.EnergySystemModel(
         locations={"A"},
-        onlycommodities={"electricity"},
-        onlycommodityUnitsDict={"electricity": r"GW$_{el}$"},
-        onlymaterials={"steel", "copper", "lithium"},
-        onlymaterialUnitsDict={"steel": r"tons", "copper": r"tons", "lithium": r"tons"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"GW$_{el}$"},
+        materials={"steel", "copper", "lithium"},
+        materialUnitsDict={"steel": r"tons", "copper": r"tons", "lithium": r"tons"},
     )
 
 
@@ -47,10 +47,10 @@ def test_generation_secondary_material_sources():
     # Define the Energy System Model
     esM = fn.EnergySystemModel(
         locations={"A"},
-        onlycommodities={"electricity"},
-        onlycommodityUnitsDict={"electricity": r"GW$_{el}$"},
-        onlymaterials={"steel", "copper", "lithium"},
-        onlymaterialUnitsDict={"steel": r"tons", "copper": r"tons", "lithium": r"tons"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"GW$_{el}$"},
+        materials={"steel", "copper", "lithium"},
+        materialUnitsDict={"steel": r"tons", "copper": r"tons", "lithium": r"tons"},
     )
 
 

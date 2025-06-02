@@ -10,10 +10,10 @@ def test_material_recovery_constraint():
     # Define the Energy System Model
     esM = fn.EnergySystemModel(
         locations={"A"},
-        onlycommodities={"electricity"},
-        onlycommodityUnitsDict={"electricity": r"GW$_{el}$"},
-        onlymaterials={"steel", "copper"},
-        onlymaterialUnitsDict={"steel": r"tons", "copper": r"tons"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"GW$_{el}$"},
+        materials={"steel", "copper"},
+        materialUnitsDict={"steel": r"tons", "copper": r"tons"},
         numberOfInvestmentPeriods=2,
         investmentPeriodInterval=5,
         startYear=2020,
