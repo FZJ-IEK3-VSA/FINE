@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 # # Workflow for a multi-regional energy system
 #

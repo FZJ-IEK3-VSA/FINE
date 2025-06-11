@@ -113,6 +113,12 @@ def test_esm_output_to_dataset_and_back(minimal_test_esM):
     compare_esm_inputs(esm_original, esm_from_datasets)
     compare_esm_outputs(esm_original, esm_from_datasets)
 
+    for mdl in esm_original.componentModelingDict.keys():
+        compare_dicts(
+            esm_original.componentModelingDict[mdl].getOptimalValues(),
+            esm_from_datasets.componentModelingDict[mdl].getOptimalValues()
+        )
+
 
 def test_input_esm_to_netcdf_and_back(minimal_test_esM):
     """Write an esM to netCDF, then load the esM from this file. Compare if both
@@ -120,7 +126,9 @@ def test_input_esm_to_netcdf_and_back(minimal_test_esM):
     """
 
     esm_original = deepcopy(minimal_test_esM)
-    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc", overwriteExisting=True)
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original, outputFilePath="test_esM.nc", overwriteExisting=True
+    )
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
@@ -136,7 +144,9 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM):
 
     esm_original = deepcopy(minimal_test_esM)
     esm_original.optimize()
-    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc", overwriteExisting=True)
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original, outputFilePath="test_esM.nc", overwriteExisting=True
+    )
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
 
     compare_esm_inputs(esm_original, esm_from_netcdf)

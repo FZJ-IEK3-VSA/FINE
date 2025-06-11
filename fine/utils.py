@@ -8,6 +8,7 @@ import fine as fn
 
 # ruff: noqa
 
+
 def isInRange(value, lowerBound, upperBound):
     """Check if the input value is in the given range."""
     if not (isinstance(value, float) or isinstance(value, int)):
@@ -15,7 +16,10 @@ def isInRange(value, lowerBound, upperBound):
     if value <= upperBound and value >= lowerBound:
         return value
     else:
-        raise ValueError(f"The input argument has to be in the range [{lowerBound},{upperBound}]")
+        raise ValueError(
+            f"The input argument has to be in the range [{lowerBound},{upperBound}]"
+        )
+
 
 def isString(string):
     """Check if the input argument is a string."""
@@ -956,10 +960,10 @@ def setLocationalEligibility(
             operationTimeSeries = None
 
         if (
-                not hasCapacityVariable
-                and operationTimeSeries is not None
-                and any(ots is not None for ots in operationTimeSeries.values())
-            ):
+            not hasCapacityVariable
+            and operationTimeSeries is not None
+            and any(ots is not None for ots in operationTimeSeries.values())
+        ):
             if dimension == "1dim":
                 data = 0
                 # sum values over ips
@@ -1058,14 +1062,12 @@ def checkAndSetInvestmentPeriodTimeSeries(
                 esM, name, data[_ip], locationalEligibility, dimension
             )
         elif isinstance(data, int) or isinstance(data, float):
-            _data = pd.DataFrame({loc: [data] * esM.numberOfTimeSteps for loc in esM.locations})
-            parameter[ip] = checkAndSetTimeSeries(
-                esM, name, _data, None, dimension
+            _data = pd.DataFrame(
+                {loc: [data] * esM.numberOfTimeSteps for loc in esM.locations}
             )
+            parameter[ip] = checkAndSetTimeSeries(esM, name, _data, None, dimension)
         else:
-            raise TypeError(
-                f"Parameter of {name} does not match required type."
-            )
+            raise TypeError(f"Parameter of {name} does not match required type.")
     return parameter
 
 
@@ -1080,7 +1082,9 @@ def checkAndSetInvestmentPeriodCostTimeSeries(
         raise TypeError(
             f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
         )
-    return checkAndSetInvestmentPeriodTimeSeries(esM, name, data, locationalEligibility, dimension)
+    return checkAndSetInvestmentPeriodTimeSeries(
+        esM, name, data, locationalEligibility, dimension
+    )
 
 
 def checkAndSetTimeSeries(
@@ -1193,6 +1197,7 @@ def checkAndSetTimeSeries(
 
     else:
         return None
+
 
 def checkDesignVariableModelingParameters(
     esM,
@@ -1696,8 +1701,9 @@ def checkAndSetFullLoadHoursParameter(
 def checkClusteringInput(
     numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps
 ):
-    isStrictlyPositiveInt(numberOfTypicalPeriods), isStrictlyPositiveInt(
-        numberOfTimeStepsPerPeriod
+    (
+        isStrictlyPositiveInt(numberOfTypicalPeriods),
+        isStrictlyPositiveInt(numberOfTimeStepsPerPeriod),
     )
     if not totalNumberOfTimeSteps % numberOfTimeStepsPerPeriod == 0:
         raise ValueError(
@@ -2001,24 +2007,40 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
     """
     Change format of 2-dimensional data (for transmission components).
     """
+
     def preprocessDataPerIp(data):
         if data is not None and isinstance(data, pd.DataFrame):
             if mapC is None:
                 index, data_ = [], []
+                counter=0
+                if data.isnull().values.any():
+                    data.fillna(0,inplace=True)
+                    warnings.warn('Invalid input.  A matrix contains NaNs. NaN-values are adapted to Zero automatically. Please check your input!')
+
                 for loc1 in data.columns:
                     for loc2 in data.index:
                         if loc1 != loc2:
+
                             if discard:
                                 # Structure: data[column][row]
                                 if data[loc1][loc2] > 0:
-                                    index.append(loc1 + "_" + loc2), data_.append(
-                                        data[loc1][loc2]
+                                    (
+                                        index.append(loc1 + "_" + loc2),
+                                        data_.append(data[loc1][loc2]),
                                     )
                             else:
                                 if data[loc1][loc2] >= 0:
-                                    index.append(loc1 + "_" + loc2), data_.append(
-                                        data[loc1][loc2]
+                                    (
+                                        index.append(loc1 + "_" + loc2),
+                                        data_.append(data[loc1][loc2]),
                                     )
+                        else:
+                            if counter==0:
+                                if data[loc1][loc2]!=0:
+                                    warnings.warn('Matrix diagonale contains Non-Zeros. Location is connected to itself. Matrix adapted automatically. Please check your input!')
+                                    counter=counter+1
+
+
                 data_ = pd.Series(data_, index=index)
                 data_.sort_index(inplace=True)
                 return data_
@@ -2039,6 +2061,7 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
             return data_
         else:
             return data
+
     if isinstance(data, dict):
         return {ip: preprocessDataPerIp(data[ip]) for ip in data.keys()}
     else:
@@ -2411,7 +2434,6 @@ def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
     return simultaneousChargeDischarge
 
 
-
 def checkParamInput(param):
     if isinstance(param, dict):
         for key, value in param.items():
@@ -2494,9 +2516,11 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
     dictKeys = sorted(list(commodityConversionFactors.keys()))
 
     if not dictInDict and commisDependingCcf:
-        raise ValueError('If parameter "commisDependingCcf" is set to True '
-                         'commodity conversion factors must be specified per '
-                         f'investment period. Please check {comp.name}')
+        raise ValueError(
+            'If parameter "commisDependingCcf" is set to True '
+            "commodity conversion factors must be specified per "
+            f"investment period. Please check {comp.name}"
+        )
     if dictInDict and dictKeys == esM.investmentPeriodNames:
         # commodity conversion is not varied between the investment periods
         # the CCF can either be depended on the commissioning year or investment period
@@ -2504,14 +2528,22 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
             isCommisDepending = True
         else:
             isIpDepending = True
-        if any(isinstance(x, dict) for x in commodityConversionFactors[dictKeys[0]].values()):
+        if any(
+            isinstance(x, dict)
+            for x in commodityConversionFactors[dictKeys[0]].values()
+        ):
             flexibleConversion = True
 
     elif dictInDict and dictKeys == sorted(commisInvestmentPeriodTuple):
         # input keys of commodity conversion are varied over investment periods and commissioning years
-        if any(isinstance(x, dict) for x in commodityConversionFactors[dictKeys[0]].values()):
-            raise NotImplementedError("The combination of flexible and "
-                                      "commissioning dependent conversion is not supported")
+        if any(
+            isinstance(x, dict)
+            for x in commodityConversionFactors[dictKeys[0]].values()
+        ):
+            raise NotImplementedError(
+                "The combination of flexible and "
+                "commissioning dependent conversion is not supported"
+            )
         isIpDepending = True
         isDataVariating = False
         # check if also data is varied over commissioning year
@@ -2553,11 +2585,7 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
             f"Please check the init."
         )
 
-    return (
-        isIpDepending,
-        isCommisDepending,
-        flexibleConversion
-    )
+    return (isIpDepending, isCommisDepending, flexibleConversion)
 
 
 def checkAndSetCommodityConversionFactor(comp, esM):
@@ -2568,20 +2596,19 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     iterationList = esM.investmentPeriodNames
     commodityConversionFactors = comp.commodityConversionFactors.copy()
     if comp.isCommisDepending:
-            iterationList = [
-                (x, y)
-                for x in (comp.stockYears + esM.investmentPeriodNames)
-                for y in esM.investmentPeriodNames
-                if x <= y < x + comp.technicalLifetime.max()
-            ]
-    elif (
-            comp.isIpDepending and
-            isinstance(list(comp.commodityConversionFactors.keys())[0],tuple)
+        iterationList = [
+            (x, y)
+            for x in (comp.stockYears + esM.investmentPeriodNames)
+            for y in esM.investmentPeriodNames
+            if x <= y < x + comp.technicalLifetime.max()
+        ]
+    elif comp.isIpDepending and isinstance(
+        list(comp.commodityConversionFactors.keys())[0], tuple
     ):
         commodityConversionFactors = {
-            ip: comp.commodityConversionFactors[(x,y)]
+            ip: comp.commodityConversionFactors[(x, y)]
             for ip in esM.investmentPeriodNames
-            for (x,y) in comp.commodityConversionFactors.keys()
+            for (x, y) in comp.commodityConversionFactors.keys()
             if y == ip
         }
 
@@ -2593,21 +2620,34 @@ def checkAndSetCommodityConversionFactor(comp, esM):
             for item in ccf.items():
                 if isinstance(item[1], dict):
                     if item[0] in esM.commodities:
-                        raise ValueError("Commodity group names must be different from commodity names. "
-                                         f"Group name '{item[0]}' is not valid.")
+                        raise ValueError(
+                            "Commodity group names must be different from commodity names. "
+                            f"Group name '{item[0]}' is not valid."
+                        )
                     commodities += list(item[1].keys())
-                    commodTypes += [type(x) for x in item[1].values()
-                                    if isinstance(x, (pd.Series, pd.DataFrame))]
-                    if not (all(ccf > 0 for ccf in item[1].values()) or all(ccf < 0 for ccf in item[1].values())):
-                        raise ValueError(f"All commodity conversion factors of {comp.name}"
-                                         f" in commodity group '{item[0]}' must have the same sign.")
+                    commodTypes += [
+                        type(x)
+                        for x in item[1].values()
+                        if isinstance(x, (pd.Series, pd.DataFrame))
+                    ]
+                    if not (
+                        all(ccf > 0 for ccf in item[1].values())
+                        or all(ccf < 0 for ccf in item[1].values())
+                    ):
+                        raise ValueError(
+                            f"All commodity conversion factors of {comp.name}"
+                            f" in commodity group '{item[0]}' must have the same sign."
+                        )
                 else:
                     commodities.append(item[0])
                     commodTypes.append(type(item[1]))
         else:
             commodities = list(set(ccf.keys()))
-            commodTypes = [type(x) for x in ccf.values()
-                           if isinstance(x, (pd.Series, pd.DataFrame))]
+            commodTypes = [
+                type(x)
+                for x in ccf.values()
+                if isinstance(x, (pd.Series, pd.DataFrame))
+            ]
         checkCommodities(esM, set(commodities))
         return commodTypes
 
@@ -2616,7 +2656,9 @@ def checkAndSetCommodityConversionFactor(comp, esM):
         for ccf in commodityConversionFactors.values():
             commodTypes = checkFactorCommod(ccf)
             commodTypesList += commodTypes
-        if (pd.Series in commodTypesList or pd.DataFrame in commodTypesList) and len(set(commodTypesList)) > 1:
+        if (pd.Series in commodTypesList or pd.DataFrame in commodTypesList) and len(
+            set(commodTypesList)
+        ) > 1:
             raise ValueError(
                 f"Unallowed data type variation in commodity conversion factors of {comp.name} for yearly dependency."
             )
@@ -2659,14 +2701,17 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 preprocessedCommodityConversionFactor[newKeyName][group] = {}
                 for commod in value.keys():
                     if isinstance(
-                            _commodityConversionFactors[group][commod], (pd.Series, pd.DataFrame)
+                        _commodityConversionFactors[group][commod],
+                        (pd.Series, pd.DataFrame),
                     ):
                         raise NotImplementedError(
                             "Flexible conversion components currently do not support "
                             f"time series data for commodity conversion factors."
                         )
 
-                    elif isinstance(_commodityConversionFactors[group][commod], (int, float)):
+                    elif isinstance(
+                        _commodityConversionFactors[group][commod], (int, float)
+                    ):
                         # fix values do not need a time-series aggregation and are written
                         # directly to processedCommodityConversion
                         processedCommodityConversionFactor[newKeyName][group][
@@ -2674,7 +2719,9 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                         ] = _commodityConversionFactors[group][commod]
                         preprocessedCommodityConversionFactor[newKeyName][group][
                             commod
-                        ] = processedCommodityConversionFactor[newKeyName][group][commod]
+                        ] = processedCommodityConversionFactor[newKeyName][group][
+                            commod
+                        ]
                     else:
                         raise ValueError(
                             f"Data type '{_commodityConversionFactors}' for commodity "
@@ -2683,28 +2730,28 @@ def checkAndSetCommodityConversionFactor(comp, esM):
             else:
                 commod = key
                 if isinstance(
-                        _commodityConversionFactors[commod], (pd.Series, pd.DataFrame)
+                    _commodityConversionFactors[commod], (pd.Series, pd.DataFrame)
                 ):
                     fullCommodityConversionFactor[newKeyName][commod] = (
-                     checkAndSetTimeSeriesConversionFactors(
-                        esM,
-                        _commodityConversionFactors[commod],
-                        comp.locationalEligibility,
+                        checkAndSetTimeSeriesConversionFactors(
+                            esM,
+                            _commodityConversionFactors[commod],
+                            comp.locationalEligibility,
                         )
                     )
                     preprocessedCommodityConversionFactor[newKeyName][commod] = (
-                     fullCommodityConversionFactor[newKeyName][commod]
-                )
+                        fullCommodityConversionFactor[newKeyName][commod]
+                    )
 
                 elif isinstance(_commodityConversionFactors[commod], (int, float)):
                     # fix values do not need a time-series aggregation and are written
                     # directly to processedCommodityConversion
                     processedCommodityConversionFactor[newKeyName][commod] = (
-                     _commodityConversionFactors[commod]
-                )
+                        _commodityConversionFactors[commod]
+                    )
                     preprocessedCommodityConversionFactor[newKeyName][commod] = (
-                     processedCommodityConversionFactor[newKeyName][commod]
-                )
+                        processedCommodityConversionFactor[newKeyName][commod]
+                    )
                 else:
                     raise ValueError(
                         f"Data type '{_commodityConversionFactors}' for commodity "
@@ -2719,7 +2766,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     return (
         fullCommodityConversionFactor,
         processedCommodityConversionFactor,
-        preprocessedCommodityConversionFactor
+        preprocessedCommodityConversionFactor,
     )
 
 
@@ -2731,14 +2778,16 @@ def checkEmissionFactors(comp, esM):
         return None
     elif not comp.flexibleConversion:
         raise NotImplementedError(
-            'Emission factors can only be defined for flexible conversion components. '
-            'For non flexible conversion components emission factors must be introduced '
-            'within the commodity conversion factors. '
-            f'Please check parameters for {comp.name}.'
+            "Emission factors can only be defined for flexible conversion components. "
+            "For non flexible conversion components emission factors must be introduced "
+            "within the commodity conversion factors. "
+            f"Please check parameters for {comp.name}."
         )
 
     if any(not isinstance(key, str) for key in comp.emissionFactors.keys()):
-        raise NotImplementedError('Emission factors can not be specified per investment period.')
+        raise NotImplementedError(
+            "Emission factors can not be specified per investment period."
+        )
 
     emission_commodities = list(comp.emissionFactors.keys())
     commodities = [
@@ -2748,8 +2797,10 @@ def checkEmissionFactors(comp, esM):
     ]
 
     if not set(emission_commodities + commodities).issubset(esM.commodities):
-        raise ValueError(f'Error in emission commodities of emission factors for {comp.name}. '
-                         f'One or more of the emission commodities are not defined in the model.')
+        raise ValueError(
+            f"Error in emission commodities of emission factors for {comp.name}. "
+            f"One or more of the emission commodities are not defined in the model."
+        )
 
     flex_commodities = [
         commod
@@ -2759,15 +2810,17 @@ def checkEmissionFactors(comp, esM):
     ]
 
     if not set(commodities).issubset(flex_commodities):
-        raise ValueError('Emission factor commodities must also be present in conversion factor commodities. '
-                         f'Please check {comp.name}')
+        raise ValueError(
+            "Emission factor commodities must also be present in conversion factor commodities. "
+            f"Please check {comp.name}"
+        )
 
     if any(
         emission_factor <= 0
         for emission_commod in comp.emissionFactors.keys()
         for emission_factor in comp.emissionFactors[emission_commod].values()
     ):
-        raise ValueError(f'Emission factors of {comp.name} must be positive numbers.')
+        raise ValueError(f"Emission factors of {comp.name} must be positive numbers.")
 
     return comp.emissionFactors
 
@@ -2780,13 +2833,11 @@ def checkAndSetFlowShares(comp, esM):
         return None
     if not comp.flexibleConversion:
         raise NotImplementedError(
-            'Flow shares can only be defined for flexible conversion components. '
-            f'Please check parameters for {comp.name}.'
+            "Flow shares can only be defined for flexible conversion components. "
+            f"Please check parameters for {comp.name}."
         )
     if not isinstance(comp.flowShares, dict):
-        raise ValueError(
-            'Flow shares must be defined as a dictionary.'
-        )
+        raise ValueError("Flow shares must be defined as a dictionary.")
     flex_commodities = [
         commod
         for group in list(comp.processedCommodityConversionFactors.values())[0].values()
@@ -2795,54 +2846,60 @@ def checkAndSetFlowShares(comp, esM):
     ]
 
     def checkFlowShares(flowShares):
-        if not set(flowShares.keys()).issubset({'min', 'max', 'fix'}):
+        if not set(flowShares.keys()).issubset({"min", "max", "fix"}):
             raise ValueError(
                 'Flow shares must be specified as "min", "max", or "fix" '
-                f'values. Please check parameters for {comp.name}.'
+                f"values. Please check parameters for {comp.name}."
             )
-        if 'fix' in flowShares.keys() and not len(flowShares.keys()) == 1:
-            raise ValueError('If a flow share fix is passed no other flow shares are allowed.')
+        if "fix" in flowShares.keys() and not len(flowShares.keys()) == 1:
+            raise ValueError(
+                "If a flow share fix is passed no other flow shares are allowed."
+            )
         for param in flowShares.keys():
             for commod, flowShare in flowShares[param].items():
                 if not commod in flex_commodities:
                     raise ValueError(
-                        'Flow shares commodities must be defined as flexible '
-                        f'commodity. Please check {commod} in {comp.name}')
+                        "Flow shares commodities must be defined as flexible "
+                        f"commodity. Please check {commod} in {comp.name}"
+                    )
                 if isinstance(flowShare, pd.Series):
                     if not ((flowShare <= 1).all() and (flowShare >= 0).all()):
-                        raise ValueError('Flow shares must be between 0 and 1.')
+                        raise ValueError("Flow shares must be between 0 and 1.")
                     if not flowShare.index.isin(esM.locations).all():
-                        raise ValueError('Some of the specified locations in the '
-                                         'Flow shares are not represented in the ESM.')
+                        raise ValueError(
+                            "Some of the specified locations in the "
+                            "Flow shares are not represented in the ESM."
+                        )
                 elif not (0 <= flowShare <= 1):
-                    raise ValueError('Flow shares must be between 0 and 1.')
+                    raise ValueError("Flow shares must be between 0 and 1.")
                 else:
-                    flowShares[param][commod] = pd.Series(flowShare, index=esM.locations)
+                    flowShares[param][commod] = pd.Series(
+                        flowShare, index=esM.locations
+                    )
         return flowShares
 
     if set(comp.flowShares.keys()).issubset(set(esM.investmentPeriodNames)):
         if list(comp.flowShares.keys()) != esM.investmentPeriodNames:
-            warnings.warn(f'Flow shares for {comp.name} were not defined for all investment periods.')
+            warnings.warn(
+                f"Flow shares for {comp.name} were not defined for all investment periods."
+            )
         processedFlowShares = {}
         for ipName, flowSharesIp in comp.flowShares.items():
             ip = esM.investmentPeriodNames.index(ipName)
             processedFlowShares[ip] = checkFlowShares(flowSharesIp)
     else:
         processedFlowShares = {
-            ip: checkFlowShares(comp.flowShares)
-            for ip in esM.investmentPeriods
+            ip: checkFlowShares(comp.flowShares) for ip in esM.investmentPeriods
         }
 
     return processedFlowShares
 
 
 def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
-    ipEconomicLifetime = getattr(
-        esM.getComponent(compName), "ipEconomicLifetime"
-    )[loc]
-    ipTechnicalLifetime = getattr(
-        esM.getComponent(compName), "ipTechnicalLifetime"
-    )[loc]
+    ipEconomicLifetime = getattr(esM.getComponent(compName), "ipEconomicLifetime")[loc]
+    ipTechnicalLifetime = getattr(esM.getComponent(compName), "ipTechnicalLifetime")[
+        loc
+    ]
 
     # A) Fix operational costs for design variables.
     # Fix operation costs are applied over the entire operational time.
@@ -2876,45 +2933,33 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
             ipEconomicLifetime
         ) == math.floor(ipTechnicalLifetime)
         if (
-                economicAndTechnicalLifetimeInSameInterval
-                and esM.getComponent(compName).floorTechnicalLifetime
+            economicAndTechnicalLifetimeInSameInterval
+            and esM.getComponent(compName).floorTechnicalLifetime
         ):
             # example: interval 5, economic lifetime 6, technical lifetime 7
             # both lifetimes are then floored to 5
             _ipEconomicLifetime = math.floor(ipEconomicLifetime)
             _ipTechnicalLifetime = math.floor(ipTechnicalLifetime)
             # by rounding, no intervals will contain costs only for a few years
-            hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
-                False
-            )
-            hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
-                False
-            )
+            hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = False
+            hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = False
         else:
             # example: interval 5, economic lifetime 7, technical lifetime 12
             _ipEconomicLifetime = ipEconomicLifetime
             if esM.getComponent(compName).floorTechnicalLifetime:
                 # example: technical lifetime is floored to 10, year 10 and 11 not relevant and without costs
-                hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
-                    False
-                )
+                hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = False
                 _ipTechnicalLifetime = math.floor(ipTechnicalLifetime)
             else:
                 # example: technical lifetime is ceiled to 15, year 10 and 11 without costs, year 12,13,14 require additional costs
-                hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = (
-                    True
-                )
+                hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval = True
                 _ipTechnicalLifetime = ipTechnicalLifetime
 
             # economic lifetime leading to overhead years in last interval
             if _ipEconomicLifetime % 1 != 0:
-                hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
-                    True
-                )
+                hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = True
             else:
-                hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = (
-                    False
-                )
+                hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval = False
 
         # interval with cost in all included years
         intervalsWithCompleteCosts = math.floor(_ipEconomicLifetime)
@@ -2922,6 +2967,5 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
     return (
         intervalsWithCompleteCosts,
         hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval,
-        hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval
+        hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval,
     )
-
