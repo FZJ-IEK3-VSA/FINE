@@ -12,7 +12,7 @@ import fine as fn
 
 def declareOptimalCostConstraint(esM, pyM):
 
-    """ Optimum cost should not be more than the objective value obtained in the original optimization + slack value. 
+    """ Optimum cost should not be more than the objective value obtained in the original optimization + slack value.
     """
     fn.utils.output("Declaring cost constraint...", esM.verbose, 0)
 
@@ -24,7 +24,7 @@ def declareOptimalCostConstraint(esM, pyM):
             )
             <= esM.objectiveValue*(1+esM.slack)
         )
-    pyM.optimalCostConstraint = pyomo.Constraint(rule=optimalCostConstraint) 
+    pyM.optimalCostConstraint = pyomo.Constraint(rule=optimalCostConstraint)
 
 def declareMGAObjective(esM, pyM,iteration,sense):
 
@@ -39,12 +39,12 @@ def declareMGAObjective(esM, pyM,iteration,sense):
         isOperationCommisYearDepending=False,
         ):
 
-        """
-        Declare the objective function by obtaining the opertaion rate variables abd capacity variables of the components. 
+        r"""
+        Declare the objective function by obtaining the opertaion rate variables abd capacity variables of the components.
         The  objective function is the sum of the operation and capacity variables of the componenets multiplied by the Beta value.
 
             .. math::
-                    \\{min/max}\:  {\beta}^{loc,comp,iteration} * ({op}^{comp,loc,ip,p,t} + {cap}^{comp,loc,ip,p})
+                    \{min/max}\:  {\beta}^{loc,comp,iteration} * ({op}^{comp,loc,ip,p,t} + {cap}^{comp,loc,ip,p})
 
         """
 
@@ -52,7 +52,7 @@ def declareMGAObjective(esM, pyM,iteration,sense):
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
         capVar = getattr(pyM, "cap_" + abbrvName)
         opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
-        capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName) 
+        capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
         if isOperationCommisYearDepending:
 
@@ -63,12 +63,12 @@ def declareMGAObjective(esM, pyM,iteration,sense):
         else:
 
             opsum = sum(opVar[loc, compName, ip, p, t] * esM.beta[loc][iteration][compName]
-                for loc,compName,ip in opVarSet for p,t in pyM.intraYearTimeSet 
+                for loc,compName,ip in opVarSet for p,t in pyM.intraYearTimeSet
             )
-            
+
         capsum = sum(capVar[loc, compName, ip]  * esM.beta[loc][iteration][compName]
                             for loc, compName, ip in capVarSet)
-        
+
         return (opsum + capsum)
     def mgaObjective(pyM):
         mgaContribution  = 0
@@ -149,7 +149,7 @@ def declareMGAOptimizationProblem(
         _t = time.time()
         fn.utils.output("Declaring sets, variables and constraints for " + key, esM.verbose, 0)
         fn.utils.output("\tdeclaring sets... ", esM.verbose, 0), mdl.declareSets(esM, pyM)
-        fn.utils.output("\tdeclaring variables... ", esM.verbose, 0), mdl.declareVariables(esM, pyM,relaxIsBuiltBinary, 
+        fn.utils.output("\tdeclaring variables... ", esM.verbose, 0), mdl.declareVariables(esM, pyM,relaxIsBuiltBinary,
                                                                                            relevanceThreshold)
         fn.utils.output("\tdeclaring constraints... ", esM.verbose, 0), mdl.declareComponentConstraints(esM, pyM)
         fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
@@ -193,7 +193,7 @@ def declareMGAOptimizationProblem(
     fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
 
     # Store the build time of the optimize function call in the EnergySystemModel instance
-    esM.solverSpecs["buildtime"] = time.time() - timeStart  
+    esM.solverSpecs["buildtime"] = time.time() - timeStart
 
 def optimalValues(esM, iteration, outputLevel):
 
@@ -233,7 +233,7 @@ def calculateBeta(esM, random_seed):
 
     if random_seed:
         random.seed(10)
-    
+
     """Beta is a random value between 0 and 1 and it changes with location, time and iteration. This Beta value
     is used to build the objective function of the MGA optimization.
     """
@@ -243,22 +243,22 @@ def calculateBeta(esM, random_seed):
             if loc1 != loc2:
                 transmission_locations.append(loc1 + "_" + loc2)
 
-    esM.beta = {location: 
-            {iteration+1: 
+    esM.beta = {location:
+            {iteration+1:
             {component: random.random() for component in components
-             if component not in transmissionComponents 
-            }  
+             if component not in transmissionComponents
+            }
             for iteration in range(esM.iterations)
-            } 
+            }
             for location in esM.locations
             }
-    
-    transmission_data = {location: 
-            {iteration+1: 
+
+    transmission_data = {location:
+            {iteration+1:
             {component: random.random() for component in transmissionComponents
-            }  
+            }
             for iteration in range(esM.iterations)
-            } 
+            }
             for location in transmission_locations
             }
 
@@ -268,14 +268,14 @@ def identifySolutions(
     writeSolutionsasExcels,
     getOptimizationSummary,
     operationRateinOutput
-):      
+):
     # ############################################################################################################
-    # # #                                      Identify maximally different solutions                                       
+    # # #                                      Identify maximally different solutions
     # # ################################################################################################################
     """
-    MGA optimization provides 2*(esM.iterations) times different solutions. From these solutions, solutions 
+    MGA optimization provides 2*(esM.iterations) times different solutions. From these solutions, solutions
     which are maximally different to the optimal solutions should be identified.
-    For this, largest squared Euclidian distance between the solutions are calculated.   
+    For this, largest squared Euclidian distance between the solutions are calculated.
     """
     def supremum(i):
         m = 10**4
@@ -284,10 +284,10 @@ def identifySolutions(
         for iteration in range(len(set_solutions)):
             sel_sum = 0
 
-            sel_sum += sum((esM.solutions[i][key][parameter][item]-set_solutions[iteration][key][parameter][item])**2 
-                        for key in esM.solutions[i] 
-                        for parameter in esM.solutions[i][key] 
-                        for item in esM.solutions[i][key][parameter]) 
+            sel_sum += sum((esM.solutions[i][key][parameter][item]-set_solutions[iteration][key][parameter][item])**2
+                        for key in esM.solutions[i]
+                        for parameter in esM.solutions[i][key]
+                        for item in esM.solutions[i][key][parameter])
             if sel_sum == 0:
                 x_sum += m
             else:
@@ -318,10 +318,10 @@ def identifySolutions(
                 previous_max = get_max
 
         fn.utils.output (f"Maximally different solution {k+1} identified... Solution {highest_distance}", esM.verbose, 0)
-        set_solutions[k+1] = esM.solutions[highest_distance] 
+        set_solutions[k+1] = esM.solutions[highest_distance]
 
         for ip in esM.investmentPeriods:
-            summary_solutions[ip][k+1] = esM.summary[ip][highest_distance] 
+            summary_solutions[ip][k+1] = esM.summary[ip][highest_distance]
 
     #################################################################################################################
     # #                                      Post-process optimization output                                        #
@@ -337,9 +337,8 @@ def identifySolutions(
             set_solutions,
             summary_solutions,
             getOptimizationSummary
-
-        )      
-    fn.utils.output("\n\t MGA optimization completed", esM.verbose, 0) 
+        )
+    fn.utils.output("\n\t MGA optimization completed", esM.verbose, 0)
 
 
 def mgaOptimize(
@@ -426,8 +425,8 @@ def mgaOptimize(
         |br| * the default value is None
     :type relevanceThreshold: float (>=0) or None
 
-    :param slack: slack parameter for the MGA optimization algorithm. The slack parameter decides the upper limit 
-        of the system total cost should be. For e.g. if slack is 0.2, the system total cost should not be more than 1.2 
+    :param slack: slack parameter for the MGA optimization algorithm. The slack parameter decides the upper limit
+        of the system total cost should be. For e.g. if slack is 0.2, the system total cost should not be more than 1.2
         times the original optimal cost.
         |br| * the default value is 0.1
     :type slack: float (>0)
@@ -436,26 +435,26 @@ def mgaOptimize(
     |br| * the default value is 2
     :type iterations: strictly positive integer
 
-    :param random_seed: random seed for the MGA optimization algorithm. If random seed is set to True, the results 
+    :param random_seed: random seed for the MGA optimization algorithm. If random seed is set to True, the results
         shall be the same each time the code is executed.
         |br| * the default value is False
     :type random_seed: boolean
 
-    :param writeSolutionsasExcels: If writeSolutionsasExcels is set to True, the alternate solutions will be 
+    :param writeSolutionsasExcels: If writeSolutionsasExcels is set to True, the alternate solutions will be
         written to excel files
         |br| * the default value is False
     :type writeSolutionsasExcels: boolean
 
-    :paramgetOptimizationSummary: If getOptimizationSummary is set to True, the optimization summary will be 
+    :paramgetOptimizationSummary: If getOptimizationSummary is set to True, the optimization summary will be
         written to the output file.
         |br| * the default value is False
     :type paramgetOptimizationSummary: boolean
-    
+
     :param outputLevel: outputLevel for optimization summary
     |br| * the default value is 2
     :type outputLevel: integer
 
-    :param operationRateinOutput: If operationRateinOutput is set to True, the operation rate of the alternate 
+    :param operationRateinOutput: If operationRateinOutput is set to True, the operation rate of the alternate
         solutions will be written to the output file.
         |br| * the default value is False
     :type operationRateinOutput: boolean
@@ -469,7 +468,7 @@ def mgaOptimize(
 
     for ip in esM.investmentPeriods:
         esM.summary[ip] = {}  # This will hold the summary data of the optimization, if getOptimizationSummary is True
-       
+
     esM.iterations = iterations
     esM.slack = slack
 
@@ -480,240 +479,237 @@ def mgaOptimize(
         "The optimization problem for optimal solution doesn't have an optimal solution"
         "Cannot perofrm a MGA optimization if the optimization problem doesn't have an optimal solution."
         )
-    
-    else:       
-        calculateBeta(
-            esM,
-            random_seed             
-        )
 
-        if not timeSeriesAggregation:
-            esM.segmentation = False
+    calculateBeta(
+        esM,
+        random_seed
+    )
 
-        _t = time.time()
+    if not timeSeriesAggregation:
+        esM.segmentation = False
 
-        """ 
-        MGA optimization is an iterative process. It starts with the first iteration and ends with the last 
-        iteration (esM.iterations). Each iteration has a minimization and a maximization of the optimization problem.
-        therefore, each iteration provides 2 solutions (if the solutions are feasible). After the last iteration, 
-        there will be a maximum of 2*(esM.iterations) times final solutions. The optimization problem is defined in 
-        the declareMGAOptimizationProblem function."
-        """
-        iteration =1
-        while iteration <= esM.iterations:
-            for sense in ["minimize","maximize"]:    
+    _t = time.time()
 
-                if declaresOptimizationProblem:
-                    declareMGAOptimizationProblem(
-                        esM,
-                        iteration,
-                        sense,
-                        timeSeriesAggregation=timeSeriesAggregation,
-                        relevanceThreshold=relevanceThreshold,
-                        )
-                elif esM.pyM is None:
-                        raise TypeError(
-                            "The optimization problem is not declared yet. Set the argument declaresOptimization"
-                            " problem to True or call the declareOptimizationProblem function first."
-                        )
+    """ 
+    MGA optimization is an iterative process. It starts with the first iteration and ends with the last
+    iteration (esM.iterations). Each iteration has a minimization and a maximization of the optimization problem.
+    therefore, each iteration provides 2 solutions (if the solutions are feasible). After the last iteration,
+    there will be a maximum of 2*(esM.iterations) times final solutions. The optimization problem is defined in
+    the declareMGAOptimizationProblem function."
+    """
+    iteration =1
+    while iteration <= esM.iterations:
+        for sense in ["minimize","maximize"]:
 
-                # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
-                timeStart = time.time()
-
-                # Check correctness of inputs
-                fn.utils.checkOptimizeInput(
-                    timeSeriesAggregation,
-                    esM.isTimeSeriesDataClustered,
-                    logFileName,
-                    threads,
-                    solver,
-                    timeLimit,
-                    optimizationSpecs,
-                    warmstart,
-                )
-
-                # Store keyword arguments in the EnergySystemModel instance
-                esM.solverSpecs["logFileName"], esM.solverSpecs["threads"] = (
-                    logFileName,
-                    threads,
-                )
-                esM.solverSpecs["solver"], esM.solverSpecs["timeLimit"] = solver, timeLimit
-                esM.solverSpecs["optimizationSpecs"], esM.solverSpecs["hasTSA"] = (
-                    optimizationSpecs,
-                    timeSeriesAggregation,
-                )
-
-                # Check which solvers are available and choose default solver if no solver is specified explicitely
-                # Order of possible solvers in solverList defines the priority of chosen default solver.
-                solverList = ["gurobi", "glpk", "cbc"]
-
-                if solver != "None":
-                    try:
-                        opt.SolverFactory(solver).available()
-                    except Exception:
-                        solver = "None"
-
-                if solver == "None":
-                    for nSolver in solverList:
-                        if solver == "None":
-                            try:
-                                if opt.SolverFactory(nSolver).available():
-                                    solver = nSolver
-                                    fn.utils.output(
-                                        "Either solver not selected or specified solver not available."
-                                        + str(nSolver)
-                                        + " is set as solver.",
-                                        esM.verbose,
-                                        0,
-                                    )
-                            except Exception:
-                                pass
-
-                if solver == "None":
+            if declaresOptimizationProblem:
+                declareMGAOptimizationProblem(
+                    esM,
+                    iteration,
+                    sense,
+                    timeSeriesAggregation=timeSeriesAggregation,
+                    relevanceThreshold=relevanceThreshold,
+                    )
+            elif esM.pyM is None:
                     raise TypeError(
-                        "At least one solver must be installed."
-                        " Have a look at the FINE documentation to see how to install possible solvers."
-                        " https://vsa-fine.readthedocs.io/en/latest/"
+                        "The optimization problem is not declared yet. Set the argument declaresOptimization"
+                        " problem to True or call the declareOptimizationProblem function first."
                     )
-                
-                ################################################################################################################
-                #                                  Solve the specified optimization problem                                    #
-                ################################################################################################################
 
-                # Set which solver should solve the specified optimization problem
-                if solver == "gurobi" and importlib.util.find_spec('gurobipy'):
-                    # Use the direct gurobi solver that uses the Python API.
-                    optimizer = opt.SolverFactory(solver, solver_io="python")
-                else:
-                    optimizer = opt.SolverFactory(solver)
+            # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
+            timeStart = time.time()
 
-                # Set, if specified, the time limit
-                if esM.solverSpecs["timeLimit"] is not None and solver == "gurobi":
-                    optimizer.options["timelimit"] = timeLimit
+            # Check correctness of inputs
+            fn.utils.checkOptimizeInput(
+                timeSeriesAggregation,
+                esM.isTimeSeriesDataClustered,
+                logFileName,
+                threads,
+                solver,
+                timeLimit,
+                optimizationSpecs,
+                warmstart,
+            )
 
-                # Set the specified solver options
-                if "LogToConsole=" not in optimizationSpecs and solver == "gurobi":
-                    if esM.verbose == 2:
-                        optimizationSpecs += " LogToConsole=0"
+            # Store keyword arguments in the EnergySystemModel instance
+            esM.solverSpecs["logFileName"], esM.solverSpecs["threads"] = (
+                logFileName,
+                threads,
+            )
+            esM.solverSpecs["solver"], esM.solverSpecs["timeLimit"] = solver, timeLimit
+            esM.solverSpecs["optimizationSpecs"], esM.solverSpecs["hasTSA"] = (
+                optimizationSpecs,
+                timeSeriesAggregation,
+            )
 
-                # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
-                if solver == "gurobi":
-                    optimizer.set_options(
-                        "Threads="
-                        + str(threads)
-                        + " logfile="
-                        + logFileName
-                        + " "
-                        + optimizationSpecs
-                    )
-                    solver_info = optimizer.solve(
-                        esM.pyM,
-                        warmstart=warmstart,
-                        tee=True,
-                    )
-                elif solver == "glpk":
-                    optimizer.set_options(optimizationSpecs)
-                    solver_info = optimizer.solve(esM.pyM, tee=True)
-                else:
-                    solver_info = optimizer.solve(esM.pyM, tee=True)
-                esM.solverSpecs["solvetime"] = time.time() - timeStart
-                fn.utils.output(solver_info.solver(), esM.verbose, 0), fn.utils.output(
-                    solver_info.problem(), esM.verbose, 0
+            # Check which solvers are available and choose default solver if no solver is specified explicitely
+            # Order of possible solvers in solverList defines the priority of chosen default solver.
+            solverList = ["gurobi", "glpk", "cbc"]
+
+            if solver != "None":
+                try:
+                    opt.SolverFactory(solver).available()
+                except Exception:
+                    solver = "None"
+
+            if solver == "None":
+                for nSolver in solverList:
+                    if solver == "None":
+                        try:
+                            if opt.SolverFactory(nSolver).available():
+                                solver = nSolver
+                                fn.utils.output(
+                                    "Either solver not selected or specified solver not available."
+                                    + str(nSolver)
+                                    + " is set as solver.",
+                                    esM.verbose,
+                                    0,
+                                )
+                        except Exception:
+                            pass
+
+            if solver == "None":
+                raise TypeError(
+                    "At least one solver must be installed."
+                    " Have a look at the FINE documentation to see how to install possible solvers."
+                    " https://vsa-fine.readthedocs.io/en/latest/"
                 )
+
+            ################################################################################################################
+            #                                  Solve the specified optimization problem                                    #
+            ################################################################################################################
+
+            # Set which solver should solve the specified optimization problem
+            if solver == "gurobi" and importlib.util.find_spec('gurobipy'):
+                # Use the direct gurobi solver that uses the Python API.
+                optimizer = opt.SolverFactory(solver, solver_io="python")
+            else:
+                optimizer = opt.SolverFactory(solver)
+
+            # Set, if specified, the time limit
+            if esM.solverSpecs["timeLimit"] is not None and solver == "gurobi":
+                optimizer.options["timelimit"] = timeLimit
+
+            # Set the specified solver options
+            if "LogToConsole=" not in optimizationSpecs and solver == "gurobi":
+                if esM.verbose == 2:
+                    optimizationSpecs += " LogToConsole=0"
+
+            # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
+            if solver == "gurobi":
+                optimizer.set_options(
+                    "Threads="
+                    + str(threads)
+                    + " logfile="
+                    + logFileName
+                    + " "
+                    + optimizationSpecs
+                )
+                solver_info = optimizer.solve(
+                    esM.pyM,
+                    warmstart=warmstart,
+                    tee=True,
+                )
+            elif solver == "glpk":
+                optimizer.set_options(optimizationSpecs)
+                solver_info = optimizer.solve(esM.pyM, tee=True)
+            else:
+                solver_info = optimizer.solve(esM.pyM, tee=True)
+            esM.solverSpecs["solvetime"] = time.time() - timeStart
+            fn.utils.output(solver_info.solver(), esM.verbose, 0), fn.utils.output(
+                solver_info.problem(), esM.verbose, 0
+            )
+            fn.utils.output(
+                "Solve time: " + str(esM.solverSpecs["solvetime"]) + " sec.",
+                esM.verbose,
+                0,
+            )
+
+            # Post-process the optimization output by differentiating between different solver statuses and termination
+            # conditions. First, check if the status and termination_condition of the optimization are acceptable.
+            # If not, no output is generated.
+
+            status, termCondition = (
+                solver_info.solver.status,
+                solver_info.solver.termination_condition,
+            )
+            esM.solverSpecs["status"] = str(status)
+            esM.solverSpecs["terminationCondition"] = str(termCondition)
+            if (
+                status == opt.SolverStatus.error
+                or status == opt.SolverStatus.aborted
+                or status == opt.SolverStatus.unknown
+            ):
                 fn.utils.output(
-                    "Solve time: " + str(esM.solverSpecs["solvetime"]) + " sec.",
+                    "Solver status:  "
+                    + str(status)
+                    + ", termination condition:  "
+                    + str(termCondition)
+                    + ". No output is generated.",
                     esM.verbose,
                     0,
                 )
-
-                # Post-process the optimization output by differentiating between different solver statuses and termination
-                # conditions. First, check if the status and termination_condition of the optimization are acceptable.
-                # If not, no output is generated.
-
-                status, termCondition = (
-                    solver_info.solver.status,
-                    solver_info.solver.termination_condition,
+            elif (
+                solver_info.solver.termination_condition
+                == opt.TerminationCondition.infeasibleOrUnbounded
+                or solver_info.solver.termination_condition
+                == opt.TerminationCondition.infeasible
+                or solver_info.solver.termination_condition
+                == opt.TerminationCondition.unbounded
+            ):
+                fn.utils.output(
+                    "Optimization problem is "
+                    + str(solver_info.solver.termination_condition)
+                    + ". No output is generated.",
+                    esM.verbose,
+                    0,
                 )
-                esM.solverSpecs["status"] = str(status)
-                esM.solverSpecs["terminationCondition"] = str(termCondition)
+            else:
+                # If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
+                # status), show a warning message.
                 if (
-                    status == opt.SolverStatus.error
-                    or status == opt.SolverStatus.aborted
-                    or status == opt.SolverStatus.unknown
+                    not solver_info.solver.termination_condition
+                    == opt.TerminationCondition.optimal
+                    and esM.verbose < 2
                 ):
-                    fn.utils.output(
-                        "Solver status:  "
-                        + str(status)
-                        + ", termination condition:  "
-                        + str(termCondition)
-                        + ". No output is generated.",
-                        esM.verbose,
-                        0,
-                    )
-                elif (
-                    solver_info.solver.termination_condition
-                    == opt.TerminationCondition.infeasibleOrUnbounded
-                    or solver_info.solver.termination_condition
-                    == opt.TerminationCondition.infeasible
-                    or solver_info.solver.termination_condition
-                    == opt.TerminationCondition.unbounded
-                ):
-                    fn.utils.output(
-                        "Optimization problem is "
-                        + str(solver_info.solver.termination_condition)
-                        + ". No output is generated.",
-                        esM.verbose,
-                        0,
-                    )
+                    warnings.warn("Output is generated for a non-optimal solution.")
+
+                if getOptimizationSummary:
+
+                    fn.utils.output("\nProcessing optimization output...", esM.verbose, 0)
+                    # Declare component specific sets, variables and constraints
+                    w = str(len(max(esM.componentModelingDict.keys())) + 6)
+
+                    # iterate over investment periods, to get yearly results
+                    for key, mdl in esM.componentModelingDict.items():
+                        if not isinstance(mdl._capacityVariablesOptimum, dict):
+                            mdl._capacityVariablesOptimum = {}
+                        __t = time.time()
+                        # if _capacityVariablesOptimum is not a dict, convert to dict
+                        # (if single year system is optimized several times)
+
+                        mdl.setOptimalValues(esM, esM.pyM)
+                        outputString = (
+                            ("for {:" + w + "}").format(key + " ...")
+                            + "(%.4f" % (time.time() - __t)
+                            + "sec)"
+                        )
+                        fn.utils.output(outputString, esM.verbose, 0)
+
+                """
+                MGA solutions consist of the operation rate variables and capacity variables of the components. MGA solutions are stored in esM.solutions.
+                """
+                if sense == "minimize":
+                    optimalValues(esM,iteration, outputLevel)
+
                 else:
-                    # If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
-                    # status), show a warning message.
-                    if (
-                        not solver_info.solver.termination_condition
-                        == opt.TerminationCondition.optimal
-                        and esM.verbose < 2
-                    ):
-                        warnings.warn("Output is generated for a non-optimal solution.")
+                    optimalValues(esM, esM.iterations + iteration, outputLevel)
+        iteration +=1
 
-                    if getOptimizationSummary:
+    fn.utils.output("\n\t\tMGA optimization completed after %.4f" % (time.time() - _t) + " sec\n", esM.verbose, 0)
 
-                        fn.utils.output("\nProcessing optimization output...", esM.verbose, 0)
-                        # Declare component specific sets, variables and constraints
-                        w = str(len(max(esM.componentModelingDict.keys())) + 6)
-
-                        # iterate over investment periods, to get yearly results
-                        for key, mdl in esM.componentModelingDict.items():
-                            if not isinstance(mdl._capacityVariablesOptimum, dict):
-                                mdl._capacityVariablesOptimum = {}
-                            __t = time.time()
-                            # if _capacityVariablesOptimum is not a dict, convert to dict
-                            # (if single year system is optimized several times)
-
-                            mdl.setOptimalValues(esM, esM.pyM)
-                            outputString = (
-                                ("for {:" + w + "}").format(key + " ...")
-                                + "(%.4f" % (time.time() - __t)
-                                + "sec)"
-                            )
-                            fn.utils.output(outputString, esM.verbose, 0)
-
-                    """
-                    MGA solutions consist of the operation rate variables and capacity variables of the components. MGA solutions are stored in esM.solutions.
-                    """
-                    if sense == "minimize":
-                        optimalValues(esM,iteration, outputLevel)
-
-                    else:
-                        optimalValues(esM, esM.iterations + iteration, outputLevel)
-            iteration +=1
-
-        fn.utils.output("\n\t\tMGA optimization completed after %.4f" % (time.time() - _t) + " sec\n", esM.verbose, 0)
-
-        identifySolutions(
-            esM,
-            writeSolutionsasExcels,
-            getOptimizationSummary,
-            operationRateinOutput
-        )
-
-        
+    identifySolutions(
+        esM,
+        writeSolutionsasExcels,
+        getOptimizationSummary,
+        operationRateinOutput
+    )
