@@ -157,7 +157,7 @@ def writeSolutions(
                     multi_index = [(data.loc[i,"Unnamed: 0"],data.loc[i,"Unnamed: 1"],
                                     column) for i in data.index for column in column_list]
                     print(f"for {key}....")
-                    df = pd.DataFrame(index=row_index, data=0.0, 
+                    df = pd.DataFrame(index=row_index, data=0.0,
                                                 columns=pd.MultiIndex.from_tuples(multi_index))
                     for iteration in row_index:
                         input_data_cap = pd.read_excel(inputFile, sheet_name=f"cap__{iteration}")

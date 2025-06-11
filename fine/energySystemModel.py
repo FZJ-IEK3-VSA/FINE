@@ -2277,4 +2277,3 @@ class EnergySystemModel:
 
             # Save perfromance summary in the EnergySystemModel instance
             self.performanceSummary = PerformanceSummary_df
-                   

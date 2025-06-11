@@ -490,7 +490,7 @@ def mgaOptimize(
 
     _t = time.time()
 
-    """ 
+    """
     MGA optimization is an iterative process. It starts with the first iteration and ends with the last
     iteration (esM.iterations). Each iteration has a minimization and a maximization of the optimization problem.
     therefore, each iteration provides 2 solutions (if the solutions are feasible). After the last iteration,
@@ -634,10 +634,10 @@ def mgaOptimize(
             )
             esM.solverSpecs["status"] = str(status)
             esM.solverSpecs["terminationCondition"] = str(termCondition)
-            if (
-                status == opt.SolverStatus.error
-                or status == opt.SolverStatus.aborted
-                or status == opt.SolverStatus.unknown
+            if status in (
+                opt.SolverStatus.error,
+                opt.SolverStatus.aborted,
+                opt.SolverStatus.unknown,
             ):
                 fn.utils.output(
                     "Solver status:  "
@@ -648,13 +648,10 @@ def mgaOptimize(
                     esM.verbose,
                     0,
                 )
-            elif (
-                solver_info.solver.termination_condition
-                == opt.TerminationCondition.infeasibleOrUnbounded
-                or solver_info.solver.termination_condition
-                == opt.TerminationCondition.infeasible
-                or solver_info.solver.termination_condition
-                == opt.TerminationCondition.unbounded
+            elif solver_info.solver.termination_condition in (
+                opt.TerminationCondition.infeasibleOrUnbounded,
+                opt.TerminationCondition.infeasible,
+                opt.TerminationCondition.unbounded,
             ):
                 fn.utils.output(
                     "Optimization problem is "
