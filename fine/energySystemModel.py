@@ -372,7 +372,7 @@ class EnergySystemModel:
         self.materialUnitsDict = materialUnitsDict if materialUnitsDict is not None else {} 
 
         # Merge commodity and material lists
-        self.commodities = list(sorted(self.commodities)) + list(sorted(self.materials)) 
+        self.commodities = set(self.commodities).union(self.materials) 
        # self.commodityUnitsDict = {c: self.onlycommodityUnitsDict[c] for c in sorted(self.onlycommodities)}
         self.commodityUnitsDict.update({m: self.materialUnitsDict[m] for m in sorted(self.materials)})
 

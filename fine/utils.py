@@ -70,8 +70,8 @@ def isEnergySystemModelInstance(esM):
 
 def checkEnergySystemModelInput(
     locations,
-    onlycommodities,
-    onlycommodityUnitsDict,
+    commodities,
+    commodityUnitsDict,
     numberOfTimeSteps,
     hoursPerTimeStep,
     numberOfInvestmentPeriods,
@@ -84,17 +84,17 @@ def checkEnergySystemModelInput(
     """Check input arguments of an EnergySystemModel instance for value/type correctness."""
 
     # Locations and commodities have to be sets
-    isSetOfStrings(locations), isSetOfStrings(onlycommodities)
+    isSetOfStrings(locations), isSetOfStrings(commodities)
 
     # The commodityUnitDict has to be a dictionary which keys equal the specified commodities and which values are
     # strings
-    if not type(onlycommodityUnitsDict) == dict:
+    if not type(commodityUnitsDict) == dict:
         raise TypeError("The commodityUnitsDict input argument has to be a dictionary.")
-    if onlycommodities != set(onlycommodityUnitsDict.keys()):
+    if commodities != set(commodityUnitsDict.keys()):
         raise ValueError(
             "The keys of the commodityUnitDict must equal the specified commodities."
         )
-    isSetOfStrings(set(onlycommodityUnitsDict.values()))
+    isSetOfStrings(set(commodityUnitsDict.values()))
 
     isStrictlyPositiveInt(numberOfTimeSteps), isStrictlyPositiveNumber(hoursPerTimeStep)
 
