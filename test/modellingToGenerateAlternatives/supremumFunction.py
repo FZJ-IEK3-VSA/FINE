@@ -30,10 +30,10 @@ def supremum(i):
         for iteration in range(len(set_solutions)):
             sel_sum = 0
             print(f'Checking solution {i} in esM_solutions with solution {iteration} in set_solutions....')
-            sel_sum = sum((esM_solutions[i][key][parameter][item]-set_solutions[iteration][key][parameter][item])**2 
-                        for key in esM_solutions[i] 
-                        for parameter in esM_solutions[i][key] 
-                        for item in esM_solutions[i][key][parameter]) 
+            sel_sum = sum((esM_solutions[i][key][parameter][item]-set_solutions[iteration][key][parameter][item])**2
+                        for key in esM_solutions[i]
+                        for parameter in esM_solutions[i][key]
+                        for item in esM_solutions[i][key][parameter])
             if sel_sum == 0:
                 x_sum += m
                 x_sum_list.append(m)
@@ -45,8 +45,8 @@ def supremum(i):
 
         return 1/x_sum, x_sum_list
 
-# set_solutions is a dictionary that stores the maximally different MGA solutions. Always, set_solutions[0] is the optimal 
-# solution in the original optimization, which is also the first solution in esM_solutions. therefore, initially, set_solution 
+# set_solutions is a dictionary that stores the maximally different MGA solutions. Always, set_solutions[0] is the optimal
+# solution in the original optimization, which is also the first solution in esM_solutions. therefore, initially, set_solution
 # has only 1 solution.
 # Each solution in esM_solutions is compared with each solution in set_solutions. For example, the 4 solutions in esm_solutions
 # are compared with the solution in set_solutions. The solution in esM_solutions with the highest squared mean Euclidian distance
@@ -73,6 +73,6 @@ for k in range(iterations):
             print(f'Max value of {get_max} is less than to previous_max {previous_max}. ')
         print('------------------------------------')
     print (f"Maximally different solution {k+1} identified... Solution {highest_distance} \n\n")
-    set_solutions[k+1] = esM_solutions[highest_distance] 
+    set_solutions[k+1] = esM_solutions[highest_distance]
 
 print(set_solutions)

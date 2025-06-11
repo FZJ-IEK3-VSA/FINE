@@ -156,7 +156,7 @@ print(esM.pyM.component("optimalCostConstraint").expr)
 #     timeSeriesAggregation = False,
 #     solver='gurobi',
 #     optimizationSpecs="OptimalityTol=1e-3 method=2 cuts=0 MIPGap=5e-3",
-#     declaresOptimizationProblem=True, 
+#     declaresOptimizationProblem=True,
 #     warmstart=False,
 #     threads=0,
 #     slack = 0.1,
