@@ -16,4 +16,4 @@ from .subclasses import *
 from .IOManagement import *
 from .expansionModules import *
 from .aggregations import *
-from .modellingToGenerateAlternatives import *
+# from .modellingToGenerateAlternatives import *
