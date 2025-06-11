@@ -131,7 +131,7 @@ fn.Mgaoptimize.calculateBeta(esM, random_seed=False)
 fn.Mgaoptimize.declareMGAOptimizationProblem(esM, iteration=1, sense="maximize")
 
 # Check manually the beta values in the corresponding objective function.
-# For example, if 'Region1': {1: {'Electricity demand'} in esM.beta is i, then i in 
+# For example, if 'Region1': {1: {'Electricity demand'} in esM.beta is i, then i in
 # i*op_srcSnk[Region1,Electricity demand,0,0,0] in the objective function must be the same (i is a float between 0 and 1).
 
 print(esM.beta)

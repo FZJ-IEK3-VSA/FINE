@@ -19,22 +19,22 @@ def calculateBeta(esM):
             if loc1 != loc2:
                 transmission_locations.append(loc1 + "_" + loc2)
 
-    esM.beta = {location: 
-            {iteration+1: 
-            {component: random.random() for component in components 
-             if component not in transmissionComponents               
-            }  
+    esM.beta = {location:
+            {iteration+1:
+            {component: random.random() for component in components
+             if component not in transmissionComponents
+            }
             for iteration in range(esM.iterations)
-            } 
+            }
             for location in esM.locations
             }
-    
-    transmission_data = {location: 
-            {iteration+1: 
+
+    transmission_data = {location:
+            {iteration+1:
             {component: random.random() for component in transmissionComponents
-            }  
+            }
             for iteration in range(esM.iterations)
-            } 
+            }
             for location in transmission_locations
             }
 
