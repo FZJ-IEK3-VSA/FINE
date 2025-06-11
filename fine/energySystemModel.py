@@ -15,7 +15,6 @@ from fine import utils
 from fine.aggregations.spatialAggregation import manager as spagat
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
-# from fine.modellingToGenerateAlternatives import Mgaoptimize
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -2184,6 +2183,9 @@ class EnergySystemModel:
 
             if hasattr(self, "etlModel"):
                 self.etlModel.setOptimalValues(self, self.pyM)
+
+            # Store the objective value in the EnergySystemModel instance.
+            self.objectiveValue = self.pyM.Obj()
 
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
