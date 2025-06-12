@@ -43,6 +43,7 @@ class PiecewiseLinearCostFunctionModule:
             self.pwlcf_type = 'eos'
             utilsPWLCF.checkInvestmentPeriods(esM)
             self.eosParameters = utilsPWLCF.checkAndSetEosParameters(comp, eosParameters)
+            self.initCapacity = 0 
             self.noSegments = len(eosParameters["capacity"]) - 1
 
         self.commisYears = comp.processedStockYears + esM.investmentPeriods
@@ -143,7 +144,6 @@ class PiecewiseLinearCostFunctionModel:
             self.declareBinaryPwlcfConstr(pyM)
             self.declareSegmentCapacityPwlcfConstr(pyM)
             self.declareCapacityCommissioningPwlcfConstr(esM, pyM)
-            self.declareCapacityMaxEosConstr(esM, pyM)
 
     def declareBinaryPwlcfConstr(self, pyM):
         def binaryPwlcfConstr(pyM, moduleName, ip, segment):
@@ -206,29 +206,10 @@ class PiecewiseLinearCostFunctionModel:
                 pyM.segmentCapacityPwlcfVar[moduleName, ip, segment]
                 for segment in range(module.noSegments)
             )
-            if self.modulesDict[moduleName].pwlcf_type == "eos":
-                return capSegmentVarSum == commVarSum
-            if self.modulesDict[moduleName].pwlcf_type == "etl":
-                return capSegmentVarSum == commVarSum + module.initCapacity
-            return None
+            return capSegmentVarSum == commVarSum + module.initCapacity
 
         pyM.ConstrCapacityCommissioningPwlcf = pyomo.Constraint(
             pyM.pwlcfDesignSet, rule=capacityCommissioningPwlcfConstr
-        )
-
-    def declareCapacityMaxEosConstr(self, esM, pyM):
-        def capacityMaxEosConstr(pyM, moduleName, ip):
-            module = self.modulesDict[moduleName]
-            if module.pwlcf_type == "etl":
-                return pyomo.Constraint.Skip
-            compClass = module.comp.modelingClass().abbrvName
-            commVar = getattr(pyM, "commis_" + compClass)
-            maxCapacity = module.eosParameters["capacity"].iloc[-1]
-            loc = list(esM.locations)[0]
-            return commVar[loc, moduleName, ip] <= maxCapacity
-
-        pyM.ConstrCapacityMaxEos = pyomo.Constraint(
-            pyM.pwlcfDesignSet, rule=capacityMaxEosConstr
         )
 
 
@@ -326,13 +307,11 @@ class PiecewiseLinearCostFunctionModel:
             for commisYear in module.commisYears:
 
                 if self.modulesDict[moduleName].pwlcf_type == "eos":
-                    opex = self.getOpexEos(pyM, moduleName, getOptValue)
-                    annuity = self.getAnnuityEos(pyM, moduleName, getOptValue)
+                    opex = self.getCostContributionsPwlcf(pyM, moduleName, self.modulesDict[moduleName].pwlcf_type, 'opex', getOptValue=getOptValue)
+                    annuity = self.getCostContributionsPwlcf(pyM, moduleName, self.modulesDict[moduleName].pwlcf_type, 'annuity', getOptValue=getOptValue)
                 else:
-                    opex = 0
-                    annuity = self.getAnnuityEtl(
-                        pyM, moduleName, commisYear, module.commisYears, getOptValue
-                    )
+                    opex = self.getCostContributionsPwlcf(pyM, moduleName, self.modulesDict[moduleName].pwlcf_type, 'opex', commisYear=commisYear, getOptValue=getOptValue)
+                    annuity = self.getCostContributionsPwlcf(pyM, moduleName, self.modulesDict[moduleName].pwlcf_type, 'annuity', commisYear=commisYear, getOptValue=getOptValue)
 
                 for i in range(commisYear, commisYear + fullCostIntervals):
                     costContribution[moduleName][(commisYear, i)] = (
@@ -434,82 +413,80 @@ class PiecewiseLinearCostFunctionModel:
             for ip in esM.investmentPeriods
         )
 
-    def getAnnuityEos(self, pyM, moduleName, getOptValue=False):
+    def getCostContributionsPwlcf(self, pyM, moduleName, pwlcf_type, costType, commisYear=None, getOptValue=False):
         module = self.modulesDict[moduleName]
-        if not getOptValue:
-            totalCost = sum(
-                pyM.binaryPwlcfVar[moduleName, 0, segment] * module.eosParameters["interceptionTotalInvest"].iloc[segment] +
-                pyM.segmentCapacityPwlcfVar[moduleName, 0, segment] * module.eosParameters["slopeTotalInvest"].iloc[segment]
-                for segment in range(module.noSegments)
-            )
-        else:
-            totalCost = sum(
-                pyM.binaryPwlcfVar[moduleName, 0, segment].value * module.eosParameters["interceptionTotalInvest"].iloc[segment] +
-                pyM.segmentCapacityPwlcfVar[moduleName, 0, segment].value * module.eosParameters["slopeTotalInvest"].iloc[segment]
-                for segment in range(module.noSegments)
-            )
-        return totalCost / self.modulesDict[moduleName].comp.CCF[0].mean()
-
-    def getOpexEos(self, pyM, moduleName, getOptValue=False):
-        module = self.modulesDict[moduleName]
-        if not getOptValue:
-            totalOpexFix = sum(
-                pyM.binaryPwlcfVar[moduleName, 0, segment] * module.eosParameters["interceptionTotalOpex"].iloc[segment] +
-                pyM.segmentCapacityPwlcfVar[moduleName, 0, segment] * module.eosParameters["slopeTotalOpex"].iloc[segment]
-                for segment in range(module.noSegments)
-            )
-        else:
-            totalOpexFix = sum(
-                pyM.binaryPwlcfVar[moduleName, 0, segment].value * module.eosParameters["interceptionTotalOpex"].iloc[segment] +
-                pyM.segmentCapacityPwlcfVar[moduleName, 0, segment].value * module.eosParameters["slopeTotalOpex"].iloc[segment]
-                for segment in range(module.noSegments)
-            )
-        return totalOpexFix
-
-    def getAnnuityEtl(
-        self, pyM, moduleName, commisYear, commisYears, getOptValues=False
-    ):
-        def getIpTotalCost(ip):
-            if ip == commisYears[0] - 1:
-                totalCost = module.getTotalCostEtl(
-                    module.initCapacity - module.comp.stockCapacityStartYear.sum()
-                )
-            elif ip < 0:
-                unbuildStockUntilIp = sum(
-                    module.comp.processedStockCommissioning[i].sum()
-                    for i in range(ip + 1, 0)
-                )
-                totalCost = module.getTotalCostEtl(module.initCapacity - unbuildStockUntilIp)
-            elif pyomo_pwlf:
-                if not getOptValues:
-                    totalCost = pyM.totalCost[moduleName, ip]
+        commisYears = module.commisYears
+        if costType == 'opex':
+            if pwlcf_type == 'eos':
+                if not getOptValue:
+                    totalOpexFix = sum(
+                        pyM.binaryPwlcfVar[moduleName, 0, segment] * module.eosParameters["interceptionTotalOpex"].iloc[segment] +
+                        pyM.segmentCapacityPwlcfVar[moduleName, 0, segment] * module.eosParameters["slopeTotalOpex"].iloc[segment]
+                        for segment in range(module.noSegments)
+                    )
                 else:
-                    totalCost = pyM.totalCost[moduleName, ip].value
-            elif not getOptValues:
-                totalCost = sum(
-                    module.linEtlParameter["interception"].loc[segment + 1]
-                    * pyM.binaryPwlcfVar[moduleName, ip, segment]
-                    + module.linEtlParameter["slope"].loc[segment + 1]
-                    * pyM.segmentCapacityPwlcfVar[moduleName, ip, segment]
-                    for segment in range(module.noSegments)
-                )
-            else:
-                totalCost = sum(
-                    module.linEtlParameter["interception"].loc[segment + 1]
-                    * pyM.binaryPwlcfVar[moduleName, ip, segment].value
-                    + module.linEtlParameter["slope"].loc[segment + 1]
-                    * pyM.segmentCapacityPwlcfVar[moduleName, ip, segment].value
-                    for segment in range(module.noSegments)
-                )
-            return totalCost
-
-        module = self.modulesDict[moduleName]
-        totalCostCommisYear = getIpTotalCost(commisYear)
-        totalCostPreCommisYear = getIpTotalCost(commisYear - 1)
-
-        return (totalCostCommisYear - totalCostPreCommisYear) / module.comp.CCF[
-            commisYear
-        ].mean()
+                    totalOpexFix = sum(
+                        pyM.binaryPwlcfVar[moduleName, 0, segment].value * module.eosParameters["interceptionTotalOpex"].iloc[segment] +
+                        pyM.segmentCapacityPwlcfVar[moduleName, 0, segment].value * module.eosParameters["slopeTotalOpex"].iloc[segment]
+                        for segment in range(module.noSegments)
+                    )
+            elif pwlcf_type == 'etl':
+                totalOpexFix = 0 #varying opex not implemented for etl
+            return totalOpexFix
+        elif costType == 'annuity':
+            if pwlcf_type == 'eos':
+                if not getOptValue:
+                    totalCost = sum(
+                        pyM.binaryPwlcfVar[moduleName, 0, segment] * module.eosParameters["interceptionTotalInvest"].iloc[segment] +
+                        pyM.segmentCapacityPwlcfVar[moduleName, 0, segment] * module.eosParameters["slopeTotalInvest"].iloc[segment]
+                        for segment in range(module.noSegments)
+                    )
+                else:
+                    totalCost = sum(
+                        pyM.binaryPwlcfVar[moduleName, 0, segment].value * module.eosParameters["interceptionTotalInvest"].iloc[segment] +
+                        pyM.segmentCapacityPwlcfVar[moduleName, 0, segment].value * module.eosParameters["slopeTotalInvest"].iloc[segment]
+                        for segment in range(module.noSegments)
+                    ) 
+            elif pwlcf_type == 'etl':
+                def getIpTotalCost(ip):
+                    if ip == commisYears[0] - 1:
+                        totalCost = module.getTotalCostEtl(
+                            module.initCapacity - module.comp.stockCapacityStartYear.sum()
+                        )
+                    elif ip < 0:
+                        unbuildStockUntilIp = sum(
+                            module.comp.processedStockCommissioning[i].sum()
+                            for i in range(ip + 1, 0)
+                        )
+                        totalCost = module.getTotalCostEtl(module.initCapacity - unbuildStockUntilIp)
+                    elif pyomo_pwlf:
+                        if not getOptValue:
+                            totalCost = pyM.totalCost[moduleName, ip]
+                        else:
+                            totalCost = pyM.totalCost[moduleName, ip].value
+                    elif not getOptValue:
+                        totalCost = sum(
+                            module.linEtlParameter["interception"].loc[segment + 1]
+                            * pyM.binaryPwlcfVar[moduleName, ip, segment]
+                            + module.linEtlParameter["slope"].loc[segment + 1]
+                            * pyM.segmentCapacityPwlcfVar[moduleName, ip, segment]
+                            for segment in range(module.noSegments)
+                        )
+                    else:
+                        totalCost = sum(
+                            module.linEtlParameter["interception"].loc[segment + 1]
+                            * pyM.binaryPwlcfVar[moduleName, ip, segment].value
+                            + module.linEtlParameter["slope"].loc[segment + 1]
+                            * pyM.segmentCapacityPwlcfVar[moduleName, ip, segment].value
+                            for segment in range(module.noSegments)
+                        )
+                    return totalCost
+                totalCostCommisYear = getIpTotalCost(commisYear)
+                totalCostPreCommisYear = getIpTotalCost(commisYear - 1)
+                totalCost = (totalCostCommisYear - totalCostPreCommisYear)
+            return totalCost / module.comp.CCF[0].mean() #total annuity
+        else:
+            raise NotImplementedError(f"Getting cost contribution of a pwlcf component is only defined for opex or annuity and not for {costType}.")
 
     def setOptimalValues(self, esM, pyM):
         loc = list(esM.locations)[0]
