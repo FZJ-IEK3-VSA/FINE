@@ -43,7 +43,7 @@ class PiecewiseLinearCostFunctionModule:
             self.pwlcf_type = 'eos'
             utilsPWLCF.checkInvestmentPeriods(esM)
             self.eosParameters = utilsPWLCF.checkAndSetEosParameters(comp, eosParameters)
-            self.initCapacity = 0 
+            self.initCapacity = 0
             self.noSegments = len(eosParameters["capacity"]) - 1
 
         self.commisYears = comp.processedStockYears + esM.investmentPeriods
@@ -433,7 +433,7 @@ class PiecewiseLinearCostFunctionModel:
             elif pwlcf_type == 'etl':
                 totalOpexFix = 0 #varying opex not implemented for etl
             return totalOpexFix
-        elif costType == 'annuity':
+        if costType == 'annuity':
             if pwlcf_type == 'eos':
                 if not getOptValue:
                     totalCost = sum(
@@ -446,7 +446,7 @@ class PiecewiseLinearCostFunctionModel:
                         pyM.binaryPwlcfVar[moduleName, 0, segment].value * module.eosParameters["interceptionTotalInvest"].iloc[segment] +
                         pyM.segmentCapacityPwlcfVar[moduleName, 0, segment].value * module.eosParameters["slopeTotalInvest"].iloc[segment]
                         for segment in range(module.noSegments)
-                    ) 
+                    )
             elif pwlcf_type == 'etl':
                 def getIpTotalCost(ip):
                     if ip == commisYears[0] - 1:
