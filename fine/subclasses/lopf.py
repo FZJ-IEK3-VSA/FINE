@@ -178,6 +178,7 @@ class LOPFModel(TransmissionModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
 
         # Declare operation variable set
