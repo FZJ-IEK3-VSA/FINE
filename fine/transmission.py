@@ -546,6 +546,7 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
@@ -587,7 +588,7 @@ class TransmissionModel(ComponentModel):
         # Operation of component [commodityUnit]
         self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "op_bin")
+        self.declareOperationBinaryVars(pyM)
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -731,6 +732,15 @@ class TransmissionModel(ComponentModel):
         # Operation [commodityUnit*h] is limited by the installed capacity [commodityUnit] multiplied by operation time
         # series [-] and the hours per time step [h]
         self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+        # Couple binary operation variable to operation variable
+        self.binaryOperation(
+            pyM,
+            "ConstrOperation",
+            "opConstrSet",
+            "partLoadMin",
+            "op",
+            "op_bin",
+        )
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
