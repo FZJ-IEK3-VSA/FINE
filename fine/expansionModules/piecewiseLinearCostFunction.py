@@ -485,8 +485,7 @@ class PiecewiseLinearCostFunctionModel:
                 totalCostPreCommisYear = getIpTotalCost(commisYear - 1)
                 totalCost = (totalCostCommisYear - totalCostPreCommisYear)
             return totalCost / module.comp.CCF[0].mean() #total annuity
-        else:
-            raise NotImplementedError(f"Getting cost contribution of a pwlcf component is only defined for opex or annuity and not for {costType}.")
+        raise NotImplementedError(f"Getting cost contribution of a pwlcf component is only defined for opex or annuity and not for {costType}.")
 
     def setOptimalValues(self, esM, pyM):
         loc = list(esM.locations)[0]
