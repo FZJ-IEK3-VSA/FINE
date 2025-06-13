@@ -1146,7 +1146,7 @@ class EnergySystemModel:
         pyM.hasTSA = timeSeriesAggregation
         pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
-            if mdl.abbrvName != "etl":
+            if mdl.abbrvName != "pwlcf":
                 for comp in mdl.componentsDict.values():
                     comp.setTimeSeriesData(pyM.hasTSA)
 
@@ -1697,8 +1697,8 @@ class EnergySystemModel:
                 mdl.getObjectiveFunctionContribution(self, pyM)
                 for mdl in self.componentModelingDict.values()
             )
-            if hasattr(self, "etlModel"):
-                NPV += self.etlModel.getObjectiveFunctionContribution(self, pyM)
+            if hasattr(self, "pwlcfModel"):
+                NPV += self.pwlcfModel.getObjectiveFunctionContribution(self, pyM)
 
             return NPV
 
@@ -1790,15 +1790,15 @@ class EnergySystemModel:
             )
             utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
-        if hasattr(self, "etlModel"):
+        if hasattr(self, "pwlcfModel"):
             utils.output(
                 "Declaring sets, variables and constraints for ETL components",
                 self.verbose,
                 0,
             )
-            self.etlModel.declareSets(self, pyM)
-            self.etlModel.declareVariables(self, pyM)
-            self.etlModel.declareComponentConstraints(self, pyM)
+            self.pwlcfModel.declareSets(self, pyM)
+            self.pwlcfModel.declareVariables(self, pyM)
+            self.pwlcfModel.declareComponentConstraints(self, pyM)
             utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################
@@ -2196,8 +2196,8 @@ class EnergySystemModel:
                 for optParam in optimalValueParameters:
                     convertOptimalValues(self, mdl, optParam)
 
-            if hasattr(self, "etlModel"):
-                self.etlModel.setOptimalValues(self, self.pyM)
+            if hasattr(self, "pwlcfModel"):
+                self.pwlcfModel.setOptimalValues(self, self.pyM)
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()

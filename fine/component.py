@@ -48,7 +48,7 @@ class Component(metaclass=ABCMeta):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
-        etlParameter=None,
+        pwlcfParameters=None,
     ):
         """
         Constructor for creating an instance of the Component class.
@@ -488,6 +488,10 @@ class Component(metaclass=ABCMeta):
         :param floorTechnicalLifetime: if a technical lifetime is not a multiple of the interval, this
             parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval,
             by default True. The costs will then be applied to the corrected interval.
+
+        :param: pwlcfParameters: paramter dict for piecewise linear cost functions. Enables a standardized endogenous technological
+            learning approach with a fixed learning rate. In that case, the learning is conducted in each investment period and connected throughout.
+            Alternatively enables an economies of scale approach. In that case, the cost scaling is indepent in each investment period.
         """
         # Set general component data
         utils.isEnergySystemModelInstance(esM)
@@ -686,21 +690,11 @@ class Component(metaclass=ABCMeta):
             self.floorTechnicalLifetime,
         )
 
-        self.etlParameter = etlParameter
-        self.etl = None
-        if etlParameter:
-            etlModul = fine.expansionModules.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModul
-            self.etl = etlModul(self, esM, **etlParameter)
-            # TODO: check if needed
-
-            # self.processedInvestPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
-            #         esM,
-            #         name,
-            #         investPerCapacity,
-            #         dimension,
-            #         self.locationalEligibility,
-            #         self.processedStockYears + esM.investmentPeriods,
-            #     )
+        self.pwlcfParameters = pwlcfParameters
+        self.pwlcf = None
+        if pwlcfParameters and not all(param is None for param in pwlcfParameters.values()):
+            pwlcfModule = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModule
+            self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
 
     def addToEnergySystemModel(self, esM):
         """
@@ -730,11 +724,11 @@ class Component(metaclass=ABCMeta):
             esM.componentModelingDict.update({mdl: self.modelingClass()})
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
-        if self.etl is not None:
-            etlModel = fine.expansionModules.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModel
-            if not hasattr(esM, "etlModel"):
-                esM.etlModel = etlModel()
-            esM.etlModel.modulsDict.update({self.name: self.etl})
+        if self.pwlcf is not None:
+            pwlcfModel = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModel
+            if not hasattr(esM, "pwlcfModel"):
+                esM.pwlcfModel = pwlcfModel()
+            esM.pwlcfModel.modulesDict.update({self.name: self.pwlcf})
 
     def prepareTSAInput(self, rate, rateName, rateWeight, weightDict, data, ip):
         """

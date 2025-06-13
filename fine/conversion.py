@@ -53,7 +53,7 @@ class Conversion(Component):
         commissioningDependentCcf=False,
         emissionFactors=None,
         flowShares=None,
-        etlParameter=None,
+        pwlcfParameters=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -259,7 +259,7 @@ class Conversion(Component):
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
-            etlParameter=etlParameter,
+            pwlcfParameters=pwlcfParameters,
         )
 
         # opexPerOperation
