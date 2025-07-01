@@ -1,0 +1,41 @@
+image: condaforge/miniforge3:latest
+
+stages:
+  - test
+
+test:
+  stage: test
+  # tags:
+  #   - linux
+
+  script:
+    ## Install Mamba
+    # - conda install mamba -c conda-forge
+    #- mamba env update -n modelBuilder --file=requirements.yml
+    #- wget -O Miniforge3.sh "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" #https://github.com/conda-forge/miniforge#mambaforge
+    # - wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+    #- bash Miniforge3.sh -b -p "${HOME}/conda"
+    # - bash Mambaforge.sh -b -p "${HOME}/conda"
+    # - source "${HOME}/conda/etc/profile.d/conda.sh"
+    # - source "${HOME}/conda/etc/profile.d/mamba.sh"
+    # - conda activate
+    - mamba info --envs
+    
+    - conda create --name modelBuilder
+    - source activate modelBuilder
+
+    ## Install Env
+    - mamba env update -n modelBuilder --file=requirements-dev.yml
+    - mamba info --envs
+    - conda deactivate
+    - source activate modelBuilder
+    - git clone --branch develop https://github.com/FZJ-IEK3-VSA/FINE
+    - cd FINE
+    - pip install -e .
+    - cd ..
+    - conda info
+    - python -m pip show geokit
+    - python -m pip install -e .
+
+    ## Do testing
+    - python -m pytest --cov=modelBuilder tests/

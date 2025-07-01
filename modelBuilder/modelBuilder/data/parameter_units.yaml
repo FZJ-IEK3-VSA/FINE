@@ -1,0 +1,4 @@
+# this dict contains the FINE respectively modelManager.py params with their modelBuilder standard units
+# these units will be used all across the modelBuilder processes and will be converted to model units within modelManager main functions before adding to esM
+# will be interpreted in mathematical form, e.g. write a/(b*c) to divide by a product
+investPerCapacity : 1000 # EUR/kW #TODO later on, this dict should contain only base units being used in mB and the conversion factors will be calculated on the fly using model units and currency conversion dict

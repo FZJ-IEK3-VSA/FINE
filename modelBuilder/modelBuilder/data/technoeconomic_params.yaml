@@ -1,0 +1,492 @@
+### Components
+source:
+  wind_onshore:
+    investPerCapacity:
+      2020: 1.290
+      2030: 1.130
+      2040: 1.050
+      2050: 1.000
+    # opexFix: 0.025
+    opexFix: 0.025  # 2.5 % of investPerCapacity
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 20
+    commodity: electricity
+    clearName: "Wind Onshore"
+    citation: "FINE.NESTOR"
+
+  wind_offshore:
+    investPerCapacity: # usually variable based on foundation type. need to specify as a seperate column with investPerCapacity values.
+      2020: 3.920
+      2030: 3.457
+      2040: 2.993
+      2050: 2.530 
+      # Values only valid for the North sea, Baltic sea has different ones according to the values of the NESTOR group, TODO?
+    # opexFix: 0.025
+    opexFix: 0.025 # usually variable based on foundation type. need to specify as a separate column with opexFix values.
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 20
+    commodity: electricity
+    citation: "FINE.NESTOR"
+
+  rooftoppv:
+    investPerCapacity:
+      2020: 1.016
+      2030: 0.774
+      2040: 0.582
+      2050: 0.474
+    # opexFix: 0.021
+    opexFix: 0.021 # investPerCapacity * 2.1 %
+    opexPerOperation: 0
+    interestRate: 0.04
+    economicLifetime: 20
+    commodity: electricity
+    citation: "FINE.NESTOR"
+
+  ofpv_fixed:
+    investPerCapacity:
+      2020: 0.690
+      2030: 0.450
+      2040: 0.370
+      2050: 0.320
+    # opexFix: 0.017
+    opexFix: 0.017 # investPerCapacity * 1.7 %
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 20
+    commodity: electricity
+    citation: "FINE.NESTOR"
+
+  csp_ss_sf:
+    investPerCapacity:
+      2020: 0.341  
+      2030: 0.258 
+      2040: 0.237 
+      2050: 0.227 #227 EUR/kW
+    opexFix: 0.02 
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 25
+    commodity: heat_csp_ss
+    remark: ss means solar salt, which is a heat transfer fluid type
+    citation: "Diss Franzmann"
+
+  csp_he_sf:
+    investPerCapacity:
+      2020: 0.341
+      2030: 0.299
+      2040: 0.276
+      2050: 0.264
+    opexFix: 0.02  
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 25
+    commodity: heat_csp_he
+    remark: he means heliosol, which is a heat transfer fluid type
+    citation: "Diss Franzmann"
+
+  hydro_specifictype: #tbd
+    investPerCapacity:
+      2020: 3.000
+      2030: 3.000
+      2040: 3.000
+      2050: 3.000
+    # opexFix: 0.03
+    opexFix: 0.017 # investPerCapacity * 1.7 %
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 40
+    commodity: electricity
+    GlobEPName: tbd
+    citation: "e.pena.sanchez@f-juelich.de"
+    comment: "What is this source?"
+  
+  geothermal_EGS:
+    investPerCapacity:
+      2020: "-1.000"
+      2030: "-1.000"
+      2040: "-1.000"
+      2050: "-1.000"
+    # opexFix: 0.025
+    opexFix: 0.020  # 2.0 % of investPerCapacity
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 30
+    commodity: electricity
+    clearName: Enhanced Geothermal
+    citation: "d.franzmann"
+
+conversion:
+  liquefaction:
+    physicalUnit: "GW$_{LH_{2},LHV}$"
+    commodityConversionFactors: {
+        hydrogen_liquid: 1,
+        electricity: -0.2, #-1*LQf_electric_efficiency,
+        hydrogen_gas: -1.02, #-1/LQf_h2_efficiency
+      }
+    investPerCapacity:  #### TODO: double-check with others
+      2020: 1.5
+      2030: 1.5
+      2040: 1.5
+      2050: 1.5
+    opexFix: 0.08 # 8 % of investPerCapacity #### TODO: double-check with others
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 20
+    citation: "FINE.Infrastructure"
+    comment: "What is this source?"
+
+  electrolyzer_pem_NoCompressor:
+    physicalUnit: "GW$_{el}$$"
+    commodityConversionFactors: {
+        electricity: -1,
+        hydrogen_gas: 0.7, #FINE.Nestor costs are in EUR/kW_el
+      }
+    investPerCapacity:
+      2020: 0.800
+      2030: 0.500
+      2040: 0.400
+      2050: 0.350
+    opexFix: 0.03 # investPerCapacity * 3.0 %
+    opexPerOperation: 0
+    economicLifetime: 10
+    interestRate: 0.08
+    citation: "Stolten et. al:, Neue Ziele auf alten Wegen? Strategien für eine treibhausgasneutrale Energieversorgung bis zum Jahr 2045, 2021"
+
+  compressor:
+    physicalUnit: "GW$_{H_{2},LHV}$"
+    commodityConversionFactors: {
+      hydrogen_30bar: -1,
+      electricity: -0.02,
+      hydrogen_gas: 0.99    # 1% H2 losses in compression process, a little high, but there for no pipeline losses
+    }
+    investPerCapacity: # Mrd. Euros per GW H2 capacity
+      2020: 0.042
+      2030: 0.042
+      2040: 0.042
+      2050: 0.042
+    opexFix: 0.04 # investPerCapacity + 3.0 %
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 15
+    citation: "M. Reuß, Techno-¨okonomische Analyse alternativer Wasserstoffinfrastruktur. Thesis, 2019"
+
+  electrolyzer_pem_compressor: # 
+    physicalUnit: "GW$_{el}$"
+    commodityConversionFactors: {
+        electricity: -1,
+        hydrogen_gas: 0.683, # from 0.7 1% H2 loss and devided by 1.014 for compressor electricity demand to not need to adjust the electrolyser electricity input, what would change all investment costs
+      }                      # including 1% H2 losses in compression process, a little high, but there for no pipeline losses 
+    investPerCapacity:
+      2020: 0.8294        # Building sum of PEM and Compressor costs per GW electrolyser electicity 
+      2030: 0.5294        # Mrd.EU/GWe = 0.800 Mrd.EU/GW + (10^6/10^9)*(0.7 kW/H2/kWe * 0.02 kWe/kWH2 * 2100 Euro/kWe)
+      2040: 0.4294
+      2050: 0.3794
+    opexFix: 0.03 # investPerCapacity * 3.0 %
+    opexPerOperation: 0
+    economicLifetime: 10
+    interestRate: 0.08
+    citation: "See presentation PEM Electrolyzer + Compressor in Techno-economic params folder of FINE Unions Teams group"
+
+  regasification:
+    physicalUnit: "GW$_{H_{2},LHV}$"
+    commodityConversionFactors: {
+        hydrogen_liquid: -1,
+        electricity: -0.02,
+        hydrogen_gas: 1 
+      }
+    investPerCapacity:
+      2020: 0.024
+      2030: 0.024
+      2040: 0.024
+      2050: 0.024
+    opexFix: 0.03 # investPerCapacity + 3.0 %
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 10
+    citation: "FINE.Infrastructure"
+
+  ccgt_hydrogenGas:
+    physicalUnit: "GW$_{el}$"
+    commodityConversionFactors: {
+        electricity: 1,
+        hydrogen_gas: -1.6667, # -1/0.6  #FINE.Nestor costs are in EUR/kW_el
+      }
+    investPerCapacity: 
+      2020: 0.76
+      2030: 0.76
+      2040: 0.76
+      2050: 0.76
+    opexFix: 0.014
+    opexPerOperation: 0 #0.000002 # dropped for nuimerical stability reasons
+    interestRate: 0.08
+    economicLifetime: 20
+    citation: "Stolten et. al:, Neue Ziele auf alten Wegen? Strategien für eine treibhausgasneutrale Energieversorgung bis zum Jahr 2045, 2021, see H2CCPP" #H2CCPP
+
+  csp_ss_powerplant:
+    physicalUnit: "GW$_{el}$"
+    commodityConversionFactors: {
+        heat_csp_ss: -2.342, #1/0.427
+        electricity: 1
+      }
+    investPerCapacity: 
+      2020:  1.056 #1056 EUR/kw_el
+      2030: 1.003
+      2040: 0.922
+      2050: 0.833
+    opexFix: 0.02
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 25
+    citation: "Diss Franzmann"
+  
+  csp_he_powerplant:
+    physicalUnit: "GW$_{el}$"
+    commodityConversionFactors: {
+        heat_csp_he: -2.556, # 1/0.391
+        electricity: 1
+      }
+    investPerCapacity: 
+      2020:  1.056 #1056 EUR/kw_el
+      2030: 1.003
+      2040: 0.922
+      2050: 0.833
+    opexFix: 0.02
+    opexPerOperation: 0
+    interestRate: 0.08
+    economicLifetime: 25
+    citation: "Diss Franzmann"
+
+
+storage:
+  battery_LIIon:
+    chargeEfficiency: 0.96
+    dischargeEfficiency: 0.96
+    cyclicLifetime: 10000
+    selfDischarge: 4.230356001899693e-05 # 1-(1-0.03)**(1/(30*24))
+    chargeRate: 1
+    dischargeRate: 1
+    stateOfChargeMin: 0
+    stateOfChargeMax: 1
+    investPerCapacity:
+      2020: 0.31149967
+      2030: 0.175113328
+      2040: 0.15322416199999998
+      2050: 0.131334996
+    opexFix: 0.025 # investPerCapacity * 0.025
+    opexPerChargeOperation: 0.00005 # 0.0001/2
+    opexPerDischargeOperation: 0.00005 # 0.0001/2
+    interestRate: 0.08
+    economicLifetime: 15
+    commodity: electricity
+    citation: "Stolten et. al:, Neue Ziele auf alten Wegen? Strategien für eine treibhausgasneutrale Energieversorgung bis zum Jahr 2045, 2021"
+
+  hydrogenGas_vessel:
+    chargeEfficiency: 0.98
+    dischargeEfficiency: 0.99
+    cyclicLifetime: 10000
+    selfDischarge: 0
+    chargeRate: 0.08333333333333 # 1/12
+    dischargeRate: 0.08333333333333 # 1/12
+    stateOfChargeMin: 0.1
+    stateOfChargeMax: 1
+    investPerCapacity:
+      2020: 0.018
+      2030: 0.018
+      2040: 0.018
+      2050: 0.018
+    opexFix: 0.02 # investPerCapacity * 2 %
+    opexPerChargeOperation: 0
+    opexPerDischargeOperation: 0
+    interestRate: 0.04
+    economicLifetime: 30
+    commodity: hydrogen_gas
+    citation: "Stolten et. al:, Neue Ziele auf alten Wegen? Strategien für eine treibhausgasneutrale Energieversorgung bis zum Jahr 2045, 2021"
+
+  hydrogenLiquid_tank:
+    chargeEfficiency: 1
+    dischargeEfficiency: 1
+    cyclicLifetime: 10000
+    selfDischarge: 1.25018e-05 #0.03%/day
+    chargeRate: 1 #not limited
+    dischargeRate: 1 #not limited
+    stateOfChargeMin: 0
+    stateOfChargeMax: 1
+    investPerCapacity: # 25 EUR / kg H2
+      2020: 0.00075 #
+      2030: 0.00075
+      2040: 0.00075
+      2050: 0.00075
+    # opexIfBuilt: 1.5e-05  # not tracable by given source
+    opexFix: 0.02
+    opexPerChargeOperation: 0
+    opexPerDischargeOperation: 0
+    interestRate: 0.08
+    economicLifetime: 20
+    commodity: hydrogen_liquid
+    citation: 'Heuser, Philipp-Matthias; Stolten, Detlef "Weltweite Infrastruktur zur Wasserstoffbereitstellung auf Basis erneuerbarer Energien", RWTH AAchen, 2020'
+
+  hydrogen_saltcavern:
+    chargeEfficiency: 0.98
+    dischargeEfficiency: 0.99
+    cyclicLifetime: 10000
+    selfDischarge: 0 
+    chargeRate: 1 #not limited
+    dischargeRate: 1 #not limited
+    stateOfChargeMin: 0 #TODO @d.franzmann double-check
+    stateOfChargeMax: 1
+    investPerCapacity:
+      2020: 0.0007 # 0.362 EUR/kWh Dilara, 0.7 EUR/kWh Nestor
+      2030: 0.0007
+      2040: 0.0007
+      2050: 0.0007
+    opexFix: 0.02
+    opexPerChargeOperation: 0
+    opexPerDischargeOperation: 0
+    interestRate: 0.08
+    economicLifetime: 40 #40 Nestor
+    commodity: hydrogen_gas
+    citation: 'Stolten et. al:, Neue Ziele auf alten Wegen? Strategien für eine treibhausgasneutrale Energieversorgung bis zum Jahr 2045, 2021'
+
+  csp_ss_storage:
+    chargeEfficiency: 0.99
+    dischargeEfficiency: 0.99
+    cyclicLifetime: 10000
+    selfDischarge: 0.04166 #1%/day
+    chargeRate: 1 #not limited
+    dischargeRate: 1 #not limited
+    investPerCapacity:
+      2020: 0.044
+      2030: 0.0255
+      2040: 0.0235
+      2050: 0.0224
+    opexFix: 0.02
+    opexPerChargeOperation: 0
+    opexPerDischargeOperation: 0
+    interestRate: 0.08
+    economicLifetime: 25
+    commodity: heat_csp_ss
+    citation: Diss Franzmann
+  
+  csp_he_storage:
+    chargeEfficiency: 0.99
+    dischargeEfficiency: 0.99
+    cyclicLifetime: 10000
+    selfDischarge: 0.04166 #1%/day
+    chargeRate: 1 #not limited
+    dischargeRate: 1 #not limited
+    investPerCapacity:
+      2020: 0.044
+      2030: 0.03696
+      2040: 0.0340
+      2050: 0.0325
+    opexFix: 0.02
+    opexPerChargeOperation: 0
+    opexPerDischargeOperation: 0
+    interestRate: 0.08
+    economicLifetime: 25
+    commodity: heat_csp_he
+    citation: Diss Franzmann
+
+
+transmission:
+  electricity_grid_onshore:
+    investPerCapacity:      
+      2020: 0.000860 
+      2030: 0.000860
+      2040: 0.000860
+      2050: 0.000860
+    losses: 0.000035 #1/km
+    economicLifetime: 40 
+    opexFix: 0.035   
+    opexPerOperation: 0
+    interestRate: 0.08
+    commodity: electricity
+    citation: see excel sheets HVDC in Techno-economic params folder of FINE Unions Teams group --> https://samfzj.sharepoint.com/:x:/s/FINE.Union/ETGsmfmxNPxNhoVzhEFhQvkBfGd5-CMejdNf2vvZPGHWWQ?e=CPVvmF
+
+  electricity_grid_offshore: 
+    investPerCapacity:
+      2020: 0.00130 
+      2030: 0.00130
+      2040: 0.00130
+      2050: 0.00130
+    losses: 0.000035 #1/km
+    economicLifetime: 40 
+    opexFix: 0.035   
+    opexPerOperation: 0
+    interestRate: 0.08
+    commodity: electricity
+    citation: see excel sheets HVDC in Techno-economic params folder of FINE Unions Teams group --> https://samfzj.sharepoint.com/:x:/s/FINE.Union/ETGsmfmxNPxNhoVzhEFhQvkBfGd5-CMejdNf2vvZPGHWWQ?e=CPVvmF
+
+## it is fine to calculate with this assumptions, on the long run update needed. Operational costs, max depth, losses, and Compressors have to be added
+  hydrogenGas_pipeline_onshore:
+    investPerCapacity:
+      2020: 185.0e-6 
+      2030: 185.0e-6
+      2040: 185.0e-6
+      2050: 185.0e-6
+    losses: 0                # compressor losses (1%) including pipeline losses
+    opexFix: 0.005405405405 # 1/185 given by original source
+    opexPerOperation: 0 # to check!
+    economicLifetime: 40
+    interestRate: 0.08
+    commodity: hydrogen_gas
+    citation: 'Çağlayan, Dilara Gülçin; Stolten, Detlef: "A robust design of a renewable European energy system encompassing a hydrogen infrastructure", RWTH Aachen University, 2020'
+
+  hydrogenGas_pipeline_offshore: # Max. depth of 5000m has to be added
+    investPerCapacity:
+      2020: 469.0e-6
+      2030: 469.0e-6
+      2040: 469.0e-6
+      2050: 469.0e-6
+    losses: 0                # compressor losses (1%) including pipeline losses
+    opexFix: 0.009
+    opexPerOperation: 0.00 
+    economicLifetime: 40
+    interestRate: 0.08
+    commodity: hydrogen_gas
+    citation: 'See presentation in FINE.Unions Teams folder techno-economic params: Techno-Economic Data for Subsea Pipelines'
+
+  testingparams_grid_onshore:
+    investPerCapacity:
+      2020: 1
+      2030: 1
+      2040: 1
+      2050: 1
+    losses: 0.0001
+    economicLifetime: 10
+    opexFix: 0.01
+    opexPerOperation: 0.0001 
+    interestRate: 0.01
+    commodity: electricity
+    citation: "this values are made up for testing"
+
+  testingparams_grid_offshore:
+    investPerCapacity:
+      2020: 2
+      2030: 2
+      2040: 2
+      2050: 2
+    losses: 0.0002
+    economicLifetime: 10
+    opexFix: 0.02
+    opexPerOperation: 0.0002 
+    interestRate: 0.02
+    commodity: electricity
+    citation: "this values are made up for testing"
+
+
+  # hydrogenLiquid_shipping:
+  #   opexPerOperation: 1.2400e-09 # GW_H2_LHV / km # not used within the model d.franzmann 25.02.2023
+  #   commodity: hydrogen_liquid
+
+demand:
+  electricity_demand:
+    commodity: electricity
+  hydrogen_gas_demand:
+    commodity: hydrogen_gas
+  hydrogen_liquid_demand:
+    commodity: hydrogen_liquid
+
+

@@ -1,0 +1,6 @@
+### path and keyword information for existing default potentials
+electricity_grid: 
+  base_folder: "/storage_cluster/shared_data/2023_gears/FineUnion/existing_grids/electricity_grid/osm_all_e_grids_with_caps.shp"
+  capacity_unit: 'MW'
+testingparams_grid:
+  capacity_unit: 'MW'

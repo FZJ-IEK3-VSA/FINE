@@ -1,0 +1,38 @@
+# directories
+env/*
+.eggs/*
+*.egg-info/
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+__pycache__/
+analysis/regions/*
+
+# file types to ignore
+#*.ipynb
+*.aux.xml
+
+# Remove things in testing results dir
+testing/results/*.tif
+testing/results/*.shp
+testing/results/*.dbf
+testing/results/*.shx
+testing/results/*.prj
+testing/results/*.cpg
+testing/results/*.csv
+testing/results/eligibility_plots
+tests/test_data/output_data/*
+
+# Gurobi log
+examples/firstExample/log.txt
+
+# Extras
+.vscode/settings.json
+.vscode/launch.json
+.coverage
+.pytest
+.cache/v/cache/lastfailed
+.pytest_cache/*
+
+
+# Log files
+examples/logs/*

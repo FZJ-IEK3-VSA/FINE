@@ -1,0 +1,42 @@
+# Structure: unit type as key, units and multiplication factor (x SI unit) as sub key/value pairs
+# All units in capitals
+
+### power units
+power:
+    W:      1
+    kW:     1000
+    MW:     1000000
+    GW:     1000000000
+    TW:     1000000000000
+    PW:     1000000000000000
+
+### energy units
+energy:
+    W*h:    1
+    Wh:     1
+    kW*h:   1000
+    kWh:    1000
+    MW*h:   1000000
+    MWh:    1000000
+    GW*h:   1000000000
+    GWh:    1000000000
+    TW*h:   1000000000000
+    TWh:    1000000000000
+    PW*h:   1000000000000000
+    PWh:    1000000000000000
+
+# currencies and monetary units
+currency:
+    EUR:    1
+    1E3EUR: 1000
+    kEUR:   1000
+    1E6EUR: 1000000
+    MEUR:   1000000
+    1E9EUR: 1000000000
+
+# mass related units
+weight:
+    kg: 1
+    t:  1000
+    kt: 1000000
+    Mt: 1000000000

@@ -1,0 +1,19 @@
+name: modelBuilder
+
+channels:
+  - conda-forge
+
+dependencies:
+  - pip
+  - matplotlib
+  - descartes
+  - pandas
+  - numpy
+  - scipy
+  - scikit-learn
+  - geopandas
+  - iek-3::fine
+  - pyyaml
+  - natsort
+  - pip:
+      - -e .

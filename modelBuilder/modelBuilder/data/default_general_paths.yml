@@ -1,0 +1,10 @@
+### path and attribute information for external files for general use in fineatlas
+countries:
+  filepath: /benchtop/internal/data/c-winkler/04_Data/01_Geodata/Political_Geography/01_Country_Borders/ALL_global/gadm36_0.shp
+  attribute: GID_0
+eezs:
+  filepath: /benchtop/internal/data/c-winkler/04_Data/01_Geodata/Political_Geography/03_Other_boundaries/02_Exclusive_Economic_Zones_EEZ/World_EEZ_v11_20191118/eez_v11_merged.shp
+  attribute: ISO_TER1
+default_regions:
+  filepath: /fast/storage_cluster/internal/data/gears/FineUnion/regions/gadm36_GID1(0)_EastWest_and_largeRegion_split_epsg4326_withUnion_v2.shp
+  attribute: region_id

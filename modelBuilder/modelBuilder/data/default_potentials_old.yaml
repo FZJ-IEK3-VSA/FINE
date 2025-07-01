@@ -1,0 +1,253 @@
+### path and keyword information for existing default potentials
+wind_onshore: 
+  ts_base_path: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/Onshore/Base/v20230101/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Onshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__Base.nc4
+  cap_base_path: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/Onshore/Base/v20230101/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Onshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__Base.pickle
+  scenario: Base
+  iteration_name: v20230101
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  data_unit: kW
+  daily_timeseries: null 
+  hourly_reference_timeseries: null
+  region_col_name: region
+# wind_onshore: #TODO remove all commented out old versions
+#   potentials_technology_name: Onshore
+#   base_folder: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/
+#   scenario: Base
+#   iteration_name: v20230101
+#   sub_dataset_name: null
+#   aggregation_dict:
+#     ts_capacity_factor: capacity
+#   negative_ts: null
+#   additional_aggregation_vars: null
+#   capacity_unit: kW
+#   SI_base_unit: W
+#   daily_timeseries: null 
+#   hourly_reference_timeseries: null
+
+wind_offshore: 
+  ts_base_path: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/Offshore/BaseV20230101/mBtest/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Offshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__BaseV20230101.nc4
+  cap_base_path: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/Offshore/BaseV20230101/mBtest/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Offshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__BaseV20230101.pickle
+  scenario: Base
+  iteration_name: V20230101
+  sub_dataset_name: null
+  aggregation_dict: # #TODO check if one can combine aggregation dict, additional_aggregation_vars and cluster_params
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: 
+    capx_EURkW: mean
+  cluster_params: 
+    investPerCapacity: capx_EURkW
+  data_unit: kW
+  # cost_unit: EUR #TODO to be added with proper unit conversion approach
+  daily_timeseries: null 
+  hourly_reference_timeseries: null
+  region_col_name: region
+# wind_offshore: 
+#   potentials_technology_name: Offshore
+#   base_folder: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/
+#   scenario: BaseV20230101
+#   iteration_name: mBtest
+#   sub_dataset_name: null
+#   aggregation_dict:
+#     ts_capacity_factor: capacity
+#   negative_ts: null
+#   additional_aggregation_vars: 
+#     capx_EURkW: mean
+#   cluster_params: 
+#     investPerCapacity: capx_EURkW
+#   capacity_unit: kW
+#   # cost_unit: EUR #TODO to be added with proper unit conversion approach
+#   SI_base_unit: W
+#   daily_timeseries: null 
+#   hourly_reference_timeseries: null
+
+ofpv_fixed: 
+  ts_base_path: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/OFPV_fixed/Base/v20230101/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__OFPV_fixed__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__Base.nc4
+  cap_base_path: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/OFPV_fixed/Base/v20230101/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__OFPV_fixed__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__Base.pickle
+  scenario: Base
+  iteration_name: v20230101
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  data_unit: kW
+  daily_timeseries: null 
+  hourly_reference_timeseries: null
+  region_col_name: region
+# ofpv_fixed: 
+#   potentials_technology_name: OFPV_fixed
+#   base_folder: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/
+#   scenario: Base
+#   iteration_name: v20230101
+#   sub_dataset_name: null
+#   aggregation_dict:
+#     ts_capacity_factor: capacity
+#   negative_ts: null
+#   additional_aggregation_vars: null
+#   capacity_unit: kW
+#   SI_base_unit: W
+#   daily_timeseries: null 
+#   hourly_reference_timeseries: null
+
+ofpv_singleaxis: 
+  ts_base_path: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/OFPV_singleAxis/Base/v20230101/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__OFPV_singleAxis__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__Base.nc4
+  cap_base_path: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/OFPV_singleAxis/Base/v20230101/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__OFPV_singleAxis__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__Base.pickle
+  scenario: Base
+  iteration_name: v20230101
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  data_unit: kW
+  daily_timeseries: null 
+  hourly_reference_timeseries: null
+  region_col_name: region_id
+# ofpv_singleaxis: 
+#   potentials_technology_name: OFPV_singleAxis
+#   base_folder: /storage_cluster/internal/data/c-winkler/01_Research/01_Dissertation/12_EnergyPotentials/global/
+#   scenario: Base
+#   iteration_name: v20230101
+#   sub_dataset_name: null
+#   aggregation_dict:
+#     ts_capacity_factor: capacity
+#   negative_ts: null
+#   additional_aggregation_vars: null
+#   capacity_unit: kW
+#   SI_base_unit: W
+#   daily_timeseries: null 
+#   hourly_reference_timeseries: null
+  
+csp_heliosol:
+  cap_base_path: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/01_CSP/results/02_RESKit/CSP/CSPs4-V2/CSPs4-V2/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__CSP__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__CSPs4-V2.pickle
+  ts_base_path: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/01_CSP/results/02_RESKit/CSP/CSPs4-V2/CSPs4-V2/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__CSP__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__CSPs4-V2__Dataset_Heliosol_2050.nc4
+  scenario: CSPs4-V2 
+  iteration_name: CSPs4-V2
+  sub_dataset_name: Dataset_Heliosol_2050
+  aggregation_dict:
+    ts_capacity_factor_sf: Csf_W
+    ts_capacity_factor_heat_FP_sf: Csf_W
+    ts_capacity_factor_plant: Cplant_W
+  negative_ts: ts_capacity_factor_heat_FP_sf
+  cluster_params: null
+  additional_aggregation_vars: 
+    Cstr_kWh: sum
+    DNInom_Wm2: mean
+  data_unit: W
+  daily_timeseries: ts_capacity_factor_plant
+  hourly_reference_timeseries: 
+  region_col_name: region
+# csp_heliosol:
+#   potentials_technology_name: CSP
+#   base_folder: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/01_CSP/results/02_RESKit
+#   scenario: CSPs4-V2 
+#   iteration_name: CSPs4-V2
+#   sub_dataset_name: Dataset_Heliosol_<COSTYEAR>
+#   aggregation_dict:
+#     ts_capacity_factor_sf: Csf_W
+#     ts_capacity_factor_heat_FP_sf: Csf_W
+#     ts_capacity_factor_plant: Cplant_W
+#   negative_ts: ts_capacity_factor_heat_FP_sf
+#   additional_aggregation_vars: 
+#     Cstr_kWh: sum
+#     DNInom_Wm2: mean
+#   capacity_unit: W
+#   SI_base_unit: W
+#   daily_timeseries: ts_capacity_factor_plant
+#   hourly_reference_timeseries: ts_capacity_factor_sf
+
+csp_solarsalt:
+  cap_base_path: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/01_CSP/results/02_RESKit/CSP/CSPs4-V2/CSPs4-V2/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__CSP__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__CSPs4-V2.pickle
+  ts_base_path: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/01_CSP/results/02_RESKit/CSP/CSPs4-V2/CSPs4-V2/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__CSP__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__CSPs4-V2__Dataset_SolarSalt_2050.nc4
+  sub_dataset_name: Dataset_SolarSalt_2050
+  aggregation_dict:
+    ts_capacity_factor_sf: Csf_W
+    ts_capacity_factor_heat_FP_sf: Csf_W
+    ts_capacity_factor_plant: Cplant_W
+  negative_ts: ts_capacity_factor_heat_FP_sf
+  cluster_params: null
+  additional_aggregation_vars: 
+    Cstr_kWh: sum
+    DNInom_Wm2: mean
+  data_unit: W
+  daily_timeseries: ts_capacity_factor_plant
+  hourly_reference_timeseries: ts_capacity_factor_sf
+  region_col_name: region
+# csp_solarsalt:
+#   potentials_technology_name: CSP
+#   base_folder: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/01_CSP/results/02_RESKit
+#   scenario: CSPs4-V2 
+#   iteration_name: CSPs4-V2
+#   sub_dataset_name: Dataset_SolarSalt_<COSTYEAR>
+#   aggregation_dict:
+#     ts_capacity_factor_sf: Csf_W
+#     ts_capacity_factor_heat_FP_sf: Csf_W
+#     ts_capacity_factor_plant: Cplant_W
+#   negative_ts: ts_capacity_factor_heat_FP_sf
+#   additional_aggregation_vars: 
+#     Cstr_kWh: sum
+#     DNInom_Wm2: mean
+#   capacity_unit: W
+#   SI_base_unit: W
+#   daily_timeseries: ts_capacity_factor_plant
+#   hourly_reference_timeseries: ts_capacity_factor_sf
+
+geothermal_egs:
+  cap_base_path: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/03_Geothermal/results/03_Merged/POL-lowV2_Doublette_xED8/allPlacements_POL-lowV2_Doublette_xED8.sqlite
+  ts_base_path: null
+  LCOE_name: LCOE_GR
+  capacity_name: Pnet_GR_MW
+  region_name_col: gid1
+  data_unit: MW
+  LCOE_to_EUR_per_kWh_factor: 1
+  LCOE_attribute_for_CAPEX: LCOE_EUR_per_kWh
+  aggregation_dict: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  sub_dataset_name: null
+  negative_ts: null
+  daily_timeseries: null
+  hourly_reference_timeseries: null
+  region_col_name: region_id
+# geothermal_egs:
+#   potentials_technology_name: None
+#   base_folder: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/03_Geothermal/results/03_Merged/POL-lowV2_Doublette_xED8/allPlacements_POL-lowV2_Doublette_xED8.sqlite
+#   LCOE_name: LCOE_GR
+#   capacity_name: Pnet_GR_MW
+#   region_name_col: gid1
+#   capacity_to_GW_factor: 0.001
+#   LCOE_to_EUR_per_kWh_factor: 1
+#   LCOE_attribute_for_CAPEX: LCOE_EUR_per_kWh
+
+hydrogen_saltcavern:
+  cap_base_path: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/02_Salt_caverns/PaperSaltCavernsCalcs/03_capacity_calculations/04_results_as_placements/allcaverns_base_data.csv
+  ts_base_path: null
+  LCOE_name: depth_LCC
+  capacity_name: H2capacity
+  region_name_col: GID_1
+  # capacity_to_GW_factor: 1000
+  data_unit: TW*h
+  LCOE_to_EUR_per_kWh_factor: 1
+  aggregation_dict: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  sub_dataset_name: null 
+  negative_ts: null #ts
+  daily_timeseries: null
+  hourly_reference_timeseries: null
+  region_col_name: region_id
+# hydrogen_saltcavern:
+#   base_folder: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/02_Salt_caverns/PaperSaltCavernsCalcs/03_capacity_calculations/04_results_as_placements/allcaverns_base_data.csv
+#   LCOE_name: depth_LCC
+#   capacity_name: H2capacity
+#   region_name_col: GID_1
+#   capacity_to_GW_factor: 1000
+#   LCOE_to_EUR_per_kWh_factor: 1

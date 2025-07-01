@@ -1,0 +1,208 @@
+### path and keyword information for existing default potentials
+wind_onshore: 
+  cap_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/Onshore/GHR24/GHR24_Turbine2030Winkler2024/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Onshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__GHR24.pickle 
+  ts_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/Onshore/GHR24/GHR24_Turbine2030Winkler2024/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Onshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__GHR24.nc4 
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  data_unit: kW
+  daily_timeseries: null 
+  hourly_reference_timeseries: null
+  region_col_name: region
+  cluster_params: null
+  scenario: Base
+  iteration_name: v20230101
+
+wind_offshore: 
+  # cap_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/Offshore/Empty/Empty_Turbine2030Winkler2024_v20240903/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Offshore__<GID1>_off*__SG<SPATGROUP>__<WEATHERYEAR>__100res__Empty.pickle 
+  # ts_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/Offshore/Empty/Empty_Turbine2030Winkler2024_v20240903/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Offshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__Empty.nc4 
+  cap_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/Offshore/GHR24/GHR24_Turbine2030Winkler2024/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Offshore__<GID1>_off*__SG<SPATGROUP>__<WEATHERYEAR>__100res__GHR24.pickle 
+  ts_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/Offshore/GHR24/GHR24_Turbine2030Winkler2024/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Offshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__GHR24.nc4 
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  data_unit: kW
+  daily_timeseries: null 
+  hourly_reference_timeseries: null
+  region_col_name: region
+  cluster_params: null
+  scenario: Base
+  iteration_name: v20230101
+
+ofpv_fixed: 
+  cap_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/OFPV_HSAT/Empty/Empty_v20240903/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__OFPV_HSAT__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__Empty.pickle 
+  ts_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/OFPV_HSAT/Empty/Empty_v20240903/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__OFPV_HSAT__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__Empty.nc4 
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  data_unit: kW
+  SI_base_unit: W
+  daily_timeseries: null 
+  hourly_reference_timeseries: null
+  region_col_name: region
+  cluster_params: null
+  scenario: Base
+  iteration_name: v20230101
+
+ofpv_hsat: 
+  cap_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/OFPV_HSAT/GHR24/GHR24/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__OFPV_HSAT__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__GHR24.pickle 
+  ts_base_path: /benchtop/projects/2024_c-winkler_IEA/IEA_GHR-24_exclusion_maps/02_Energy/outputs/EnergyPotentials/OFPV_HSAT/GHR24/GHR24/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__OFPV_HSAT__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__GHR24.nc4 
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  data_unit: kW
+  SI_base_unit: W
+  daily_timeseries: null 
+  hourly_reference_timeseries: null
+  region_col_name: region
+  cluster_params: null
+  scenario: Base
+  iteration_name: v20230101
+
+geothermal_egs:
+  cap_base_path: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/03_Geothermal/results/03_Merged/POL-lowV2_Doublette_xED8/allPlacements_POL-lowV2_Doublette_xED8.sqlite
+  ts_base_path: null
+  LCOE_name: LCOE_GR
+  capacity_name: Pnet_GR_MW
+  region_name_col: gid1
+  data_unit: MW
+  LCOE_to_EUR_per_kWh_factor: 1
+  LCOE_attribute_for_CAPEX: LCOE_EUR_per_kWh
+  aggregation_dict: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  sub_dataset_name: null
+  negative_ts: null
+  daily_timeseries: null
+  hourly_reference_timeseries: null
+  region_col_name: region_id
+
+hydrogen_saltcavern:
+  cap_base_path: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/02_Salt_caverns/PaperSaltCavernsCalcs/03_capacity_calculations/04_results_as_placements/allcaverns_base_data.csv
+  ts_base_path: null
+  LCOE_name: depth_LCC
+  capacity_name: H2capacity
+  region_name_col: GID_1
+  # capacity_to_GW_factor: 1000
+  data_unit: TW*h
+  LCOE_to_EUR_per_kWh_factor: 1
+  aggregation_dict: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  sub_dataset_name: null 
+  negative_ts: null #ts
+  daily_timeseries: null
+  hourly_reference_timeseries: null
+  region_col_name: region_id
+
+wind_onshore_stock:
+  ts_base_path: /fast/home/c-winkler/libs/reskitwindcalibrator/_26_simulate_global_windfarm_output_corrected/outputs/EnergyPotentials/Onshore/RealWindfarms/ERA5_calibration_2024_ERA5_GWA3_bincorr_valuefilter1_deviationfilter2_methodMedian/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Onshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__RealWindfarms.nc4
+  cap_base_path: /fast/home/c-winkler/libs/reskitwindcalibrator/_26_simulate_global_windfarm_output_corrected/outputs/EnergyPotentials/Onshore/RealWindfarms/ERA5_calibration_2024_ERA5_GWA3_bincorr_valuefilter1_deviationfilter2_methodMedian/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Onshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__RealWindfarms.pickle
+  scenario: RealWindfarms
+  iteration_name: ERA5_calibration_2024_ERA5_GWA3_bincorr_valuefilter1_deviationfilter2_methodMedian
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  data_unit: kW
+  daily_timeseries: null
+  hourly_reference_timeseries: null
+  region_col_name: region
+  scenario: Base
+  iteration_name: v20230101
+ 
+ 
+wind_offshore_stock:
+  ts_base_path: /fast/home/c-winkler/libs/reskitwindcalibrator/_26_simulate_global_windfarm_output_corrected/outputs/EnergyPotentials/Offshore/RealWindfarms/ERA5_calibration_2024_ERA5_GWA3_bincorr_valuefilter1_deviationfilter2_methodMedian/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Offshore__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__RealWindfarms.nc4
+  cap_base_path: /fast/home/c-winkler/libs/reskitwindcalibrator/_26_simulate_global_windfarm_output_corrected/outputs/EnergyPotentials/Offshore/RealWindfarms/ERA5_calibration_2024_ERA5_GWA3_bincorr_valuefilter1_deviationfilter2_methodMedian/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Offshore__<GID1>_off*__SG<SPATGROUP>__<WEATHERYEAR>__100res__RealWindfarms.pickle
+  scenario: RealWindfarms
+  iteration_name: ERA5_calibration_2024_ERA5_GWA3_bincorr_valuefilter1_deviationfilter2_methodMedian
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  data_unit: kW
+  daily_timeseries: null
+  hourly_reference_timeseries: null
+  region_col_name: region
+  scenario: Base
+  iteration_name: v20230101
+ 
+ofpv_fixed_stock:
+  ts_base_path: /labshelf/projects/2020_c-winkler_phd/_99_DayToDay/2024_11_18_brownfield_stock_OFPV/outputs/EnergyPotentials/OFPV_fixed/OFPVfarmsBrownfield/Global-Solar-Power-Tracker-June-2024-v2_filteredOperatingOFPVFillStart2017/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__OFPV_fixed__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__OFPVfarmsBrownfield.nc4
+  cap_base_path: /labshelf/projects/2020_c-winkler_phd/_99_DayToDay/2024_11_18_brownfield_stock_OFPV/outputs/EnergyPotentials/OFPV_fixed/OFPVfarmsBrownfield/Global-Solar-Power-Tracker-June-2024-v2_filteredOperatingOFPVFillStart2017/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__OFPV_fixed__<GID1>__SG<SPATGROUP>__<WEATHERYEAR>__100res__OFPVfarmsBrownfield.pickle
+  scenario: OFPVfarmsBrownfield
+  iteration_name: Global-Solar-Power-Tracker-June-2024-v2_filteredOperatingOFPVFillStart2017
+  sub_dataset_name: null
+  aggregation_dict:
+    ts_capacity_factor: capacity
+  negative_ts: null
+  additional_aggregation_vars: null
+  cluster_params: null
+  data_unit: kW
+  daily_timeseries: null
+  hourly_reference_timeseries: null
+  region_col_name: region
+  scenario: Base
+  iteration_name: v20230101
+
+# hydropower_conventional: 
+#   cap_base_path: /benchtop/projects/2020_H2AtlasAfrica/v2023_05/A_Potentials/C_PotentialsResults/EnergyPotentials/Hydropower_conventional/<BASEYEAR>_hydrofleet_as_Sterl/v2023/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Hydropower_conventional__<GID1>__SG0000-0000__<WEATHERYEAR>__100res__NormalYear.shp # comes from: /storage_cluster/projects/2022_e-pena_PhD/data/Hydropower_outputs/H2Africa_ModelBuilder/Hydropower_conventional/<BASEYEAR>_hydrofleet_as_Sterl/v2023/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Hydropower_conventional__<GID1>__SG0000-0000__<WEATHERYEAR>__100res__NormalYear.shp
+#   ts_base_path: /benchtop/projects/2020_H2AtlasAfrica/v2023_05/A_Potentials/C_PotentialsResults/EnergyPotentials/Hydropower_conventional/<BASEYEAR>_hydrofleet_as_Sterl/v2023/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Hydropower_conventional__<GID1>__SG0000-0000__<WEATHERYEAR>__100res__NormalYear.nc4 # comes from: /storage_cluster/projects/2022_e-pena_PhD/data/Hydropower_outputs/H2Africa_ModelBuilder/Hydropower_conventional/<BASEYEAR>_hydrofleet_as_Sterl/v2023/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Hydropower_conventional__<GID1>__SG0000-0000__<WEATHERYEAR>__100res__NormalYear.nc4
+#   sub_dataset_name: null
+#   aggregation_dict:
+#     ts_capacity_factor: capacity
+#   negative_ts: null
+#   additional_aggregation_vars: null
+#   data_unit: kW
+#   SI_base_unit: W
+#   daily_timeseries: null 
+#   hourly_reference_timeseries: null
+#   region_col_name: GID_1 # should be "GID_1split"
+#   cluster_params: null
+
+# hydropower_runofriver: 
+#   cap_base_path: /benchtop/projects/2020_H2AtlasAfrica/v2023_05/A_Potentials/C_PotentialsResults/EnergyPotentials/Hydropower_ror/<BASEYEAR>_hydrofleet_as_Sterl/v2023/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Hydropower_ror__<GID1>__SG0000-0000__<WEATHERYEAR>__100res__NormalYear.shp # comes from: /storage_cluster/projects/2022_e-pena_PhD/data/Hydropower_outputs/H2Africa_ModelBuilder/Hydropower_ror/<BASEYEAR>_hydrofleet_as_Sterl/v2023/<GID0>/100m/<WEATHERYEAR>/plant_vars/plant_vars__Hydropower_ror__<GID1>__SG0000-0000__<WEATHERYEAR>__100res__NormalYear.shp
+#   ts_base_path: /benchtop/projects/2020_H2AtlasAfrica/v2023_05/A_Potentials/C_PotentialsResults/EnergyPotentials/Hydropower_ror/<BASEYEAR>_hydrofleet_as_Sterl/v2023/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Hydropower_ror__<GID1>__SG0000-0000__<WEATHERYEAR>__100res__NormalYear.nc4 # comes from: /storage_cluster/projects/2022_e-pena_PhD/data/Hydropower_outputs/H2Africa_ModelBuilder/Hydropower_ror/<BASEYEAR>_hydrofleet_as_Sterl/v2023/<GID0>/100m/<WEATHERYEAR>/cluster_vars/cluster_vars__Hydropower_ror__<GID1>__SG0000-0000__<WEATHERYEAR>__100res__NormalYear.nc4
+#   sub_dataset_name: null
+#   aggregation_dict:
+#     ts_capacity_factor: capacity
+#   negative_ts: null
+#   additional_aggregation_vars: null
+#   data_unit: kW
+#   SI_base_unit: W
+#   daily_timeseries: null 
+#   hourly_reference_timeseries: null
+#   region_col_name: GID_1 # should be "GID_1split"
+#   cluster_params: null
+
+# geothermal_egs:
+#   cap_base_path: /benchtop/projects/2020_H2AtlasAfrica/v2023_05/A_Potentials/C_PotentialsResults/EnergyPotentials/Geothermal_EGS/allPlacements_POL-lowV2_Doublette_xED8.sqlite # comes from: /storage_cluster/projects/2023_d-franzmann_PhD/03_Diss/03_Geothermal/results/03_Merged/POL-lowV2_Doublette_xED8/allPlacements_POL-lowV2_Doublette_xED8.sqlite
+#   ts_base_path: null
+#   LCOE_name: LCOE_GR
+#   capacity_name: Pnet_GR_MW
+#   region_name_col: gid1
+#   data_unit: MW
+#   LCOE_to_EUR_per_kWh_factor: 1
+#   LCOE_attribute_for_CAPEX: LCOE_EUR_per_kWh
+#   aggregation_dict: null
+#   additional_aggregation_vars: null
+#   cluster_params: null
+#   sub_dataset_name: null
+#   negative_ts: null
+#   daily_timeseries: null
+#   hourly_reference_timeseries: null
+#   region_col_name: region_id
+

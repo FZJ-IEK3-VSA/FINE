@@ -1,0 +1,5 @@
+esM:          ### EnergySytemModel settings:
+  costUnit: "1e9 Euro"
+  lengthUnit: "km"
+  numberOfTimeSteps: 8760
+  hoursPerTimeStep: 1

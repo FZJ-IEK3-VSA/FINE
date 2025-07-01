@@ -1,0 +1,5 @@
+### All general data paths, related to e.g. default region shapefile
+general_data:
+#  default_regions_shp: "/storage_cluster/shared_data/2023_gears/FineUnion/regions/gadm36_GID1(0)_EastWest_and_largeRegion_split_epsg4326_withUnion_v2_1.shp" # remove when switched to Singletons #TODO ISSUE112
+  default_regions_fp: "/storage_cluster/shared_data/2023_gears/FineUnion/regions/gadm36_GID1(0)_EastWest_and_largeRegion_split_epsg4326_withUnion_v2_1.shp"
+  country_shapes_fp: "/benchtop/shared_data/GADM/ALL_global/gadm36_0.shp"

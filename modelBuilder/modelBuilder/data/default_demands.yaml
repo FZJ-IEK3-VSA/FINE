@@ -1,0 +1,10 @@
+electricity_demand:
+  path_abs_demands: "/storage_cluster/shared_data/2023_gears/FineUnion/demands/electricity_demand_shitab/<YEAR>/abs_el_demands_2050_Downscaling__GCAM_5.3__NGFS__Net_Zero_<YEAR>_GWh_gid1_V2.csv"
+  path_timeseries: "/storage_cluster/shared_data/2023_gears/FineUnion/demands/plexos_time_series/All_Demand_UTC_2015_processed_all_gid0.csv"
+hydrogen_gas_demand:
+  path_abs_demands: "/storage_cluster/shared_data/2023_gears/FineUnion/demands/hydrogen_demand/results/<YEAR>/hydrogen_demand_GWh_gid1.csv"
+  path_timeseries: ""
+VOLL:
+  path_VOLL: /storage_cluster/internal/data/d-franzmann/03_Diss/04_Lull_analysis/00_data/VoLL/processed_data/04_sectoral_VoLL_V1.csv
+  voll_to_BEUR_per_GWh_factor: 1E-6
+  voll_key: VOLL_2050_reduced_uncertainty[EUR/MWh]
