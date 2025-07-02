@@ -174,7 +174,14 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations. or
             * Dict with investment periods as keys and one of the options above as values.
 
-        :param partLoadMin: if specified, indicates minimal part load of component.
+        :param partLoadMin: If specified, it defines the lowest relative operation
+            rate a component must maintain during operation. To still allow the component
+            to be completely turned off, a binary variable is introduced for each time
+            step. This enables the model to choose between zero operation or operation
+            at or above the specified minimum load.
+            Note: Adding these binary variables turns the problem into a MILP, which
+            can significantly increase computational time.
+            |br| * the default value is None
         :type partLoadMin:
             * None or
             * Float value in range ]0;1]

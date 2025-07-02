@@ -88,7 +88,7 @@ def _create_system(
     ["hoursPerTimeStep", "partLoadMin"],
     [(0.25, None), (1, None),  (1, 0.5), (0.25, 0.5),],
 )
-def test_downTimeMin(hoursPerTimeStep, partLoadMin):
+def test_downTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints=True):
     """Test the downtime of the system
 
     The heat production with a methane heater is cheaper and therefore preferred.
@@ -113,18 +113,16 @@ def test_downTimeMin(hoursPerTimeStep, partLoadMin):
         {
             "downTimeMin": downTimeMin,
             "bigM": 10000,
-            "partLoadMin": partLoadMin},
+            "partLoadMin": partLoadMin,
+            "useTemporalCyclicConstraints": useTemporalCyclicConstraints
+        },
     )
 
     # optimize
     esM.optimize()
 
     # Check results: operation of the methane heater must be 3h*10kW less
-    expectedOperation = (
-        ENERGY_FLOW
-        * (NUMBER_OF_HOURS / hoursPerTimeStep - downTimeMin)
-        * hoursPerTimeStep
-    )
+    expectedOperation = ENERGY_FLOW* (NUMBER_OF_HOURS  - downTimeMin)
     heater_operation = (
         esM.getOptimizationSummary("ConversionDynamicModel")
         .loc["Methane heater", "operation", "[kW*h]"]
@@ -139,7 +137,7 @@ def test_downTimeMin(hoursPerTimeStep, partLoadMin):
     ["hoursPerTimeStep", "partLoadMin"],
     [(0.25, None), (1, None), (0.25, 0.5), (1, 0.5)],
 )
-def test_upTimeMin(hoursPerTimeStep, partLoadMin):
+def test_upTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints=True):
     """Test the uptime of the system.
 
     The heat production with a methane heater is cheaper and therefore preferred.
@@ -156,7 +154,12 @@ def test_upTimeMin(hoursPerTimeStep, partLoadMin):
     upTimeMin = 3
     esM.updateComponent(
         "Methane heater",
-        {"upTimeMin": upTimeMin, "bigM": 1000, "partLoadMin": partLoadMin},
+        {
+            "upTimeMin": upTimeMin,
+            "bigM": 1000,
+            "partLoadMin": partLoadMin,
+            "useTemporalCyclicConstraints": useTemporalCyclicConstraints
+        },
     )
 
     # Update Demand: Single time step to 0 so the heater must shut off
@@ -167,16 +170,17 @@ def test_upTimeMin(hoursPerTimeStep, partLoadMin):
     opRateFix[
         range(
             0,
-            upTimeMin,
+            int(upTimeMin/hoursPerTimeStep),
         )
     ] = ENERGY_FLOW
+    opRateFix[int(upTimeMin/hoursPerTimeStep)] = 0
     esM.updateComponent("Heat demand", {"operationRateFix": opRateFix})
 
     # optimize
     esM.optimize()
 
     # Check results: operation of the methane heater must be 3h*10kW less
-    expectedOperation = ENERGY_FLOW * upTimeMin * hoursPerTimeStep
+    expectedOperation = ENERGY_FLOW * upTimeMin
     heater_operation = (
         esM.getOptimizationSummary("ConversionDynamicModel")
         .loc["Methane heater", "operation", "[kW*h]"]
@@ -197,7 +201,7 @@ def test_upTimeMin(hoursPerTimeStep, partLoadMin):
         (1, 0.5, 0.5),
         (1, 0.5, 1)],
 )
-def test_rampUpMax(hoursPerTimeStep, partLoadMin, rampUpMax):
+def test_rampUpMax(hoursPerTimeStep, partLoadMin, rampUpMax, useTemporalCyclicConstraints=False):
     """Test the maximum ramping up of the component methane heater.
 
     The heat production with a methane heater is cheaper and therefore preferred.
@@ -216,7 +220,8 @@ def test_rampUpMax(hoursPerTimeStep, partLoadMin, rampUpMax):
         {
             "rampUpMax": rampUpMax,
             "bigM": 10000,
-            "partLoadMin": partLoadMin
+            "partLoadMin": partLoadMin,
+            "useTemporalCyclicConstraints": useTemporalCyclicConstraints
         },
     )
 
@@ -462,7 +467,51 @@ def test_ConversionDynamicHasHigherOperationRate():
     )
 
 
-if __name__ == "__main__":
-    test_ConversionDynamicNeedsCapacity()
-    test_ConversionDynamicNeedsHigherOperationRate()
-    test_ConversionDynamicHasHigherOperationRate()
+def test_ConversionDynamicCommissioningDependent():
+    esM = fn.EnergySystemModel(
+        locations={
+            "example_region1",
+        },
+        commodities={"electricity", "methane"},
+        commodityUnitsDict={"electricity": r"GW$_{el}$", "methane": r"GW$_{th}$"},
+        verboseLogLevel=2,
+        numberOfInvestmentPeriods=2,
+    )
+    error_msg="Currently commissioning-depending constraints are not possible"
+    with pytest.raises(ValueError, match=error_msg):
+        fn.ConversionDynamic(
+            esM=esM,
+            name="restricted",
+            physicalUnit=r"GW$_{el}$",
+            commodityConversionFactors={
+                (0,0):{"electricity": 1, "methane": -1 / 0.6},
+                (0,1):{"electricity": 1, "methane": -1 / 0.65},
+                (1,1):{"electricity": 1, "methane": -1 / 0.7},
+            },
+            partLoadMin=0.3,
+            bigM=100,
+            rampDownMax=0.5,
+        )
+
+@pytest.mark.parametrize("parameter", ["upTimeMin", "downTimeMin", "rampUpMax", "rampDownMax"])
+def test_error_message_timeSeriesAggregation(parameter):
+    hoursPerTimeStep = 1
+    NUMBER_OF_HOURS=96
+    esM = _create_system(
+        numberOfTimeSteps=NUMBER_OF_HOURS / hoursPerTimeStep,
+        hoursPerTimeStep=hoursPerTimeStep,
+    )
+    esM.updateComponent(
+        "Methane heater",
+        {
+            parameter: 1,
+            "bigM": 10000,
+        },
+    )
+
+    esM.aggregateTemporally(numberOfTypicalPeriods=2)
+    with pytest.raises(ValueError, match=r".*Time series aggregation is not supported.*"):
+        esM.optimize(timeSeriesAggregation=True)
+
+
+
