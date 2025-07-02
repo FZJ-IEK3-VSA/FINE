@@ -843,6 +843,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     rampUpMax = compFancy.rampUpMax
     rampDownMax = compFancy.rampDownMax
     bigM = compFancy.bigM
+    useTemporalCyclicConstraints = compFancy.useTemporalCyclicConstraints
 
     if downTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
@@ -907,6 +908,10 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
                 + name
                 + " needs to be specified when considering dynamic constraints."
             )
+    
+    # check cyclic constraints
+    if not isinstance(useTemporalCyclicConstraints, bool):
+        raise ValueError("useTemporalCyclicConstraints must be a boolean.")
 
 
 def setLocationalEligibility(
