@@ -90,9 +90,42 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
             model_results_1_sorted = model_results_1.sort_index()
             model_results_2_sorted = model_results_2.sort_index()
 
-            assert_frame_equal(
-                model_results_1_sorted, model_results_2_sorted, check_dtype=False
-            )
+
+            try:
+                assert_frame_equal(
+                    model_results_1_sorted, model_results_2_sorted, check_dtype=False
+                )
+            except AssertionError as e:
+                print("\n==================== MISMATCH FOUND ====================")
+                print(f"Model key: {model_key}")
+                print(f"Investment period: {ip}")
+                print(f"Shape original: {model_results_1_sorted.shape}, From NetCDF: {model_results_2_sorted.shape}")
+                
+                print("\n--- Rows in original but missing in NetCDF-loaded model ---")
+                missing_in_loaded = model_results_1_sorted.index.difference(model_results_2_sorted.index)
+                print(missing_in_loaded)
+
+                print("\n--- Rows in loaded model but missing in original ---")
+                extra_in_loaded = model_results_2_sorted.index.difference(model_results_1_sorted.index)
+                print(extra_in_loaded)
+
+                print("\n--- First differing row(s) (common index only) ---")
+                common_index = model_results_1_sorted.index.intersection(model_results_2_sorted.index)
+                for idx in common_index:
+                    row1 = model_results_1_sorted.loc[idx]
+                    row2 = model_results_2_sorted.loc[idx]
+                    if not row1.equals(row2):
+                        print(f"\nIndex: {idx}")
+                        print("Original:", row1.to_dict())
+                        print("Loaded:  ", row2.to_dict())
+                        break
+
+                print("\n========================================================\n")
+                raise e  # keep test failure
+
+                
+            
+
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
@@ -115,16 +148,17 @@ def test_esm_output_to_dataset_and_back(minimal_test_esM):
 
 
 def test_input_esm_to_netcdf_and_back(minimal_test_esM):
-    """Write an esM to netCDF, then load the esM from this file. Compare if both
+    """Write an esM to NetCDF, then load the esM from this file. Compare if both
     esMs are identical.
     """
-
     esm_original = deepcopy(minimal_test_esM)
+    print("Original materials:", esm_original.materials, type(esm_original.materials))
+    print("Original materialUnitsDict:", esm_original.materialUnitsDict, type(esm_original.materialUnitsDict))
     xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc", overwriteExisting=True)
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
-
+    print("Reconstructed materials:", esm_from_netcdf.materials, type(esm_from_netcdf.materials))
+    print("Reconstructed materialUnitsDict:", esm_from_netcdf.materialUnitsDict, type(esm_from_netcdf.materialUnitsDict))
     compare_esm_inputs(esm_original, esm_from_netcdf)
-
     Path("test_esM.nc").unlink()
 
 
@@ -138,6 +172,9 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM):
     esm_original.optimize()
     xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc", overwriteExisting=True)
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
+    print("---- DIAGNOSTIC: _optSummary keys in loaded model ----")
+    print(esm_from_netcdf.componentModelingDict["SourceSinkModel"]._optSummary.keys())
+
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
     compare_esm_outputs(esm_original, esm_from_netcdf)

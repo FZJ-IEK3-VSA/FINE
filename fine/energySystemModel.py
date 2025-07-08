@@ -371,9 +371,32 @@ class EnergySystemModel:
         self.materials = materials if materials is not None else []
         self.materialUnitsDict = materialUnitsDict if materialUnitsDict is not None else {} 
 
+        if materials is None:
+            self.materials = set()
+        elif isinstance(materials, str):
+            self.materials = {materials}
+        else:
+            self.materials = set(materials)
+
+        self.commodities = set(self.commodities).union(self.materials)
+
+
         # Merge commodity and material lists
-        self.commodities = set(self.commodities).union(self.materials) 
+#        self.commodities = set(self.commodities).union(self.materials) 
+      #  self.commodities = set(self.commodities) | set(self.materials)
        # self.commodityUnitsDict = {c: self.onlycommodityUnitsDict[c] for c in sorted(self.onlycommodities)}
+        # Normalize materials (you may already have this)
+# ...
+
+# DEBUG prints to inspect types/values before the failing update
+        print("DEBUG: type(self.materialUnitsDict) =", type(self.materialUnitsDict))
+        print("DEBUG: self.materialUnitsDict =", self.materialUnitsDict)
+        print("DEBUG: type(self.materials) =", type(self.materials))
+        print("DEBUG: self.materials =", self.materials)
+
+
+
+       
         self.commodityUnitsDict.update({m: self.materialUnitsDict[m] for m in sorted(self.materials)})
 
 
@@ -1833,6 +1856,62 @@ class EnergySystemModel:
                 pyM.materialRecoverySet, rule=materialRecoveryConstraint
             )
 
+    def declareMaterialScrapConstraints(self, pyM):
+        """
+        Declare constraints that link recovered material to manually created scrap source inflows.
+
+        Constraint:
+            sum op(scrap source) == getMaterialRecoveryContribution(material)
+
+        :param pyM: Pyomo ConcreteModel
+        """
+        utils.output("Declaring material scrap constraints...", self.verbose, 0)
+
+        def initMaterialScrapSet(m):
+            compDict = self.componentModelingDict
+            source_sink_model = compDict.get("SourceSinkModel")
+            if source_sink_model is None:
+                return
+
+            components = getattr(source_sink_model, "componentsDict", {})
+            varSet = getattr(pyM, "operationVarSet_srcSnk", [])
+
+            for loc, srcName, ip in varSet:
+                comp = components.get(srcName)
+                if comp is None:
+                    continue
+
+                # Look for manually created scrap sources
+                if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
+                    # Expect commodity name like 'lithium_scrap', extract base material
+                    if "_scrap" in comp.commodity:
+                        mat = comp.commodity.replace("_scrap", "")
+                        yield (loc, srcName, mat, ip)
+
+        pyM.materialScrapSet = pyomo.Set(dimen=4, initialize=initMaterialScrapSet)
+
+        def materialScrapConstraint(m, loc, scrap_source_name, mat, ip):
+            opVar = m.op_srcSnk
+
+            lhs = sum(
+                opVar[loc, scrap_source_name, ip, p, t] * self.periodOccurrences[ip][p]
+                for p, t in m.intraYearTimeSet
+                if (loc, scrap_source_name, ip, p, t) in opVar
+            )
+
+            rhs = sum(
+                mdl.getMaterialRecoveryContribution(m, mat, loc, ip)
+                for mdl in self.componentModelingDict.values()
+                if hasattr(mdl, "getMaterialRecoveryContribution") 
+            )
+
+            return lhs == rhs
+
+        pyM.materialScrapConstraint = pyomo.Constraint(
+            pyM.materialScrapSet, rule=materialScrapConstraint
+        )
+
+
 
 
     def declareObjective(self, pyM):
@@ -2026,8 +2105,12 @@ class EnergySystemModel:
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Declare material recovery constraints (one balance constraint for each commodity, location and time step)
+        #_t = time.time()
+        #self.declareMaterialRecoveryConstraints(pyM)
+        #utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+
         _t = time.time()
-        self.declareMaterialRecoveryConstraints(pyM)
+        self.declareMaterialScrapConstraints(pyM)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Declare constraint for balanceLimit

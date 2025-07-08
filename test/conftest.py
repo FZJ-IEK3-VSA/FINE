@@ -1,3 +1,4 @@
+
 import pytest
 import sys
 import os
@@ -29,10 +30,14 @@ def minimal_test_esM(scope="session"):
     esM = fn.EnergySystemModel(
         locations={"ElectrolyzerLocation", "IndustryLocation"},
         commodities={"electricity", "hydrogen"},
+        materials = {"steel"},
         numberOfTimeSteps=numberOfTimeSteps,
         commodityUnitsDict={
             "electricity": r"kW$_{el}$",
             "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        materialUnitsDict={
+            "steel": r"tons",
         },
         hoursPerTimeStep=hoursPerTimeStep,
         costUnit="1 Euro",

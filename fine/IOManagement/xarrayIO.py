@@ -539,6 +539,23 @@ def convertDatasetsToEnergySystemModel(datasets):
     xarray_dataset = utilsIO.processXarrayAttributes(datasets["Parameters"])
     esm_dict = xarray_dataset.attrs
 
+
+    # Fix materials if still string
+    if isinstance(esm_dict.get('materials'), str):
+        esm_dict['materials'] = set(esm_dict['materials'].split(','))
+
+    # Fix materialUnitsDict if still string
+    if isinstance(esm_dict.get('materialUnitsDict'), str):
+        material_units_str = esm_dict['materialUnitsDict']
+        units_dict = {}
+        for item in material_units_str.split(','):
+            key_val = item.strip().split(':')
+            if len(key_val) == 2:
+                key = key_val[0].strip()
+                val = key_val[1].strip()
+                units_dict[key] = val
+        esm_dict['materialUnitsDict'] = units_dict
+
     # Read input
     # Iterate through each component-variable pair, depending on the variable's
     # prefix restructure the data and add it to component_dict
@@ -1012,15 +1029,49 @@ def writeEnergySystemModelToNetCDF(
 
     xr_dss_input = convertOptimizationInputToDatasets(esM)
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
+
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
+
         if hasattr(esM, "performanceSummary"):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
-            xr_dss_output["PerformanceSummary"] = xr_dss_performance[
-                "PerformanceSummary"
-            ]
-            print(xr_dss_output.keys())
+            xr_dss_output["PerformanceSummary"] = xr_dss_performance["PerformanceSummary"]
+
+        # Add _optSummary data
+        for model_key, model in esM.componentModelingDict.items():
+            if hasattr(model, "_optSummary") and isinstance(model._optSummary, dict):
+                for ip, df in model._optSummary.items():
+                    if df is not None:
+                        ds_key = f"OptSummary_{model_key}_ip{ip}"
+                        try:
+                            df_reset = df.reset_index()
+
+                            try:
+                                # Try default index structure
+                                df_fixed = df_reset.set_index(["Component", "Property", "Unit"])
+                            except KeyError:
+                                # Fallback to first 3 columns
+                                df_fixed = df_reset.set_index(df_reset.columns[:3])
+
+                            if not df_fixed.index.is_unique:
+                                print(f"Non-unique index detected for {ds_key}, adding disambiguation...")
+                                df_reset["Disambiguator"] = df_reset.groupby(df_reset.columns[:3].tolist()).cumcount()
+                                df_fixed = df_reset.set_index(df_reset.columns[:3].tolist() + ["Disambiguator"])
+
+                            # ✅ Store directly as xarray.Dataset
+                            xr_dss_output[ds_key] = xr.Dataset.from_dataframe(df_fixed)
+
+                        except Exception as e:
+                            print(f"Could not write {ds_key}: {e}")
+
+
+
+
+
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
+
+ 
+
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
