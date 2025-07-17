@@ -176,10 +176,25 @@ def perform_distance_based_grouping(
                 geom_xr=geom_xr,
                 skip_regions=skip_regions,
                 enforced_group=group,
-                n_groups=n_groups,
+                n_groups=1,
                 distance_threshold=distance_threshold,
             )
-            aggregation_dict.update(output)
+            aggregation_dict.update({key: group})
+        enforced_groups_regions = [region for region_group in enforced_groups.values() for region in region_group]
+        if skip_regions is None:
+            skip_regions = []
+        if n_groups - len(enforced_groups) - len(skip_regions) > 0:
+            output = _perform_distance_based_grouping(
+                geom_xr=geom_xr,
+                skip_regions=enforced_groups_regions + skip_regions,
+                n_groups=n_groups - len(enforced_groups) - len(skip_regions),
+                distance_threshold=distance_threshold,
+            )
+            other_groups = {name: group for name, group in output.items() if name not in enforced_groups_regions}
+            aggregation_dict.update(other_groups)
+            aggregation_dict.update({name: [name] for name in skip_regions})
+
+        assert (len(aggregation_dict.keys()) == n_groups)
 
         return aggregation_dict
 

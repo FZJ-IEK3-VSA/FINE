@@ -309,9 +309,14 @@ def perform_spatial_aggregation(
     ## prepare aggregation_funtion_dict
     aggregation_function_dict_default = {
         "operationRateMax": ("weighted mean", "capacityMax"),
-        "operationRateFix": ("sum", None),
+        "operationRateFix": ("weighted mean", "capacityMax"),
         "locationalEligibility": ("bool", None),
         "capacityMax": ("sum", None),
+        "capacityMin": ("sum", None),
+        "commissioningFix": ("sum", None),
+        "commissioningMin": ("sum", None),
+        "commissioningMax": ("sum", None),
+        "stockCommissioning": ("sum", None),
         "investPerCapacity": ("mean", None),
         "investIfBuilt": ("bool", None),
         "opexPerOperation": ("mean", None),
@@ -330,6 +335,7 @@ def perform_spatial_aggregation(
         "technicalLifetime": ("mean", None),
         "balanceLimit": ("sum", None),
         "pathwayBalanceLimit": ("sum", None),
+        "yearlyFullLoadHoursMax": ("mean", None),
     }
 
     ### if the user has passed some values, update the dict

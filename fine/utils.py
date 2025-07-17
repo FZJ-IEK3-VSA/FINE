@@ -214,15 +214,22 @@ def checkConnectionIndex(data, locationalEligibility):
     Necessary for transmission components:
     Check if the indices of the connection data match the eligible connections.
     """
-    if not set(data.index).issubset(locationalEligibility.index):
-        raise ValueError(
-            "Indices do not match the eligible connections of the component.\n"
-            + "Data indices: "
-            + str(set(data.index))
-            + "\n"
-            + "Eligible connections: "
-            + str(set(locationalEligibility.index))
-        )
+    if not set(data.dropna().index).issubset(locationalEligibility.index):
+        if data[set(data.dropna().index) - set(locationalEligibility.index)].sum() > 0:
+            raise ValueError(
+                "Indices do not match the eligible connections of the component.\n"
+                + "Data indices: "
+                + str(set(data.index))
+                + "\n"
+                + "Eligible connections: "
+                + str(set(locationalEligibility.index))
+            )
+        else:
+            warnings.warn(
+                "Indices do not match the eligible connections of the component.\n"
+                + "Data for non eligible connections are dropped. Sum of Data is 0.\n"
+            )
+            data = data[locationalEligibility.index]
     # Sort data according to _locationsOrdered, if not already sorted
     if not np.array_equal(data.index, locationalEligibility.index):
         data = data.reindex(locationalEligibility.index).fillna(0)
@@ -486,22 +493,13 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                     raise ValueError(
                         "CapacityFix values are provided for non-eligible locations."
                     )
-            # Check if given capacities indicate the same eligibility
-            if capacityFix[ip] is not None:
-                data = capacityFix[ip].copy()
-                if not set(data.index.values).issubset(
-                    set(locationalEligibility.index.values)
-                ):
-                    raise ValueError(
-                        "CapacityFix values are provided for non-eligible locations."
-                    )
-            if capacityMax[ip] is not None:
-                data = capacityMax[ip].copy()
-                data[data > 0] = 1
-                if (data != locationalEligibility).any():
-                    raise ValueError(
-                        "The locationalEligibility and capacityMax parameters indicate different eligibilities."
-                    )
+            # if capacityMax[ip] is not None:
+            #     data = capacityMax[ip].copy()
+            #     data[data > 0] = 1
+            #     if (data != locationalEligibility).any():
+            #         raise ValueError(
+            #             "The locationalEligibility and capacityMax parameters indicate different eligibilities."
+            #         )
             if capacityMin[ip] is not None:
                 data = capacityMin[ip].copy()
                 data[data > 0] = 1
@@ -663,6 +661,7 @@ def checkCapacityDevelopmentWithStock(
     stockCommissioning,
     technicalLifetime,
     floorTechnicalLifetime,
+    locationalEligibility,
 ):
     if stockCommissioning is None:
         pass
@@ -674,13 +673,16 @@ def checkCapacityDevelopmentWithStock(
         years = [x for x in stockCommissioning.keys()] + investmentPeriods
         stockCapacity = pd.DataFrame(0.0, index=years, columns=locations).sort_index()
         for ip, stockCommis in stockCommissioning.items():
-            for loc in stockCommis.index:
+            for loc in locationalEligibility.index:
                 if floorTechnicalLifetime:
                     _techLifetime = math.floor(technicalLifetime[loc])
                 else:
                     _techLifetime = math.ceil(technicalLifetime[loc])
                 yearRange = list(range(ip, ip + _techLifetime))
-                yearRange = [x for x in yearRange if x <= max(investmentPeriods)]
+                yearRange = [
+                    x for x in yearRange
+                    if (0 <= x <= max(investmentPeriods) or x in stockCommissioning.keys())
+                ]
 
                 # for floating numbers a normal sum can lead to floating point issues,
                 # e.g. 4.19+2.19=6.380000000000001
@@ -1174,12 +1176,16 @@ def checkAndSetTimeSeries(
 
         _operationTimeSeries = operationTimeSeries.astype(float)
         if _operationTimeSeries.isnull().any().any():
-            raise ValueError(
-                "Value error in "
-                + name
-                + " detected.\n"
-                + "An operationTimeSeries parameter contains values which are not numbers."
-            )
+            na_regions = _operationTimeSeries.isnull().any().loc[_operationTimeSeries.isnull().any() == True].index
+            # allow NaN values for locations without locational eligibility and set them to 0
+            if (locationalEligibility[na_regions] == 1).any():
+                raise ValueError(
+                    "Value error in "
+                    + name
+                    + " detected.\n"
+                    + "An operationTimeSeries parameter contains values which are not numbers."
+                )
+            _operationTimeSeries.fillna(0, inplace=True)
         if (_operationTimeSeries < 0).any().any():
             raise ValueError(
                 "Value error in "
@@ -2227,6 +2233,8 @@ def checkAndSetStock(component, esM, stockCommissioning):
         ]
     # check data for stockCommissioning
     for year, yearly_stock in stockCommissioning.items():
+        if component.dimension == "2dim":
+            yearly_stock = yearly_stock[yearly_stock.index.isin(regions)]
         if not isinstance(year, int):
             raise ValueError("Years of stockCommissioning must be int")
         if (year - esM.startYear) % esM.investmentPeriodInterval != 0:
@@ -2269,7 +2277,7 @@ def checkAndSetStock(component, esM, stockCommissioning):
             )
 
     # check if capacityFix and capacityMax is kept per region
-    for loc in regions:
+    for loc in component.locationalEligibility.index:
         installed_sum = 0
         for year in stockCommissioning.keys():
             if year < esM.startYear - component.technicalLifetime[loc]:
@@ -2317,7 +2325,7 @@ def checkAndSetStock(component, esM, stockCommissioning):
     # set into correct format, add 0'values and transform ip into [-1,-2,-3,...]
     # filter for commissioned stock older than technical lifetime and set to 0
     stock_df = pd.DataFrame.from_dict(stockCommissioning).T
-    for loc in regions:
+    for loc in component.locationalEligibility.index:
         yearsWithStockOlderThanTechLifetime = [
             x
             for x in stock_df.index
@@ -2327,13 +2335,14 @@ def checkAndSetStock(component, esM, stockCommissioning):
             yearsWithStockOlderThanTechLifetime, loc
         ]
         if len(yearsWithStockOlderThanTechLifetime) > 0:
-            warnings.warn(
-                f"Stock of component {component.name} in location "
-                + f"{loc} will not be considered "
-                + f"for years {list(stockOlderThanTechnicalLifetime.index)} as it "
-                + "exceeds the technical lifetime. A capacity of "
-                + f"{stockOlderThanTechnicalLifetime.sum().sum()} will be dropped."
-            )
+            if stockOlderThanTechnicalLifetime.sum().sum() != 0:
+                warnings.warn(
+                    f"Stock of component {component.name} in location "
+                    + f"{loc} will not be considered "
+                    + f"for years {list(stockOlderThanTechnicalLifetime.index)} as it "
+                    + "exceeds the technical lifetime. A capacity of "
+                    + f"{stockOlderThanTechnicalLifetime.sum().sum()} will be dropped."
+                )
             stock_df.loc[yearsWithStockOlderThanTechLifetime, loc] = 0
 
     # convert original years to ip named years (e.g. -1,-2,-3)
@@ -2342,12 +2351,12 @@ def checkAndSetStock(component, esM, stockCommissioning):
     ]
 
     # fill missing year for timeframe of entire technical lifetime
-    if component.floorTechnicalLifetime:
-        maxTechnicalLifetime = math.floor(component.ipTechnicalLifetime.max())
-    else:
-        maxTechnicalLifetime = math.ceil(component.ipTechnicalLifetime.max())
-    allStockYears = [x for x in range(-1, -maxTechnicalLifetime - 1, -1)]
-    stock_df = stock_df.reindex(allStockYears).fillna(0)
+    # if component.floorTechnicalLifetime:
+    #     maxTechnicalLifetime = math.floor(component.ipTechnicalLifetime.max())
+    # else:
+    #     maxTechnicalLifetime = math.ceil(component.ipTechnicalLifetime.max())
+    # allStockYears = list(range(-1, min(component.processedStockYears)-1, -1))
+    # stock_df = stock_df.reindex(allStockYears).fillna(0)
     processedStockCommissioning = stock_df.T.to_dict(orient="series")
     return processedStockCommissioning
 
@@ -2356,12 +2365,7 @@ def setStockCapacityStartYear(component, esM, dimension):
     if dimension == "1dim":
         regions = esM.locations
     elif dimension == "2dim":
-        regions = [
-            loc1 + "_" + loc2
-            for loc1 in esM.locations
-            for loc2 in esM.locations
-            if loc1 != loc2
-        ]
+        regions = component.locationalEligibility.index
     if component.processedStockCommissioning is None:
         return pd.Series(index=regions, data=0)
     else:
@@ -2372,7 +2376,7 @@ def setStockCapacityStartYear(component, esM, dimension):
                 ipTechLifetime = math.floor(component.ipTechnicalLifetime[loc])
             else:
                 ipTechLifetime = math.ceil(component.ipTechnicalLifetime[loc])
-            for year in range(-1, -ipTechLifetime - 1, -1):
+            for year in component.processedStockYears:
                 _stock_location += component.processedStockCommissioning[year].loc[loc]
             stockCapacityStartYear[loc] = _stock_location
         return stockCapacityStartYear

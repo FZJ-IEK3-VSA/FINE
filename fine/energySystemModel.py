@@ -1370,6 +1370,8 @@ class EnergySystemModel:
                     for mdl_type, mdl in self.componentModelingDict.items()
                     if (mdl_type in ("SourceSinkModel", "TransmissionModel"))
                 )
+                if isinstance(balanceSum, (int, float)) and balanceSum == 0:
+                    return pyomo.Constraint.Skip
                 # Check whether we want to consider an upper or lower bound.
                 if lowerBound == 0:
                     return balanceSum <= value

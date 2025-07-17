@@ -394,13 +394,19 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
 
     # private function to get aggregation mode for a particular variable name
     def _get_aggregation_mode(varname, comp=None, comp_ds=None):
+        if '0d_' in varname:
+            return None, None
+
         # If aggregation_function_dict is passed AND the current variable is in it...
         if (aggregation_function_dict is not None) and (
-            varname in aggregation_function_dict.keys()
+            any(key in varname for key in aggregation_function_dict.keys())
         ):
-            ## Get the mode and weight
-            aggregation_mode = aggregation_function_dict[varname][0]
-            aggregation_weight = aggregation_function_dict[varname][1]
+            for key in aggregation_function_dict.keys():
+                if key in varname:
+                    ## Get the mode and weight
+                    aggregation_mode = aggregation_function_dict[key][0]
+                    aggregation_weight = aggregation_function_dict[key][1]
+                    print(f'{varname} of {comp} is aggregated with mode {aggregation_mode} and weight {aggregation_weight}')
 
             ## If the mode is "weighted mean"...
             if aggregation_mode == "weighted mean":
@@ -413,25 +419,33 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 if isinstance(aggregation_weight, str):
                     if varname[:3] == "2d_":
                         try:
-                            aggregation_weight = comp_ds[f"2d_{aggregation_weight}"]
+                            aggregation_weight = comp_ds[f"2d_{aggregation_weight}.{varname.split('.')[1]}"]
                         except Exception:
+                            if comp_ds['0d_hasCapacityVariable'].item():
+                                aggregation_mode = "mean"
+                            else:
+                                aggregation_mode = "sum"
+                            aggregation_weight = None
                             warnings.warn(
-                                f"Aggregation mode for {comp} component's {varname[3:]} set to mean instead of \
-                                weighted mean because corresponding weight: {aggregation_weight} variable is not found"
+                                f"Aggregation mode for {comp} component's {varname[3:]} set to {aggregation_mode} "
+                                f"instead of weighted mean because corresponding weight: {aggregation_weight} "
+                                f"variable is not found"
                             )
-
-                            aggregation_mode = "mean"
 
                     else:
                         try:
-                            aggregation_weight = comp_ds[f"1d_{aggregation_weight}"]
+                            aggregation_weight = comp_ds[f"1d_{aggregation_weight}.{varname.split('.')[1]}"]
                         except Exception:
+                            if comp_ds['0d_hasCapacityVariable'].item():
+                                aggregation_mode = "mean"
+                            else:
+                                aggregation_mode = "sum"
+                            aggregation_weight = None
                             warnings.warn(
-                                f"Aggregation mode for {comp} component's {varname[3:]} set to mean instead of \
-                                weighted mean because corresponding weight: {aggregation_weight} variable is not found"
+                                f"Aggregation mode for {comp} component's {varname[3:]} set to {aggregation_mode} "
+                                f"instead of weighted mean because corresponding weight: {aggregation_weight} "
+                                f"variable is not found"
                             )
-
-                            aggregation_mode = "mean"
 
                 else:
                     raise TypeError(
@@ -441,6 +455,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
 
         # If aggregation_function_dict is not passed OR the current variable is not in it, set default
         else:
+            raise ValueError(f'No aggregation mode specified for {varname[3:]} variable in {comp} component.')
             aggregation_mode = "mean"
             aggregation_weight = None
 
@@ -452,11 +467,32 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
     # update esM Parameters
     parameters_dict = aggregated_xr_dataset.get("Parameters").attrs
 
+    def aggregate_balance_limit(bl):
+        if bl is None:
+            return None
+        old_locations = xarray_datasets.get("Parameters").attrs["locations"]
+        bl = bl.drop(['lowerBound'], axis=1)
+        if 'Total' in bl.columns:
+            bl = bl.drop(['Total'], axis=1)
+        if bl.isna().any().any():
+            raise NotImplementedError('Currently spatial aggregation of balance limits with NaN values is not supported.')
+        aggregated_bl = aggregate_esm_parameters_spatially(
+            bl,
+            old_locations,
+            sub_to_sup_region_id_dict,
+            mode="sum",
+        )
+        return aggregated_bl
+
     for varname, vardata in parameters_dict.items():
         if varname == "locations":
             parameters_dict[varname] = set(sub_to_sup_region_id_dict.keys())
+            continue
 
-        elif isinstance(vardata, pd.DataFrame):
+        if vardata is None:
+            continue
+
+        if isinstance(vardata, pd.DataFrame):
             old_locations = xarray_datasets.get("Parameters").attrs["locations"]
             if all([x in vardata.columns for x in old_locations]):
                 aggregation_mode, aggregation_weight = _get_aggregation_mode(varname)
@@ -469,6 +505,16 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                 )
 
                 parameters_dict[varname] = aggregated_vardata
+
+        elif varname == "pathwayBalanceLimit":
+            aggregated_bl = aggregate_balance_limit(vardata)
+            parameters_dict[varname] = aggregated_bl
+
+        elif varname == "balanceLimit":
+            aggregated_bl = {}
+            for ip, bl in vardata.items():
+                aggregated_bl[ip] = aggregate_balance_limit(bl)
+            parameters_dict[varname] = aggregated_bl
 
     # Aggregate geometries
     aggregated_xr_dataset["Geometry"] = aggregate_geometries(
@@ -502,14 +548,14 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                             locational_eligibility != 0
                         )
 
-                # check if multiple investment periods exist
-                if "Period" in da.coords:
-                    if not da.coords["Period"].values == np.array(0):
-                        raise NotImplementedError(
-                            "Spatial aggregation currently does not support multiple investment periods."
-                        )
-                    ## drop the period coordinate
-                    da = da.reset_coords("Period", drop=True)
+                # # check if multiple investment periods exist
+                # if "Period" in da.coords:
+                #     if not da.coords["Period"].values == np.array(0):
+                #         raise NotImplementedError(
+                #             "Spatial aggregation currently does not support multiple investment periods."
+                #         )
+                #     ## drop the period coordinate
+                #     da = da.reset_coords("Period", drop=True)
 
                 ## Time series
                 if var_dim == "ts_":

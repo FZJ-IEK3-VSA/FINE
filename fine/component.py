@@ -685,6 +685,7 @@ class Component(metaclass=ABCMeta):
             self.processedStockCommissioning,
             self.ipTechnicalLifetime,
             self.floorTechnicalLifetime,
+            self.locationalEligibility
         )
 
         self.etlParameter = etlParameter
@@ -2101,7 +2102,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     def decommissioningConstraint(self, pyM, esM):
         """
-        Declase the decommissioning after the technical lifetime from investment
+        Declare the decommissioning after the technical lifetime from investment
         period of commissioning.
 
         .. math::
@@ -2140,7 +2141,7 @@ class ComponentModel(metaclass=ABCMeta):
             procStockCommissioning = self.componentsDict[
                 compName
             ].processedStockCommissioning
-            if procStockCommissioning is not None:
+            if procStockCommissioning is not None and comm_date in procStockCommissioning.keys():
                 return (
                     decommisVar[loc, compName, ip]
                     == self.componentsDict[compName].processedStockCommissioning[
@@ -2792,18 +2793,41 @@ class ComponentModel(metaclass=ABCMeta):
         else:
 
             def yearlyFullLoadHoursMaxConstraint(pyM, loc, compName, ip):
-                full_load_hours = (
-                    sum(
-                        opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                        for p, t in pyM.intraYearTimeSet
+                if esM.getComponentAttribute(compName,"hasCapacityVariable"):
+                    full_load_hours = (
+                        sum(
+                            opVar[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
+                            for p, t in pyM.intraYearTimeSet
+                        )
+                        / esM.numberOfYears
                     )
-                    / esM.numberOfYears
-                )
-                return (
-                    full_load_hours
-                    <= capVar[loc, compName, ip]
-                    * compDict[compName].processedYearlyFullLoadHoursMax[ip][loc]
-                )
+                    return (
+                        full_load_hours
+                        <= capVar[loc, compName, ip]
+                        * compDict[compName].processedYearlyFullLoadHoursMax[ip][loc]
+                    )
+                else:
+                    if esM.isTimeSeriesDataClustered:
+                        periods = esM.typicalPeriods
+                        if esM.segmentation:
+                            timeSteps = esM.segmentsPerPeriod
+                        else:
+                            timeSteps = esM.timeStepsPerPeriod
+                    else:
+                        periods = esM.periods
+                        timeSteps = esM.totalTimeSteps
+
+                    balance = sum(
+                        opVar[loc, compName, ip, p, t]
+                        * compDict[compName].sign
+                        * esM.periodOccurrences[ip][p]
+                        for p in periods
+                        for t in timeSteps
+                    )
+                    return (
+                        balance
+                        <= compDict[compName].processedYearlyFullLoadHoursMax[ip][loc]
+                    )
 
         setattr(
             pyM,

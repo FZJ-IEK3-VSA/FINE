@@ -99,15 +99,18 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
 
                 # Loop over all input props
                 for prop in prop_list:
-                    if (prop[0] != "self") and (prop[0] != "esM"):
+                    if prop[0] == 'etlParameter':
+                        compDict[classname][componentname][prop[0]] = getattr(component, prop[1])
+                    elif (prop[0] != "self") and (prop[0] != "esM"):
                         # NOTE: thanks to utilsIO.PowerDict(), the nested dictionaries need
                         # not be created before adding the data.
                         _data = getattr(component, prop[1])
                         # useprocessedValues is only used for xarray and we want to have the original investment period names
                         if isinstance(_data, dict):
-                            investmentPeriodMapper = dict(
-                                zip(esM.investmentPeriods, esM.investmentPeriodNames)
-                            )
+                            investmentPeriodMapper = dict(zip(
+                                component.processedStockYears + esM.investmentPeriods,
+                                component.stockYears + esM.investmentPeriodNames
+                            ))
                             # replace keys with investment period names in _data
                             _data = {
                                 investmentPeriodMapper[k]: v for k, v in _data.items()

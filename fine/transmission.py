@@ -251,6 +251,7 @@ class Transmission(Component):
                 self.stockCommissioning[potential_ip] = utils.preprocess2dimData(
                     stockCommissioning[potential_ip],
                     locationalEligibility=locationalEligibility,
+                    discard = False,
                 )
         else:
             raise ValueError("stockCommissioning must be None or a dict.")

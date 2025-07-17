@@ -761,7 +761,9 @@ def add2dVariableToDict(
     # NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other
     # attributes. Removing 0 values ensures the match. If all are 0s, empty series is fed in, leading to error.
     # Therefore, if series is empty, the variable is not added.
-    series = series[series > 0]
+    # Add exeption for capacityFix/Min/Max, commissioningFix/Min/Max, operationRateFix/Max, and stockCommissioning
+    if not any(x in variable for x in ['capacity', 'commissioning', 'operationRate', 'stockCommissioning']):
+        series = series[series > 0]
 
     if not len(series.index) == 0:
         class_name = component.split("; ")[0]

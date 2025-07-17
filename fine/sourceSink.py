@@ -874,6 +874,7 @@ class SourceSinkModel(ComponentModel):
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
                 if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
                 for p in periods
                 for t in timeSteps
                 for _loc in esM.locations
@@ -886,6 +887,7 @@ class SourceSinkModel(ComponentModel):
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
                 if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
                 for p in periods
                 for t in timeSteps
             )
