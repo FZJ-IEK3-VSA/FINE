@@ -51,6 +51,7 @@ def test_flexibleConversion_init():
             esM=esM,
             name="FC_flex",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": 1,
                 "in": {
@@ -71,6 +72,7 @@ def test_flexibleConversion_init():
             esM=esM,
             name="flex",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": -1,
                 "in": {
@@ -91,6 +93,7 @@ def test_flexibleConversion_init():
             esM=esM,
             name="FC_fix",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": 1,
                 "hydrogen": -2,
@@ -117,6 +120,7 @@ def test_flexibleConversion_init():
             fn.Conversion(
                 esM=esM,
                 name="conversion_flex",
+                commodity="electricity",
                 physicalUnit=r"kW$_{el}$",
                 commodityConversionFactors={
                     "electricity": 1,
@@ -141,6 +145,7 @@ def test_flexibleConversion_init():
                 esM=esM,
                 name="conversion_flex2",
                 physicalUnit=r"kW$_{el}$",
+                commodity="electricity",
                 commodityConversionFactors={
                     "electricity": 1,
                     "hydrogen": {
@@ -162,6 +167,7 @@ def test_flexibleConversion_init():
                 esM=esM,
                 name="conversion_flex2",
                 physicalUnit=r"kW$_{el}$",
+                commodity="electricity",
                 commodityConversionFactors={
                     (2020, 2020): {
                         "electricity": 1,
@@ -276,6 +282,7 @@ def test_flexibleConversion_groups():
             esM=esM,
             name="conversion_norm",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": 1,
                 "nat_gas": -2,
@@ -292,6 +299,7 @@ def test_flexibleConversion_groups():
             esM=esM,
             name="conversion_flex",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": 1,
                 "h2": {
@@ -323,6 +331,7 @@ def test_flexibleConversion_groups():
             esM=esM,
             name="conversion_flex2",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 2020: {
                     "electricity": 1,
@@ -464,6 +473,7 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
             esM=esM,
             name="conversion_flex",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": 1,
                 "ch4": {
@@ -582,6 +592,7 @@ def test_flexibleConversionFlowShare():
             esM=esM,
             name="conversion_flex",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": 1,
                 "in": {
@@ -605,6 +616,7 @@ def test_flexibleConversionFlowShare():
             esM=esM,
             name="conversion_expensive",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": 1,
                 "nat_gas": -1.5,

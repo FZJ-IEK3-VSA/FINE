@@ -2579,6 +2579,19 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
 
     return (isIpDepending, isCommisDepending, flexibleConversion)
 
+def checkConversionFactorValues(ccf):
+    """Check if conversion factor values are 1 or -1."""
+    if isinstance(ccf, (int, float)):
+        if ccf not in [1, -1]:
+            raise ValueError("Conversion factor must be 1 or -1")
+    elif isinstance(ccf, pd.Series):
+        if not ccf.isin([1, -1]).all():
+            raise ValueError("All conversion factor values must be 1 or -1")
+    elif isinstance(ccf, pd.DataFrame):
+        if not ccf.isin([1, -1]).all().all():
+            raise ValueError("All conversion factor values must be 1 or -1")
+    else:
+        raise TypeError("Conversion factor must be a number or pandas Series")
 
 def checkAndSetCommodityConversionFactor(comp, esM):
     """
@@ -2587,6 +2600,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     """
     iterationList = esM.investmentPeriodNames
     commodityConversionFactors = comp.commodityConversionFactors.copy()
+    main_commodity = comp.commodity
     if comp.isCommisDepending:
         iterationList = [
             (x, y)
@@ -2608,6 +2622,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     def checkFactorCommod(ccf):
         if comp.flexibleConversion:
             commodities = []
+            commodityValues = []
             commodTypes = []
             for item in ccf.items():
                 if isinstance(item[1], dict):
@@ -2622,6 +2637,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                         for x in item[1].values()
                         if isinstance(x, (pd.Series, pd.DataFrame))
                     ]
+                    commodityValues += list(item[1].values())
                     if not (
                         all(ccf > 0 for ccf in item[1].values())
                         or all(ccf < 0 for ccf in item[1].values())
@@ -2630,9 +2646,12 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                             f"All commodity conversion factors of {comp.name}"
                             f" in commodity group '{item[0]}' must have the same sign."
                         )
+                    
                 else:
                     commodities.append(item[0])
                     commodTypes.append(type(item[1]))
+                    commodityValues.append(item[1])
+            checkConversionFactorValues(dict(zip(commodities, commodityValues))[main_commodity])
         else:
             commodities = list(set(ccf.keys()))
             commodTypes = [
@@ -2640,6 +2659,8 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 for x in ccf.values()
                 if isinstance(x, (pd.Series, pd.DataFrame))
             ]
+            # make sure that conversion factor of main commodity is 1 or -1. ccf can be a series or float
+            checkConversionFactorValues(ccf[main_commodity]) 
         checkCommodities(esM, set(commodities))
         return commodTypes
 

@@ -14,8 +14,9 @@ class Conversion(Component):
         self,
         esM,
         name,
-        physicalUnit,
         commodityConversionFactors,
+        commodity=None,
+        physicalUnit=None,
         hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -236,6 +237,7 @@ class Conversion(Component):
             capacityPerPlantUnit=capacityPerPlantUnit,
             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
             bigM=bigM,
+            
             locationalEligibility=locationalEligibility,
             capacityMin=capacityMin,
             capacityMax=capacityMax,
@@ -335,6 +337,7 @@ class Conversion(Component):
         # commodity conversions factors
         self.commissioningDependentCcf = commissioningDependentCcf
         self.commodityConversionFactors = commodityConversionFactors
+        self.commodity = commodity
         (self.isIpDepending, self.isCommisDepending, self.flexibleConversion) = (
             utils.checkConversionFactorProperties(self, esM, commissioningDependentCcf)
         )
@@ -359,6 +362,7 @@ class Conversion(Component):
         if linkedConversionCapacityID is not None:
             utils.isString(linkedConversionCapacityID)
         self.physicalUnit = physicalUnit
+        
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
 

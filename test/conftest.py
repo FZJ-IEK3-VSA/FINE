@@ -126,6 +126,7 @@ def minimal_test_esM(scope="session"):
             esM=esM,
             name="Electrolyzers",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
             hasCapacityVariable=True,
             investPerCapacity=500,  # euro/kW

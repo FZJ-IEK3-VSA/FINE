@@ -51,14 +51,15 @@ def create_simple_esm():
     )
     cfs = {}
     # Use Dataframe for conversion rate timeseries
-    cfs["electricity"] = pd.DataFrame([np.array([-0.1, -1, -10, -100])], index=locs).T
+    cfs["electricity"] = pd.DataFrame([np.array([-1, -1, -1, -1])], index=locs).T
     # Use Series for conversion rate timeseries
-    cfs["hydrogen"] = pd.Series(np.array([0.7, 0.7, 0.7, 0.7]))
+    cfs["hydrogen"] = pd.Series(np.array([7, 0.7, 0.07, 0.007]))
     esM.add(
         fn.Conversion(
             esM=esM,
             name="Electrolyzers_VarConvFac",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": cfs["electricity"],
                 "hydrogen": cfs["hydrogen"],
@@ -191,10 +192,10 @@ def test_variable_conversion_factor_no_tsa(minimal_test_esM):
     locs = ["ElectrolyzerLocation", "IndustryLocation"]
     cfs = {}
     cfs["electricity"] = pd.DataFrame(
-        [np.array([-0.1, -1, -1, -10]), np.array([-0.1, -1, -1, -10])], index=locs
+        [np.array([-1, -1, -1, -1]), np.array([-1, -1, -1, -1])], index=locs
     ).T
     cfs["hydrogen"] = pd.DataFrame(
-        [np.array([0.7, 0.7, 0.7, 0.7]), np.array([0.7, 0.7, 0.7, 0.7])], index=locs
+        [np.array([-7.0, -0.7 , -0.7 , -0.07]), np.array([7, 0.7, 0.7, 0.07])], index=locs
     ).T
 
     # Add a new component with variable conversion rate to the EnergySystemModel.
@@ -203,6 +204,7 @@ def test_variable_conversion_factor_no_tsa(minimal_test_esM):
             esM=esM,
             name="Electrolyzers_VarConvFac",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": cfs["electricity"],
                 "hydrogen": cfs["hydrogen"],
@@ -261,10 +263,10 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
     locs = ["ElectrolyzerLocation", "IndustryLocation"]
     cfs = {}
     cfs["electricity"] = pd.DataFrame(
-        [np.array([-0.1, -1, -1, -10]), np.array([-0.1, -1, -1, -10])], index=locs
+        [np.array([-1, -1, -1, -1]), np.array([-1, -1, -1, -1])], index=locs
     ).T
     cfs["hydrogen"] = pd.DataFrame(
-        [np.array([0.7, 0.7, 0.7, 0.7]), np.array([0.7, 0.7, 0.7, 0.7])], index=locs
+        [np.array([7, 0.7, 0.7, 0.07]), np.array([7, 0.7, 0.7, 0.07])], index=locs
     ).T
 
     # Add a new component with variable conversion rate to the EnergySystemModel.
@@ -273,6 +275,7 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
             esM=esM,
             name="Electrolyzers_VarConvFac",
             physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
             commodityConversionFactors={
                 "electricity": cfs["electricity"],
                 "hydrogen": cfs["hydrogen"],
