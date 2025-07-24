@@ -334,7 +334,12 @@ class ConversionPartLoad(Conversion):
         """
 
         Conversion.__init__(
-            self, esM, name, physicalUnit, commodityConversionFactors, **kwargs
+            self,
+            esM=esM,
+            name=name,
+            physicalUnit=physicalUnit,
+            commodityConversionFactors=commodityConversionFactors,
+            **kwargs,
         )
 
         self.modelingClass = ConversionPartLoadModel
