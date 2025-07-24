@@ -1,4 +1,5 @@
 def test_updateComponent(minimal_test_esM):
+    """Test if component update functionalities work."""
     _invest_before = minimal_test_esM.getComponentAttribute(
         componentName="Electrolyzers", attributeName="investPerCapacity"
     )

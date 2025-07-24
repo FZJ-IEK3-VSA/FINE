@@ -1,9 +1,7 @@
 def test_segmentation(minimal_test_esM):
-    """
-    Get the minimal test system, and check that for different segment and period configurations the same solution is
+    """Get the minimal test system, and check that for different segment and period configurations the same solution is
     found.
-    """
-
+    """  # noqa: D205
     # First, the non-aggregated case is compared to the aggregation mode of the model, but without aggregated data.
     # For this, the mini system is first optimized without any aggregation at all.
     esM1 = minimal_test_esM

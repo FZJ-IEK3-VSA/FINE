@@ -4,6 +4,7 @@ from pathlib import Path
 import logging
 import warnings
 import difflib
+import os
 from fine.aggregations.spatialAggregation import grouping
 from fine.aggregations.spatialAggregation import aggregation
 from fine.aggregations.spatialAggregation import managerUtils as manUtils

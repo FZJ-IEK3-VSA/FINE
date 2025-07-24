@@ -9,15 +9,14 @@ import geopandas as gpd
 def test_esm_to_xr_and_back_during_spatial_aggregation(
     use_saved_file, test_esM_for_spagat
 ):
-    """Resulting number of regions would be the same as the original number. No aggregation
-    actually takes place. Tests:
-        - if the esm instance, created after spatial aggregation
-        is run, has all the info originally present.
-        - If the saved netcdf file can be reconstructed into an esm instance
-            and has all the info originally present.
-        - If temporal aggregation and optimization run successfully
+    """Resulting number of regions would be the same as the original number.
+    No aggregation actually takes place. Tests:
+    - if the esm instance, created after spatial aggregation
+    is run, has all the info originally present.
+    - If the saved netcdf file can be reconstructed into an esm instance
+        and has all the info originally present.
+    - If temporal aggregation and optimization run successfully.
     """
-
     SHAPEFILE_PATH = os.path.join( # noqa: PTH118 # uses basic aggragation functions and when changing to pathlib output the error: TypeError: shapefile must either be a path to a shapefile or a geopandas dataframe --> therefore excluded here
         os.path.dirname(__file__), # noqa: PTH120
         "../../../examples/03_Multi-regional_Energy_System_Workflow/",
@@ -109,7 +108,6 @@ def test_error_in_reading_shp(test_esM_for_spagat):
     """Checks if relevant errors are raised when invalid shapefile
     is passed to aggregateSpatially().
     """
-
     ## Case 1: invalid path
     with pytest.raises(FileNotFoundError):
         SHAPEFILE_PATH = os.path.join(  # noqa: PTH118

@@ -10,7 +10,8 @@ import pandas as pd
 
 def compare_values(value_1, value_2):
     """Apply assert functions from pandas if values are pandas.DataFrame or
-    pandas.Series, else compare with `==` operator."""
+    pandas.Series, else compare with `==` operator.
+    """
     # Dataframes and Series need a special treatment.
     if isinstance(value_1, DataFrame) and isinstance(value_2, DataFrame):
         # Reset index names
@@ -45,7 +46,8 @@ def compare_values(value_1, value_2):
 
 def compare_dicts(dict_1: dict, dict_2: dict):
     """Iterate over the dict key-value pairs and compare those with
-    `compare_values()."""
+    `compare_values().
+    """
     for (key_1, value_1), (key_2, value_2) in zip(dict_1.items(), dict_2.items()):
         if isinstance(value_1, dict):
             compare_dicts(value_1, value_2)
@@ -55,15 +57,13 @@ def compare_dicts(dict_1: dict, dict_2: dict):
 
 
 def compare_esm_inputs(esm_1: fn.EnergySystemModel, esm_2: fn.EnergySystemModel):
-    """A method to assert if two esM instances have equal input parameters. It
-    uses exportToDict() and compares all attributes.
-
+    """A method to assert if two esM instances have equal input parameters.
+    It uses exportToDict() and compares all attributes.
     :param esm1:
     :type esm1: FINE.EnergySystemModel
     :param esm2:
-    :type esm2: FINE.EnergySystemModel
-    """
-
+    :type esm2: FINE.EnergySystemModel.
+    """  # noqa: D401
     # Create (esm_dict, comp_dict) tuples
     esm_tuple_1 = exportToDict(esm_1)
     esm_tuple_2 = exportToDict(esm_2)
@@ -118,7 +118,6 @@ def test_input_esm_to_netcdf_and_back(minimal_test_esM):
     """Write an esM to netCDF, then load the esM from this file. Compare if both
     esMs are identical.
     """
-
     esm_original = deepcopy(minimal_test_esM)
     xrIO.writeEnergySystemModelToNetCDF(
         esm_original, outputFilePath="test_esM.nc", overwriteExisting=True
@@ -135,7 +134,6 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM):
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-
     esm_original = deepcopy(minimal_test_esM)
     esm_original.optimize()
     xrIO.writeEnergySystemModelToNetCDF(
@@ -154,7 +152,6 @@ def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_es
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-
     esm_original_pf = deepcopy(perfectForesight_test_esM)
     esm_original_pf.optimize()
 
@@ -170,8 +167,7 @@ def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_es
 
 
 def test_capacityFix_subset(multi_node_test_esM_init):
-    """
-    Optimize esM, set optimal capacity values for every component as capacity Fix.
+    """Optimize esM, set optimal capacity values for every component as capacity Fix.
     Then, save the esM to netCDF and read out the same netCDF to esM.
     Assert that capacityFix values do not have to be provided for every location when saving to NetCDF.
     Assert that capacityFix index can be a subset of locationalEligibility when reading in NetCDF.
@@ -264,7 +260,6 @@ def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM):
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-
     esm_original_pf = deepcopy(perfectForesight_test_esM)
     esm_original_pf.aggregateTemporally(
         numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=2

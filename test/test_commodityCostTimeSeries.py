@@ -26,6 +26,9 @@ import numpy as np
 
 
 def test_miniSystem():
+    """Tests a basic multi-regional electricity system in FINE by validating cost consistency
+    before and after time-series aggregation against expected TAC values.
+    """
     locations = {"loc1", "loc2"}
     numberOfTimeSteps = 365
     hoursPerTimeStep = 24

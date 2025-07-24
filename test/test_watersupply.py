@@ -7,6 +7,7 @@ import fine as fn
 from pathlib import Path
 
 def test_watersupply():
+    """Tests a full water supply system in FINE with sources, sinks, storage, conversion, and transmission; compares optimized transmission flows to reference data."""
     # read in original results
     results = pd.read_csv(
         Path(__file__).parent / "_testInputFiles" / "waterSupplySystem_totalTransmission.csv",

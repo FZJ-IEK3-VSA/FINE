@@ -3,8 +3,7 @@ import numpy as np
 
 
 def test_shadowCostOutPut(minimal_test_esM):
-    """
-    Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000.
+    """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000.
     """
     esM = minimal_test_esM
 

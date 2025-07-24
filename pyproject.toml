@@ -85,7 +85,7 @@ documentation = "https://vsa-fine.readthedocs.io/en/master/"
 extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
-select = ["F", "PL", "R", "ARG", "RET", "E", "W", "UP", "ICN", "TID", "PTH"]
+select = ["D", "F", "PL", "R", "ARG", "RET", "E", "W", "UP", "ICN", "TID", "PTH"]
 # See https://docs.astral.sh/ruff/rules for explanations
 ignore = [
     "F403",    # ‘from module import *’ used; unable to detect undefined names
@@ -96,5 +96,7 @@ ignore = [
     "ARG001",
     "ARG002",
     "E501", # Lines to long 
+    "D200", # One-line docstring should fit on one line
+    "D205", # 1 blank line required between summary line and description
 ]
 

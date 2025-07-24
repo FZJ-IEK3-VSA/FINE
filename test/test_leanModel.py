@@ -1,6 +1,5 @@
-"""
-Aim: To check if passing "lean data" is possible i.e., pass spatially resolved data only for
-eligible locations
+"""Aim: To check if passing "lean data" is possible i.e., pass spatially resolved data only for eligible locations.
+
 Tests:
     #For each component class:
         Give data only for subset of locations. FINE should then look for locationalEligibility.
@@ -42,10 +41,9 @@ from getData import getData
     ],
 )
 def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibility):
-    """
-    Case 1: subset of locations provided but no locationalEligibility
+    """Case 1: subset of locations provided but no locationalEligibility
     Case 2: subset of locations provided with locationalEligibility,
-            but they don't match
+            but they don't match.
     """
     data = getData()
 
@@ -74,9 +72,7 @@ def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibil
 
 
 def test_leanModel_with_matching_locationalEligibility(esM_init):
-    """
-    Case: subset of locations provided with matching locationalEligibility
-    """
+    """Case: subset of locations provided with matching locationalEligibility."""
     data = getData()
 
     esM = esM_init

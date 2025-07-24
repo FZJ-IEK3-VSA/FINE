@@ -7,6 +7,14 @@ from fine.IOManagement.xarrayIO import writeEnergySystemModelToNetCDF
 
 
 def test_flexibleConversion_init():
+    """Tests initialization of flexible Conversion components in FINE and validates expected errors.
+
+    Verifies:
+    - that nested flexible commodity input structures are parsed correctly,
+    - that invalid factor signs raise ValueErrors,
+    - that overlapping commodity group and commodity names are rejected,
+    - and that combining flexible and time-dependent inputs raises NotImplementedError.
+    """
     esM = fn.EnergySystemModel(
         locations={"loc1"},
         commodities={"electricity", "hydrogen", "nat_gas"},
@@ -200,6 +208,7 @@ def test_flexibleConversion_init():
 
 
 def test_flexibleConversion_groups():
+    """Tests that the model handles nested input structures and time-dependent conversion factors."""
     esM = fn.EnergySystemModel(
         locations={"loc1"},
         commodities={
@@ -375,6 +384,11 @@ def test_flexibleConversion_groups():
 
 @pytest.mark.parametrize("use_balanceLimit", [False, True])
 def test_flexibleConversion_emissionFactors(use_balanceLimit):
+    """Tests flexible Conversion with fuel-specific emission factors and optional CO₂ balance limits.
+
+    Verifies that emission-based dispatch shifts fuel choice from fossil to renewable under CO₂ constraints,
+    and that the results match expected values with and without balance limits applied.
+    """
     if use_balanceLimit:
         balanceLimit = {
             2020: pd.DataFrame(

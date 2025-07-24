@@ -9,6 +9,9 @@ import pytest
 
 
 def test_ConversionDynamicNeedsCapacity():
+    """Tests that ConversionDynamic raises a ValueError if hasCapacityVariable is set to False,
+    as capacity must be defined for controllable units with time-dependent operation constraints.
+    """
     esM = fn.EnergySystemModel(
         locations={
             "example_region1",
@@ -37,6 +40,9 @@ def test_ConversionDynamicNeedsCapacity():
 
 
 def test_ConversionDynamicNeedsHigherOperationRate():
+    """Tests that ConversionDynamic raises a ValueError when operationRateMax is
+    lower than partLoadMin in any time step, making the operation infeasible.
+    """
     numberOfTimeSteps = 4
     locations = {"ElectrolyzerLocation", "IndustryLocation"}
     esM = fn.EnergySystemModel(

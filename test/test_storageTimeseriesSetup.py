@@ -7,6 +7,7 @@ import fine as fn
 
 @pytest.mark.parametrize("TSA", [True, False])
 def test_storageTimeseriesSetup(TSA, minimal_test_esM):
+    """Test correct setup of storage time series."""
     dummy_time_series = pd.DataFrame(
         [
             np.array([0.1, 0.2, 0.3, 0.4]),

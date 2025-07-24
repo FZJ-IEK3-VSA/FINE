@@ -11,7 +11,6 @@ not covered in the minimal test system or other tests.
 
 def create_core_esm():
     """
-    We create a core esm that only consists of a source and a sink in one location.
     """
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
@@ -53,10 +52,8 @@ def create_core_esm():
 
 
 def test_conversion_factors_as_series():
+    """Input as pandas.Series for one location.
     """
-    Input as pandas.Series for one location.
-    """
-
     esM = create_core_esm()
 
     with pytest.raises(

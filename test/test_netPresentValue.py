@@ -2,9 +2,8 @@ import numpy as np
 
 
 def test_Mini_netPresentValue(minimal_test_esM):
+    """Tests that the sum of NPV contributions equals the total objective value after optimization."""
     minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
-    # the sum of all npv contributions in the optimization summary must equal
-    # the objective value
     npv_sum_optSummary = 0
     for ip in minimal_test_esM.investmentPeriodNames:
         for mdl in minimal_test_esM.componentModelingDict.keys():

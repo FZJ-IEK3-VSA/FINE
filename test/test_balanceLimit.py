@@ -479,6 +479,9 @@ def test_hydrogenSinkDriver():
 # (sink are defined negative)
 @pytest.mark.parametrize("co2_limits", [[("max", 1)], [("max", 1.2), ("min", 1.1)]])
 def test_CO2Limit(co2_limits):
+    """Tests enforcement of CO₂ balance constraints using upper and/or lower bounds
+    on total system emissions across all locations and time steps.
+    """
     # 0) Preprocess energy system model
     locations = {"Region1", "Region2"}
     commodityUnitDict = {

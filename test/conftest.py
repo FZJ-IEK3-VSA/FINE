@@ -17,8 +17,7 @@ from getData import getData
 
 @pytest.fixture
 def minimal_test_esM(scope="session"):
-    """Returns minimal instance of esM"""
-
+    """Return minimal instance of esM."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -200,8 +199,7 @@ def minimal_test_esM(scope="session"):
 
 @pytest.fixture
 def single_node_test_esM():
-    """Returns minimal instance of esM with one node"""
-
+    """Return minimal instance of esM with one node."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -789,8 +787,7 @@ def multi_node_test_esM_init(esM_init):
 
 @pytest.fixture(scope="session")
 def test_esM_for_spagat(esM_init):
-    """
-    Simpler version of multi_node_test_esM_init.
+    """Simpler version of multi_node_test_esM_init.
     Makes spagat tests faster.
     """
     data = getData()
@@ -2288,8 +2285,7 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
 
 @pytest.fixture
 def dsm_test_esM(scope="session"):
-    """
-    Generate a simple energy system model with one node, two fixed generators and one load time series
+    """Generate a simple energy system model with one node, two fixed generators and one load time series
     for testing demand side management functionality.
     """
     # load without dsm

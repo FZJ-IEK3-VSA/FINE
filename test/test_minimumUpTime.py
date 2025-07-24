@@ -15,6 +15,9 @@ sys.path.append(
 
 
 def test_minimumUpTime():
+    """Tests that a ConversionDynamic component with a minimum up-time constraint dispatches
+    correctly under fixed capacity and a time-dependent electricity demand profile.
+    """  # noqa: D205
     # read in original results
     results = [
         0.0,

@@ -10,6 +10,7 @@ np.random.seed(
 
 @pytest.mark.skip()
 def test_CO2ReductionTargets():
+    """Tests CO₂ emissions reduction across time using a myopic optimization with dynamic CO₂ caps in FINE."""
     locations = {"regionN", "regionS"}
     commodityUnitDict = {
         "electricity": r"GW$_{el}$",
@@ -323,9 +324,7 @@ def test_CO2ReductionTargets():
 
 @pytest.mark.skip()
 def test_exceededLifetime():
-    # load a minimal test system
-    """Returns minimal instance of esM"""
-
+    """Tests exclusion of expired components in later years during myopic optimization."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 

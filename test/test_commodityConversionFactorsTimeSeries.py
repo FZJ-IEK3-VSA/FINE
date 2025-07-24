@@ -5,8 +5,7 @@ import copy
 
 
 def create_simple_esm():
-    """
-    To observe the effects of variable conversion factors, we create a simple test
+    """To observe the effects of variable conversion factors, we create a simple test
     esm. It consists of a source, a conversion and a sink. The sink has a fixed
     demand. The conversion rate of the electrolyzer changes in every period. We use
     a pandas.DataFrame for the electricity conversion factors and a pandas.Series for
@@ -76,11 +75,9 @@ def create_simple_esm():
 
 
 def test_variable_conversion_simple_no_tsa():
-    """
-    According to the changes in the conversion factors, the electricity demand
+    """According to the changes in the conversion factors, the electricity demand
     will be different in every timestep.
     """
-
     esM = create_simple_esm()
 
     # optimize
@@ -106,12 +103,10 @@ def test_variable_conversion_simple_no_tsa():
 
 
 def test_variable_conversion_simple_with_tsa():
-    """
-    This is to test if the conversion time series are temporally clustered properly.
+    """Test if the conversion time series are temporally clustered properly.
     Temporal clustering with 2 typical periods leads to two distinguished demand values
     instead of 4 in the case without temporally clustered timeseries.
     """
-
     esM = create_simple_esm()
 
     # Temporal clustering
@@ -146,11 +141,9 @@ def test_variable_conversion_simple_with_tsa():
 
 
 def test_basecase(minimal_test_esM):
-    """
-    We test the minimal test system with constant conversion factor the get a reference.
+    """We test the minimal test system with constant conversion factor the get a reference.
     Optimal operation of the electrolyzer component is determined by the electricity price.
     """
-
     # Get the minimal test system from conftest
     esM = copy.deepcopy(minimal_test_esM)
 
@@ -176,14 +169,12 @@ def test_basecase(minimal_test_esM):
 
 
 def test_variable_conversion_factor_no_tsa(minimal_test_esM):
-    """
-    We add an additional electrolyzer component with variable conversion rates.
+    """We add an additional electrolyzer component with variable conversion rates.
     It has a very high efficiency in time-step 1, where it is now choosen to operate
     in favour of the electrolyzer with constant efficiency.
     Efficiency in the last time-step is very low for the new electolyzer, therefore
     it is not operated in this time-step.
     """
-
     # Get the minimal test system from conftest
     esM = copy.deepcopy(minimal_test_esM)
 
@@ -248,12 +239,10 @@ def test_variable_conversion_factor_no_tsa(minimal_test_esM):
 
 
 def test_variable_conversion_factor_with_tsa(minimal_test_esM):
-    """
-    Same as `test_variable_conversion_factor_no_tsa` but with time series aggregation
+    """Same as `test_variable_conversion_factor_no_tsa` but with time series aggregation
     using 3 typical periods. Now the optimal solution is composed of only three different
     periods.
     """
-
     # Get the minimal test system from conftest
     esM = copy.deepcopy(minimal_test_esM)
 

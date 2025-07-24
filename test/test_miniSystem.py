@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 
 # # Workflow for a multi-regional energy system
-#
+
 # In this application of the FINE framework, a multi-regional energy system is modeled and optimized.
-#
+
 # All classes which are available to the user are utilized and examples of the selection of different parameters within these classes are given.
-#
+
 # The workflow is structures as follows:
 # 1. Required packages are imported and the input data path is set
 # 2. An energy system model instance is created
@@ -16,7 +16,7 @@
 # 7. Commodity sinks are added to the energy system model
 # 8. The energy system model is optimized
 # 9. Selected optimization results are presented
-#
+
 
 # 1. Import required packages and set input data path
 
@@ -25,6 +25,7 @@ import pandas as pd
 
 
 def test_miniSystem(minimal_test_esM):
+    """Tests mini energy system by validating operation values and cost/revenue summaries against expected results."""
     minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
     # test if solve fits to the original results
