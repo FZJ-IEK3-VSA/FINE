@@ -66,10 +66,6 @@ class Conversion(Component):
 
         **Required arguments:**
 
-        :param physicalUnit: reference physical unit of the plants to which maximum capacity limitations,
-            cost parameters and the operation time series refer to.
-        :type physicalUnit: string
-
         :param commodityConversionFactors: conversion factors with which commodities are converted into each
             other with one unit of operation (dictionary). Each commodity which is converted in this component
             is indicated by a string in this dictionary. The conversion factor related to this commodity is
@@ -122,6 +118,14 @@ class Conversion(Component):
             * dictionary with tuple of (commissioning year, investment period) as key and one of the first option above as value
 
         **Default arguments:**
+        
+        :param commodity: reference commodity of the component to which maximum capacity limitations,
+            cost parameters and the operation time series refer to.
+        :type commodity: string
+
+        :param physicalUnit: reference physical unit of the plants to which maximum capacity limitations,
+            cost parameters and the operation time series refer to. Will be removed in future.
+        :type physicalUnit: string
 
         :param linkedConversionCapacityID: if specifies, indicates that all conversion components with the
             same ID have to have the same capacity.
