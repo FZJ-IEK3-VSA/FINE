@@ -17,8 +17,9 @@ class ConversionDynamic(Conversion):
         self,
         esM,
         name,
-        physicalUnit,
         commodityConversionFactors,
+        commodity=None,
+        physicalUnit=None,
         downTimeMin=None,
         upTimeMin=None,
         rampUpMax=None,
@@ -51,7 +52,7 @@ class ConversionDynamic(Conversion):
             The maximum ramping is defined per hour and not per hoursPerTimeStep.
             |br| * the default value is None
         :type rampDownMax: None or float value in range \]0.0,1.0\]
-        
+
         :param useTemporalCyclicConstraints: If True, the temporal cyclic constraints are used.
             This means that the operation of the first time steps are mathematically linked to the operation of the last time steps.
             |br| * the default value is True
@@ -61,7 +62,12 @@ class ConversionDynamic(Conversion):
         :type \*\*kwargs: Check Conversion Class documentation.
         """
         Conversion.__init__(
-            self, esM, name, physicalUnit, commodityConversionFactors, **kwargs
+            self,
+            esM=esM,
+            name=name,
+            physicalUnit=physicalUnit,
+            commodityConversionFactors=commodityConversionFactors,
+            **kwargs,
         )
 
         self.modelingClass = ConversionDynamicModel
