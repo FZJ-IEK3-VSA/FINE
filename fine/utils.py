@@ -2583,15 +2583,14 @@ def checkConversionFactorValues(ccf):
     """Check if conversion factor values are 1 or -1."""
     if isinstance(ccf, (int, float)):
         if ccf not in [1, -1]:
-            raise ValueError("Conversion factor must be 1 or -1")
+            return False
     elif isinstance(ccf, pd.Series):
         if not ccf.isin([1, -1]).all():
-            raise ValueError("All conversion factor values must be 1 or -1")
+            return False
     elif isinstance(ccf, pd.DataFrame):
         if not ccf.isin([1, -1]).all().all():
-            raise ValueError("All conversion factor values must be 1 or -1")
-    else:
-        raise TypeError("Conversion factor must be a number or pandas Series")
+            return False
+    return True
 
 def checkAndSetCommodityConversionFactor(comp, esM):
     """
@@ -2651,7 +2650,8 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                     commodities.append(item[0])
                     commodTypes.append(type(item[1]))
                     commodityValues.append(item[1])
-            checkConversionFactorValues(dict(zip(commodities, commodityValues))[main_commodity])
+            _convFactorDict = dict(zip(commodities, commodityValues))
+            assert any(checkConversionFactorValues(_convFactorDict[commodity]) for commodity in ccf.keys()), "At least one commodity needs a conversion factor of 1 or -1"
         else:
             commodities = list(set(ccf.keys()))
             commodTypes = [
@@ -2660,7 +2660,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 if isinstance(x, (pd.Series, pd.DataFrame))
             ]
             # make sure that conversion factor of main commodity is 1 or -1. ccf can be a series or float
-            checkConversionFactorValues(ccf[main_commodity]) 
+            assert any(checkConversionFactorValues(ccf[commodity]) for commodity in ccf.keys()),  "At least one commodity needs a conversion factor of 1 or -1"
         checkCommodities(esM, set(commodities))
         return commodTypes
 
@@ -2669,12 +2669,6 @@ def checkAndSetCommodityConversionFactor(comp, esM):
         for ccf in commodityConversionFactors.values():
             commodTypes = checkFactorCommod(ccf)
             commodTypesList += commodTypes
-        if (pd.Series in commodTypesList or pd.DataFrame in commodTypesList) and len(
-            set(commodTypesList)
-        ) > 1:
-            raise ValueError(
-                f"Unallowed data type variation in commodity conversion factors of {comp.name} for yearly dependency."
-            )
     else:
         checkFactorCommod(commodityConversionFactors)
 
@@ -2982,3 +2976,16 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
         hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval,
         hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval,
     )
+
+
+def checkMainCommodity(comp, esM):
+    # assert that only one of physicalUnit or commodity is not equal to None
+    if comp.commodity is not None and comp.physicalUnit is not None:
+        physicalUnitfromCommodity = esM.commodityUnitsDict[comp.commodity]
+        assert physicalUnitfromCommodity == comp.physicalUnit, f"Specified commodity and physicalUnit for component {comp.name} do not match"
+
+    if comp.physicalUnit is not None:
+        warnings.warn(
+            "physicalUnit for conversion components is deprecated and will be removed in a future version. Use commodity instead.",
+            DeprecationWarning,
+        )

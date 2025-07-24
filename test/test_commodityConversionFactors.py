@@ -82,3 +82,31 @@ def test_conversion_factors_as_series():
 
     # optimize
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
+
+
+def test_conversion_factor_values():
+    """
+    Input as pandas.Series for one location.
+    """
+
+    esM = create_core_esm()
+
+    with pytest.raises(
+        AssertionError, match=r".*At least one commodity needs a conversion factor of 1 or -1.*"
+    ):
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name="Electrolyzers_VarConvFac",
+                physicalUnit=r"kW$_{el}$",
+                commodity="electricity",
+                commodityConversionFactors={"hydrogen": 0.7, "electricity": -1.1},
+                hasCapacityVariable=True,
+                investPerCapacity=1000,  # euro/kW
+                opexPerCapacity=500 * 0.025,
+                interestRate=0.08,
+                capacityMax=1000,
+                economicLifetime=10,
+                locationalEligibility=pd.Series([1], ["ElectrolyzerLocation"]),
+            )
+        )

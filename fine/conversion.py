@@ -338,6 +338,9 @@ class Conversion(Component):
         self.commissioningDependentCcf = commissioningDependentCcf
         self.commodityConversionFactors = commodityConversionFactors
         self.commodity = commodity
+        self.physicalUnit = physicalUnit
+        utils.checkMainCommodity(self, esM)
+
         (self.isIpDepending, self.isCommisDepending, self.flexibleConversion) = (
             utils.checkConversionFactorProperties(self, esM, commissioningDependentCcf)
         )
@@ -361,7 +364,6 @@ class Conversion(Component):
         utils.checkCommodityUnits(esM, physicalUnit)
         if linkedConversionCapacityID is not None:
             utils.isString(linkedConversionCapacityID)
-        self.physicalUnit = physicalUnit
         
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
