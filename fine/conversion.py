@@ -118,7 +118,7 @@ class Conversion(Component):
             * dictionary with tuple of (commissioning year, investment period) as key and one of the first option above as value
 
         **Default arguments:**
-        
+
         :param commodity: reference commodity of the component to which maximum capacity limitations,
             cost parameters and the operation time series refer to.
         :type commodity: string
