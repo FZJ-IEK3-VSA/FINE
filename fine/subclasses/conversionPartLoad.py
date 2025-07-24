@@ -275,10 +275,11 @@ class ConversionPartLoad(Conversion):
         self,
         esM,
         name,
-        physicalUnit,
         commodityConversionFactors,
         commodityConversionFactorsPartLoad,
         nSegments=None,
+        physicalUnit=None,
+        commodity=None,
         **kwargs,
     ):
         """
