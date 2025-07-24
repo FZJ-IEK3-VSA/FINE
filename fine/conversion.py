@@ -237,7 +237,6 @@ class Conversion(Component):
             capacityPerPlantUnit=capacityPerPlantUnit,
             hasIsBuiltBinaryVariable=hasIsBuiltBinaryVariable,
             bigM=bigM,
-            
             locationalEligibility=locationalEligibility,
             capacityMin=capacityMin,
             capacityMax=capacityMax,
@@ -364,7 +363,7 @@ class Conversion(Component):
         utils.checkCommodityUnits(esM, physicalUnit)
         if linkedConversionCapacityID is not None:
             utils.isString(linkedConversionCapacityID)
-        
+
         self.modelingClass = ConversionModel
         self.linkedConversionCapacityID = linkedConversionCapacityID
 
