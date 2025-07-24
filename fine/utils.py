@@ -2592,6 +2592,7 @@ def checkConversionFactorValues(ccf):
             return False
     return True
 
+
 def checkAndSetCommodityConversionFactor(comp, esM):
     """
     Set up the full commodity conversion factor, if necessary depending on
@@ -2645,13 +2646,16 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                             f"All commodity conversion factors of {comp.name}"
                             f" in commodity group '{item[0]}' must have the same sign."
                         )
-                    
+
                 else:
                     commodities.append(item[0])
                     commodTypes.append(type(item[1]))
                     commodityValues.append(item[1])
             _convFactorDict = dict(zip(commodities, commodityValues))
-            assert any(checkConversionFactorValues(_convFactorDict[commodity]) for commodity in ccf.keys()), "At least one commodity needs a conversion factor of 1 or -1"
+            assert any(
+                checkConversionFactorValues(_convFactorDict[commodity])
+                for commodity in ccf.keys()
+            ), "At least one commodity needs a conversion factor of 1 or -1"
         else:
             commodities = list(set(ccf.keys()))
             commodTypes = [
@@ -2660,7 +2664,9 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 if isinstance(x, (pd.Series, pd.DataFrame))
             ]
             # make sure that conversion factor of main commodity is 1 or -1. ccf can be a series or float
-            assert any(checkConversionFactorValues(ccf[commodity]) for commodity in ccf.keys()),  "At least one commodity needs a conversion factor of 1 or -1"
+            assert any(
+                checkConversionFactorValues(ccf[commodity]) for commodity in ccf.keys()
+            ), "At least one commodity needs a conversion factor of 1 or -1"
         checkCommodities(esM, set(commodities))
         return commodTypes
 
@@ -2982,7 +2988,9 @@ def checkMainCommodity(comp, esM):
     # assert that only one of physicalUnit or commodity is not equal to None
     if comp.commodity is not None and comp.physicalUnit is not None:
         physicalUnitfromCommodity = esM.commodityUnitsDict[comp.commodity]
-        assert physicalUnitfromCommodity == comp.physicalUnit, f"Specified commodity and physicalUnit for component {comp.name} do not match"
+        assert physicalUnitfromCommodity == comp.physicalUnit, (
+            f"Specified commodity and physicalUnit for component {comp.name} do not match"
+        )
 
     if comp.physicalUnit is not None:
         warnings.warn(

@@ -92,7 +92,8 @@ def test_conversion_factor_values():
     esM = create_core_esm()
 
     with pytest.raises(
-        AssertionError, match=r".*At least one commodity needs a conversion factor of 1 or -1.*"
+        AssertionError,
+        match=r".*At least one commodity needs a conversion factor of 1 or -1.*",
     ):
         esM.add(
             fn.Conversion(
