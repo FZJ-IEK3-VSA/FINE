@@ -16,7 +16,7 @@ def test_create_gdf():
     df = pd.DataFrame({"space": ["reg_01", "reg_02"]})
 
     crs = 3035
-    path_to_test_dir = Path(Path.parent(__file__)) / "../data/output/test_dir"
+    path_to_test_dir = Path(__file__).parent / "../data/output/test_dir"
     file_name = "test_file"
 
     # FUNCTION CALL
