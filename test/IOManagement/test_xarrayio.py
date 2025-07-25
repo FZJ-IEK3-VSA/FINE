@@ -288,3 +288,29 @@ def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM):
     compare_esm_inputs(esm_original_pf, esm_pf_from_netcdf)
 
     Path("test_esM_pf.nc").unlink()
+
+def test_operation_export_to_xarray(multi_node_test_esM_init):
+    '''Optimize an esM, write it to  xarray datasets, then load the esM from this file.
+    Check that the results of the transmission model are identical to the initial ones.
+
+    Info: This test will fail as soon the annual operation will not be part of the
+    optimization summary anymore. In that case convertOptimizationOutputToDatasets()
+    in xarrayIO.py needs to be adapted.
+    '''
+
+    esM = multi_node_test_esM_init
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
+    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+
+    xrds = xrIO.writeEnergySystemModelToDatasets(esM)
+    optSum = esM.getOptimizationSummary('TransmissionModel').loc['DC cables','operation','[GW$_{el}$*h]']
+    xrRes = xrds['Results'][0]['TransmissionModel']['DC cables'].operation.to_series().unstack().dropna(how='all')
+    xrRes.columns.name = None
+
+    assert_frame_equal(optSum,xrRes,check_dtype=False)
