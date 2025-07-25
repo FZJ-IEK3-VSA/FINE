@@ -6,7 +6,6 @@ import pyomo.environ as pyomo
 import pandas as pd
 import numpy as np
 import math
-import copy
 
 
 class Component(metaclass=ABCMeta):
@@ -49,7 +48,7 @@ class Component(metaclass=ABCMeta):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
-        etlParameter=None,
+        pwlcfParameters=None,
     ):
         """
         Constructor for creating an instance of the Component class.
@@ -175,7 +174,14 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations. or
             * Dict with investment periods as keys and one of the options above as values.
 
-        :param partLoadMin: if specified, indicates minimal part load of component.
+        :param partLoadMin: If specified, it defines the lowest relative operation
+            rate a component must maintain during operation. To still allow the component
+            to be completely turned off, a binary variable is introduced for each time
+            step. This enables the model to choose between zero operation or operation
+            at or above the specified minimum load.
+            Note: Adding these binary variables turns the problem into a MILP, which
+            can significantly increase computational time.
+            |br| * the default value is None
         :type partLoadMin:
             * None or
             * Float value in range ]0;1]
@@ -489,6 +495,10 @@ class Component(metaclass=ABCMeta):
         :param floorTechnicalLifetime: if a technical lifetime is not a multiple of the interval, this
             parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval,
             by default True. The costs will then be applied to the corrected interval.
+
+        :param: pwlcfParameters: paramter dict for piecewise linear cost functions. Enables a standardized endogenous technological
+            learning approach with a fixed learning rate. In that case, the learning is conducted in each investment period and connected throughout.
+            Alternatively enables an economies of scale approach. In that case, the cost scaling is indepent in each investment period.
         """
         # Set general component data
         utils.isEnergySystemModelInstance(esM)
@@ -688,21 +698,11 @@ class Component(metaclass=ABCMeta):
             self.locationalEligibility
         )
 
-        self.etlParameter = etlParameter
-        self.etl = None
-        if etlParameter:
-            etlModul = fine.expansionModules.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModul
-            self.etl = etlModul(self, esM, **etlParameter)
-            # TODO: check if needed
-
-            # self.processedInvestPerCapacity = utils.checkAndSetInvestmentPeriodCostParameter(
-            #         esM,
-            #         name,
-            #         investPerCapacity,
-            #         dimension,
-            #         self.locationalEligibility,
-            #         self.processedStockYears + esM.investmentPeriods,
-            #     )
+        self.pwlcfParameters = pwlcfParameters
+        self.pwlcf = None
+        if pwlcfParameters and not all(param is None for param in pwlcfParameters.values()):
+            pwlcfModule = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModule
+            self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
 
     def addToEnergySystemModel(self, esM):
         """
@@ -732,11 +732,11 @@ class Component(metaclass=ABCMeta):
             esM.componentModelingDict.update({mdl: self.modelingClass()})
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
-        if self.etl is not None:
-            etlModel = fine.expansionModules.endogenousTechnologicalLearning.EndogenousTechnologicalLearningModel
-            if not hasattr(esM, "etlModel"):
-                esM.etlModel = etlModel()
-            esM.etlModel.modulsDict.update({self.name: self.etl})
+        if self.pwlcf is not None:
+            pwlcfModel = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModel
+            if not hasattr(esM, "pwlcfModel"):
+                esM.pwlcfModel = pwlcfModel()
+            esM.pwlcfModel.modulesDict.update({self.name: self.pwlcf})
 
     def prepareTSAInput(self, rate, rateName, rateWeight, weightDict, data, ip):
         """
@@ -1163,6 +1163,57 @@ class ComponentModel(metaclass=ABCMeta):
                     }
                     for ip in esM.investmentPeriods
                 },
+            )
+
+    def declareBinOpVarSet(
+        self,
+        esM,
+        pyM,
+        binaryOperationParameter=["partLoadMin"],
+        binaryOperationSetName="operationBinVarSet",
+    ):
+        """
+        Declare binary operation variables.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        # check if any component has binary operation variables
+        def _identifyBinaryOperationComponents(compDict, compName):
+            return any(
+                getattr(compDict[compName], x, None) is not None
+                for x in binaryOperationParameter
+            )
+
+        binaryOperationComponents = [
+            compName
+            for (_, compName, _) in varSet
+            if _identifyBinaryOperationComponents(compDict, compName)
+        ]
+
+        # if components with binary operations exist, set up the corresponding set
+        if len(binaryOperationComponents) > 0:
+
+            def declareOpBinVarSet(pyM):
+                return (
+                    (loc, compName, ip)
+                    for compName, comp in compDict.items()
+                    if compName in binaryOperationComponents
+                    for loc in comp.processedLocationalEligibility.index
+                    for ip in esM.investmentPeriods
+                    if comp.processedLocationalEligibility[loc] == 1
+                )
+
+            setattr(
+                pyM,
+                binaryOperationSetName + "_" + abbrvName,
+                pyomo.Set(dimen=3, initialize=declareOpBinVarSet),
             )
 
     ####################################################################################################################
@@ -1734,34 +1785,30 @@ class ComponentModel(metaclass=ABCMeta):
                 ),
             )
 
-    def declareOperationBinaryVars(self, pyM, opVarBinName):
+    def declareOperationBinaryVars(
+        self,
+        pyM,
+        opVarBinName="op_bin",
+        opBinSetName="operationBinVarSet",
+    ):
         """
-        Declare set of locations and components for which downTimeMin is not None.
+        Declare binary operation variables.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
+        abbrvName = self.abbrvName
 
-        # get components where partLoadMin is specified
-        def get_declareOperationBinaryVars(pyM):
-            return (
-                (loc, compName, ip)
-                for loc, compName, ip in varSet
-                if getattr(compDict[compName], "partLoadMin") is not None
-            )
+        # only setup binary operation variables if binary operation is declared, otherwise pyomo
+        # always declares binary models which increases run time.
 
-        binaryOperationComponents = set(get_declareOperationBinaryVars(pyM))
-
-        if len(binaryOperationComponents) > 0:
-            # copy and overwrite pyomo object to contain only the relevant components but maintain the correct format
-            allOperationVars = getattr(pyM, "operationVarSet_" + abbrvName)
-            binaryOperationVars = copy.deepcopy(allOperationVars)
-            binaryOperationVars.set_value(binaryOperationComponents)
-
+        if hasattr(pyM, opBinSetName + "_" + abbrvName):
+            # declare binary operation variables
             setattr(
                 pyM,
                 opVarBinName + "_" + abbrvName,
                 pyomo.Var(
-                    binaryOperationVars,
+                    getattr(pyM, opBinSetName + "_" + abbrvName),
                     pyM.intraYearTimeSet,
                     domain=pyomo.Binary,
                 ),
@@ -2586,6 +2633,76 @@ class ComponentModel(metaclass=ABCMeta):
                 pyomo.Constraint(constrSet4, pyM.intraYearTimeSet, rule=op4),
             )
 
+    def binaryOperation(
+        self,
+        pyM,
+        constrName,
+        constrSetName,
+        binaryParameterName,
+        opVarName,
+        opVarBinName,
+        isOperationCommisYearDepending=False,
+    ):
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+
+        opVar = getattr(pyM, opVarName + "_" + abbrvName)
+        opVarBin = getattr(pyM, opVarBinName + "_" + abbrvName, None)
+
+        # only create constraint when binary operation variable is specified
+        if opVarBin is not None:
+            constrSetBinary = getattr(
+                pyM, constrSetName + binaryParameterName + "_" + abbrvName
+            )
+
+            def getBigM(compName):
+                return getattr(compDict[compName], "bigM")
+
+            # First constraint
+            if isOperationCommisYearDepending:
+
+                def binOperation1(pyM, loc, compName, commis, ip, p, t):
+                    return opVar[loc, compName, commis, ip, p, t] <= opVarBin[
+                        loc, compName, commis, ip, p, t
+                    ] * getBigM(compName)
+            else:
+
+                def binOperation1(pyM, loc, compName, ip, p, t):
+                    return opVar[loc, compName, ip, p, t] <= opVarBin[
+                        loc, compName, ip, p, t
+                    ] * getBigM(compName)
+
+            setattr(
+                pyM,
+                constrName + "binaryOperation1_" + abbrvName,
+                pyomo.Constraint(
+                    constrSetBinary, pyM.intraYearTimeSet, rule=binOperation1
+                ),
+            )
+
+            # Second constraint
+            if isOperationCommisYearDepending:
+
+                def binOperation2(pyM, loc, compName, commis, ip, p, t):
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        >= opVarBin[loc, compName, commis, ip, p, t]
+                    )
+            else:
+
+                def binOperation2(pyM, loc, compName, ip, p, t):
+                    return (
+                        opVar[loc, compName, ip, p, t]
+                        >= opVarBin[loc, compName, ip, p, t]
+                    )
+
+            setattr(
+                pyM,
+                constrName + "binaryOperation2_" + abbrvName,
+                pyomo.Constraint(
+                    constrSetBinary, pyM.intraYearTimeSet, rule=binOperation2
+                ),
+            )
+
     def additionalMinPartLoad(
         self,
         pyM,
@@ -2595,6 +2712,7 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         opVarBinName,
         capVarName,
+        isOperationCommisYearDepending=False,
     ):
         """
         Set, if applicable, the minimal part load of a component.
@@ -2610,41 +2728,55 @@ class ComponentModel(metaclass=ABCMeta):
         # only create constraint when partLoadMin specified
         if opVarBin is not None:
             capVar = getattr(pyM, capVarName + "_" + abbrvName)
+            commisVar = getattr(pyM, "commis_" + abbrvName)
             constrSetMinPartLoad = getattr(
-                    pyM, constrSetName + "partLoadMin_" + abbrvName
+                pyM, constrSetName + "partLoadMin_" + abbrvName
             )
 
-            def opMinPartLoad1(pyM, loc, compName, ip, p, t):
-                bigM = getattr(compDict[compName], "bigM")
-                return (
-                    opVar[loc, compName, ip, p, t]
-                    <= opVarBin[loc, compName, ip, p, t] * bigM
-                )
-            setattr(
-                pyM,
-                constrName + "partLoadMin_1_" + abbrvName,
-                pyomo.Constraint(
-                    constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad1
-                ),
-            )
+            def getPartLoadMin(compDict, compName, ip):
+                return getattr(compDict[compName], "processedPartLoadMin")[ip]
+
+            def getBigM(compDict, compName):
+                return getattr(compDict[compName], "bigM")
+
             if not pyM.hasSegmentation:
-                    def opMinPartLoad2(pyM, loc, compName, ip, p, t):
-                        processedPartLoadMin = getattr(
-                            compDict[compName], "processedPartLoadMin"
-                        )[ip]
-                        bigM = getattr(compDict[compName], "bigM")
+                if isOperationCommisYearDepending:
+
+                    def opMinPartLoad(pyM, loc, compName, commis, ip, p, t):
+                        processedPartLoadMin = getPartLoadMin(compDict, compName, ip)
+                        bigM = getBigM(compDict, compName)
+                        return (
+                            opVar[loc, compName, commis, ip, p, t]
+                            >= processedPartLoadMin * commisVar[loc, compName, commis] * esM.hoursPerTimeStep
+                            - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
+                        )
+                else:
+
+                    def opMinPartLoad(pyM, loc, compName, ip, p, t):
+                        processedPartLoadMin = getPartLoadMin(compDict, compName, ip)
+                        bigM = getBigM(compDict, compName)
                         return (
                             opVar[loc, compName, ip, p, t]
-                            >= processedPartLoadMin * capVar[loc, compName, ip]
+                            >= processedPartLoadMin * capVar[loc, compName, ip]* esM.hoursPerTimeStep
                             - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
                         )
+            elif isOperationCommisYearDepending:
+
+                def opMinPartLoad(pyM, loc, compName, commis, ip, p, t):
+                    processedPartLoadMin = getPartLoadMin(compDict, compName, ip)
+                    bigM = getBigM(compDict, compName)
+                    return (
+                        opVar[loc, compName, commis, ip, p, t]
+                        >= processedPartLoadMin
+                        * commisVar[loc, compName, commis]
+                        * esM.hoursPerSegment[ip][p, t]
+                        - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
+                    )
             else:
 
-                def opMinPartLoad2(pyM, loc, compName, ip, p, t):
-                    processedPartLoadMin = getattr(
-                        compDict[compName], "processedPartLoadMin"
-                    )[ip]
-                    bigM = getattr(compDict[compName], "bigM")
+                def opMinPartLoad(pyM, loc, compName, ip, p, t):
+                    processedPartLoadMin = getPartLoadMin(compDict, compName, ip)
+                    bigM = getBigM(compDict, compName)
                     return (
                         opVar[loc, compName, ip, p, t]
                         >= processedPartLoadMin
@@ -2657,7 +2789,7 @@ class ComponentModel(metaclass=ABCMeta):
                 pyM,
                 constrName + "partLoadMin_2_" + abbrvName,
                 pyomo.Constraint(
-                    constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad2
+                    constrSetMinPartLoad, pyM.intraYearTimeSet, rule=opMinPartLoad
                 ),
             )
 

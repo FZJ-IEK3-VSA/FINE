@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0.0", "wheel"]
+requires = ["setuptools>=77.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 
@@ -16,11 +16,11 @@ maintainers = [
     { name = "Johannes Behrens", email = "j.behrens@fz-juelich.de"},
     { name = "Theresa Klütz", email = "t.kluetz@fz-juelich.de" },
 ]
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 
 classifiers = [
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python",

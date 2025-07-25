@@ -7,7 +7,7 @@ import fine.IOManagement.xarrayIO as xrIO
 
 def test_etl_NPV():
     """
-    Test case for basic npv calculation with etl modul and Input Output test.
+    Test case for basic npv calculation with etl module and Input Output test.
     """
 
     esM = fn.EnergySystemModel(
@@ -32,13 +32,15 @@ def test_etl_NPV():
             hasCapacityVariable=True,
             economicLifetime=10,
             interestRate=0,
-            etlParameter={
-                "initCost": 1,
-                "learningRate": 0.15,
-                "initCapacity": 9.569184,
-                "maxCapacity": 58.52369,
-                "noSegments": 4,
-            },
+            pwlcfParameters={
+                "etlParameters": {
+                    "initCost": 1,
+                    "learningRate": 0.15,
+                    "initCapacity": 9.569184,
+                    "maxCapacity": 58.52369,
+                    "noSegments": 4,
+                },
+            }
         )
     )
 
@@ -55,7 +57,6 @@ def test_etl_NPV():
     xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath="test_esM_etl.nc")
 
     esM.declareOptimizationProblem()
-    esM.pyM.write("test.mps")
 
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
@@ -67,10 +68,10 @@ def test_etl_NPV():
     ]
     np.testing.assert_almost_equal(commissioning, [1] * 5)
 
-    slope = esM.etlModel.modulsDict["PV"].linEtlParameter.loc[2, "slope"]
-    interception = esM.etlModel.modulsDict["PV"].linEtlParameter.loc[2, "interception"]
-    initCapacity = esM.etlModel.modulsDict["PV"].initCapacity
-    initTotalCost = esM.etlModel.modulsDict["PV"].linEtlParameter.loc[0, "totalCost"]
+    slope = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[2, "slope"]
+    interception = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[2, "interception"]
+    initCapacity = esM.pwlcfModel.modulesDict["PV"].initCapacity
+    initTotalCost = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[0, "totalCost"]
 
     np.testing.assert_almost_equal(
         esM.pyM.Obj(),
@@ -90,7 +91,7 @@ def test_etl_NPV():
 
 def test_etl_stock_NPV():
     """
-    Test case for basic npv calculation with etl modul when stock is considered.
+    Test case for basic npv calculation with etl module when stock is considered.
     """
 
     esM = fn.EnergySystemModel(
@@ -115,12 +116,14 @@ def test_etl_stock_NPV():
             hasCapacityVariable=True,
             economicLifetime=15,
             interestRate=0,
-            etlParameter={
-                "initCost": 1,
-                "learningRate": 0.18,
-                "initCapacity": 10,
-                "maxCapacity": 50,
-                "noSegments": 4,
+            pwlcfParameters={
+                "etlParameters": {
+                    "initCost": 1,
+                    "learningRate": 0.18,
+                    "initCapacity": 10,
+                    "maxCapacity": 50,
+                    "noSegments": 4,
+                },
             },
             stockCommissioning={
                 2010: 1,
@@ -148,20 +151,20 @@ def test_etl_stock_NPV():
     ]
     np.testing.assert_almost_equal(commis, [1, 1, 2, 1, 1])
 
-    interception = esM.etlModel.modulsDict["PV_with_etl"].linEtlParameter.loc[
+    interception = esM.pwlcfModel.modulesDict["PV_with_etl"].linEtlParameter.loc[
         2, "interception"
     ]
-    slope = esM.etlModel.modulsDict["PV_with_etl"].linEtlParameter.loc[2, "slope"]
-    initCapacity = esM.etlModel.modulsDict["PV_with_etl"].initCapacity
-    initTotalCost = esM.etlModel.modulsDict["PV_with_etl"].getTotalCost(initCapacity)
+    slope = esM.pwlcfModel.modulesDict["PV_with_etl"].linEtlParameter.loc[2, "slope"]
+    initCapacity = esM.pwlcfModel.modulesDict["PV_with_etl"].initCapacity
+    initTotalCost = esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(initCapacity)
     stockCost2010 = (
-        esM.etlModel.modulsDict["PV_with_etl"].getTotalCost(8)
-        - esM.etlModel.modulsDict["PV_with_etl"].getTotalCost(7)
+        esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(8)
+        - esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(7)
     ) / 3
     stockCost2015 = (
         (
-            esM.etlModel.modulsDict["PV_with_etl"].getTotalCost(10)
-            - esM.etlModel.modulsDict["PV_with_etl"].getTotalCost(8)
+            esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(10)
+            - esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(8)
         )
         * 2
         / 3
@@ -202,13 +205,15 @@ def test_etl_multi_regional():
             interestRate=0,
             investPerCapacity=10,
             locationalEligibility=pd.Series({"loc1": 0, "loc2": 1}),
-            etlParameter={
-                "initCost": 1,
-                "learningRate": 0.18,
-                "initCapacity": 10,
-                "maxCapacity": 50,
-                "noSegments": 4,
-            },
+            pwlcfParameters={
+                "etlParameters": {
+                    "initCost": 1,
+                    "learningRate": 0.18,
+                    "initCapacity": 10,
+                    "maxCapacity": 50,
+                    "noSegments": 4,
+                },
+            }
         )
     )
 

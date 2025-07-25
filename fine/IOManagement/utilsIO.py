@@ -262,10 +262,11 @@ def addDFVariablesToXarray(
             # If a . is present in variable name, then the data would be
             # another level further in the component_dict
             if "." in variable_description:
-                [var_name, subvar_name] = variable_description.split(".")
-                if subvar_name.isdigit():
-                    subvar_name = int(subvar_name)
-                data = component_dict[classname][component][var_name][subvar_name]
+                key_list = getKeyHierarchyOfNestedDict(variable_description)
+                value = component_dict[classname][component]
+                for key in key_list:
+                    value = value[key]
+                data = value
             else:
                 data = component_dict[classname][component][variable_description]
 

@@ -429,7 +429,7 @@ class EnergySystemModel:
         instance. The added component has to inherit from the FINE class Component.
 
         :param component: the component to be added
-        :type component: An object which inherits from the FINE Component class
+        :type component: An object which inherits from the FINE class Component
         """
         if not issubclass(type(component), Component):
             raise TypeError(
@@ -545,14 +545,29 @@ class EnergySystemModel:
 
         # get affected classes and extract relevant class attributes
         _class = self.getComponent(componentName).__class__
-        class_attrs = list(inspect.signature(_class).parameters.keys())
+
+        # Get parameters from the class and its direct parent class (only for specific subclasses)
+        class_attrs = set()
+        # Get parameters from current class
+        class_attrs.update(inspect.signature(_class).parameters.keys())
+
+        # Get parameters from direct parent class only for specific subclasses
+        subclass_names = [
+            "ConversionDynamic",
+            "ConversionPartLoadModel",
+            "LinearOptimalPowerFlow",
+        ]
+        if (
+            _class.__name__ in subclass_names
+            and _class.__bases__
+            and _class.__bases__[0] is not object
+        ):
+            class_attrs.update(inspect.signature(_class.__bases__[0]).parameters.keys())
+
+        class_attrs = list(class_attrs)  # Convert back to list for compatibility
 
         # check if all arguments to be updated are class attributes
         for k in updateAttrs.keys():
-            if k not in class_attrs:
-                raise AttributeError(
-                    f"parameter '{k}' from updateAttrs is not an attribute of the component class '{_class}'."
-                )
             if k == "name":
                 warnings.warn(
                     "Updating the name will just create a new component."
@@ -1131,7 +1146,7 @@ class EnergySystemModel:
         pyM.hasTSA = timeSeriesAggregation
         pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
-            if mdl.abbrvName != "etl":
+            if mdl.abbrvName != "pwlcf":
                 for comp in mdl.componentsDict.values():
                     comp.setTimeSeriesData(pyM.hasTSA)
 
@@ -1684,8 +1699,8 @@ class EnergySystemModel:
                 mdl.getObjectiveFunctionContribution(self, pyM)
                 for mdl in self.componentModelingDict.values()
             )
-            if hasattr(self, "etlModel"):
-                NPV += self.etlModel.getObjectiveFunctionContribution(self, pyM)
+            if hasattr(self, "pwlcfModel"):
+                NPV += self.pwlcfModel.getObjectiveFunctionContribution(self, pyM)
 
             return NPV
 
@@ -1777,15 +1792,15 @@ class EnergySystemModel:
             )
             utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
-        if hasattr(self, "etlModel"):
+        if hasattr(self, "pwlcfModel"):
             utils.output(
                 "Declaring sets, variables and constraints for ETL components",
                 self.verbose,
                 0,
             )
-            self.etlModel.declareSets(self, pyM)
-            self.etlModel.declareVariables(self, pyM)
-            self.etlModel.declareComponentConstraints(self, pyM)
+            self.pwlcfModel.declareSets(self, pyM)
+            self.pwlcfModel.declareVariables(self, pyM)
+            self.pwlcfModel.declareComponentConstraints(self, pyM)
             utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################
@@ -2183,8 +2198,8 @@ class EnergySystemModel:
                 for optParam in optimalValueParameters:
                     convertOptimalValues(self, mdl, optParam)
 
-            if hasattr(self, "etlModel"):
-                self.etlModel.setOptimalValues(self, self.pyM)
+            if hasattr(self, "pwlcfModel"):
+                self.pwlcfModel.setOptimalValues(self, self.pyM)
 
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()

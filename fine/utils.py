@@ -844,6 +844,8 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     name = compFancy.name
     rampUpMax = compFancy.rampUpMax
     rampDownMax = compFancy.rampDownMax
+    bigM = compFancy.bigM
+    useTemporalCyclicConstraints = compFancy.useTemporalCyclicConstraints
 
     if downTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
@@ -888,40 +890,30 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
             )
 
     if rampUpMax is not None:
-        # Check if values are floats and the intervall ]0,1].
-        if type(rampUpMax) != float:
+        # Check if values are postive floats or ints
+        if not isinstance(rampUpMax, (float,int)) and rampUpMax<=0:
             raise TypeError(
-                "rampUpMax for " + name + " needs to be a float in the intervall ]0,1]."
-            )
-        if rampUpMax <= 0:
-            raise ValueError(
-                "rampUpMax for " + name + " needs to be a float in the intervall ]0,1]."
-            )
-        if rampUpMax > 1:
-            raise ValueError(
-                "rampUpMax for " + name + " needs to be a float in the intervall ]0,1]."
+                "rampUpMax for " + name + " needs to be a positive float or int."
             )
 
+
     if rampDownMax is not None:
-        # Check if values are floats and the intervall ]0,1].
-        if type(rampDownMax) != float:
+        # Check if values are postive floats or ints
+        if not isinstance(rampDownMax, (float,int)) and rampDownMax<=0:
             raise TypeError(
-                "rampDownMax for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
+                "rampUpMax for " + name + " needs to be a positive float or int."
             )
-        if rampDownMax <= 0:
+    if any(x is not None for x in [downTimeMin, upTimeMin, rampUpMax, rampDownMax]):
+        if bigM is None:
             raise ValueError(
-                "rampDownMax for "
+                "bigM for "
                 + name
-                + " needs to be a float in the intervall ]0,1]."
+                + " needs to be specified when considering dynamic constraints."
             )
-        if rampDownMax > 1:
-            raise ValueError(
-                "rampDownMax for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
-            )
+    
+    # check cyclic constraints
+    if not isinstance(useTemporalCyclicConstraints, bool):
+        raise ValueError("useTemporalCyclicConstraints must be a boolean.")
 
 
 def setLocationalEligibility(

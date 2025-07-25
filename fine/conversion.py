@@ -53,7 +53,7 @@ class Conversion(Component):
         commissioningDependentCcf=False,
         emissionFactors=None,
         flowShares=None,
-        etlParameter=None,
+        pwlcfParameters=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -259,7 +259,7 @@ class Conversion(Component):
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
-            etlParameter=etlParameter,
+            pwlcfParameters=pwlcfParameters,
         )
 
         # opexPerOperation
@@ -904,6 +904,7 @@ class ConversionModel(ComponentModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
         self.declareOpFlexVarSets(esM, pyM)
         self.declareOpCommisVarSet(esM, pyM)
         self.declareFlexFlowShareConstrSet(pyM)
@@ -978,7 +979,7 @@ class ConversionModel(ComponentModel):
             flexibleConversion=True,
         )
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "op_bin")
+        self.declareOperationBinaryVars(pyM)
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -1120,6 +1121,19 @@ class ConversionModel(ComponentModel):
         )
 
         # # Operation [physicalUnit*h] is limited by minimum part Load
+        # Couple binary operation variable to operation variable
+        self.binaryOperation(
+            pyM, "ConstrOperation", "opConstrSet", "partLoadMin", "op", "op_bin"
+        )
+        self.binaryOperation(
+            pyM,
+            "ConstrOperationCommis",
+            "opCommisConstrSet",
+            "partLoadMin",
+            "op",
+            "op_bin",
+            isOperationCommisYearDepending=True,
+        )
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )
