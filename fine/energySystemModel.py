@@ -1415,17 +1415,31 @@ class EnergySystemModel:
                                 type=type,
                             )               ]
                     elif (mdl_type == "TransmissionModel") and (type == "capacity"):
-                        _balanceList = [
-                            mdl.getComponentLimitContribution(
-                                esM=self,
-                                pyM=pyM,
-                                timeSeriesAggregation=timeSeriesAggregation,
-                                ip=ip,
-                                loc=locs,
-                                componentNames=componentNames,
-                                type=type,
-                            )
-                        ]
+                        if "total" in ID:
+                            _balanceList = [
+                                mdl.getComponentLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                    ip=ip,
+                                    loc=loc,
+                                    componentNames=componentNames,
+                                    type=type,
+                                )
+                                for loc in locs
+                            ]
+                        else:
+                            _balanceList = [
+                                mdl.getComponentLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                    ip=ip,
+                                    loc=locs,
+                                    componentNames=componentNames,
+                                    type=type,
+                                )
+                            ]
                         
                     elif mdl_type == "ConversionModel":
                         _balanceList = [

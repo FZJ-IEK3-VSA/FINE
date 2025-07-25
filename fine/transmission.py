@@ -982,21 +982,35 @@ class TransmissionModel(ComponentModel):
                 )
                 aut_list.append(_aut)
             aut = sum(aut_list)
-        elif type == "capacity":
-            aut_list = []
-            for loc0, loc1 in loc:
+        elif type == "capacity": # for a set of region connections
+            if isinstance(loc[0], tuple):
+                aut_list = []
+                for loc0, loc1 in loc:
+                    aut = sum(
+                        capVar[loc1 + "_" + loc0, compName, ip]
+                        for compName in opVarDictIn[ip][loc0].get(loc1, {})
+                        if compName in componentNames
+                    ) + sum(
+                        capVar[loc0 + "_" + loc1, compName, ip]
+                        for compName in opVarDictIn[ip][loc0].get(loc1, {})
+                        if compName in componentNames
+                    )
+                    aut = aut/2
+                    aut_list.append(aut)
+                aut = sum(aut_list)
+            else: # across all regions
                 aut = sum(
-                    capVar[loc1 + "_" + loc0, compName, ip]
-                    for compName in opVarDictIn[ip][loc0].get(loc1, {})
+                    capVar[loc_ + "_" + loc, compName, ip]
+                    for loc_ in opVarDictIn[ip][loc].keys()
+                    for compName in opVarDictIn[ip][loc][loc_]
                     if compName in componentNames
                 ) + sum(
-                    capVar[loc0 + "_" + loc1, compName, ip]
-                    for compName in opVarDictIn[ip][loc0].get(loc1, {})
+                    capVar[loc + "_" + loc_, compName, ip]
+                    for loc_ in opVarDictOut[ip][loc].keys()
+                    for compName in opVarDictOut[ip][loc][loc_]
                     if compName in componentNames
                 )
                 aut = aut/2
-                aut_list.append(aut)
-            aut = sum(aut_list)
         else:
             raise ValueError(
                 "Invalid type in ComponentLimit Contraint. Please choose 'operation' or 'capacity'."
