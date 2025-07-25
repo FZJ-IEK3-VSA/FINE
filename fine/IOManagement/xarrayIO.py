@@ -1,6 +1,8 @@
 import time
+import tracemalloc
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
@@ -65,6 +67,55 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
 
     # STEP 7. Add the data present in esm_dict as xarray attributes
     # (These attributes contain esM init info).
+    attributes_xr = xr.Dataset()
+    attributes_xr.attrs = esm_dict
+
+    xr_dss = {"Input": xr_dss, "Parameters": attributes_xr}
+
+    return xr_dss
+
+def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
+    """
+    Takes esM instance input and converts it into xarray datasets.
+
+    :param esM: EnergySystemModel instance in which the model is held
+    :type esM: EnergySystemModel instance
+
+    **Default arguments:**
+
+        :param useProcessedValues: True if the raw values should be over-written by processed values, False otherwise.
+            A requirement for perfect-foresight and by extension for spatial and technology aggregations
+            |br| * the default value is False
+        :type useProcessedValues: bool
+
+    :return: xr_ds - esM instance data in xarray dataset format
+    :rtype: xarray.dataset
+    """
+
+    # STEP 1. Get the esm and component dicts
+    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
+    
+    # STEP 3.1 get _mapC for all transmission components
+    _mapC_dict = {}
+    for tech in component_dict["Transmission"].keys():
+        _mapC_dict[tech] = esM.getComponent(tech)._mapC
+    
+    component_dict_mod = utilsIO.processComponentDict(component_dict, list(esM.locations), _mapC_dict)
+
+    # STEP 1.1. Create comprehensive parameter mask for all parameters and their dimensions
+    dimension_mask = utilsIO.createParameterDimensionDict(component_dict_mod)
+
+    # STEP 1.2. Create was_none_mask for perfect reconstruction
+    was_none_mask = utilsIO.createWasNoneMask(component_dict_mod)
+    # STEP 1.3. Replace None values with appropriate defaults for xarray
+    component_dict = utilsIO.replaceNoneValuesForXarray(component_dict_mod)
+
+    # STEP 2. Convert esm_dict to xarray datasets
+    xr_dss = utilsIO.convertToXarray(component_dict_mod)
+    
+    # STEP 7. Add comprehensive parameter information (dimensions). And None tracker. Instead of 0d,1d,2d,ts prefix
+    xr_dss = utilsIO.addParameterDimensionsToXarray(xr_dss, dimension_mask, was_none_mask)
+
     attributes_xr = xr.Dataset()
     attributes_xr.attrs = esm_dict
 
@@ -1208,7 +1259,7 @@ def writeEnergySystemModelToNetCDF(
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
 
-def writeEnergySystemModelToDatasets(esM):
+def writeEnergySystemModelToDatasets(esM, zarrFormat=False):
     """Converts esM instance (input and output) into a xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
@@ -1220,7 +1271,10 @@ def writeEnergySystemModelToDatasets(esM):
     """
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
-        xr_dss_input = convertOptimizationInputToDatasets(esM)
+        if zarrFormat:
+            xr_dss_input = convertOptimizationInputToDatasetsZarr(esM)
+        else:
+            xr_dss_input = convertOptimizationInputToDatasets(esM)
         if hasattr(esM, "performanceSummary"):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
             
@@ -1237,7 +1291,10 @@ def writeEnergySystemModelToDatasets(esM):
                 "Parameters": xr_dss_input["Parameters"],
             }
     else:
-        xr_dss_input = convertOptimizationInputToDatasets(esM)
+        if zarrFormat:
+            xr_dss_input = convertOptimizationInputToDatasetsZarr(esM)
+        else:
+            xr_dss_input = convertOptimizationInputToDatasets(esM)
         xr_dss_results = {
             "Input": xr_dss_input["Input"],
             "Parameters": xr_dss_input["Parameters"],
@@ -1371,3 +1428,456 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     esM = convertDatasetsToEnergySystemModel(xr_dss)
 
     return esM
+
+def _make_datasets_lazy(data_dict, chunks=None):
+    """
+    Recursively traverses a dictionary of datasets and converts their
+    in-memory NumPy arrays to lazy Dask arrays by chunking them.
+    Skips chunking for datasets with object dtypes to avoid NotImplementedError.
+    """
+    if isinstance(data_dict, dict):
+        return {key: _make_datasets_lazy(value, chunks) for key, value in data_dict.items()}
+    
+    elif isinstance(data_dict, xr.Dataset):
+        try:
+            return data_dict.chunk(chunks)
+        except Exception as e:
+            print(f"Error chunking dataset: {e}")
+            return data_dict
+
+    else:
+        return data_dict
+
+import numpy as np
+import pandas as pd
+import xarray as xr
+from typing import Dict, Optional, Any, List, Union
+
+
+def writeDatasetsToZarr(
+    data_dict,
+    output_zarr_path="my_esm.zarr",
+    overwrite_existing=True,
+    compression_level=5,
+    compression_algorithm='zstd',
+    replace_fill_value=False,
+):
+    """
+    Writes an entire EnergySystemModel instance to a consolidated Zarr store.
+    data_dict : dict
+        Nested dictionary containing xarray datasets
+    output_zarr_path : str
+        Path to the output Zarr store directory.
+    overwrite_existing : bool
+        If True, existing Zarr store at the output path will be overwritten.
+        If False, an error will be raised if the path already exists.
+    compression_level : int
+        Compression level (1-9, higher = better compression but slower).
+    """
+    from numcodecs import Blosc  # Zarr's preferred compressor
+    if overwrite_existing and Path(output_zarr_path).exists():
+        import shutil
+        shutil.rmtree(output_zarr_path)
+    
+    Path(output_zarr_path).mkdir(parents=True, exist_ok=True)
+    
+    print(f"\nPreparing data for Zarr storage...")
+    
+    # try:
+    #     import pickle
+    #     import datetime
+    #     my_path = r"/fast/central/projects/2021-p-dunkel-phd/02_Research/06_Post/05_Runs/19_zarr_testing/02_Results"
+    #     # save as pickle
+    #     current_date_time = datetime.datetime.now().strftime("%Y-%m-%d %H_%M_%S")
+    #     with open(f"{my_path}/data_dict_{current_date_time}.pickle", "wb") as f:
+    #         pickle.dump(data_dict, f)
+    # except Exception as e:
+    #     print("Could not save data_dict as pickle, skipping...")
+
+    
+    _t = time.time()
+    
+    # Use higher compression and better algorithm for smaller files
+    compressor = Blosc(cname=compression_algorithm, clevel=compression_level, shuffle=Blosc.SHUFFLE)
+    
+    lazy_data_dict = _make_datasets_lazy(data_dict, chunks=None)
+    # lazy_data_dict = data_dict  # Assuming data_dict is already lazy-loaded or chunked
+
+
+    def robust_concat(components_dict, tech_dim_name='technology'):
+        if not components_dict:
+            return None
+
+        datasets_to_concat = list(components_dict.values())
+        component_names = list(components_dict.keys())
+
+        # If only one dataset, return it with the technology dimension added
+        if len(datasets_to_concat) == 1:
+            ds = datasets_to_concat[0].copy()
+            # Add the technology dimension
+            ds = ds.expand_dims({tech_dim_name: [component_names[0]]})
+            
+            # Fix string and numeric dtypes for data variables
+            for var_name, var_data in ds.data_vars.items():
+                if var_data.dtype == 'object':
+                    # Check if it should be string type
+                    sample_values = var_data.values.flatten()
+                    non_null_values = [v for v in sample_values if pd.notna(v) and v is not None]
+                    if non_null_values and all(isinstance(v, str) for v in non_null_values):
+                        ds[var_name] = var_data.astype('U')  # Convert to string
+                    elif non_null_values and all(isinstance(v, (int, float, np.integer, np.floating)) for v in non_null_values):
+                        # Convert to numeric
+                        try:
+                            ds[var_name] = var_data.astype('float64')
+                        except (ValueError, TypeError):
+                            # If conversion fails, try to convert individual elements
+                            data = var_data.values
+                            numeric_data = pd.to_numeric(data.ravel(), errors='coerce').reshape(data.shape)
+                            ds[var_name] = xr.DataArray(
+                                numeric_data, 
+                                dims=var_data.dims, 
+                                coords=var_data.coords,
+                                name=var_name
+                            )
+            
+            # Fix coordinate dtypes
+            for coord_name, coord_data in ds.coords.items():
+                if coord_data.dtype == 'object':
+                    # Check if coordinate contains string data
+                    coord_values = coord_data.values.flatten()
+                    non_null_values = [v for v in coord_values if pd.notna(v) and v is not None]
+                    
+                    if non_null_values and all(isinstance(v, str) for v in non_null_values):
+                        # Convert string coordinates to Unicode string dtype
+                        ds = ds.assign_coords({
+                            coord_name: coord_data.astype('U')
+                        })
+                    elif non_null_values and all(isinstance(v, (int, float, np.integer, np.floating)) for v in non_null_values):
+                        # Convert numeric coordinates
+                        try:
+                            ds = ds.assign_coords({
+                                coord_name: coord_data.astype('float64')
+                            })
+                        except (ValueError, TypeError):
+                            # If conversion fails, try to convert individual elements
+                            numeric_coord = pd.to_numeric(coord_values, errors='coerce')
+                            ds = ds.assign_coords({
+                                coord_name: (coord_data.dims, numeric_coord)
+                            })
+            return ds
+        
+        # First, collect all variables across all datasets
+        all_variables = set()
+        for ds in datasets_to_concat:
+            all_variables.update(ds.data_vars.keys())
+        
+        # collect dtypes for each variable and determine if variables should be strings
+        dtypes_per_var = dict()
+
+        for ds in datasets_to_concat:
+            for var in ds.data_vars:
+                dtypes_per_var.setdefault(var, []).append(ds.data_vars[var].dtype)
+        
+        
+        should_be_string = dict()
+        should_be_numeric = dict()
+        # based on dtypes_per_var check if variable should be string or numeric. 
+        # as soon as there is dtype object we convert everything to string
+
+        # determine whether each variable should be string or numeric
+        for var, dtypes in dtypes_per_var.items():
+            if any(np.issubdtype(dtype, np.object_) or np.issubdtype(dtype, np.str_) for dtype in dtypes):
+                should_be_string[var] = True
+                should_be_numeric[var] = False
+            else:
+                should_be_string[var] = False
+                should_be_numeric[var] = True
+        
+        # Convert all variables to correct dtype
+        for i, ds in enumerate(datasets_to_concat):
+            for var in ds.data_vars:
+                if should_be_string.get(var, False):
+                    ds[var] = ds[var].astype('U')
+                elif should_be_numeric.get(var, False):
+                    ds[var] = ds[var].astype('float64')
+
+        # Ensure all datasets have all variables (filled with appropriate values where missing)
+        standardized_datasets = []
+        for i, ds in enumerate(datasets_to_concat):
+            ds_copy = ds.copy()
+            for var in all_variables:
+                if var not in ds_copy.data_vars:
+                    # Create a variable filled with appropriate missing values
+                    if len(ds_copy.data_vars) > 0:
+                        # Use the first available variable as template for coordinates
+                        template_var = list(ds_copy.data_vars.values())[0]
+                        if should_be_string.get(var, False):
+                            # For string variables, use empty string instead of NaN
+                            nan_var = xr.full_like(template_var, '', dtype='U')
+                        else:
+                            nan_var = xr.full_like(template_var, np.nan)
+                        nan_var.name = var
+                        ds_copy[var] = nan_var
+                    else:
+                        # If dataset has no variables, skip this component
+                        continue
+            standardized_datasets.append(ds_copy)
+        
+        if not standardized_datasets:
+            return None
+            
+        # Update component names to match standardized datasets
+        component_names = component_names[:len(standardized_datasets)]
+
+        # Concatenate using join='outer'.
+        # This tells xarray to:
+        # 1. Create a superset of all data variables from all datasets.
+        # 2. For any component that is missing a variable, automatically create
+        #    it and fill it with appropriate values.
+        # 3. `coords='minimal'` robustly handles different coordinates (like time).
+        tracemalloc.start()
+
+        consolidated_ds = xr.concat(
+            standardized_datasets,
+            dim=pd.Index(component_names, name=tech_dim_name),
+            join='outer',
+            coords='minimal',
+            fill_value=np.nan  # Default fill value for non-string variables
+        )
+        
+        # Post-process to fix string and numeric dtypes for both data variables and coordinates
+        for var_name, should_str in should_be_string.items():
+            if should_str and var_name in consolidated_ds.data_vars:
+                if consolidated_ds[var_name].dtype == 'object':
+                    # Convert object dtype to string dtype
+                    consolidated_ds[var_name] = consolidated_ds[var_name].astype('U')
+        
+        for var_name, should_num in should_be_numeric.items():
+            if should_num and var_name in consolidated_ds.data_vars:
+                if consolidated_ds[var_name].dtype == 'object':
+                    # Convert object dtype to float64 (handles both int and float)
+                    try:
+                        consolidated_ds[var_name] = consolidated_ds[var_name].astype('float64')
+                    except (ValueError, TypeError):
+                        # If conversion fails, try to convert individual elements
+                        data = consolidated_ds[var_name].values
+                        # Convert object array to numeric, keeping NaN for non-numeric values
+                        numeric_data = pd.to_numeric(data.ravel(), errors='coerce').reshape(data.shape)
+                        consolidated_ds[var_name] = xr.DataArray(
+                            numeric_data, 
+                            dims=consolidated_ds[var_name].dims, 
+                            coords=consolidated_ds[var_name].coords,
+                            name=var_name
+                        )
+        
+        # Fix coordinate dtypes
+        for coord_name, coord_data in consolidated_ds.coords.items():
+            if coord_data.dtype == 'object':
+                # Check if coordinate contains string data
+                coord_values = coord_data.values.flatten()
+                non_null_values = [v for v in coord_values if pd.notna(v) and v is not None]
+                
+                if non_null_values and all(isinstance(v, str) for v in non_null_values):
+                    # Convert string coordinates to Unicode string dtype
+                    consolidated_ds = consolidated_ds.assign_coords({
+                        coord_name: coord_data.astype('U')
+                    })
+                elif non_null_values and all(isinstance(v, (int, float, np.integer, np.floating)) for v in non_null_values):
+                    # Convert numeric coordinates
+                    try:
+                        consolidated_ds = consolidated_ds.assign_coords({
+                            coord_name: coord_data.astype('float64')
+                        })
+                    except (ValueError, TypeError):
+                        # If conversion fails, try to convert individual elements
+                        numeric_coord = pd.to_numeric(coord_values, errors='coerce')
+                        consolidated_ds = consolidated_ds.assign_coords({
+                            coord_name: (coord_data.dims, numeric_coord)
+                        })
+        
+        del standardized_datasets  # Free memory
+        current, peak = tracemalloc.get_traced_memory()
+        print(f"Current memory usage: {current / 1e6:.2f} MB")
+        print(f"Peak memory usage: {peak / 1e6:.2f} MB")
+        return consolidated_ds
+
+    # --- The rest of the function remains the same, using the new helper ---
+
+    # 1. Prepare and Consolidate Input Data
+    consolidated_input = {}
+    for model_class, components in lazy_data_dict["Input"].items():
+        consolidated_ds = robust_concat(components)
+        if consolidated_ds:
+            consolidated_input[model_class] = consolidated_ds
+
+    # 2. Prepare and Consolidate Results Data
+    consolidated_results = {}
+    if "Results" in lazy_data_dict:
+        for ip in lazy_data_dict['Results'].keys():
+            if ip not in consolidated_results:
+                consolidated_results[ip] = {}
+            for model_class, components in lazy_data_dict['Results'][ip].items():
+                consolidated_ds = robust_concat(components)
+                if consolidated_ds:
+                    consolidated_results[ip][model_class] = consolidated_ds
+
+    print("Writing consolidated data to Zarr store...")
+    
+    master_chunk_scheme  = {
+        'time': 1000, # One chunk for the whole time series
+        'space': -1,
+        'space_2': -1,
+        'technology': -1
+    }
+    
+    def _chunk(ds, chunk=False):
+        if not chunk:
+            return ds
+        actual_chunks_for_this_ds = {
+            dim: size for dim, size in master_chunk_scheme.items() if dim in ds.dims
+        }
+
+        # Apply the valid, filtered chunking scheme
+        if actual_chunks_for_this_ds:
+            chunked_ds = ds.chunk(actual_chunks_for_this_ds)
+        else:
+            # If the dataset has no dimensions that we want to chunk (e.g., only scalars)
+            chunked_ds = ds
+        return chunked_ds
+    
+                 
+    for model_class, ds in consolidated_input.items():
+
+        try:
+            chunked_ds = _chunk(ds, chunk=True)
+
+            encoding_var = {}
+            for var, da in chunked_ds.data_vars.items():
+                if replace_fill_value and np.issubdtype(da.dtype, np.floating):
+                    encoding_var[var] = {'compressor': compressor, '_FillValue': -9999.0}
+                else:
+                    encoding_var[var] = {'compressor': compressor}
+
+
+            chunked_ds.to_zarr(
+                f"{output_zarr_path}/Input/{model_class}", mode='w',
+                encoding=encoding_var
+            )
+        except Exception as e:
+            print(e)
+            chunked_ds = _chunk(ds, chunk=False)
+            encoding_var = {}
+            for var, da in chunked_ds.data_vars.items():
+                if replace_fill_value and np.issubdtype(da.dtype, np.floating):
+                    encoding_var[var] = {'compressor': compressor, '_FillValue': -9999.0}
+                else:
+                    encoding_var[var] = {'compressor': compressor}
+
+            chunked_ds.to_zarr(
+                f"{output_zarr_path}/Input/{model_class}", mode='w',
+                encoding=encoding_var
+            )
+
+    # Write RESULTS
+    for ip, ip_dict in consolidated_results.items():
+        for model_class, ds in ip_dict.items():
+            # Chunk the dataset if needed
+            try:
+                chunked_ds = _chunk(ds, chunk=True)
+
+                encoding_var = {}
+                for var, da in chunked_ds.data_vars.items():
+                    if replace_fill_value and np.issubdtype(da.dtype, np.floating):
+                        encoding_var[var] = {'compressor': compressor, '_FillValue': -9999.0}
+                    else:
+                        encoding_var[var] = {'compressor': compressor}
+
+                chunked_ds.to_zarr(
+                    f"{output_zarr_path}/Results/{ip}/{model_class}", mode='w',
+                    encoding=encoding_var
+                )
+                
+            except Exception as e:
+                chunked_ds = _chunk(ds, chunk=False)
+
+                encoding_var = {}
+                for var, da in chunked_ds.data_vars.items():
+                    if replace_fill_value and np.issubdtype(da.dtype, np.floating):
+                        encoding_var[var] = {'compressor': compressor, '_FillValue': -9999.0}
+                    else:
+                        encoding_var[var] = {'compressor': compressor}
+
+                chunked_ds.to_zarr(
+                    f"{output_zarr_path}/Results/{ip}/{model_class}", mode='w',
+                    encoding=encoding_var
+                )
+            
+    # Write Parameters and Performance Summary
+    params_processed = processDataset({'Parameters': lazy_data_dict['Parameters']})
+    params_processed['Parameters'].to_zarr(f"{output_zarr_path}/Parameters", mode='w')
+    if 'PerformanceSummary' in lazy_data_dict:
+        lazy_data_dict['PerformanceSummary'].to_zarr(f"{output_zarr_path}/PerformanceSummary", mode='w')
+
+    print("Done. (%.4f" % (time.time() - _t) + " sec)")
+    
+    
+def readZarrToDatasets(
+    zarr_path,
+    lazy_load=True,
+    chunks=None,
+):
+    """
+    Reads an esM data structure from a consolidated Zarr store.
+
+    This function reads the entire model structure, loading data lazily
+    by default for high-performance analysis.
+
+    Args:
+        zarr_path (str): Path to the Zarr store directory.
+        lazy_load (bool): If True, loads data as Dask arrays. If False, loads into memory.
+        chunks (dict or str): Chunking scheme to use if lazy_load is True.
+
+    Returns:
+        dict: The nested dictionary of xarray.Datasets representing the esM.
+    """
+    zarr_path = Path(zarr_path)
+    if not zarr_path.exists():
+        raise FileNotFoundError(f"Zarr store not found at: {zarr_path}")
+
+    # Use the appropriate loader based on the lazy_load flag
+    loader = xr.open_dataset if lazy_load else xr.load_dataset
+    
+    # This dictionary will hold the final reconstructed data
+    xr_dss = {}
+
+    # --- Read Input Data ---
+    input_path = zarr_path / 'Input'
+    if input_path.exists():
+        xr_dss['Input'] = {
+            model_class.name: loader(model_class, engine='zarr', chunks=chunks)
+            for model_class in input_path.iterdir() if model_class.is_dir()
+        }
+
+    # --- Read Results Data ---
+    results_path = zarr_path / 'Results'
+    if results_path.exists():
+        xr_dss['Results'] = {}
+        
+        for ip_path in results_path.iterdir():
+            if not ip_path.is_dir():
+                continue
+            xr_dss['Results'][ip_path.name] = {
+                model_class.name: loader(model_class, engine='zarr', chunks=chunks)
+                for model_class in ip_path.iterdir() if model_class.is_dir()
+            }
+
+    # --- Read Parameters and Performance Summary ---
+    params_path = zarr_path / 'Parameters'
+    if params_path.exists():
+        xr_dss['Parameters'] = loader(params_path, engine='zarr')
+
+    perf_path = zarr_path / 'PerformanceSummary'
+    if perf_path.exists():
+        xr_dss['PerformanceSummary'] = loader(perf_path, engine='zarr')
+        
+    return xr_dss
