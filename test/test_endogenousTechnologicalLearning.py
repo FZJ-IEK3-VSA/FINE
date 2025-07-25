@@ -201,6 +201,7 @@ def test_etl_multi_regional():
             economicLifetime=10,
             interestRate=0,
             investPerCapacity=10,
+            locationalEligibility=pd.Series({"loc1": 0, "loc2": 1}),
             etlParameter={
                 "initCost": 1,
                 "learningRate": 0.18,

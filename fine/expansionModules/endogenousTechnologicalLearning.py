@@ -208,6 +208,7 @@ class EndogenousTechnologicalLearningModel:
                 commVar[loc, modulName, _ip]
                 for _ip in range(ip + 1)
                 for loc in esM.locations
+                if modul.comp.processedLocationalEligibility.loc[loc] == 1
             )
 
             return pyM.totalCapacity[modulName, ip] == commVarSum + modul.initCapacity
@@ -243,6 +244,7 @@ class EndogenousTechnologicalLearningModel:
                 commVar[loc, modulName, _ip]
                 for _ip in range(ip + 1)
                 for loc in esM.locations
+                if modul.comp.processedLocationalEligibility.loc[loc] == 1
             )
             capSegmentVarSum = sum(
                 pyM.segmentCapacityEtlVar[modulName, ip, segment]
