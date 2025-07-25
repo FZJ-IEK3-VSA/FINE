@@ -201,6 +201,7 @@ class PiecewiseLinearCostFunctionModel:
                 commVar[loc, moduleName, _ip]
                 for _ip in range(ip + 1)
                 for loc in esM.locations
+                if module.comp.processedLocationalEligibility.loc[loc] == 1
             )
             capSegmentVarSum = sum(
                 pyM.segmentCapacityPwlcfVar[moduleName, ip, segment]
@@ -239,6 +240,7 @@ class PiecewiseLinearCostFunctionModel:
                 commVar[loc, moduleName, _ip]
                 for _ip in range(ip + 1)
                 for loc in esM.locations
+                if module.comp.processedLocationalEligibility.loc[loc] == 1
             )
 
             return pyM.totalCapacity[moduleName, ip] == commVarSum + module.initCapacity
