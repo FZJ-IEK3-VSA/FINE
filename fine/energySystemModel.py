@@ -1788,7 +1788,11 @@ class EnergySystemModel:
                     for mdl in self.componentModelingDict.values()
                     if hasattr(mdl, "getMaterialDemandContribution")
                 )
-                print("RHS_demand", rhs)
+                
+                for mdl in self.componentModelingDict.values():
+                    print(mdl)
+                    print("RHS_demand", rhs)
+
                 return lhs == rhs
     
             # Attach the constraint to the model indexed by the materialDemandSet
@@ -1797,73 +1801,72 @@ class EnergySystemModel:
             )
 
 
-    def declareMaterialRecoveryConstraints(self, pyM):
-            """
-            Declare material balance constraints (one constraint for each location, sink, material, and investment period).
+    # def declareMaterialRecoveryConstraints(self, pyM):
+    #         """
+    #         Declare material balance constraints (one constraint for each location, sink, material, and investment period).
     
-            .. math::
+    #         .. math::
     
-                \\sum_{p,t} op_{loc,sink,ip,p,t} = \\sum_{components} contribution_{loc,mat,ip}
+    #             \\sum_{p,t} op_{loc,sink,ip,p,t} = \\sum_{components} contribution_{loc,mat,ip}
     
-            :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
-                        constraints and objective required for the optimization set up and solving.
-            :type pyM: pyomo ConcreteModel
-            """
-            utils.output("Declaring material balances...", self.verbose, 0)
+    #         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+    #                     constraints and objective required for the optimization set up and solving.
+    #         :type pyM: pyomo ConcreteModel
+    #         """
+    #         utils.output("Declaring material balances...", self.verbose, 0)
     
-            def initMaterialRecoverySet(m):
-                compDict = self.componentModelingDict
-                # Only consider SourceSinkModel componentsDict
-                source_sink_model = compDict.get("SourceSinkModel")
-                if source_sink_model is None:
-                    return  
+    #         def initMaterialRecoverySet(m):
+    #             compDict = self.componentModelingDict
+    #             # Only consider SourceSinkModel componentsDict
+    #             source_sink_model = compDict.get("SourceSinkModel")
+    #             if source_sink_model is None:
+    #                 return  
             
-                components = getattr(source_sink_model, "componentsDict", {})
-                varSet = getattr(pyM, "operationVarSet_srcSnk", [])
+    #             components = getattr(source_sink_model, "componentsDict", {})
+    #             varSet = getattr(pyM, "operationVarSet_srcSnk", [])
             
-                for loc, sinkName, ip in varSet:
-                    comp = components.get(sinkName)
-                    if comp is None:
-                        continue  # skip if sinkName not in componentsDict
+    #             for loc, sinkName, ip in varSet:
+    #                 comp = components.get(sinkName)
+    #                 if comp is None:
+    #                     continue  # skip if sinkName not in componentsDict
                 
-                    if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
-                        mat = comp.commodity
-                        yield (loc, sinkName, mat, ip)
+    #                 if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
+    #                     mat = comp.commodity
+    #                     yield (loc, sinkName, mat, ip)
     
     
-            pyM.materialRecoverySet = pyomo.Set(dimen=4, initialize=initMaterialRecoverySet)
-            for elem in pyM.materialRecoverySet:
-                print(elem)
+    #         pyM.materialRecoverySet = pyomo.Set(dimen=4, initialize=initMaterialRecoverySet)
+    #         for elem in pyM.materialRecoverySet:
+    #             print(elem)
     
     
-        # Define the material balance constraint function
-            def materialRecoveryConstraint(m, loc, sinkName, mat, ip):
-            # opVar = getattr(m, "operationVarSet_srcSnk")
-                opVar = m.op_srcSnk
-                lhs = sum(opVar[loc, sinkName, ip, p, t] * self.periodOccurrences[ip][p]
-                            for p, t in m.intraYearTimeSet)
-                print("LHS_recovery", lhs)
-                rhs = sum(
-                    mdl.getMaterialRecoveryContribution(m, mat, loc, ip)
-                    for mdl in self.componentModelingDict.values()
-                    if hasattr(mdl, "getMaterialRecoveryContribution")
-                )
-                print("RHS_recovery", rhs)
-                return lhs <= rhs
+    #     # Define the material balance constraint function
+    #         def materialRecoveryConstraint(m, loc, sinkName, mat, ip):
+    #         # opVar = getattr(m, "operationVarSet_srcSnk")
+    #             opVar = m.op_srcSnk
+    #             lhs = sum(opVar[loc, sinkName, ip, p, t] * self.periodOccurrences[ip][p]
+    #                         for p, t in m.intraYearTimeSet)
+    #             print("LHS_recovery", lhs)
+    #             rhs = sum(
+    #                 mdl.getMaterialRecoveryContribution(m, mat, loc, ip)
+    #                 for mdl in self.componentModelingDict.values()
+    #                 if hasattr(mdl, "getMaterialRecoveryContribution")
+    #             )
+    #             print("RHS_recovery", rhs)
+    #             return lhs <= rhs
     
-            # Attach the constraint to the model indexed by the materialDemandSet
-            pyM.materialRecoveryConstraint = pyomo.Constraint(
-                pyM.materialRecoverySet, rule=materialRecoveryConstraint
-            )
+    #         # Attach the constraint to the model indexed by the materialDemandSet
+    #         pyM.materialRecoveryConstraint = pyomo.Constraint(
+    #             pyM.materialRecoverySet, rule=materialRecoveryConstraint
+    #         )
 
     def declareMaterialScrapConstraints(self, pyM):
         """
-        Declare constraints that link recovered material to manually created scrap source inflows.
+        Declare constraints that link recovered material from decommissioned components
+        to manually created scrap Source inflows.
 
         Constraint:
-            sum op(scrap source) == getMaterialRecoveryContribution(material)
-
-        :param pyM: Pyomo ConcreteModel
+            sum_t(op_scrapSource) == sum_t(getMaterialRecoveryContribution)
         """
         utils.output("Declaring material scrap constraints...", self.verbose, 0)
 
@@ -1881,35 +1884,46 @@ class EnergySystemModel:
                 if comp is None:
                     continue
 
-                # Look for manually created scrap sources
+                # Look for manually created scrap sources (material=True and '_scrap' in name)
                 if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
-                    # Expect commodity name like 'lithium_scrap', extract base material
                     if "_scrap" in comp.commodity:
-                        mat = comp.commodity.replace("_scrap", "")
-                        yield (loc, srcName, mat, ip)
+                        try:
+                            tech, mat = comp.commodity[:-6].rsplit("_", 1)
+                            yield (loc, srcName, tech, mat, ip)
+                        except ValueError:
+                            continue  # Skip malformed names
 
-        pyM.materialScrapSet = pyomo.Set(dimen=4, initialize=initMaterialScrapSet)
+        pyM.materialScrapSet = pyomo.Set(dimen=5, initialize=initMaterialScrapSet)
 
-        def materialScrapConstraint(m, loc, scrap_source_name, mat, ip):
+        def materialScrapConstraint(m, loc, scrap_source_name, tech, mat, ip):
             opVar = m.op_srcSnk
 
+            # LHS: operation of the manually added scrap Source
             lhs = sum(
                 opVar[loc, scrap_source_name, ip, p, t] * self.periodOccurrences[ip][p]
                 for p, t in m.intraYearTimeSet
                 if (loc, scrap_source_name, ip, p, t) in opVar
             )
 
+            # RHS: sum of material recovery contributions from all component models
             rhs = sum(
-                mdl.getMaterialRecoveryContribution(m, mat, loc, ip)
+                mdl.getMaterialRecoveryContribution(m, mat, loc, ip, scrap_source_name)
                 for mdl in self.componentModelingDict.values()
-                if hasattr(mdl, "getMaterialRecoveryContribution") 
+                if hasattr(mdl, "getMaterialRecoveryContribution")
             )
+            print(lhs)
+            print(rhs)
+
+
 
             return lhs == rhs
 
         pyM.materialScrapConstraint = pyomo.Constraint(
             pyM.materialScrapSet, rule=materialScrapConstraint
         )
+
+
+
 
 
 
