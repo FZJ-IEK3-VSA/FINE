@@ -874,10 +874,10 @@ class SourceSinkModel(ComponentModel):
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
                 if compName in componentNames
-                and compDict[compName].processedLocationalEligibility[loc] == 1
                 for p in periods
                 for t in timeSteps
                 for _loc in esM.locations
+                if compDict[compName].processedLocationalEligibility[_loc] == 1
             )
         # Otherwise get the contribution for specific region
         else:

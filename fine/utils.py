@@ -2277,7 +2277,9 @@ def checkAndSetStock(component, esM, stockCommissioning):
             )
 
     # check if capacityFix and capacityMax is kept per region
-    for loc in component.locationalEligibility.index:
+    for loc in regions:
+        if component.locationalEligibility is not None and loc not in component.locationalEligibility.index:
+            continue
         installed_sum = 0
         for year in stockCommissioning.keys():
             if year < esM.startYear - component.technicalLifetime[loc]:
@@ -2325,7 +2327,9 @@ def checkAndSetStock(component, esM, stockCommissioning):
     # set into correct format, add 0'values and transform ip into [-1,-2,-3,...]
     # filter for commissioned stock older than technical lifetime and set to 0
     stock_df = pd.DataFrame.from_dict(stockCommissioning).T
-    for loc in component.locationalEligibility.index:
+    for loc in regions:
+        if component.locationalEligibility is not None and loc not in component.locationalEligibility.index:
+            continue
         yearsWithStockOlderThanTechLifetime = [
             x
             for x in stock_df.index
