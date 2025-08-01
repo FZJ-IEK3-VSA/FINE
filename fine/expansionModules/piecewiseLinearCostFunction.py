@@ -503,8 +503,6 @@ class PiecewiseLinearCostFunctionModel:
         )
 
     def setOptimalValues(self, esM, pyM):
-        loc = list(esM.locations)[0]
-
         tac = self.getEconomicsPwlcf(
             esM, pyM, getOptValue=True, getOptValueCostType="TAC"
         )
