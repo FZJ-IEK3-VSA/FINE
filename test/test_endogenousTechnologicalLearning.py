@@ -213,7 +213,8 @@ def test_etl_multi_regional():
                     "maxCapacity": 50,
                     "noSegments": 4,
                 },
-            }
+            },
+            stockCommissioning={2015: pd.Series([0.1, 0.1], index=["loc1", "loc2"])},
         )
     )
 
@@ -223,8 +224,9 @@ def test_etl_multi_regional():
             name="electricity_sink",
             commodity="electricity",
             hasCapacityVariable=False,
-            operationRateFix=pd.DataFrame([[2190] * 2] * 4, columns=["loc1", "loc2"]),
+            operationRateFix=pd.DataFrame([[2190, 2190/2]] * 4, columns=["loc1", "loc2"]),
         )
     )
 
     esM.optimize(solver="glpk")
+    print(1)

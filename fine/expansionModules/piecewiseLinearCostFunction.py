@@ -28,6 +28,7 @@ class PiecewiseLinearCostFunctionModule:
                 etlParameters['initCapacity'], etlParameters['maxCapacity'], comp
             )
             utilsPWLCF.checkStock(comp, self.initCapacity)
+            utilsPWLCF.checkEtlCompParams(comp)
 
             if etlParameters['noSegments'] is None:
                 self.noSegments = 4
@@ -295,10 +296,10 @@ class PiecewiseLinearCostFunctionModel:
         for moduleName, module in self.modulesDict.items():
             ipEconomicLifetime = getattr(
                 esM.getComponent(moduleName), "ipEconomicLifetime"
-            )[loc]
+            ).mean()
             ipTechnicalLifetime = getattr(
                 esM.getComponent(moduleName), "ipTechnicalLifetime"
-            )[loc]
+            ).mean()
 
             (fullCostIntervals, costInLastEconInterval, costInLastTechInterval) = (
                 utils.getParametersForUnevenLifetimes(
@@ -367,28 +368,40 @@ class PiecewiseLinearCostFunctionModel:
         if getOptValue:
             cost_results = {ip: pd.DataFrame() for ip in esM.investmentPeriods}
             for moduleName in self.modulesDict.keys():
+                commis = {ip: esM.getOptimizationSummary(
+                        esM.componentNames[moduleName],
+                        ip=esM.investmentPeriodNames[ip]
+                    ).loc[moduleName, 'commissioning'].iloc[0]
+                    for ip in esM.investmentPeriods
+                }
                 for ip in esM.investmentPeriods:
-                    cContrSum = sum(
-                        [
-                            costContribution[moduleName].get((y, ip), 0)
+                    for _loc in esM.locations:
+                        cContrSum = sum(
+                            costContribution[moduleName].get((y, ip), 0) * commis[y][_loc] / commis[y].sum()
+                            if y > 0 and commis[y].sum() != 0 else
+                            0
+                            if y > 0 else
+                            costContribution[moduleName].get((y, ip), 0) / len(commis[ip])
                             for y in componentYears[moduleName]
-                        ]
-                    )
-                    if getOptValueCostType == "NPV":
-                        cost_results[ip].loc[moduleName, loc] = (
-                            cContrSum * utils.discountFactor(esM, ip, moduleName, loc)
                         )
-                    elif getOptValueCostType == "TAC":
-                        cost_results[ip].loc[moduleName, loc] = (
-                            cContrSum
-                            / utils.annuityPresentValueFactor(
-                                esM, moduleName, loc, esM.investmentPeriodInterval
+                        if getOptValueCostType == "NPV":
+                            cost_results[ip].loc[moduleName, _loc] = (
+                                cContrSum * utils.discountFactor(esM, ip, moduleName, _loc)
                             )
-                        )
-                    elif getOptValueCostType == "invest":
-                        cost_results[ip].loc[moduleName, loc] = (
-                            annuity * self.modulesDict[moduleName].comp.CCF[0].mean()
-                        )
+                        elif getOptValueCostType == "TAC":
+                            cost_results[ip].loc[moduleName, _loc] = (
+                                cContrSum
+                                / utils.annuityPresentValueFactor(
+                                    esM, moduleName, _loc, esM.investmentPeriodInterval
+                                )
+                            )
+                        elif getOptValueCostType == "invest":
+                            if commis[ip].sum() != 0:
+                                cost_results[ip].loc[moduleName, _loc] = (
+                                    annuity * self.modulesDict[moduleName].comp.CCF[0].mean()
+                                ) * commis[ip][_loc] / commis[ip].sum()
+                            else:
+                                cost_results[ip].loc[moduleName, _loc] = 0
 
             return cost_results
         if esM.annuityPerpetuity:
@@ -487,11 +500,11 @@ class PiecewiseLinearCostFunctionModel:
                 totalCostPreCommisYear = getIpTotalCost(commisYear - 1)
                 totalCost = (totalCostCommisYear - totalCostPreCommisYear)
             return totalCost / module.comp.CCF[0].mean() #total annuity
-        raise NotImplementedError(f"Getting cost contribution of a pwlcf component is only defined for opex or annuity and not for {costType}.")
+        raise NotImplementedError(
+            f"Getting cost contribution of a pwlcf component is only defined for opex or annuity and not for {costType}."
+        )
 
     def setOptimalValues(self, esM, pyM):
-        loc = list(esM.locations)[0]
-
         tac = self.getEconomicsPwlcf(
             esM, pyM, getOptValue=True, getOptValueCostType="TAC"
         )
@@ -502,7 +515,9 @@ class PiecewiseLinearCostFunctionModel:
             esM, pyM, getOptValue=True, getOptValueCostType="invest"
         )
 
+        optSummaryPwlcf = {}
         for ip in esM.investmentPeriods:
+            optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.DataFrame()
             for moduleName, module in self.modulesDict.items():
 
                 #initialize different dataframe for ETL/EOS:
@@ -561,33 +576,46 @@ class PiecewiseLinearCostFunctionModel:
                     tuples, names=["Component", "Property", "Unit"]
                 )
 
-                optSummaryPwlcf = {
-                    ip: pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
-                    for ip in esM.investmentPeriodNames
-                }
+                mdlOptSummaryPwlcf = pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
+                # optSummaryPwlcf = {
+                #     ip: pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
+                #     for ip in esM.investmentPeriodNames
+                # }
 
+                mdlOptSummaryPwlcf.loc[
+                    moduleName, f"TAC_{curPWLCFtype}", "[" + esM.costUnit + "/a]"
+                ] = tac[ip].loc[moduleName]
 
-
-
-                optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
-                    (moduleName, f"TAC_{curPWLCFtype}", "[" + esM.costUnit + "/a]"), loc
-                ] = tac[ip][loc].loc[moduleName]
-
-                optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
-                    (moduleName, f"NPVcontribution_{curPWLCFtype}", "[" + esM.costUnit + "]"), loc
-                ] = npv[ip][loc].loc[moduleName]
-                optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
-                    (moduleName, f"invest_{curPWLCFtype}", "[" + esM.costUnit + "]"), loc
-                ] = invest[ip][loc].loc[moduleName]
+                mdlOptSummaryPwlcf.loc[
+                    moduleName,
+                    f"NPVcontribution_{curPWLCFtype}",
+                    "[" + esM.costUnit + "]",
+                ] = npv[ip].loc[moduleName]
+                mdlOptSummaryPwlcf.loc[
+                    moduleName, f"invest_{curPWLCFtype}", "[" + esM.costUnit + "]"
+                ] = invest[ip].loc[moduleName]
                 if pyomo_pwlf and curPWLCFtype == "ETL":
                     knowledgeStock = pyM.totalCapacity[moduleName, ip].value
                 elif curPWLCFtype == "ETL":
-                    knowledgeStock = sum(
-                        pyM.segmentCapacityPwlcfVar[moduleName, ip, segment]._value
-                        for segment in range(module.noSegments)
-                    )
+                    if ip == 0:
+                        stockCapacityStartYear = self.modulesDict[moduleName].comp.stockCapacityStartYear
+                        knowledgeStock_last_ip = stockCapacityStartYear + (
+                            (self.modulesDict[moduleName].initCapacity - stockCapacityStartYear.sum())
+                            / len(esM.locations)
+                        )
+                    else:
+                        knowledgeStock_last_ip = (
+                            optSummaryPwlcf[esM.investmentPeriodNames[ip-1]].loc[moduleName, 'knowledgeStock_ETL'].iloc[0]
+                        )
+                    commis_ip = esM.getOptimizationSummary(
+                        esM.componentNames[moduleName],
+                        ip=esM.investmentPeriodNames[ip]
+                    ).loc[moduleName, 'commissioning'].iloc[0]
+
+                    knowledgeStock = knowledgeStock_last_ip + commis_ip
+
                 if curPWLCFtype == "ETL":
-                    optSummaryPwlcf[esM.investmentPeriodNames[ip]].loc[
+                    mdlOptSummaryPwlcf.loc[
                         (
                             moduleName,
                             "knowledgeStock_ETL",
@@ -598,9 +626,11 @@ class PiecewiseLinearCostFunctionModel:
                             )
                             + unitDict[module.comp.modelingClass().abbrvName][1]
                             + "]",
-                        ),
-                        loc,
+                        )
                     ] = knowledgeStock
+                optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.concat(
+                    [optSummaryPwlcf[esM.investmentPeriodNames[ip]], mdlOptSummaryPwlcf]
+                )
 
         for model in esM.componentModelingDict.values():
             optSummary = model._optSummary
