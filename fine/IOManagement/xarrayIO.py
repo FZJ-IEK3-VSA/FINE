@@ -76,7 +76,6 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
 
 
 def convertPerformanceSummaryToDatasets(esM):
-    import pandas as pd
 
     df = esM.performanceSummary.squeeze()
     df = df.droplevel("Category")

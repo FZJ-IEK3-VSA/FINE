@@ -4,6 +4,7 @@ import pandas as pd
 import ast
 import inspect
 import time
+import datetime
 import warnings
 from functools import wraps
 import matplotlib.patches as mpatches
@@ -797,7 +798,6 @@ def plotOperationColorMap(
         ax.set_yticklabels(yticklabels, fontsize=fontsize)
 
     if monthlabels:
-        import datetime
 
         xticks, xlabels = [], []
         for i in range(1, 13, 2):
