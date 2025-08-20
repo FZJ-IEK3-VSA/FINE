@@ -2,6 +2,7 @@ import fine as fn
 import pandas as pd
 from pathlib import Path
 import pytest
+import numpy as np
 
 from fine.IOManagement.xarrayIO import writeEnergySystemModelToNetCDF
 
@@ -197,7 +198,50 @@ def test_flexibleConversion_init():
                 economicLifetime=10,
             )
         )
-
+    with pytest.raises(
+        ValueError, match=r".*contain NaN values.*"
+    ):
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name="conversion_flex",
+                physicalUnit=r"kW$_{el}$",
+                commodityConversionFactors={
+                    "electricity": 1,
+                    "in": {
+                        "hydrogen": -4,
+                        "nat_gas": -2,
+                    },
+                },
+                hasCapacityVariable=True,
+                investPerCapacity=0,
+                interestRate=0,
+                economicLifetime=10,
+                emissionFactors={'co2': {'electricity': np.nan}}
+            )
+        )
+    with pytest.raises(
+        ValueError, match=r".*contain NaN values.*"
+    ):
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name="conversion_flex",
+                physicalUnit=r"kW$_{el}$",
+                commodityConversionFactors={
+                    "electricity": 1,
+                    "in": {
+                        "hydrogen": np.nan,
+                        "nat_gas": -2,
+                    },
+                },
+                hasCapacityVariable=True,
+                investPerCapacity=0,
+                interestRate=0,
+                economicLifetime=10,
+                emissionFactors={'co2': {'electricity': 3}}
+            )
+        )
 
 def test_flexibleConversion_groups():
     esM = fn.EnergySystemModel(
