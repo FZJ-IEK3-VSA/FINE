@@ -49,15 +49,26 @@ def checkEsmLocations(esM):
             "implemented for single node energy system models"
         )
 
+def checkEtlCompParams(comp):
+    if comp.economicLifetime.nunique() > 1:
+        raise ValueError(
+            f"Economic Lifetime of ETL Component {comp.name} must be constant for all investment periods."
+        )
+    if comp.technicalLifetime.nunique() > 1:
+        raise ValueError(
+            f"Technical Lifetime of ETL Component {comp.name} must be constant for all investment periods."
+        )
+    if comp.interestRate.nunique() > 1:
+        raise ValueError(
+            f"Interest Rate of ETL Component {comp.name} must be constant for all investment periods."
+        )
 
 def checkStock(comp, initCapacity):
-    # TODO: adapt for multi regional
     if comp.stockCapacityStartYear.sum() > initCapacity:
         raise ValueError(
             f"Stock of component {comp.name} must be smaller than "
             "the specified initial pwlcf capacity."
         )
-
 
 def checkAndSetLearningIndex(learningRate):
     if 1 > learningRate > 0:
@@ -66,7 +77,6 @@ def checkAndSetLearningIndex(learningRate):
         raise ValueError("Learning Rate does not match the required format")
 
     return learningIndex
-
 
 def checkAndSetInitCost(initCost, comp):
     if initCost is None:
@@ -79,7 +89,6 @@ def checkAndSetInitCost(initCost, comp):
         utils.isStrictlyPositiveNumber(initCost)
 
     return initCost
-
 
 def checkCapacitiesEtl(initCapacity, maxCapacity, comp):
     if not comp.hasCapacityVariable:
@@ -102,4 +111,3 @@ def checkCapacitiesEtl(initCapacity, maxCapacity, comp):
         raise ValueError("Maximal Capacity must be greater than initial Capacity")
 
     return initCapacity, maxCapacity
-
