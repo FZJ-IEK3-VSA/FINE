@@ -364,10 +364,10 @@ def test_variable_conversion_export_to_xarray():
 
 
     # Normalize index/column names
-    expected_df.index.name = None
-    actual_df.index.name = None
-    expected_df.columns.name = None
-    actual_df.columns.name = None
+    expected_df.index.set_names(names=None, inplace=True)
+    actual_df.index.set_names(names=None, inplace=True)
+    expected_df.columns.set_names(names=None, inplace=True)
+    actual_df.columns.set_names(names=None, inplace=True)
 
     assert_frame_equal(
         actual_df.sort_index(),
