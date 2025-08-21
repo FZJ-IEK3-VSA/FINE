@@ -193,7 +193,7 @@ test-notebooks-docker-noupdate:
 
 test-codestyle:
   stage: test
-  image: registry.gitlab.com/pipeline-components/ruff:0.12.0
+  image: registry.gitlab.com/pipeline-components/ruff:v0.12.0
   script:
     # Run ruff check. If the code needs reformatting this test will fail.
     - ruff version
