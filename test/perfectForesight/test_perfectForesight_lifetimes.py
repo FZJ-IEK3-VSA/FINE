@@ -4,7 +4,8 @@ import pandas as pd
 
 
 def create_test_esM(techLifetime, economicLifetime, floorTechnicalLifetime):
-    # Create an energy system model instance
+    """Create an energy system model instance.
+    """
     esM = fn.EnergySystemModel(
         locations={"PerfectLand"},
         commodities={"electricity"},
@@ -50,6 +51,12 @@ def create_test_esM(techLifetime, economicLifetime, floorTechnicalLifetime):
 
 
 def test_flooring_sameLifetimes():
+    """Test flooring when technical and economic lifetimes are equal.
+
+    With tech = econ = 12 and flooring enabled, verify objective value,
+    commissioning in 2020 and 2030, invest costs in 2020 and 2030, a scrapping
+    bonus of 2/12 of capex in those periods, and no lifetime-extension costs.
+    """
     technicalLifetime = 12
     economicLifetime = 12
     floorTechnicalLifetime = True

@@ -17,7 +17,12 @@ import pytest
 
 
 def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
+    """Verify autarky balance limits with and without temporal segmentation: check that purchases plus net imports
+    minus exports match the configured balance limits for electricity and heat.
+    """
     def check_selfSufficiency(esM, losses, distances, balanceLimit):
+        """Assert that modeled purchases and net exchanges meet balance limits.
+        """
         for i, loc in enumerate(esM.locations):
             # Get Electricity Purchase for location
             el_purchase = (
@@ -100,6 +105,8 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
 
 
 def test_electricitySourceDriver():
+    """Ensure renewable-share lower bound is satisfied per region.
+    """
     # 0) Preprocess energy system model
     locations = {"Region1", "Region2"}
     commodityUnitDict = {"electricity": r"MW$_{el}$"}
@@ -299,6 +306,9 @@ def test_electricitySourceDriver():
 # 5) The balanceLimit is compared to the outcome of the model
 #   Hydrogen Annual Production >= hydrogenDriver (as balanceLimitID)
 def test_hydrogenSinkDriver():
+    """Enforce a minimum annual hydrogen production via a sink driver and check that hydrogen production satisfies the
+    minimum.
+    """
     # 0) Preprocess energy system model
     locations = {"Region1"}
     commodityUnitDict = {"electricity": r"MW$_{el}$", "hydrogen": r"MW$_{LHV_H2}$"}

@@ -6,8 +6,7 @@ import pyomo.environ as pyomo
 
 
 class Conversion(Component):
-    """
-    A Conversion component converts commodities into each other.
+    """A Conversion component converts commodities into each other.
     """
 
     def __init__(
@@ -57,8 +56,7 @@ class Conversion(Component):
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
-        """
-        Constructor for creating an instance of the Conversion class. Capacities are given in the physical unit
+        """Create a constructor for an instance of the Conversion class. Capacities are given in the physical unit
         of the plants.
         The Conversion component specific input arguments are described below. The general component
         input arguments are described in the Component class.
@@ -76,8 +74,7 @@ class Conversion(Component):
             indicates that the commodity is consumed. A positive value indicates that the commodity is produced.
             Check unit consistency when specifying this parameter!
 
-            Examples:
-
+        Examples:
             * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
                 of 70%. The physicalUnit is given as GW_electric, the unit for the 'electricity' commodity is
                 given in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue
@@ -91,14 +88,16 @@ class Conversion(Component):
             over the transformation pathway. Therefore, two different options are available:
 
             1. Variation with operation year (for example to incorporate weather changes for a heat pump).
-               Example:
+
+        Example:
                {2020: {'electricity':-1,'heat':pd.Series(data=[2.5, 2.8, 2.5, ...])},
                2025: {'electricity':-1,'heat':pd.Series(data=[2.7, 2.4, 2.9, ...])},
                ...}
             2. Variation with commissioning and operation year (for example to incorporate efficiency
                changes dependent on the installation year). Please note that this implementation massively
                increases the complexity of the optimization problem.
-               Example:
+
+        Example:
                {(2020, 2020): {'electricity':-1,'heat':pd.Series(data=[2.5, 2.8, 2.5, ...])},
                (2020, 2025): {'electricity':-1,'heat':pd.Series(data=[2.7, 2.4, 2.9, ...])},
                (2025, 2025): {'electricity':-1,'heat':pd.Series(data=[3.7, 3.4, 3.9, ...])},
@@ -225,6 +224,7 @@ class Conversion(Component):
                 }
             }
         :type flowShares: dict
+
         """
         Component.__init__(
             self,
@@ -382,8 +382,7 @@ class Conversion(Component):
         )
 
     def setTimeSeriesData(self, hasTSA):
-        """
-        Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
+        """Set the maximum operation rate and fixed operation rate depending on whether a time series
         analysis is requested or not.
 
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
@@ -413,7 +412,7 @@ class Conversion(Component):
                     )
 
     def getDataForTimeSeriesAggregation(self, ip):
-        """Function for getting the required data if a time series aggregation is requested.
+        """Get the required data if a time series aggregation is requested.
 
         :param ip: investment period of transformation path analysis.
         :type ip: int
@@ -481,8 +480,7 @@ class Conversion(Component):
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data, ip):
-        """
-        Function for determining the aggregated maximum rate and the aggregated fixed operation rate.
+        """Determine the aggregated maximum rate and the aggregated fixed operation rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the conversion component
         :type data: Pandas DataFrame
@@ -541,15 +539,14 @@ class Conversion(Component):
 
 
 class ConversionModel(ComponentModel):
-    """
-    A ConversionModel class instance will be instantly created if a Conversion class instance is initialized.
+    """A ConversionModel class instance will be instantly created if a Conversion class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the Conversion class
     instance. These declarations are necessary for the modeling and optimization of the energy system model.
     The ConversionModel class inherits from the ComponentModel class.
     """
 
     def __init__(self):
-        """ " Constructor for creating a ConversionModel class instance"""
+        """Create a constructor for a ConversionModel class instance."""
         super().__init__()
         self.abbrvName = "conv"
         self.dimension = "1dim"
@@ -560,8 +557,7 @@ class ConversionModel(ComponentModel):
     ####################################################################################################################
 
     def declareLinkedCapacityDict(self, pyM):
-        """
-        Declare conversion components with linked capacities and check if the linked components have the same
+        """Declare conversion components with linked capacities and check if the linked components have the same
         locational eligibility.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -604,8 +600,7 @@ class ConversionModel(ComponentModel):
         setattr(pyM, "linkedComponentsList_" + self.abbrvName, linkedComponentsList)
 
     def declareOpCommisVarSet(self, esM, pyM):
-        """
-        Declare the operation set for components that have commodity conversion factors that depend on the
+        """Declare the operation set for components that have commodity conversion factors that depend on the
         year in the pyomo object for a modeling class.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -639,8 +634,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareOpFlexVarSets(self, esM, pyM):
-        """
-        Declare commodity specific operation variable set for flexible conversion components in the pyomo object
+        """Declare commodity specific operation variable set for flexible conversion components in the pyomo object
         for a modeling class.
         """
         compDict = self.componentsDict
@@ -687,8 +681,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareFlexFlowShareConstrSet(self, pyM):
-        """
-        Declare set for flow share constraints based on the processed flow shares parameter.
+        """Declare set for flow share constraints based on the processed flow shares parameter.
         """
 
         def declareOpFlexFlowShareConstrSet(pyM):
@@ -713,8 +706,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareOpCommisConstrSet1(self, pyM, constrSetName, rateMax, rateFix, rateMin):
-        """
-        Declare set of locations and components for which hasCapacityVariable is set to True and neither the
+        """Declare set of locations and components for which hasCapacityVariable is set to True and neither the
         maximum nor the fixed operation rate is given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -738,8 +730,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareOpCommisConstrSet2(self, pyM, constrSetName, rateFix):
-        """
-        Declare set of locations and components for which hasCapacityVariable is set to True and a fixed
+        """Declare set of locations and components for which hasCapacityVariable is set to True and a fixed
         operation rate is given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -761,8 +752,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareOpCommisConstrSet3(self, pyM, constrSetName, rateMax):
-        """
-        Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
+        """Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
         operation rate is given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -784,8 +774,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareOpCommisConstrSet4(self, pyM, constrSetName, rateMin):
-        """
-        Declare set of locations and components for which  hasCapacityVariable is set to True and a minimum
+        """Declare set of locations and components for which  hasCapacityVariable is set to True and a minimum
         operation rate is given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -807,8 +796,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareOpCommisConstrSetMinPartLoad(self, pyM, constrSetName):
-        """
-        Declare set of locations and components for which partLoadMin is not None.
+        """Declare set of locations and components for which partLoadMin is not None.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
@@ -828,8 +816,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareYearlyFullLoadHoursCommisMinSet(self, pyM):
-        """
-        Declare set of locations and components for which minimum yearly full load hours are given.
+        """Declare set of locations and components for which minimum yearly full load hours are given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
@@ -849,8 +836,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareYearlyFullLoadHoursCommisMaxSet(self, pyM):
-        """
-        Declare set of locations and components for which maximum yearly full load hours are given.
+        """Declare set of locations and components for which maximum yearly full load hours are given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationCommisVarSet_" + abbrvName)
@@ -870,6 +856,25 @@ class ConversionModel(ComponentModel):
         )
 
     def declareOperationModeSets(self, pyM, constrSetName, rateMax, rateFix, rateMin):
+        """Declare operation mode sets of locations and components for which  hasCapacityVariable is set to True and a minimum/maximum/fix
+        operation rate is given.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param constrSetName: name of the constraint set.
+        :type constrSetName: string
+
+        :param rateMin: attribute of the considered component which stores the minimum operation rate data.
+        :type rateMin: string
+
+        :param rateMax: attribute of the considered component which stores the maximum operation rate data.
+        :type rateMax: string
+
+        :param rateFix: attribute of the considered component which stores the fixed operation rate data.
+        :type rateFix: string
+        """
+        
         super().declareOperationModeSets(pyM, constrSetName, rateMax, rateFix, rateMin)
         self.declareOpCommisConstrSet1(
             pyM, "opCommisConstrSet", rateMax, rateFix, rateMin
@@ -880,8 +885,7 @@ class ConversionModel(ComponentModel):
         self.declareOpCommisConstrSetMinPartLoad(pyM, "opCommisConstrSet")
 
     def declareSets(self, esM, pyM):
-        """
-        Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
+        """Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
         linked components dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -890,7 +894,6 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
@@ -933,8 +936,7 @@ class ConversionModel(ComponentModel):
     ####################################################################################################################
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
-        """
-        Declare design and operation variables
+        """Declare design and operation variables.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -951,7 +953,6 @@ class ConversionModel(ComponentModel):
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
         """
-
         # Capacity variables [physicalUnit]
         self.declareCapacityVars(pyM)
         # (Continuous) numbers of installed components [-]
@@ -988,8 +989,7 @@ class ConversionModel(ComponentModel):
     ####################################################################################################################
 
     def linkedCapacity(self, pyM):
-        """
-        Ensure that all Conversion components with the same linkedConversionCapacityID have the same capacity
+        """Ensure that all Conversion components with the same linkedConversionCapacityID have the same capacity.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1010,8 +1010,7 @@ class ConversionModel(ComponentModel):
         )
 
     def declareComponentConstraints(self, esM, pyM):
-        """
-        Declare time independent and dependent constraints
+        """Declare time independent and dependent constraints.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -1019,7 +1018,6 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         ################################################################################################################
         #                                    Declare time independent constraints                                      #
         ################################################################################################################
@@ -1141,11 +1139,9 @@ class ConversionModel(ComponentModel):
         self.flexConversionFlowShareConstraint(pyM)
 
     def getTotalOperationCommissioningDependentOperation(self, pyM):
-        """
-        Ensure that the sum of all commissioning dependent operating variables equals the total operating variable
+        """Ensure that the sum of all commissioning dependent operating variables equals the total operating variable
         of that conversion component for each time step.
         """
-
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
         opCommisVar = getattr(pyM, "op_commis_" + abbrvName)
@@ -1178,8 +1174,7 @@ class ConversionModel(ComponentModel):
     ####################################################################################################################
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if operation variables exist in the modeling class at a location which are connected to a commodity.
+        """Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -1225,11 +1220,9 @@ class ConversionModel(ComponentModel):
         )
 
     def flexConversionConstraint(self, pyM, esM):
-        """
-        Declare constraint that ensures that the sum of all flexible operation variables of one component are equal
+        """Declare constraint that ensures that the sum of all flexible operation variables of one component are equal
         to the overall operation of this component.
         """
-
         opVar = getattr(pyM, "op_" + self.abbrvName)
         opVarFlex = getattr(pyM, "op_flex_" + self.abbrvName)
         compDict = self.componentsDict
@@ -1254,8 +1247,7 @@ class ConversionModel(ComponentModel):
         )
 
     def flexConversionFlowShareConstraint(self, pyM):
-        """
-        Declare constraint that applies flow shares for each flexible component.
+        """Declare constraint that applies flow shares for each flexible component.
         """
         opVar = getattr(pyM, "op_" + self.abbrvName)
         opVarFlex = getattr(pyM, "op_flex_" + self.abbrvName)
@@ -1295,7 +1287,7 @@ class ConversionModel(ComponentModel):
         )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """Get contribution to a commodity balance.
+        r"""Get contribution to a commodity balance.
 
         .. math::
 
@@ -1419,8 +1411,7 @@ class ConversionModel(ComponentModel):
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
+        """Get contribution to the objective function.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -1428,7 +1419,6 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         opexOp = self.getEconomicsOperation(
             pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
         )
@@ -1440,8 +1430,7 @@ class ConversionModel(ComponentModel):
     ####################################################################################################################
 
     def setOptimalValues(self, esM, pyM):
-        """
-        Set the optimal values of the components.
+        """Set the optimal values of the components.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -1607,8 +1596,7 @@ class ConversionModel(ComponentModel):
             self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):
-        """
-        Return optimal values of the components.
+        """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 

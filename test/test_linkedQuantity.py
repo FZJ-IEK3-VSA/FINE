@@ -3,7 +3,13 @@ import pandas as pd
 
 
 def test_linkedQuantityID(minimal_test_esM):
-    """ """
+    """Test that components sharing a linkedQuantityID correctly synchronize capacity-related costs.
+
+    A dummy Conversion component is added with the same `linkedQuantityID` as an existing
+    Electrolyzer. The test verifies that after optimization, the capital-related operational
+    expenditures of both components are identical, confirming that the linked quantity mechanism
+    works as intended.
+    """
     esM = minimal_test_esM
 
     # get components

@@ -1,5 +1,4 @@
-"""
-Created on Thu Nov  8 10:02:46 2018
+"""Created on Thu Nov  8 10:02:46 2018.
 
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """

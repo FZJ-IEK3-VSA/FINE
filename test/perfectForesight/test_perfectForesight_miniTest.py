@@ -6,6 +6,11 @@ import pytest
 
 
 def test_perfectForesight_mini(perfectForesight_test_esM):
+    """Test the mini perfect foresight model.
+
+    Runs an optimization and verifies that the objective value matches
+    the expected reference value.
+    """
     perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 11861.771783274202
@@ -13,6 +18,15 @@ def test_perfectForesight_mini(perfectForesight_test_esM):
 
 
 def test_perfectForesight_stock(perfectForesight_test_esM):
+    """Test stock commissioning of components in the perfect foresight model.
+
+    Verifies that:
+    - warnings are raised when adding stock to an existing component
+    - the optimization objective matches the expected value
+    - commissioning and decommissioning variables are set correctly
+    - processed parameters include stock years where required
+    - optimization summaries and optimal values reflect expected results
+    """
     esM = perfectForesight_test_esM
     PvOperationRateMax = esM.getComponent("PV").operationRateMax
 
@@ -173,6 +187,12 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
 
 
 def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
+    """Test hydrogen-related components in the perfect foresight model.
+
+    Adds electrolyzers, hydrogen storage, transmission pipelines, and
+    industrial demand, then runs an optimization to ensure these elements
+    are handled consistently within the model.
+    """
     esM = perfectForesight_test_esM
 
     ### Electrolyzers
@@ -261,6 +281,14 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
 
 
 def test_perfectForesight_binary():
+    """Test binary commissioning decisions in the perfect foresight model.
+
+    Builds a minimal energy system with demand, PV generation including a
+    binary build variable, and an electricity purchase option. Verifies that:
+    - commissioning and binary commissioning variables are set correctly
+    - capex costs for existing stock capacity are accounted for
+    - optimization summaries reflect expected values
+    """
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand"},
@@ -370,6 +398,12 @@ def test_perfectForesight_binary():
 
 
 def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
+    """
+    Test annuity perpetuity setting in the perfect foresight model.
+
+    Activates the perpetuity-based annuity calculation, runs an optimization,
+    and verifies that the objective value matches the expected reference value.
+    """
     perfectForesight_test_esM.annuityPerpetuity = True
     perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     np.testing.assert_almost_equal(
@@ -379,6 +413,13 @@ def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
 
 @pytest.mark.parametrize("annuityPerpetuity", [True, False])
 def test_perfectForesight_npv_with_stock(perfectForesight_test_esM, annuityPerpetuity):
+    """Test NPV calculation for a model with stock commissioning.
+
+    Adds an expensive PV source with stock commissioning to the model, 
+    sets the annuityPerpetuity option, runs the optimization, 
+    and verifies that the objective value matches the expected reference 
+    depending on the annuityPerpetuity setting.
+    """
     PvOperationRateMax = pd.DataFrame(
         [
             np.array(

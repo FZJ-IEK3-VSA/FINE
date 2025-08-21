@@ -23,8 +23,7 @@ warnings.filterwarnings("always", category=UserWarning)
 
 
 class EnergySystemModel:
-    """
-    EnergySystemModel class
+    r"""EnergySystemModel class.
 
     The functionality provided by the EnergySystemModel class is fourfold:
 
@@ -86,8 +85,7 @@ class EnergySystemModel:
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
     ):
-        """
-        Constructor for creating an EnergySystemModel class instance
+        r"""Create a constructor for an EnergySystemModel class instance.
 
         **Required arguments:**
 
@@ -193,7 +191,8 @@ class EnergySystemModel:
             The balanceLimit is defined as a pd.DataFrame. Each row contains an individual balanceLimitID as
             index, the corresponding regional scope as columns and the values as data. The regional scope can be set
             for a region with the matching region name as column name or "Total" as colum name for setting for the entire system.
-            Example:
+
+        Example:
             - per region: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
             - per region and per system: pd.DataFrame(columns=["Region1","Total"], index=["electricity"], data=[1000,2000])
 
@@ -247,7 +246,6 @@ class EnergySystemModel:
         :type: annuityPerpetuity: bool
 
         """
-
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(
             locations,
@@ -425,8 +423,7 @@ class EnergySystemModel:
         self.verboseLogLevel = verboseLogLevel  # TODO replace
 
     def add(self, component):
-        """
-        Function for adding a component and, if required, its respective modeling class to the EnergySystemModel
+        """Add a component and, if required, its respective modeling class to the EnergySystemModel
         instance. The added component has to inherit from the FINE class Component.
 
         :param component: the component to be added
@@ -443,8 +440,7 @@ class EnergySystemModel:
         component.addToEnergySystemModel(self)
 
     def removeComponent(self, componentName, track=False):
-        """
-        Function which removes a component from the energy system.
+        """Remove a component from the energy system.
 
         :param componentName: name of the component that should be removed
         :type componentName: string
@@ -456,7 +452,6 @@ class EnergySystemModel:
         :returns: dictionary with the removed componentName and component instance if track is set to True else None.
         :rtype: dict or None
         """
-
         # Test if component exists
         if componentName not in self.componentNames.keys():
             raise ValueError(
@@ -497,8 +492,7 @@ class EnergySystemModel:
         return None
 
     def getComponent(self, componentName):
-        """
-        Function which returns a component of the energy system.
+        """Return a component of the energy system.
 
         :param componentName: name of the component that should be returned
         :type componentName: string
@@ -518,8 +512,7 @@ class EnergySystemModel:
         return self.componentModelingDict[modelingClass].componentsDict[componentName]
 
     def updateComponent(self, componentName, updateAttrs):
-        """
-        Overwrite selected attributes of an existing esM component with new values.
+        """Overwrite selected attributes of an existing esM component with new values.
 
         .. note::
             Be aware of the fact that some attributes are filled automatically while initializing a component.
@@ -574,8 +567,7 @@ class EnergySystemModel:
         self.add(_class(self, **new_args))
 
     def getComponentAttribute(self, componentName, attributeName):
-        """
-        Function which returns an attribute of a component considered in the energy system.
+        """Return an attribute of a component considered in the energy system.
 
         :param componentName: name of the component from which the attribute should be obtained
         :type componentName: string
@@ -595,9 +587,8 @@ class EnergySystemModel:
         return attr
 
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
-        """
-        Function which returns the optimization summary (design variables, aggregated operation variables,
-        objective contributions) of a modeling class.
+        """Return the optimization summary (design variables, aggregated operation variables,
+        and additional results).
 
         :param modelingClass: name of the modeling class from which the optimization summary should be obtained
         :type modelingClass: string
@@ -646,8 +637,7 @@ class EnergySystemModel:
         aggregatedResultsPath=None,
         **kwargs,
     ):
-        """
-        Spatially clusters the data of all components considered in the Energy System Model (esM) instance
+        """Spatially clusters the data of all components considered in the Energy System Model (esM) instance
         and returns a new esM instance with the aggregated data.
 
         :param shapefile: Either the path to the shapefile or the read-in shapefile
@@ -798,7 +788,6 @@ class EnergySystemModel:
 
         :returns: Aggregated esM instance
         """
-
         # STEP 1. Obtain xr dataset from esM
         xr_dataset = xrIO.convertOptimizationInputToDatasets(
             self, useProcessedValues=True
@@ -818,7 +807,7 @@ class EnergySystemModel:
         # STEP 3. Obtain aggregated esM
         return xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
-    def cluster(self, *args, **kwargs):
+    def cluster(self, *args, **kwargs):     # noqa: D102
         warnings.warn(
             "EnergySystemModel.cluster() is deprecated and will be removed in a future release. \
             use EnergySystemModel.aggregateTemporally() instead.",
@@ -839,8 +828,7 @@ class EnergySystemModel:
         rescaleClusterPeriods=False,
         **kwargs,
     ):
-        """
-        Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
+        """Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
         stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
         days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
@@ -924,7 +912,6 @@ class EnergySystemModel:
             |br| * the default value is False
         :type storeTSAinstance: boolean
         """
-
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(
             numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps)
@@ -1102,8 +1089,7 @@ class EnergySystemModel:
         utils.output("\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verbose, 0)
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
-        """
-        Set and initialize basic time parameters and sets.
+        """Set and initialize basic time parameters and sets.
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -1126,7 +1112,6 @@ class EnergySystemModel:
             |br| * the default value is False
         :type segmentation: boolean
         """
-
         # Store the information if aggregated time series data is considered for modeling the energy system in the pyomo
         # model instance and set the time series which is again considered for modeling in all components accordingly
         pyM.hasTSA = timeSeriesAggregation
@@ -1284,8 +1269,7 @@ class EnergySystemModel:
         )
 
     def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
-        """
-        Declare balance limit constraint.
+        """Declare balance limit constraint.
 
         Balance limit constraint can limit the exchange of commodities within the model or over the model region
         boundaries. See the documentation of the parameters for further explanation. In general the following equation
@@ -1455,8 +1439,7 @@ class EnergySystemModel:
             )
 
     def declareSharedPotentialConstraints(self, pyM):
-        """
-        Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
+        r"""Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
         salt cavern storing methane and salt caverns storing hydrogen.
 
         .. math::
@@ -1505,8 +1488,7 @@ class EnergySystemModel:
         )
 
     def declareComponentLinkedQuantityConstraints(self, pyM):
-        """
-        Declare linked component quantity constraint, e.g. if an engine (E-Motor) is built also a storage (Battery)
+        """Declare linked component quantity constraint, e.g. if an engine (E-Motor) is built also a storage (Battery)
         and a vehicle body (e.g. BEV Car) needs to be built. Not the capacity of the components, but the number of
         the components is linked.
 
@@ -1570,8 +1552,7 @@ class EnergySystemModel:
             )
 
     def declareCommodityBalanceConstraints(self, pyM):
-        """
-        Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
+        r"""Declare commodity balance constraints (one balance constraint for each commodity, location and time step).
 
         .. math::
 
@@ -1619,8 +1600,7 @@ class EnergySystemModel:
         )
 
     def declareObjective(self, pyM):
-        """
-        Declare the objective function by obtaining the contributions to the objective function from all modeling
+        r"""Declare the objective function by obtaining the contributions to the objective function from all modeling
         classes. Currently, the only objective function which can be selected is the sum of the net present value of all
         components.
 
@@ -1696,9 +1676,8 @@ class EnergySystemModel:
         relaxIsBuiltBinary=False,
         relevanceThreshold=None,
     ):
-        """
-        Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
-        instance is built and filled with
+        """Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
+        instance is built and filled with.
 
         * basic time sets,
         * sets, variables and constraints contributed by the component modeling classes,
@@ -1837,8 +1816,7 @@ class EnergySystemModel:
         relevanceThreshold=None,
         includePerformanceSummary=False,
     ):
-        """
-        Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
+        """Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
         A pyomo instance is optimized with the specified inputs, and the optimization results are further
         processed.
 
@@ -1926,7 +1904,6 @@ class EnergySystemModel:
         Last edited: November 16, 2023
         |br| @author: FINE Developer Team (FZJ IEK-3)
         """
-
         if not timeSeriesAggregation:
             self.segmentation = False
 

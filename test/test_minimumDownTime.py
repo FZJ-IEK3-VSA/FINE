@@ -17,6 +17,13 @@ sys.path.append(
 
 
 def test_minimumDownTime():
+    """Test that the minimum down time of a dynamic conversion component is enforced.
+
+    A dynamic conversion component is added with a specified
+    minimum down time (downTimeMin). After optimization, the test verifies
+    that the actual dispatch respects the minimum down time by comparing
+    the operation profile to a set of reference results.
+    """
     # read in original results
     results = [
         5.0,

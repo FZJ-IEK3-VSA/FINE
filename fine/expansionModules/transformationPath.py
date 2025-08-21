@@ -25,8 +25,7 @@ def optimizeSimpleMyopic(
     saveResults=True,
     trackESMs=True,
 ):
-    """
-    Optimization function for myopic approach. For each optimization run, the newly installed capacities
+    """Optimization function for myopic approach. For each optimization run, the newly installed capacities
     will be given as a stock (with capacityFix) to the next optimization run.
 
     :param esM: EnergySystemModel instance representing the energy system which should be optimized by considering the
@@ -170,8 +169,7 @@ def optimizeSimpleMyopic(
 
 
 def getStock(esM, mileStoneYear, nbOfRepresentedYears):
-    """
-    Function for determining the stock of all considered technologies for the next optimization period.
+    """Determine the stock of all considered technologies for the next optimization period.
     If the technical lifetime is expired, the fixed capacities of the concerned components are set to 0.
 
     :param mileStoneYear: Last year of the optimization period

@@ -15,6 +15,17 @@ sys.path.append(
 
 
 def test_rampDownMax():
+    """Test the correct implementation of the ramp-down limit for a dynamic
+    conversion component.
+
+    This test sets up an energy system model with two regions, adds a
+    gas-to-electricity conversion plant with and without a ramp-down
+    limitation, and verifies that the operation schedule of the restricted
+    component matches expected results after optimization.
+
+    The test ensures that the ramp-down constraint correctly limits the
+    maximum decrease in output between consecutive time steps.
+    """
     # read in original results
     results = [
         10.0,

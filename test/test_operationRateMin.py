@@ -5,6 +5,13 @@ import pandas as pd
 
 
 def test_operationRateMin(minimal_test_esM):
+    """Test that the minimum operation rate of a conversion component is enforced.
+
+    A Conversion component representing electrolyzers is added to a minimal
+    energy system model with a specified minimum load factor. After
+    optimization, the test verifies that the actual operation of the
+    component never falls below the specified minimum operation rate.
+    """
     esM = minimal_test_esM
     numberOfTimeSteps = esM.numberOfTimeSteps
 

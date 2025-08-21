@@ -15,6 +15,17 @@ sys.path.append(
 
 
 def test_rampUpMax():
+    """Test the correct implementation of the ramp-up limit for a dynamic
+    conversion component.
+
+    This test creates an energy system model with two regions, adds a
+    gas-to-electricity conversion plant with and without a ramp-up
+    limitation, and verifies that the operation schedule of the restricted
+    component matches expected results when optimized.
+
+    The test ensures that the ramp-up constraint correctly limits the
+    maximum increase in output between consecutive time steps.
+    """
     # read in original results
     results = [
         8.0,

@@ -98,5 +98,7 @@ ignore = [
     "E501", # Lines to long 
     "D200", # One-line docstring should fit on one line
     "D205", # 1 blank line required between summary line and description
+    "D100", # Missing docstring in public module (beginning of a py file)
+    "D104", # Missing docstring in public package (within the __init__.py files)
 ]
 

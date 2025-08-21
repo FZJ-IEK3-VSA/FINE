@@ -11,6 +11,13 @@ from pyomo.opt import SolverFactory
 )
 @pytest.mark.parametrize("capacityMin", [0, 5])
 def test_QPinvest(capacityMin):
+    """Test that a conversion component with quadratic investment costs (QP) is optimized correctly.
+
+    A conversion component with a quadratic cost term is added. The QPcostScale parameter
+    scales the quadratic cost contribution, which describes the absolute deviation of the
+    minimum or maximum cost value from the average cost. The test verifies that the optimization
+    produces the expected investment, OPEX, and total annual cost (TAC) values.
+    """
     capacityMin_variation = 5
 
     ###########################################################################

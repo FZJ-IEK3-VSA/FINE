@@ -8,6 +8,18 @@ import copy
 def test_perfectForesight_variableConversions_input(
     perfectForesight_test_esM,
 ):
+    """Validate input handling for variable commodity conversion factors. Checks that:
+    - Time-independent efficiencies provided per investment period are processed
+      into ordered indices and mapped correctly.
+    - Efficiencies varying by (commissioning year, investment period) are
+      accepted and correctly indexed.
+    - Time-series efficiencies (per time step and location) are accepted and
+      stored in the expected orientation.
+    - Invalid formats and mixed data types across entries raise ValueError.
+    - Redundant (commissioning-dependent) inputs that are effectively
+      investment-period dependent only are simplified internally, setting
+      `isCommisDepending` to False.
+    """
     esM = copy.deepcopy(perfectForesight_test_esM)
     # 1. Variation of the commodity conversion per investment period
     # e.g. due to weather differences
@@ -280,6 +292,9 @@ def test_perfectForesight_variableConversions_timeindependent(
     use_tsa,
     perfectForesight_test_esM,
 ):
+    """Test time-independent conversion factors across investment periods. With and without TSA, verify that the weighted sum of
+    commissioning-year operations and their respective efficiencies exactly meets the demand for a representative location.
+    """
     esM = copy.deepcopy(perfectForesight_test_esM)
     esM.add(
         fn.Conversion(
@@ -367,6 +382,12 @@ def test_perfectForesight_variableConversions_timeindependent(
 def test_perfectForesight_variableConversions_timedepending(
     use_tsa, perfectForesight_test_esM
 ):
+    """Test time-dependent conversion factors and their TSA aggregation.
+    Check that
+    - demand is met using the correct per-period efficiencies, without TSA
+    - verify that aggregated conversion factors are formed as
+      expected and that demand is still met when using aggregated values, with TSA
+    """
     esM = copy.deepcopy(perfectForesight_test_esM)
     esM.add(
         fn.Conversion(
@@ -566,6 +587,8 @@ def test_perfectForesight_variableConversions_operationRateMax(
     use_tsa,
     perfectForesight_test_esM,
 ):
+    """Ensure operationRateMax limits output with variable conversions.
+    """
     esM = copy.deepcopy(perfectForesight_test_esM)
     esM.add(
         fn.Conversion(
@@ -685,6 +708,9 @@ def test_perfectForesight_variableConversions_operationRateFix(
     use_tsa,
     perfectForesight_test_esM,
 ):
+    """Ensure operationRateFix is enforced with variable conversions: Verify that the sum of commissioning-year operations times efficiencies
+    equals the fixed sink demand. Assert that, for every valid commissioning-year and period, the produced energy matches the operationRateFix-implied production exactly.
+    """
     esM = copy.deepcopy(perfectForesight_test_esM)
     # add operation rate fix, so that the additional h2 source must be used to meet the demand
     esM.add(
@@ -812,6 +838,9 @@ def test_perfectForesight_variableConversions_fullLoadHoursMax(
     use_tsa,
     perfectForesight_test_esM,
 ):
+    """Enforce yearly full-load-hours maximum with variable conversions. Compute for each commissioning year and location, the sum over time of
+    operation divided by commissioned capacity and assert it does not exceed the yearly limit (accounting for the TSA scaling factor when aggregated).
+    """
     esM = copy.deepcopy(perfectForesight_test_esM)
     # check if the full load hour max is kept with a variable commodity conversion over the transformation pathway
     fullLoadHoursMax = 100
@@ -943,6 +972,9 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
     use_tsa,
     perfectForesight_test_esM,
 ):
+    """Enforce yearly full-load-hours minimum with variable conversions. Compute, for each valid
+    commissioning year and location, the accumulated full-load hours and assert it meets or exceeds the yearly minimum (with TSA scaling applied).
+    """
     esM = copy.deepcopy(perfectForesight_test_esM)
     # check if the full load hour min is kept with a variable commodity conversion over the transformation pathway
     fullLoadHoursMin = 100

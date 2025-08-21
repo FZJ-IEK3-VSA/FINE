@@ -5,8 +5,7 @@ import pandas as pd
 
 
 class LinearOptimalPowerFlow(Transmission):
-    """
-    A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a
+    """A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a
     linearized power flow (i.e. for AC lines). The LinearOptimalPowerFlow class inherits from the Transmission
     class.
     """
@@ -49,8 +48,7 @@ class LinearOptimalPowerFlow(Transmission):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
     ):
-        """
-        Constructor for creating an LinearOptimalPowerFlow class instance.
+        """Create a LinearOptimalPowerFlow class instance.
         The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
         component specific input arguments are described in the Transmission class and the general component
         input arguments are described in the Component class.
@@ -112,14 +110,13 @@ class LinearOptimalPowerFlow(Transmission):
 
 
 class LOPFModel(TransmissionModel):
-    """
-    A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
+    """A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the LinearOptimalPowerFlow
     class instance. These declarations are necessary for the modeling and optimization of the energy system model.
     The LOPFModel class inherits from the TransmissionModel class.
     """
 
-    def __init__(self):
+    def __init__(self):         # noqa: D107
         super().__init__()
         self.abbrvName = "lopf"
         self.dimension = "2dim"
@@ -131,8 +128,7 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
 
     def initPhaseAngleVarSet(self, pyM):
-        """
-        Declare phase angle variable set in the pyomo object for for each node.
+        """Declare phase angle variable set in the pyomo object for for each node.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -154,8 +150,7 @@ class LOPFModel(TransmissionModel):
         )
 
     def declareSets(self, esM, pyM):
-        """
-        Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
+        """Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
         linked components dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -164,7 +159,6 @@ class LOPFModel(TransmissionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-
         # # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
@@ -190,8 +184,7 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
 
     def declarePhaseAngleVariables(self, pyM):
-        """
-        Declare phase angle variables.
+        """Declare phase angle variables.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -219,8 +212,7 @@ class LOPFModel(TransmissionModel):
         )
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
-        """
-        Declare design and operation variables.
+        """Declare design and operation variables.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -237,7 +229,6 @@ class LOPFModel(TransmissionModel):
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
         """
-
         # Call the declareVariables function of transmission model class
         super().declareVariables(esM, pyM, relaxIsBuiltBinary, relevanceThreshold)
 
@@ -248,8 +239,7 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
 
     def powerFlowDC(self, pyM):
-        """
-        Ensure that the flow between two locations is equal to the difference between the phase angle variables at
+        """Ensure that the flow between two locations is equal to the difference between the phase angle variables at
         these locations divided by the reactance of the line between these locations.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -282,8 +272,7 @@ class LOPFModel(TransmissionModel):
 
     def basePhaseAngle(self, pyM):
         # TODO Check if this function is still required due to new added bounds
-        """
-        Declare the constraint that the reference phase angle is set to zero for all time steps.
+        """Declare the constraint that the reference phase angle is set to zero for all time steps.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -302,8 +291,7 @@ class LOPFModel(TransmissionModel):
         )
 
     def declareComponentConstraints(self, esM, pyM):
-        """
-        Declare time independent and dependent constraints.
+        """Declare time independent and dependent constraints.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -325,8 +313,7 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
 
     def setOptimalValues(self, esM, pyM):
-        """
-        Set the optimal values of the components.
+        """Set the optimal values of the components.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -350,8 +337,7 @@ class LOPFModel(TransmissionModel):
             self._phaseAngleVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
 
     def getOptimalValues(self, name="all", ip=0):
-        """
-        Return optimal values of the components.
+        """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 

@@ -7,6 +7,9 @@ import fine as fn
 
 
 def test_Stock_wrongStockYears():
+    """Test that a warning is raised when a component's stock commissioning years
+    fall outside the expected range based on its technical lifetime.
+    """
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -47,6 +50,7 @@ def test_Stock_wrongStockYears():
 
 
 def stock_esM():
+    """Create ESM instance with predefined stock capacities."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -267,6 +271,17 @@ def stock_esM():
 
 
 def test_stock():
+    """Test stock capacity handling in the EnergySystemModel.
+
+    Verifies that:
+
+    - Processed input parameters (investments, opex, commissioning stock)
+      are correctly interpreted for electrolyzers, storage, and pipelines.
+    - Stock commissioning and capacity variables in the Pyomo model are
+      consistent with the specified initial stock.
+    - Optimization results reflect correct commissioning, capacity
+      accumulation, and reporting in the optimization summary.
+    """
     esM = stock_esM()
 
     # Check input of optimization

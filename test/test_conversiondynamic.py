@@ -91,6 +91,8 @@ def test_ConversionDynamicNeedsHigherOperationRate():
 
 
 def test_ConversionDynamicHasHigherOperationRate():
+    """Test acceptance when operationRateMax satisfies part-load minimum.
+    """
     numberOfTimeSteps = 4
     locations = {"ElectrolyzerLocation", "IndustryLocation"}
     esM = fn.EnergySystemModel(

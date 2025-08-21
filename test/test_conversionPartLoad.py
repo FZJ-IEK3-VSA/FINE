@@ -5,6 +5,12 @@ import fine as fn
 
 
 def test_conversionPartLoad():
+    """Test that a conversion component with part-load characteristics operates correctly.
+
+    A conversion component with a defined part-load curve is added to the system.
+    After optimization, the test verifies that the component's dispatch
+    respects the efficiency and utilization defined in the part-load data.
+    """
     # Set up energy system model instance
     locations = {"GlassProductionSite"}
     commodities = {"electricity", "heat", "hydrogen", "O2", "CO2", "rawMaterial"}

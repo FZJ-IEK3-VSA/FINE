@@ -2,12 +2,15 @@ import numpy as np
 
 
 def test_perfectForesight_netPresentValue(perfectForesight_test_esM):
+    """Test NPV consistency in the perfect foresight model.
+
+    Ensures that the optimization objective matches the expected value
+    and equals the sum of all NPV contributions from the optimization summary.
+    """
     perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 11861.771783274202
     )
-    # the sum of all npv contributions in the optimization summary must equal
-    # the objective value
     npv_sum_optSummary = 0
     for ip in perfectForesight_test_esM.investmentPeriodNames:
         for mdl in perfectForesight_test_esM.componentModelingDict.keys():

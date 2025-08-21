@@ -9,9 +9,7 @@ not covered in the minimal test system or other tests.
 """
 
 
-def create_core_esm():
-    """
-    """
+def create_core_esm():      # noqa: D103
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
     # Create an energy system model instance
@@ -52,7 +50,9 @@ def create_core_esm():
 
 
 def test_conversion_factors_as_series():
-    """Input as pandas.Series for one location.
+    """Validate error on non-dict time-invariant conversion factors. attempts to add a ``Conversion``
+    component whose ``commodityConversionFactors`` are provided as a
+    ``pandas.Series`` instead of the required ``dict`` mapping.
     """
     esM = create_core_esm()
 

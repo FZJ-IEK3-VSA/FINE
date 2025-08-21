@@ -7,7 +7,7 @@ import pandas as pd
 from fine import utils
 
 
-def reconstruct_full_timeseries(esM, timeseries, ip):
+def reconstruct_full_timeseries(esM, timeseries, ip):       # noqa: D103
     print("Reconstructing timeseries from TSA")
 
     # switch first index level and column level
@@ -25,8 +25,7 @@ def reconstruct_full_timeseries(esM, timeseries, ip):
 
 
 def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
-    """
-    Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
+    """Write the input arguments of EnergySysteModel and its Components input to a dictionary.
 
     :param esM: EnergySystemModel instance in which the optimization model is held
     :type esM: EnergySystemModel instance
@@ -34,7 +33,6 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
     :return: esmDict, compDict - dicts containing input arguments of
             EnergySysteModel and its Components input, respectively
     """
-
     # Get all input properties of the esM
     inputkwargs = inspect.getfullargspec(fn.EnergySystemModel.__init__)
 
@@ -197,8 +195,7 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
 
 
 def importFromDict(esmDict, compDict):
-    """
-    Converts the dictionaries created by the exportToDict function to an EnergySystemModel.
+    """Convert the dictionaries created by the exportToDict function to an EnergySystemModel.
 
     :param esMDict: dictionary created from exportToDict contains all esM information
     :type dict: dictionary instance

@@ -8,7 +8,7 @@ pwlf = False
 
 
 class EndogenousTechnologicalLearningModul:
-    def __init__(
+    def __init__(       # noqa D107
         self,
         comp,
         esM,
@@ -84,7 +84,7 @@ class EndogenousTechnologicalLearningModul:
 
 
 class EndogenousTechnologicalLearningModel:
-    def __init__(self):
+    def __init__(self):         # noqa D107
         self.abbrvName = "etl"
         self.modulsDict = {}
 
@@ -120,8 +120,7 @@ class EndogenousTechnologicalLearningModel:
             self.declareSegmentCapacityEtlVar(esM, pyM)
 
     def declareBinaryEtlVar(self, esM, pyM):
-        """
-        :param esM:
+        """:param esM:
         :param pyM:
         :return:
         """
@@ -183,8 +182,7 @@ class EndogenousTechnologicalLearningModel:
         )
 
     def declarePwlfPyomo(self, esM, pyM):
-        """
-        https://pyomo.readthedocs.io/en/latest/pyomo_modeling_components/Expressions.html#piecewise-linear-expressions
+        """https://pyomo.readthedocs.io/en/latest/pyomo_modeling_components/Expressions.html#piecewise-linear-expressions.
         """
         pyM.totalCost = pyomo.Var(
             pyM.etlDesignSet,

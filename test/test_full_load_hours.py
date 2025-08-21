@@ -2,7 +2,7 @@ import pandas as pd
 
 
 def test_fullloadhours_above(minimal_test_esM):
-    """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000.
+    """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000 to make sure it is used sufficiently.
     """
     esM = minimal_test_esM
 
@@ -30,7 +30,7 @@ def test_fullloadhours_above(minimal_test_esM):
 
 
 def test_fullloadhours_max(minimal_test_esM):
-    """Get the minimal test system, and check if the fulllload hour limitation works.
+    """Get the minimal test system, and check if the maxmium fulllload hour constraint works.
     """
     # modify full load hour limit
     esM = minimal_test_esM
@@ -86,7 +86,7 @@ def test_fullloadhours_max(minimal_test_esM):
 
 
 def test_fullloadhours_min(minimal_test_esM):
-    """Get the minimal test system, and check if the fulllload hour limitation works.
+    """Get the minimal test system, and check if the minimum fulllload hour constraint works.
     """
     # modify full load hour limit
     esM = minimal_test_esM
@@ -142,6 +142,7 @@ def test_fullloadhours_min(minimal_test_esM):
 
 
 def test_init_full_load_hours(minimal_test_esM):
+    """Test initialization of full load hour constraints in a electrolyzer component."""
     import fine as fn
     import pandas as pd
 

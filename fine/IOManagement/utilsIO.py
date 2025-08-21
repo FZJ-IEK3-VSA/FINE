@@ -6,9 +6,8 @@ import operator
 
 
 def getFromDict(dataDict, mapList):
-    """
-    Get value from a dict by a list, which contains the dict keys.
-    e.g. for dict={'a': {'b': 1}} with mapList ['a','b'] the function returns 1
+    """Get value from a dict by a list, which contains the dict keys.
+    e.g. for dict={'a': {'b': 1}} with mapList ['a','b'] the function returns 1.
 
     :param dataDict: nested dict, e.g. {'a': {'b'}
     :type dataDict: dict
@@ -20,9 +19,8 @@ def getFromDict(dataDict, mapList):
 
 
 def setInDict(dataDict, mapList, value):
-    """
-    Set a value in a nested dict, where mapList contains the dict keys.
-    e.g. for dict={'a': {'b': 1}} with mapList ['a','b'] and value 2, the function sets dict={'a': {'b': 2}}
+    """Set a value in a nested dict, where mapList contains the dict keys.
+    e.g. for dict={'a': {'b': 1}} with mapList ['a','b'] and value 2, the function sets dict={'a': {'b': 2}}.
 
     :param dataDict: nested dict, e.g. {'a': {'b'}
     :type dataDict: dict
@@ -36,9 +34,8 @@ def setInDict(dataDict, mapList, value):
 def getKeyHierarchyOfNestedDict(
     variable_description,
 ):
-    """
-    Get a list of dictionary keys for a nested dict from the variable description.
-    e.g. 'processedCapacityMax.0.1' leads to ['processedCapacityMax', 0, 1]
+    """Get a list of dictionary keys for a nested dict from the variable description.
+    e.g. 'processedCapacityMax.0.1' leads to ['processedCapacityMax', 0, 1].
 
     :param variable_description: variable description
     :type variable_description: str
@@ -60,15 +57,14 @@ def getKeyHierarchyOfNestedDict(
 
 
 def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
-    """
-    Get a list of all paths in a nested dict, starting after the variable_name,
+    """Get a list of all paths in a nested dict, starting after the variable_name,
     until the next value is not a dict anymore.
     e.g. variable_name='a' and data_dict ={
         'a': {
             'b':{'c':1},
             'f':{'g':1}
         }
-        returns: [['b','c'],['f','g']]
+        returns: [['b','c'],['f','g']].
 
     :param data_dict: dict with data
     :type data_dict: dict
@@ -101,8 +97,7 @@ def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
 
 
 def transform1dSeriesto2dDataFrame(series, locations):
-    """
-    Expands pandas Series into a pandas DataFrame.
+    """Expand pandas Series into a pandas DataFrame.
 
     :param series: the series that need to be converted
     :type series: pd.Series
@@ -136,24 +131,22 @@ class PowerDict(dict):
     Helps in creating nested dictionaries on the fly.
     """
 
-    def __init__(self, parent=None, key=None):
+    def __init__(self, parent=None, key=None):      # noqa: D107
         self.parent = parent
         self.key = key
 
     def __missing__(self, key):
-        """
-        Creation of subdictionaries on fly
+        """Creation of subdictionaries on fly.
         """
         self[key] = PowerDict(self, key)
         return self[key]
 
     def append(self, item):
-        """
-        Additional append function for lists in dict
+        """Additional append function for lists in dict.
         """
         self.parent[self.key] = [item]
 
-    def __setitem__(self, key, val):
+    def __setitem__(self, key, val):        # noqa: D105
         dict.__setitem__(self, key, val)
         if isinstance(val, PowerDict):
             val.parent = self
@@ -161,7 +154,7 @@ class PowerDict(dict):
 
 
 def generateIterationDicts(component_dict, investmentPeriods):
-    """Creates iteration dictionaries that contain descriptions of all
+    """Create iteration dictionaries that contain descriptions of all
     dataframes, series, and constants present in component_dict.
 
     :param component_dict: dictionary containing information about the esM instance's components
@@ -172,7 +165,6 @@ def generateIterationDicts(component_dict, investmentPeriods):
 
     :return: df_iteration_dict, series_iteration_dict, constants_iteration_dict
     """
-
     df_iteration_dict, series_iteration_dict, constants_iteration_dict = {}, {}, {}
 
     # Loop through every class-component-variable combination
@@ -231,8 +223,8 @@ def generateIterationDicts(component_dict, investmentPeriods):
 def addDFVariablesToXarray(
     xr_ds, component_dict, df_iteration_dict, _mapC_dict, locations
 ):
-    """Adds all variables whose data is contained in a pd.DataFrame to xarray dataset.
-    These variables are normally regional time series (dimensions - space, time)
+    """Add all variables whose data is contained in a pd.DataFrame to xarray dataset.
+    These variables are normally regional time series (dimensions - space, time).
 
     :param xr_ds: xarray dataset or a dict of xarray datasets to which the DF variables should be added
     :type xr_ds: xr.Dataset/dict
@@ -337,13 +329,13 @@ def addDFVariablesToXarray(
 
 
 def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, locations):
-    """Adds all variables whose data is contained in a pd.Series to xarray dataset.
+    """Add all variables whose data is contained in a pd.Series to xarray dataset.
     These variables can be either:
         - 2d (dimensions - space, space). Series indices in this case are packed like loc1_loc2
         or
         - 1d (dimension - space)
         or
-        - time series (dimension - time). This situation is unique to single node esM model
+        - time series (dimension - time). This situation is unique to single node esM model.
 
     :param xr_ds: xarray dataset or a dict of xarray datasets to which the series variables should be added
     :type xr_ds: xr.Dataset/dict
@@ -361,7 +353,6 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
     :return: xr_ds
     """
-
     for variable_description, description_tuple_list in series_iteration_dict.items():
         space_space_dict = {}
         space_dict = {}
@@ -481,7 +472,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 def addConstantsToXarray(
     xr_ds, component_dict, constants_iteration_dict, useProcessedValues
 ):
-    """Adds all variables whose data is just a constant value, to xarray dataset.
+    """Add all variables whose data is just a constant value, to xarray dataset.
 
     :param xr_ds: A dict of xarray datasets to which the constant value variables should be added
     :type xr_ds: dict
@@ -496,7 +487,6 @@ def addConstantsToXarray(
 
     :return: xr_ds
     """
-
     for (
         variable_description,
         description_tuple_list,
@@ -543,16 +533,15 @@ def addConstantsToXarray(
 
 
 def processXarrayAttributes(xarray_dataset):
-    """Data types such as sets, dicts, bool, pandas df/series and Nonetype
-    are not serializable. Therefore, they are converted to lists/strings while saving.
-    They are converted back to right formats while setting up the esM instance.
+    """Convert non-serializable data types (sets, dicts, bool, pandas df/series, NoneType)
+    to serializable formats for saving, and back to the correct formats when restoring
+    the EnergySystemModel instance.
 
     :param xarray_dataset: The xarray datasets holding all data required to set up an esM instance.
     :type xarray_dataset: Dict[xr.Dataset]
 
     :return: xarray_dataset
     """
-
     _xarray_dataset = (
         xarray_dataset.copy()
     )  # Copying to avoid errors due to change of size during iteration
@@ -671,8 +660,8 @@ def processXarrayAttributes(xarray_dataset):
 def addTimeSeriesVariableToDict(
     component_dict, comp_var_xr, component, variable, drop_component=True
 ):
-    """Converts the time series variable data to required format and adds it to
-    component_dict
+    """Convert the time series variable data to required format and adds it to
+    component_dict.
 
     :param component_dict: The dict to which the variable data needs to be added
     :type component_dict: dict
@@ -688,7 +677,6 @@ def addTimeSeriesVariableToDict(
 
     :return: component_dict
     """
-
     if len(comp_var_xr.space.dims) == 0:
         df = comp_var_xr.to_series()
     elif drop_component:
@@ -735,8 +723,8 @@ def addTimeSeriesVariableToDict(
 def add2dVariableToDict(
     component_dict, comp_var_xr, component, variable, drop_component=True
 ):
-    """Converts the 2d variable data to required format and adds it to
-    component_dict
+    """Convert the 2d variable data to required format and adds it to
+    component_dict.
 
     :param component_dict: The dict to which the variable data needs to be added
     :type component_dict: dict
@@ -778,8 +766,8 @@ def add2dVariableToDict(
 def add1dVariableToDict(
     component_dict, comp_var_xr, component, variable, drop_component=True
 ):
-    """Converts the 1d variable data to required format and adds it to
-    component_dict
+    """Convert the 1d variable data to required format and adds it to
+    component_dict.
 
     :param component_dict: The dict to which the variable data needs to be added
     :type component_dict: dict
@@ -795,7 +783,6 @@ def add1dVariableToDict(
 
     :return: component_dict
     """
-
     if len(comp_var_xr.dims) == 0:
         # We check for the dimensionality again because single node models will have scalars here.
         series = pd.Series([comp_var_xr.item()], index=[comp_var_xr.space.item()])
@@ -818,8 +805,8 @@ def add1dVariableToDict(
 
 
 def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
-    """Converts the dimensionless variable data to required format and adds it to
-    component_dict
+    """Convert the dimensionless variable data to required format and adds it to
+    component_dict.
 
     :param component_dict: The dict to which the variable data needs to be added
     :type component_dict: dict

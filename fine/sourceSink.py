@@ -5,8 +5,7 @@ import warnings
 
 
 class Source(Component):
-    """
-    A Source component can transfer a commodity over the energy system boundary into the system.
+    """A Source component can transfer a commodity over the energy system boundary into the system.
     """
 
     def __init__(
@@ -55,8 +54,7 @@ class Source(Component):
         floorTechnicalLifetime=True,
         etlParameter=None,
     ):
-        """
-        Constructor for creating an Source class instance.
+        """Create a Source class instance.
         The Source component specific input arguments are described below. The general component
         input arguments are described in the Component class.
 
@@ -69,8 +67,8 @@ class Source(Component):
         :type commodity: string
 
         :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not.
-            Examples:
 
+        Examples:
             * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
             * Emitting CO2 into the environment is not per se limited by a capacity ->
               hasCapacityVariable is False.
@@ -175,8 +173,8 @@ class Source(Component):
             float or a Pandas Series with location specific values or a dictionary per investment period with one of the two previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
-            Example:
 
+        Example:
             * In a national energy system, natural gas could be purchased from another country with a
               certain cost.
 
@@ -195,8 +193,8 @@ class Source(Component):
             float or a Pandas Series with location specific values or a dictionary per investment period with one of the two previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
-            Example:
 
+        Example:
             * Modeling a PV electricity feed-in tariff for a household
 
             |br| * the default value is 0
@@ -217,8 +215,8 @@ class Source(Component):
         :param pathwayBalanceLimitID: similar to balanceLimitID just as restriction over the entire pathway.
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
-        """
 
+        """
         Component.__init__(
             self,
             esM,
@@ -405,9 +403,7 @@ class Source(Component):
         )
 
     def setTimeSeriesData(self, hasTSA):
-        """
-        Function for setting the maximum operation rate, fixed operation rate and cost or revenue time series depending
-        on whether a time series analysis is requested or not.
+        """Set the maximum operation rate, fixed operation rate, and cost or revenue time series depending on whether a time series analysis is requested.
 
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
@@ -437,12 +433,11 @@ class Source(Component):
         )
 
     def getDataForTimeSeriesAggregation(self, ip):
-        """Function for getting the required data if a time series aggregation is requested.
+        """Get the required data if a time series aggregation is requested.
 
         :param ip: investment period of transformation path analysis.
         :type ip: int
         """
-
         weightDict, data = {}, []
         if self.fullOperationRateFix:
             weightDict, data = self.prepareTSAInput(
@@ -490,8 +485,7 @@ class Source(Component):
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data, ip):
-        """
-        Function for determining the aggregated maximum rate and the aggregated fixed operation rate.
+        """Determine the aggregated maximum rate and the aggregated fixed operation rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the source component
         :type data: Pandas DataFrame
@@ -500,7 +494,6 @@ class Source(Component):
         :type ip: int
 
         """
-
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(
             self.fullOperationRateFix, "_operationRateFix_", data, ip
         )
@@ -522,8 +515,7 @@ class Source(Component):
 
 
 class Sink(Source):
-    """
-    A Sink component can transfer a commodity over the energy system boundary out of the system.
+    """A Sink component can transfer a commodity over the energy system boundary out of the system.
     """
 
     def __init__(
@@ -569,8 +561,7 @@ class Sink(Source):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
     ):
-        """
-        Constructor for creating a Sink class instance.
+        """Create a Sink class instance.
 
         The Sink class inherits from the Source class. They coincide with the input parameters
         (see Source class for the parameter description) and differ in the sign
@@ -624,16 +615,14 @@ class Sink(Source):
 
 
 class SourceSinkModel(ComponentModel):
-    """
-    A SourceSinkModel class instance will be instantly created if a Source class instance or a Sink class instance is
+    """A SourceSinkModel class instance will be instantly created if a Source class instance or a Sink class instance is
     initialized. It is used for the declaration of the sets, variables and constraints which are valid for the
     Source/Sink class instance. These declarations are necessary for the modeling and optimization of the
     energy system model. The SourceSinkModel class inherits from the ComponentModel class.
     """
 
     def __init__(self):
-        """
-        Constructor for creating a SourceSinkModel class instance.
+        """Create a constructor for a SourceSinkModel class instance.
         """
         super().__init__()
         self.abbrvName = "srcSnk"
@@ -645,8 +634,7 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def declareSets(self, esM, pyM):
-        """
-        Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
+        """Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
         linked commodity limitation dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -655,7 +643,6 @@ class SourceSinkModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
@@ -690,8 +677,7 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
-        """
-        Declare design and operation variables.
+        """Declare design and operation variables.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -708,7 +694,6 @@ class SourceSinkModel(ComponentModel):
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
         """
-
         # Capacity variables [commodityUnit]
         self.declareCapacityVars(pyM)
         # (Continuous) numbers of installed components [-]
@@ -730,8 +715,7 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def declareComponentConstraints(self, esM, pyM):
-        """
-        Declare time independent and dependent constraints.
+        """Declare time independent and dependent constraints.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -739,7 +723,6 @@ class SourceSinkModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         ################################################################################################################
         #                                    Declare time independent constraints                                      #
         ################################################################################################################
@@ -799,8 +782,7 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if operation variables exist in the modeling class at a location which are connected to a commodity.
+        """Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -822,8 +804,8 @@ class SourceSinkModel(ComponentModel):
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, timeSeriesAggregation, loc, componentNames
     ):
-        """
-        Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+        """Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+
         Sum of the operation time series of a SourceSink component is used as the balanceLimit contribution:
 
         - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
@@ -892,7 +874,8 @@ class SourceSinkModel(ComponentModel):
         return balance
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """Get contribution to a commodity balance.
+        r"""Get contribution to a commodity balance.
+
                 .. math::
 
             \\text{C}^{comp,comm}_{loc,ip,p,t} = - op_{loc,ip,p,t}^{comp,op}  \\text{Sink}
@@ -900,7 +883,6 @@ class SourceSinkModel(ComponentModel):
         .. math::
             \\text{C}^{comp,comm}_{loc,ip,p,t} = op_{loc,ip,p,t}^{comp,op} \\text{Source}
         """
-
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = (
             getattr(pyM, "op_" + abbrvName),
@@ -913,15 +895,13 @@ class SourceSinkModel(ComponentModel):
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
-            :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-            :type esM: esM - EnergySystemModel class instance
+        """Get contribution to the objective function.
 
-            :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
-            :type pym: pyomo ConcreteModel
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance.
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
         """
-
         opexOp = self.getEconomicsOperation(
             pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
         )
@@ -961,8 +941,7 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def setOptimalValues(self, esM, pyM):
-        """
-        Set the optimal values of the components.
+        """Set the optimal values of the components.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -1282,8 +1261,7 @@ class SourceSinkModel(ComponentModel):
             self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):
-        """
-        Return optimal values of the components.
+        """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 

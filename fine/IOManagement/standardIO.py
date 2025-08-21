@@ -22,8 +22,7 @@ except ImportError:
 
 
 def timer(func):
-    """
-    Wrapper around a function to track the time taken by the function.
+    """Track the time taken by a function (Wrapper).
 
     :param func: Function
 
@@ -47,8 +46,7 @@ def writeOptimizationOutputToExcel(
     optSumOutputLevel=2,
     optValOutputLevel=1,
 ):
-    """
-    Write optimization output to an Excel file.
+    """Write optimization output to an Excel file.
 
     :param esM: EnergySystemModel instance in which the optimized model is hold
     :type esM: EnergySystemModel instance
@@ -166,8 +164,7 @@ def writeOptimizationOutputToExcel(
 
 
 def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpyxl"):
-    """
-    Read energy system model from excel file.
+    """Read energy system model from excel file.
 
     **Default arguments:**
 
@@ -264,8 +261,7 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
 
 
 def energySystemModelRunFromExcel(fileName="scenarioInput.xlsx", engine="openpyxl"):
-    """
-    Run an energy system model from excel file.
+    """Run an energy system model from excel file.
 
     **Default arguments:**
 
@@ -299,8 +295,7 @@ def energySystemModelRunFromExcel(fileName="scenarioInput.xlsx", engine="openpyx
 def readOptimizationOutputFromExcel(
     esM, fileName="scenarioOutput.xlsx", engine="openpyxl"
 ):
-    """
-    Read optimization output from an excel file.
+    """Read optimization output from an excel file.
 
     :param esM: EnergySystemModel instance which includes the setting of the optimized model
     :type esM: EnergySystemModel instance
@@ -325,7 +320,6 @@ def readOptimizationOutputFromExcel(
 
     :return: esM - an EnergySystemModel class instance
     """
-
     # Read excel file with optimization output
     file = pd.ExcelFile(fileName, engine=engine)
     # Check if optimization output matches the given energy system model (sufficient condition)
@@ -374,8 +368,7 @@ def readOptimizationOutputFromExcel(
 
 
 def getDualValues(pyM):
-    """
-    Get dual values of an optimized pyomo instance.
+    """Get dual values of an optimized pyomo instance.
 
     :param pyM: optimized pyomo instance
     :type pyM: pyomo Concrete Model
@@ -394,8 +387,7 @@ def getShadowPrices(
     periodOccurrences=None,
     periodsOrder=None,
 ):
-    """
-    Get dual values of constraint ("shadow prices").
+    """Get dual values of constraint ("shadow prices").
 
     :param esM: considered energy system model
     :type esM: EnergySystemModel class instance
@@ -469,8 +461,7 @@ def plotOperation(
     dpi=200,
     **kwargs,
 ):
-    """
-    Plot operation time series of a component at a location.
+    """Plot operation time series of a component at a location.
 
     **Required arguments:**
 
@@ -596,8 +587,7 @@ def plotOperationColorMap(
     orientation="horizontal",
     **kwargs,
 ):
-    """
-    Plot operation time series of a component at a location.
+    """Plot operation time series of a component at a location.
 
     **Required arguments:**
 
@@ -819,8 +809,7 @@ def plotLocations(
     dpi=200,
     **kwargs,
 ):
-    """
-    Plot locations from a shape file.
+    """Plot locations from a shape file.
 
     **Required arguments:**
 
@@ -880,7 +869,6 @@ def plotLocations(
         |br| * the default value is 200
     :type dpi: scalar > 0
     """
-
     gdf = gpd.read_file(locationsShapeFileName).to_crs(crs)
 
     if ax is None:
@@ -931,8 +919,7 @@ def plotTransmission(
     dpi=200,
     **kwargs,
 ):
-    """
-    Plot build transmission lines from a shape file.
+    """Plot build transmission lines from a shape file.
 
     **Required arguments:**
 
@@ -1093,8 +1080,7 @@ def plotLocationalColorMap(
     dpi=200,
     **kwargs,
 ):
-    """
-    Plot the data of a component for each location.
+    """Plot the data of a component for each location.
 
     **Required arguments:**
 
@@ -1270,7 +1256,7 @@ def plotLocationalColorMap(
     return fig, ax
 
 
-def plotPieChart(
+def plotPieChart(       # noqa: D103
     locFilePath,
     results_df,
     Property_to_plot="capacity",

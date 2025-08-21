@@ -4,6 +4,19 @@ import pandas as pd
 
 
 def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False):
+    """"Create a stochastic EnergySystemModel for testing.
+
+    :param singleYear: If True, create a model with only one investment period.
+    :type singleYear: boolean
+
+    :param sameParameters: If True, use identical parameters across periods.
+    :type sameParameters: boolean
+
+    :param transmissionCase: If True, add a second location and a transmission link.
+    :type transmissionCase: boolean
+
+    :return: Configured EnergySystemModel instance.
+    """
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -196,6 +209,8 @@ def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False
 
 
 def test_stochasticBasic():
+    """Test basic stochastic model consistency for a single-year model and two-period model.
+    """
     singleYearesM = stochasticESM(singleYear=True)
     singleYearesM.optimize(solver="glpk")
 
@@ -226,6 +241,8 @@ def test_stochasticBasic():
 
 
 def test_stochasticParameters():
+    """Test stochastic model with differing parameters across periods.
+    """
     esM = stochasticESM(singleYear=False, sameParameters=False)
     esM.optimize(solver="glpk")
 
@@ -284,6 +301,8 @@ def test_stochasticParameters():
 
 
 def test_stochasticTimeSeries_withTransmission():
+    """Test stochastic model behavior with transmission between locations.
+    """
     esM = stochasticESM(transmissionCase=True)
     # Optimize energy system model
     esM.optimize(timeSeriesAggregation=False, solver="glpk")

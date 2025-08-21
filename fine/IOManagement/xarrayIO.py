@@ -10,8 +10,7 @@ from fine.IOManagement import dictIO, utilsIO
 
 
 def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
-    """
-    Takes esM instance input and converts it into xarray datasets.
+    """Take esM instance input and converts it into xarray datasets.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
@@ -26,7 +25,6 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     :return: xr_ds - esM instance data in xarray dataset format
     :rtype: xarray.dataset
     """
-
     # STEP 1. Get the esm and component dicts
     esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
 
@@ -75,7 +73,7 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     return {"Input": xr_dss, "Parameters": attributes_xr}
 
 
-def convertPerformanceSummaryToDatasets(esM):
+def convertPerformanceSummaryToDatasets(esM):       # noqa: D103
     import pandas as pd
 
     df = esM.performanceSummary.squeeze()
@@ -94,8 +92,7 @@ def convertPerformanceSummaryToDatasets(esM):
 
 
 def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
-    """
-    Takes esM instance output and converts it into an xarray dataset.
+    """Take esM instance output and converts it into an xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
@@ -110,7 +107,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
     :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
     :rtype: xarray.dataset
     """
-
     # Create the netCDF file and the xr.Dataset dict for all ips and components
     xr_dss = dict.fromkeys(esM.investmentPeriodNames)
     for ip in esM.investmentPeriodNames:
@@ -357,8 +353,7 @@ def writeDatasetsToNetCDF(
     mode="a",
     groupPrefix=None,
 ):
-    """
-    Saves dictionary of xarray datasets (with esM instance data) to a netCDF
+    """Save dictionary of xarray datasets (with esM instance data) to a netCDF
     file.
 
     **Required arguments:**
@@ -391,7 +386,6 @@ def writeDatasetsToNetCDF(
     :type groupPrefix: string
 
     """
-
     # Create netCDF file, remove existant
     if removeExisting:
         if Path(outputFilePath).is_file():
@@ -526,8 +520,7 @@ def writeDatasetsToNetCDF(
 
 
 def convertDatasetsToEnergySystemModel(datasets):
-    """
-    Takes dictionary of xarray datasets (with esM instance data) and converts
+    """Take dictionary of xarray datasets (with esM instance data) and converts
     it to an esM instance.
 
     :param datasets: The xarray datasets holding all data required to set up an esM instance.
@@ -976,8 +969,7 @@ def writeEnergySystemModelToNetCDF(
     optSumOutputLevel=0,
     groupPrefix=None,
 ):
-    """
-    Write energySystemModel (input and if exists, output) to netCDF file.
+    """Write energySystemModel (input and if exists, output) to netCDF file.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
@@ -1007,7 +999,6 @@ def writeEnergySystemModelToNetCDF(
         for each component.
     :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
-
     if overwriteExisting:
         if Path(outputFilePath).is_file():
             Path(outputFilePath).unlink()
@@ -1031,7 +1022,7 @@ def writeEnergySystemModelToNetCDF(
 
 
 def writeEnergySystemModelToDatasets(esM):
-    """Converts esM instance (input and output) into a xarray dataset.
+    """Convert esM instance (input and output) into a xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
@@ -1069,8 +1060,7 @@ def writeEnergySystemModelToDatasets(esM):
 
 
 def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
-    """
-    Read optimization results from grouped netCDF file to dictionary of
+    """Read optimization results from grouped netCDF file to dictionary of
     xr.Datasets.
 
     :param filePath: output file name of netCDF file (can include full path)
@@ -1092,7 +1082,6 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
         for each component.
     :rtype: Nested dict
     """
-
     with Dataset(filePath, "r", format="NETCDF4") as rootgrp:
         if groupPrefix:
             group_keys = rootgrp[groupPrefix].groups
@@ -1177,8 +1166,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
 
 
 def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
-    """
-    Converts netCDF file into an EnergySystemModel instance.
+    """Convert netCDF file into an EnergySystemModel instance.
 
     :param filePath: file name of netCDF file (can include full path) in which
         the esM data is stored
@@ -1188,7 +1176,6 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     :return: EnergySystemModel instance
     :rtype: EnergySystemModel instance
     """
-
     # netcdf to xarray dataset
     xr_dss = readNetCDFToDatasets(filePath, groupPrefix)
 

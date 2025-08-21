@@ -553,6 +553,12 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
 
 
 def test_flexibleConversionFlowShare():
+    """Test that the flexible conversion component respects specified flow share limits.
+
+    A conversion component with flexible input flows is added with different maximum and minimum
+    flow shares. After optimization, the test verifies that the actual hydrogen input flow stays
+    within the defined min/max bounds for each period and location.
+    """
     esM = fn.EnergySystemModel(
         locations={"loc1", "loc2"},
         commodities={"electricity", "nat_gas", "hydrogen"},
