@@ -347,14 +347,12 @@ class Conversion(Component):
         (self.isIpDepending, self.isCommisDepending, self.flexibleConversion) = (
             utils.checkConversionFactorProperties(self, esM, commissioningDependentCcf)
         )
-        (
-            self.fullCommodityConversionFactors,
-            self.processedCommodityConversionFactors,
-            self.preprocessedCommodityConversionFactors,
-        ) = utils.checkAndSetCommodityConversionFactor(self, esM)
-        self.aggregatedCommodityConversionFactors = dict.fromkeys(
-            self.fullCommodityConversionFactors.keys()
-        )
+        self.fullCommodityConversionFactors = utils.checkAndSetCommodityConversionFactor(self, esM)
+        self.aggregatedCommodityConversionFactors = {
+            ip: {}
+            for ip in self.fullCommodityConversionFactors.keys()
+            }
+        self.processedCommodityConversionFactors = self.aggregatedCommodityConversionFactors.copy()
 
         self.emissionFactors = emissionFactors
         self.processedEmissionFactors = utils.checkEmissionFactors(self, esM)
@@ -458,6 +456,11 @@ class Conversion(Component):
 
         if not self.isCommisDepending:
             for commod in self.fullCommodityConversionFactors[ip]:
+                if not isinstance(
+                    self.fullCommodityConversionFactors[ip][commod],
+                    pd.DataFrame | pd.Series
+                    ):
+                    continue
                 weightDict, data = self.prepareTSAInput(
                     self.fullCommodityConversionFactors[ip][commod],
                     "_commodityConversionFactorTimeSeries" + str(commod) + "_",
@@ -476,6 +479,11 @@ class Conversion(Component):
                 # divide the weight by the number of relevant commissioning years to
                 # prevent a too high total weight of the commodity conversion time-series
                 for commod in self.fullCommodityConversionFactors[(commisYear, ip)]:
+                    if not isinstance(
+                        self.fullCommodityConversionFactors[(commisYear, ip)][commod],
+                        pd.DataFrame | pd.Series | dict
+                        ):
+                        continue
                     weightDict, data = self.prepareTSAInput(
                         self.fullCommodityConversionFactors[(commisYear, ip)][commod],
                         "_commodityConversionFactorTimeSeries"
@@ -516,14 +524,22 @@ class Conversion(Component):
             if self.fullCommodityConversionFactors[ip] != {}:
                 self.aggregatedCommodityConversionFactors[ip] = {}
                 for commod in self.fullCommodityConversionFactors[ip]:
-                    self.aggregatedCommodityConversionFactors[ip][commod] = (
-                        self.getTSAOutput(
-                            self.fullCommodityConversionFactors[ip][commod],
-                            "_commodityConversionFactorTimeSeries" + str(commod) + "_",
-                            data,
-                            ip,
+                    if not isinstance(
+                        self.fullCommodityConversionFactors[ip][commod],
+                        pd.DataFrame | pd.Series
+                        ):
+                        self.aggregatedCommodityConversionFactors[ip][commod] = (
+                            self.fullCommodityConversionFactors[ip][commod]
                         )
-                    )
+                    else:
+                        self.aggregatedCommodityConversionFactors[ip][commod] = (
+                            self.getTSAOutput(
+                                self.fullCommodityConversionFactors[ip][commod],
+                                "_commodityConversionFactorTimeSeries" + str(commod) + "_",
+                                data,
+                                ip,
+                            )
+                        )
         else:
             # if depending on the commissioning year, iterate over the relevant commissioning years for the
             # operation of the investment period ip and get the time-series
@@ -534,19 +550,27 @@ class Conversion(Component):
                 if self.fullCommodityConversionFactors[(commisYear, ip)] != {}:
                     self.aggregatedCommodityConversionFactors[(commisYear, ip)] = {}
                     for commod in self.fullCommodityConversionFactors[(commisYear, ip)]:
-                        self.aggregatedCommodityConversionFactors[(commisYear, ip)][
-                            commod
-                        ] = self.getTSAOutput(
-                            self.fullCommodityConversionFactors[(commisYear, ip)][
+                        if not isinstance(
+                            self.fullCommodityConversionFactors[(commisYear, ip)][commod],
+                            pd.DataFrame | pd.Series
+                            ):
+                            self.aggregatedCommodityConversionFactors[(commisYear, ip)][
                                 commod
-                            ],
-                            "_commodityConversionFactorTimeSeries"
-                            + str(commod)
-                            + str(commisYear).replace("-", "minus")
-                            + "_",
-                            data,
-                            ip,
-                        )
+                            ] = self.fullCommodityConversionFactors[(commisYear, ip)][commod]
+                        else:
+                            self.aggregatedCommodityConversionFactors[(commisYear, ip)][
+                                commod
+                            ] = self.getTSAOutput(
+                                self.fullCommodityConversionFactors[(commisYear, ip)][
+                                    commod
+                                ],
+                                "_commodityConversionFactorTimeSeries"
+                                + str(commod)
+                                + str(commisYear).replace("-", "minus")
+                                + "_",
+                                data,
+                                ip,
+                            )
 
 
 class ConversionModel(ComponentModel):
@@ -563,6 +587,8 @@ class ConversionModel(ComponentModel):
         self.abbrvName = "conv"
         self.dimension = "1dim"
         self._operationVariablesOptimum = {}
+        self._operationFlexVariablesOptimum = {}
+        self._commodityFlows = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -1465,6 +1491,7 @@ class ConversionModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
+        opVarFlex = getattr(pyM, "op_flex_" + abbrvName)
 
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(
@@ -1505,6 +1532,42 @@ class ConversionModel(ComponentModel):
             )
             self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
 
+            optValFlex = utils.formatOptimizationOutput(
+                opVarFlex.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            self._operationFlexVariablesOptimum[esM.investmentPeriodNames[ip]] = optValFlex
+
+            idx = pd.IndexSlice
+            commodityFlow = []
+            for comp_name, comp in self.componentsDict.items():
+                for commod, ccf in comp.fullCommodityConversionFactors[ip].items():
+                    if isinstance(ccf, pd.Series | pd.DataFrame):
+                        agg_ccf = comp.aggregatedCommodityConversionFactors[ip][commod].stack()
+                        agg_ccf = agg_ccf.copy()
+                        agg_ccf.index = pd.MultiIndex.from_frame(agg_ccf.index.to_frame().assign(comp=comp_name))
+                        agg_ccf = agg_ccf.reorder_levels([0,1,3,2])
+                        rebuild_ccf = utils.buildFullTimeSeries(agg_ccf.unstack(level=1), esM.periodsOrder[0], ip=0, esM=esM)
+                        cf = rebuild_ccf * self._operationVariablesOptimum[ip]
+                        cf.index = pd.MultiIndex.from_frame(rebuild_ccf.index.to_frame().assign(commodity=commod))
+                        cf.index.names = ['component', 'location', 'commodity']
+                        commodityFlow.append(cf)
+                    elif isinstance(ccf, dict):
+                        for commod in ccf.keys():
+                            cf = ccf[commod] * self._operationVariablesOptimum[ip].loc[idx[[comp_name],:], :]
+                            cf.index = pd.MultiIndex.from_frame(rebuild_ccf.index.to_frame().assign(commodity=commod))
+                            cf.index.names = ['component', 'location', 'commodity']
+                            commodityFlow.append(cf)
+                    elif isinstance(ccf, (int, float)):
+                        cf = ccf * self._operationVariablesOptimum[ip].loc[idx[[comp_name],:], :]
+                        cf.index = pd.MultiIndex.from_frame(rebuild_ccf.index.to_frame().assign(commodity=commod))
+                        cf.index.names = ['component', 'location', 'commodity']
+                        commodityFlow.append(cf)
+            self._commodityFlows[esM.investmentPeriodNames[ip]] = pd.concat(commodityFlow, axis=0)
             props = ["operation", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
             units = {

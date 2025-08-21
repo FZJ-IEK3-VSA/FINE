@@ -64,7 +64,6 @@ def test_flexibleConversion_init():
             investPerCapacity=0,
             interestRate=0,
             economicLifetime=10,
-            # flexibleConversion=True,
         )
     )
 
@@ -85,7 +84,6 @@ def test_flexibleConversion_init():
             investPerCapacity=0,
             interestRate=0,
             economicLifetime=10,
-            # flexibleConversion=True,
         )
     )
 
@@ -695,3 +693,85 @@ def test_flexibleConversionFlowShare():
         ]._value
         >= 0.6 * esM.pyM.op_conv["loc2", "conversion_flex", 1, 0, 0]._value
     )
+
+def test_flexibleConversionOutput():
+    esM = fn.EnergySystemModel(
+        locations={"loc1"},
+        numberOfTimeSteps=8760,
+        hoursPerTimeStep=1,
+        commodities={"electricity", "nat_gas", "hydrogen", "co2"},
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+            "nat_gas": r"kW$_{CH_{4},LHV}$",
+            "co2": r"kg$_{CO_{2},LHV}$",
+        },
+    )
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name='electricity_sink',
+            commodity='electricity',
+            hasCapacityVariable=False,
+            operationRateFix=pd.Series([1] * 8760),
+        )
+    )
+    
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name='co2_sink',
+            commodity='co2',
+            hasCapacityVariable=False,
+        )
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name='hydrogen_source',
+            commodity='hydrogen',
+            hasCapacityVariable=False,
+            commodityCostTimeSeries=pd.Series([1] * 4380 + [10] * 4380),
+        )
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name='nat_gas_source',
+            commodity='nat_gas',
+            hasCapacityVariable=False,
+            commodityCostTimeSeries=pd.Series([10] * 4380 + [1] * 4380),
+        )
+    )
+
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="FC_flex",
+            physicalUnit=r"kW$_{el}$",
+            commodity="electricity",
+            commodityConversionFactors={
+                "electricity": pd.Series([1] * 8760),
+                "in": {
+                    "hydrogen": -4,
+                    "nat_gas": -2,
+                },
+            },
+            hasCapacityVariable=True,
+            investPerCapacity=0,
+            interestRate=0,
+            economicLifetime=10,
+            emissionFactors={'co2': {'nat_gas': 1}}
+        )
+    )
+
+    esM.aggregateTemporally(
+        numberOfTimeStepsPerPeriod=24,
+        numberOfSegmentsPerPeriod=24,
+        numberOfTypicalPeriods=2,
+    )
+
+    esM.optimize(timeSeriesAggregation=True, solver="glpk")

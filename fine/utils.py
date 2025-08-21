@@ -2707,8 +2707,6 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     # 3. Setup of fullCommodityConversionFactor, processedConversionFactor
     # and preprocessedConversionFactor
     fullCommodityConversionFactor = {}
-    processedCommodityConversionFactor = {}
-    preprocessedCommodityConversionFactor = {}
     for _key in iterationList:
         # get the required name for the keys of the resulting dict
         if comp.isCommisDepending:
@@ -2729,15 +2727,11 @@ def checkAndSetCommodityConversionFactor(comp, esM):
 
         # initialize empty
         fullCommodityConversionFactor[newKeyName] = {}
-        processedCommodityConversionFactor[newKeyName] = {}
-        preprocessedCommodityConversionFactor[newKeyName] = {}
 
         for key, value in _commodityConversionFactors.items():
             if isinstance(value, dict):
                 group = key
-                processedCommodityConversionFactor[newKeyName][group] = {}
-                processedCommodityConversionFactor[newKeyName][group] = {}
-                preprocessedCommodityConversionFactor[newKeyName][group] = {}
+                fullCommodityConversionFactor[newKeyName][group] = {}
                 for commod in value.keys():
                     if isinstance(
                         _commodityConversionFactors[group][commod],
@@ -2753,14 +2747,9 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                     ):
                         # fix values do not need a time-series aggregation and are written
                         # directly to processedCommodityConversion
-                        processedCommodityConversionFactor[newKeyName][group][
+                        fullCommodityConversionFactor[newKeyName][group][
                             commod
                         ] = _commodityConversionFactors[group][commod]
-                        preprocessedCommodityConversionFactor[newKeyName][group][
-                            commod
-                        ] = processedCommodityConversionFactor[newKeyName][group][
-                            commod
-                        ]
                     else:
                         raise ValueError(
                             f"Data type '{_commodityConversionFactors}' for commodity "
@@ -2778,18 +2767,12 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                             comp.locationalEligibility,
                         )
                     )
-                    preprocessedCommodityConversionFactor[newKeyName][commod] = (
-                        fullCommodityConversionFactor[newKeyName][commod]
-                    )
 
                 elif isinstance(_commodityConversionFactors[commod], (int, float)):
                     # fix values do not need a time-series aggregation and are written
                     # directly to processedCommodityConversion
-                    processedCommodityConversionFactor[newKeyName][commod] = (
+                    fullCommodityConversionFactor[newKeyName][commod] = (
                         _commodityConversionFactors[commod]
-                    )
-                    preprocessedCommodityConversionFactor[newKeyName][commod] = (
-                        processedCommodityConversionFactor[newKeyName][commod]
                     )
                 else:
                     raise ValueError(
@@ -2802,12 +2785,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
             "Flexible Conversion is currently not available for commissioning"
             " year depended commodity conversion factors"
         )
-    return (
-        fullCommodityConversionFactor,
-        processedCommodityConversionFactor,
-        preprocessedCommodityConversionFactor,
-    )
-
+    return fullCommodityConversionFactor
 
 def checkEmissionFactors(comp, esM):
     """
@@ -2857,7 +2835,7 @@ def checkEmissionFactors(comp, esM):
 
     flex_commodities = [
         commod
-        for group in list(comp.processedCommodityConversionFactors.values())[0].values()
+        for group in list(comp.fullCommodityConversionFactors.values())[0].values()
         if isinstance(group, dict)
         for commod in group.keys()
     ]
@@ -2893,7 +2871,7 @@ def checkAndSetFlowShares(comp, esM):
         raise ValueError("Flow shares must be defined as a dictionary.")
     flex_commodities = [
         commod
-        for group in list(comp.processedCommodityConversionFactors.values())[0].values()
+        for group in list(comp.fullCommodityConversionFactors.values())[0].values()
         if isinstance(group, dict)
         for commod in group.keys()
     ]
