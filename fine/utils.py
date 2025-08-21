@@ -2592,7 +2592,19 @@ def checkConversionFactorValues(ccf):
             return False
     return True
 
-
+def checkNestedNanValues(obj):
+    if isinstance(obj, dict):
+        return any(checkNestedNanValues(v) for v in obj.values())
+    elif isinstance(obj, (list, tuple)):
+        return any(checkNestedNanValues(v) for v in obj)
+    elif isinstance(obj, pd.Series):
+        return obj.isnull().any()
+    elif isinstance(obj, pd.DataFrame):
+        return obj.isnull().values.any()
+    elif isinstance(obj, float):
+        return math.isnan(obj)
+    return False
+    
 def checkAndSetCommodityConversionFactor(comp, esM):
     """
     Set up the full commodity conversion factor, if necessary depending on
@@ -2638,6 +2650,10 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                         if isinstance(x, (pd.Series, pd.DataFrame))
                     ]
                     commodityValues += list(item[1].values())
+                    if checkNestedNanValues(item[1]):
+                        raise ValueError(
+                            f"Commodity conversion factors for '{item[0]}' contain NaN values."
+                        )
                     if not (
                         all(ccf > 0 for ccf in item[1].values())
                         or all(ccf < 0 for ccf in item[1].values())
@@ -2667,6 +2683,16 @@ def checkAndSetCommodityConversionFactor(comp, esM):
             assert any(
                 checkConversionFactorValues(ccf[commodity]) for commodity in ccf.keys()
             ), "At least one commodity needs a conversion factor of 1 or -1"
+            
+            for key, value in ccf.items():
+                if isinstance(value, float) and math.isnan(value):
+                    raise ValueError(f"NaN found at key '{key}'")
+
+                elif isinstance(value, list):
+                    for i, v in enumerate(value):
+                        if isinstance(v, float) and math.isnan(v):
+                            raise ValueError(f"NaN found at key '{key}' in list index {i}")
+                        
         checkCommodities(esM, set(commodities))
         return commodTypes
 
@@ -2787,6 +2813,9 @@ def checkEmissionFactors(comp, esM):
     """
     Check emission factors for flexible conversion components.
     """
+    def is_nan(val):
+        return isinstance(val, float) and math.isnan(val)
+    
     if comp.emissionFactors is None:
         return None
     elif not comp.flexibleConversion:
@@ -2801,6 +2830,17 @@ def checkEmissionFactors(comp, esM):
         raise NotImplementedError(
             "Emission factors can not be specified per investment period."
         )
+    for key, value in comp.emissionFactors.items():
+        if isinstance(value, float) and is_nan(value):
+            raise ValueError(f"NaN found in emission factor for key '{key}'")
+        elif isinstance(value, list):
+            for i, v in enumerate(value):
+                if isinstance(v, float) and is_nan(v):
+                    raise ValueError(f"NaN found in emission factor list for key '{key}', index {i}")
+        if checkNestedNanValues(value):
+                                raise ValueError(
+                                    f"Emission factors for '{comp.name}', '{key}' contain NaN values."
+                        )
 
     emission_commodities = list(comp.emissionFactors.keys())
     commodities = [
@@ -2982,7 +3022,6 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
         hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval,
         hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval,
     )
-
 
 def checkMainCommodity(comp, esM):
     # assert that only one of physicalUnit or commodity is not equal to None
