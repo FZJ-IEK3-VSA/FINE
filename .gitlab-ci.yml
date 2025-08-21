@@ -123,7 +123,7 @@ variables:
 test-pypi:
   stage: test
   script:
-    - micromamba install -c conda-forge -n base -y python=3.10 glpk gdal
+    - micromamba install -c conda-forge -n base -y python=3.13 glpk gdal
     - python -m pip install .[develop]
     - python -m pytest -n auto test/
   rules:
