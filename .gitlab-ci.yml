@@ -238,7 +238,7 @@ build-dev:
 
 pypi-upload:
   stage: deploy
-  image: python:3.12
+  image: python:3.13
   before_script:
     - python3 -m pip install --upgrade build
     - python3 -m pip install --upgrade twine
