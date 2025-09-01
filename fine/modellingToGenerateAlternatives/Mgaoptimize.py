@@ -284,10 +284,10 @@ def identifySolutions(
         m = 10**4
         x_sum = 0
 
-        for iteration in range(len(set_solutions)):
+        for iteration in range(len(esM.set_solutions)):
             sel_sum = 0
 
-            sel_sum += sum((esM.solutions[i][key][parameter][item]-set_solutions[iteration][key][parameter][item])**2
+            sel_sum += sum((esM.solutions[i][key][parameter][item]-esM.set_solutions[iteration][key][parameter][item])**2
                         for key in esM.solutions[i]
                         for parameter in esM.solutions[i][key]
                         for item in esM.solutions[i][key][parameter])
@@ -298,29 +298,37 @@ def identifySolutions(
 
         return 1/x_sum
 
-    set_solutions = {}
-    set_solutions[0] = esM.solutions[0]
-    esM.min_distances = []
+    esM.set_solutions = {}
+    esM.set_solutions[0] = esM.solutions[0] # Optimal solution is saved in iteration 0
+    esM.min_distances = [] # This holds the HMSED values for each identified maximally different solution
+    esM.highest_distance = [0] # This holds the iteration of the seleteced maximally different solution. This can be later used to 
+                              # save the data of the selected maximally different solutions. Optimal solution is saved in iteration 0
 
     fn.utils.output("\nIdentifying maximally different solutions....\n", esM.verbose, 0)
+
+    # From all the solutions in esM.solutions, identify solutions which are not none because there can be some solutions which 
+    # are not feasible
     feasible_solutions = [key for key in esM.solutions.keys() if esM.solutions[key] is not None]
 
-    for k in range(esM.iterations):
-        _t = time.time()
-        previous_max = 0
-        highest_distance = 0
+    # Final identified solutions should be the minimum of esM.iterations and len(feasible_solutions)
+    for k in range(min(len(feasible_solutions),esM.iterations)):
+        if k in feasible_solutions:
+            _t = time.time()
+            previous_max = 0
+            _highest_distance = 0
 
-        for i in esM.solutions.keys():
-            if i in feasible_solutions:
-                get_max = supremum(i)
-                if get_max >= previous_max:
-                    highest_distance = i
-                    previous_max = get_max
+            for i in esM.solutions.keys():
+                if i in feasible_solutions: 
+                    get_max = supremum(i)
+                    if get_max >= previous_max:
+                        _highest_distance = i
+                        previous_max = get_max
 
-        esM.min_distances.append(previous_max)
-        fn.utils.output (f"Maximally different solution {k+1} identified (Iteration {highest_distance})---> ({time.time() - _t:.4f} sec)", esM.verbose, 0)
-        set_solutions[k+1] = esM.solutions[highest_distance]
-        esM.solutions.pop(highest_distance)
+            esM.min_distances.append(previous_max)
+            fn.utils.output (f"Maximally different solution {k+1} identified (Iteration {_highest_distance})---> ({time.time() - _t:.4f} sec)", esM.verbose, 0)
+            esM.set_solutions[k+1] = esM.solutions[_highest_distance]
+            esM.solutions.pop(_highest_distance)
+            esM.highest_distance.append(_highest_distance)
     esM.solutions.pop(0)
 
     #################################################################################################################
@@ -333,8 +341,7 @@ def identifySolutions(
 
         solutionsOutput.writeSolutions(
             esM,
-            operationRateinOutput,
-            set_solutions,
+            operationRateinOutput
         )
 
 def mgaOptimize(

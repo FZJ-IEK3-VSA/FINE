@@ -66,7 +66,6 @@ def setSolutions(
 def writeSolutions(
     esM,
     operationRateinOutput,
-    set_solutions
 ):
     fn.utils.output("\nWriting optimization output to Excel files\n", esM.verbose, 0)
 
@@ -100,7 +99,7 @@ def writeSolutions(
 
             with pd.ExcelWriter(outputFile) as writer:
                 for item in optimalParameters:
-                    for key in set_solutions.keys():
+                    for key in esM.highest_distance:
                         for parameter,val in esM.output[key][ip].items():
                             if abbreviatedName + item in parameter:
                                 val.to_excel(writer, sheet_name=item + str(key))
