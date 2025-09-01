@@ -301,12 +301,12 @@ def identifySolutions(
     esM.set_solutions = {}
     esM.set_solutions[0] = esM.solutions[0] # Optimal solution is saved in iteration 0
     esM.min_distances = [] # This holds the HMSED values for each identified maximally different solution
-    esM.highest_distance = [0] # This holds the iteration of the seleteced maximally different solution. This can be later used to 
+    esM.highest_distance = [0] # This holds the iteration of the seleteced maximally different solution. This can be later used to
                               # save the data of the selected maximally different solutions. Optimal solution is saved in iteration 0
 
     fn.utils.output("\nIdentifying maximally different solutions....\n", esM.verbose, 0)
 
-    # From all the solutions in esM.solutions, identify solutions which are not none because there can be some solutions which 
+    # From all the solutions in esM.solutions, identify solutions which are not none because there can be some solutions which
     # are not feasible
     feasible_solutions = [key for key in esM.solutions.keys() if esM.solutions[key] is not None]
 
@@ -318,7 +318,7 @@ def identifySolutions(
             _highest_distance = 0
 
             for i in esM.solutions.keys():
-                if i in feasible_solutions: 
+                if i in feasible_solutions:
                     get_max = supremum(i)
                     if get_max >= previous_max:
                         _highest_distance = i
