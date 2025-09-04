@@ -29,7 +29,7 @@ variables:
       - ".cache/pkgs"
     policy: pull
   before_script:
-    - micromamba install -n base -y --file=requirements_dev.yml
+    - micromamba install -n base -y -v --file=requirements_dev.yml
     - python -m pip install --no-deps .
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has
