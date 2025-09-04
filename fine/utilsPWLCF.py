@@ -3,10 +3,12 @@ import numpy as np
 from fine import utils
 
 def checkValuesIncreasing(data):
+    '''Check that values of an array are increasing.'''
     return all(data[i] <= data[i+1] for i in range(len(data)-1))
 
 
 def checkAndSetEosParameters(comp, eosParameters):
+    '''Check all necessary parameters for eos and process them.'''
     #check that capacity/totalInvest/totalFixOpex grid points are increasing:
     if not checkValuesIncreasing(eosParameters["capacity"]):
         raise ValueError(f"Capacity grid points for economies of scale do not increase for component {comp}.")
@@ -36,20 +38,16 @@ def checkAndSetEosParameters(comp, eosParameters):
     return eosParameters
 
 def checkInvestmentPeriods(esM):
+    '''Check that esM only has one IP, if eos is used'''
     if esM.numberOfInvestmentPeriods != 1:
         raise NotImplementedError(
             "Economies of Scale are currently only "
             "implemented for single investment period energy system models"
         )
 
-def checkEsmLocations(esM):
-    if len(esM.locations) != 1:
-        raise NotImplementedError(
-            "Piecewise Linear Cost Functions are currently only "
-            "implemented for single node energy system models"
-        )
 
 def checkEtlCompParams(comp):
+    '''Check Lifetime and Interest Rate of ETL Components'''
     if comp.economicLifetime.nunique() > 1:
         raise ValueError(
             f"Economic Lifetime of ETL Component {comp.name} must be constant for all investment periods."
@@ -64,13 +62,20 @@ def checkEtlCompParams(comp):
         )
 
 def checkStock(comp, initCapacity):
+    '''Check Stock is smaller than initCapacity.'''
     if comp.stockCapacityStartYear.sum() > initCapacity:
         raise ValueError(
             f"Stock of component {comp.name} must be smaller than "
             "the specified initial pwlcf capacity."
         )
 
+def checkMaxCapacity(comp, maxCapacity):
+    '''Check if stock is only slightly smaller than max capacity and give a warning if not'''
+    if comp.stockCapacityStartYear.sum()/maxCapacity > 0.99:
+        raise Warning(f"Stock of component {comp.name} is only slightly smaller than specified max capacity.")
+
 def checkAndSetLearningIndex(learningRate):
+    '''Check Learning rate is between 0 and 1'''
     if 1 > learningRate > 0:
         learningIndex = np.log2(1 / (1 - learningRate))
     else:
@@ -79,6 +84,7 @@ def checkAndSetLearningIndex(learningRate):
     return learningIndex
 
 def checkAndSetInitCost(initCost, comp):
+    '''Check initial cost strictly positive and if initCost not given, set investPerCapacity.'''
     if initCost is None:
         initCost = comp.processedInvestPerCapacity[0].values[0]
         warnings.warn(
@@ -91,6 +97,7 @@ def checkAndSetInitCost(initCost, comp):
     return initCost
 
 def checkCapacitiesEtl(initCapacity, maxCapacity, comp):
+    '''Check hasCapacityVariable, initial capacity is greater than stock and maxCapacity is greater than initial'''
     if not comp.hasCapacityVariable:
         raise ValueError("ETL Component must have Capacity Variable")
 
