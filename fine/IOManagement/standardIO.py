@@ -798,6 +798,7 @@ def plotOperationColorMap(
         ax.set_yticklabels(yticklabels, fontsize=fontsize)
 
     if monthlabels:
+
         xticks, xlabels = [], []
         for i in range(1, 13, 2):
             xlabels.append(datetime.date(2050, i + 1, 1).strftime("%b"))
