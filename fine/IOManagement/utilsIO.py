@@ -565,18 +565,15 @@ def processXarrayAttributes(xarray_dataset):
             xarray_dataset.attrs[attr_name] = _dict
 
         elif isinstance(attr_value, list):
-            # If its a "flattened" list, convert it to dict
-            if all(":" in v for v in attr_value):
-                _dict = {}
-                for item in attr_value:
-                    [k, v] = item.split(" : ")
-                    _dict.update({k: v})
-
-                xarray_dataset.attrs[attr_name] = _dict
-
-            # Otherwise, convert it to set
+            # Treat as flattened "k : v" only if NON-EMPTY and every item has the separator.
+            if attr_value and all(" : " in v for v in attr_value):
+                xarray_dataset.attrs[attr_name] = {
+                    k: v for (k, v) in (item.split(" : ", 1) for item in attr_value)
+                }
             else:
-                xarray_dataset.attrs[attr_name] = set(attr_value)
+                # Preserve list semantics (important for keys like "materials")
+                xarray_dataset.attrs[attr_name] = list(attr_value)
+
 
         # sometimes ints are converted to numpy numbers while saving, but these should strictly be ints
         elif isinstance(attr_value, np.number):
