@@ -4,9 +4,10 @@ from pathlib import Path
 import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
-
+import re
 from fine import utils
 from fine.IOManagement import dictIO, utilsIO
+import numpy as np
 
 
 def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
@@ -137,6 +138,31 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         optSum.loc[component].index.get_level_values(0).unique()
                         ):
                         df_o = optSum.loc[(component, variable)]
+
+                        # special case: 3-row 'operation' block -> write as operation, operation_1, operation_2
+                        if variable == "operation" and hasattr(df_o, "shape") and df_o.shape[0] == 3:
+                            # row 0: energy [*h/a]
+                            s = pd.to_numeric(df_o.iloc[0].copy()); s.name = "operation"
+                            s.index.rename("space", inplace=True)
+                            xr_da = s.to_xarray(); xr_da.attrs["operation"] = df_o.iloc[0].name
+                            xr_dss[ip][name][component] = xr.merge([xr_dss[ip][name][component], xr_da],
+                                                                combine_attrs="drop_conflicts")
+
+                            # row 1: energy [*h]
+                            s = pd.to_numeric(df_o.iloc[1].copy()); s.name = "operation_1"
+                            s.index.rename("space", inplace=True)
+                            xr_da = s.to_xarray(); xr_da.attrs["operation_1"] = df_o.iloc[1].name
+                            xr_dss[ip][name][component] = xr.merge([xr_dss[ip][name][component], xr_da],
+                                                                combine_attrs="drop_conflicts")
+
+                            # row 2: cost [$/a] (or similar)
+                            s = pd.to_numeric(df_o.iloc[2].copy()); s.name = "operation_2"
+                            s.index.rename("space", inplace=True)
+                            xr_da = s.to_xarray(); xr_da.attrs["operation_2"] = df_o.iloc[2].name
+                            xr_dss[ip][name][component] = xr.merge([xr_dss[ip][name][component], xr_da],
+                                                                combine_attrs="drop_conflicts")
+                            continue  # do not fall through to generic handling
+
                         # differentiate if two entries per variable
                         if df_o.shape[0]==2:
                             df = df_o.iloc[0].copy()
@@ -364,164 +390,154 @@ def writeDatasetsToNetCDF(
     groupPrefix=None,
 ):
     """
-    Saves dictionary of xarray datasets (with esM instance data) to a netCDF
-    file.
-
-    **Required arguments:**
-
-    :param datasets: The xarray datasets holding all data required to set up an esM instance.
-    :type datasets: Dict[xr.Dataset]
-
-    **Default arguments:**
-
-    :param outputFilePath: output file name of the netCDF file (can include full path)
-        |br| * the default value is "my_esm.nc"
-    :type outputFilePath: string
-
-    :param removeExisting: indicates if an existing netCDF file should be removed
-        |br| * the default value is False
-    :type removeExisting: boolean
-
-    :param mode: Write (‘w’) or append (‘a’) mode.
-
-        * If mode=’w’, any existing file at this location will be overwritten.
-        * If mode=’a’, existing variables will be overwritten.
-
-        |br| * the default value is 'a'
-    :type mode: string
-
-    :param groupPrefix: if specified, multiple xarray datasets (with esM
-        instance data) are saved to the same netcdf file. The dictionary
-        structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
-        |br| * the default value is None
-    :type groupPrefix: string
-
+    Saves dictionary of xarray datasets (with esM instance data) to a netCDF file.
     """
 
-    # Create netCDF file, remove existant
-    if removeExisting:
-        if Path(outputFilePath).is_file():
-            Path(outputFilePath).unlink()
+    # ---------- helpers ----------
+    def _to_dataset(obj, default_name="value") -> xr.Dataset:
+        if isinstance(obj, xr.Dataset):
+            return obj
+        if isinstance(obj, xr.DataArray):
+            name = getattr(obj, "name", None) or default_name
+            return xr.Dataset({name: obj})
+        if isinstance(obj, dict):
+            # This case is handled by callers; treat as mapping container.
+            # Returning here would be wrong; keep dict as dict upstream.
+            raise TypeError("internal: _to_dataset must not receive dict")
+        # If something else arrives, let xarray complain later:
+        raise TypeError(f"Unsupported leaf type: {type(obj)}")
 
+    def _as_mapping(obj, default_key="value"):
+        """
+        Ensure obj is a dict: if it's a Dataset/DataArray, wrap into {default_key: obj}.
+        """
+        if isinstance(obj, dict):
+            return obj
+        if isinstance(obj, (xr.Dataset, xr.DataArray)):
+            return {default_key: obj}
+        # Unexpected – but don’t crash; try to coerce via DataArray->Dataset then wrap
+        try:
+            ds = _to_dataset(obj, default_name=default_key)  # will raise if unsupported
+            return {default_key: ds}
+        except Exception as e:
+            raise TypeError(f"Cannot coerce object at a mapping position: {type(obj)}") from e
+
+    def _normalize_results_tree(results_dict):
+        """
+        Force Results to canonical shape: Results[ip][model][component] = xr.Dataset
+        allowing DataArray anywhere by wrapping to Dataset, and Dataset at any
+        intermediate level by wrapping into a one-entry dict.
+        """
+        results_out = {}
+        ip_map = _as_mapping(results_dict, default_key="ip")
+        for ip_key, models in ip_map.items():
+            model_map = _as_mapping(models, default_key="model")
+            results_out[ip_key] = {}
+            for model_key, comps in model_map.items():
+                comp_map = _as_mapping(comps, default_key="component")
+                results_out[ip_key][model_key] = {}
+                for comp_key, leaf in comp_map.items():
+                    ds = _to_dataset(leaf, default_name=str(comp_key) or "value")
+                    results_out[ip_key][model_key][comp_key] = ds
+        return results_out
+
+    def _normalize_generic_tree(group_dict):
+        """
+        For non-Results hierarchical groups (e.g., Input):
+        Force {model}{component}=xr.Dataset with same wrapping behavior.
+        """
+        out = {}
+        model_map = _as_mapping(group_dict, default_key="model")
+        for model_key, comps in model_map.items():
+            comp_map = _as_mapping(comps, default_key="component")
+            out[model_key] = {}
+            for comp_key, leaf in comp_map.items():
+                ds = _to_dataset(leaf, default_name=str(comp_key) or "value")
+                out[model_key][comp_key] = ds
+        return out
+
+    def _flatten_attrs_inplace(xarray_dataset: xr.Dataset):
+        """Keep your existing attr-flattening behavior."""
+        _x = xarray_dataset.copy()
+        for attr_name, attr_value in list(_x.attrs.items()):
+            if isinstance(attr_value, set):
+                xarray_dataset.attrs[attr_name] = sorted(attr_value)
+            elif isinstance(attr_value, dict):
+                xarray_dataset.attrs[attr_name] = [f"{k} : {v}" for k, v in attr_value.items()]
+            elif isinstance(attr_value, pd.Series):
+                for idx, value in attr_value.items():
+                    xarray_dataset.attrs[f"{attr_name}.{idx}"] = value
+                del xarray_dataset.attrs[attr_name]
+            elif isinstance(attr_value, pd.DataFrame):
+                _df = attr_value.reindex(sorted(attr_value.columns), axis=1)
+                for idx, row in _df.iterrows():
+                    xarray_dataset.attrs[f"{attr_name}.{idx}"] = row.to_numpy()
+                del xarray_dataset.attrs[attr_name]
+            elif isinstance(attr_value, bool):
+                xarray_dataset.attrs[attr_name] = "True" if attr_value else "False"
+            elif attr_value is None:
+                xarray_dataset.attrs[attr_name] = "None"
+
+    # ---------- remove/create file ----------
+    if removeExisting and Path(outputFilePath).is_file():
+        Path(outputFilePath).unlink()
     if not Path(outputFilePath).is_file():
-        with Dataset(outputFilePath, "w", format="NETCDF4") as _:
+        with Dataset(outputFilePath, "w", format="NETCDF4"):
             pass
 
-    for group in datasets.keys():
-        if group == "Parameters" or group == "PerformanceSummary":
-            xarray_dataset = datasets[group]
-            _xarray_dataset = (
-                xarray_dataset.copy()
-            )  # Copying to avoid errors due to change of size during iteration
-
-            for attr_name, attr_value in _xarray_dataset.attrs.items():
-                # if the attribute is set, convert into sorted list
-                if isinstance(attr_value, set):
-                    xarray_dataset.attrs[attr_name] = sorted(
-                        xarray_dataset.attrs[attr_name]
-                    )
-
-                # if the attribute is dict, convert into a "flattened" list
-                elif isinstance(attr_value, dict):
-                    xarray_dataset.attrs[attr_name] = list(
-                        f"{k} : {v}"
-                        for (k, v) in xarray_dataset.attrs[attr_name].items()
-                    )
-
-                # if the attribute is pandas series, add a new attribute corresponding
-                # to each row.
-                elif isinstance(attr_value, pd.Series):
-                    for idx, value in attr_value.items():
-                        xarray_dataset.attrs.update({f"{attr_name}.{idx}": value})
-
-                    # Delete the original attribute
-                    del xarray_dataset.attrs[attr_name]
-
-                # if the attribute is pandas df, add a new attribute corresponding
-                # to each row by converting the column into a numpy array.
-                elif isinstance(attr_value, pd.DataFrame):
-                    _df = attr_value
-                    _df = _df.reindex(sorted(_df.columns), axis=1)
-                    for idx, row in _df.iterrows():
-                        xarray_dataset.attrs.update(
-                            {f"{attr_name}.{idx}": row.to_numpy()}
-                        )
-
-                    # Delete the original attribute
-                    del xarray_dataset.attrs[attr_name]
-
-                # if the attribute is bool, add a corresponding string
-                elif isinstance(attr_value, bool):
-                    xarray_dataset.attrs[attr_name] = (
-                        "True" if attr_value is True else "False"
-                    )
-
-                # if the attribute is None, add a corresponding string
-                elif attr_value is None:
-                    xarray_dataset.attrs[attr_name] = "None"
-
-            if groupPrefix:
-                group_path = f"{groupPrefix}/{group}"
-            else:
-                group_path = f"{group}"
-
-            xarray_dataset.to_netcdf(
-                path=f"{outputFilePath}",
-                # Datasets per component will be reflectes as groups in the NetCDF file.
-                group=group_path,
-                # Use mode='a' to append datasets to existing file. Variables will be overwritten.
-                mode=mode,
-            )
-
+    # ---------- 1) Normalize entire datasets tree ----------
+    norm = {}
+    for group, payload in datasets.items():
+        if group in ("Parameters", "PerformanceSummary"):
+            # Pass through; flatten attrs before writing
+            norm[group] = payload
         elif group == "Results":
-            for ip in datasets[group].keys():
-                for model, comps in datasets[group][ip].items():
-                    for component in comps.keys():
-                        if component is not None:
-                            if groupPrefix:
-                                group_path = (
-                                    f"{groupPrefix}/{group}/{ip}/{model}/{component}"
-                                )
-                            else:
-                                group_path = f"{group}/{ip}/{model}/{component}"
-                            datasets[group][ip][model][component].to_netcdf(
-                                path=f"{outputFilePath}",
-                                # Datasets per component will be reflectes as groups in the NetCDF file.
-                                group=group_path,
-                                # Use mode='a' to append datasets to existing file. Variables will be overwritten.
-                                mode=mode,
-                                # Use zlib variable compression to reduce filesize with little performance loss
-                                # for our use-case. Complevel 9 for best compression.
-                                encoding={
-                                    var: {"zlib": True, "complevel": 5}
-                                    for var in list(
-                                        datasets[group][ip][model][component].data_vars
-                                    )
-                                },
-                            )
+            norm[group] = _normalize_results_tree(payload)
         else:
-            for model, comps in datasets[group].items():
-                for component in comps.keys():
-                    if component is not None:
-                        if groupPrefix:
-                            group_path = f"{groupPrefix}/{group}/{model}/{component}"
-                        else:
-                            group_path = f"{group}/{model}/{component}"
-                        datasets[group][model][component].to_netcdf(
-                            path=f"{outputFilePath}",
-                            # Datasets per component will be reflectes as groups in the NetCDF file.
-                            group=group_path,
-                            # Use mode='a' to append datasets to existing file. Variables will be overwritten.
-                            mode=mode,
-                            # Use zlib variable compression to reduce filesize with little performance loss
-                            # for our use-case. Complevel 9 for best compression.
-                            encoding={
-                                var: {"zlib": True, "complevel": 5}
-                                for var in list(
-                                    datasets[group][model][component].data_vars
-                                )
-                            },
+            norm[group] = _normalize_generic_tree(payload)
+
+    # ---------- 2) Write normalized groups ----------
+    for group, payload in norm.items():
+
+        if group in ("Parameters", "PerformanceSummary"):
+            xds = payload
+            _flatten_attrs_inplace(xds)
+            group_path = f"{groupPrefix}/{group}" if groupPrefix else group
+            xds.to_netcdf(path=outputFilePath, group=group_path, mode=mode)
+            continue
+
+        if group == "Results":
+            # payload: dict[ip][model][component] = xr.Dataset
+            for ip, models in payload.items():
+                for model, comps in models.items():
+                    for component, ds in comps.items():
+                        group_path = (
+                            f"{groupPrefix}/Results/{ip}/{model}/{component}"
+                            if groupPrefix else f"Results/{ip}/{model}/{component}"
                         )
+                        ds.to_netcdf(
+                            path=outputFilePath,
+                            group=group_path,
+                            mode=mode,
+                            encoding={v: {"zlib": True, "complevel": 5} for v in list(ds.data_vars)},
+                        )
+            continue
+
+        # generic hierarchical groups (e.g., Input): dict[model][component] = xr.Dataset
+        for model, comps in payload.items():
+            for component, ds in comps.items():
+                group_path = (
+                    f"{groupPrefix}/{group}/{model}/{component}"
+                    if groupPrefix else f"{group}/{model}/{component}"
+                )
+                ds.to_netcdf(
+                    path=outputFilePath,
+                    group=group_path,
+                    mode=mode,
+                    encoding={v: {"zlib": True, "complevel": 5} for v in list(ds.data_vars)},
+                )
+
+
 
 
 def convertDatasetsToEnergySystemModel(datasets):
@@ -538,6 +554,9 @@ def convertDatasetsToEnergySystemModel(datasets):
     # Read parameters
     xarray_dataset = utilsIO.processXarrayAttributes(datasets["Parameters"])
     esm_dict = xarray_dataset.attrs
+    for k, v in list(esm_dict.items()):
+        if isinstance(v, np.ndarray) and v.size == 0:
+            esm_dict[k] = {}
 
 
     # Fix materials if still string
@@ -655,6 +674,13 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 "Unit",
                                 "LocationIn",
                             ]
+                            prop_i = _optSum_df.index.names.index("Property")
+                            new_idx = []
+                            for tpl in _optSum_df.index:
+                                lst = list(tpl)
+                                lst[prop_i] = re.sub(r'^(operation(?:Charge|Discharge)?)(?:_\d+)?$', r'\1', str(lst[prop_i]))
+                                new_idx.append(tuple(lst))
+                            _optSum_df.index = pd.MultiIndex.from_tuples(new_idx, names=_optSum_df.index.names)
                             _optSum_df = _optSum_df.droplevel(0, axis=1)
                             if isinstance(_optSum_df, pd.Series):
                                 _optSum_df = _optSum_df.to_frame().T
@@ -677,15 +703,22 @@ def convertDatasetsToEnergySystemModel(datasets):
                             ]
                             _optSum_df.index = pd.MultiIndex.from_tuples(iterables)
                             _optSum_df.index.names = ["Component", "Property", "Unit"]
+                            prop_i = _optSum_df.index.names.index("Property")
+                            new_idx = []
+                            for tpl in _optSum_df.index:
+                                lst = list(tpl)
+                                lst[prop_i] = re.sub(r'^(operation(?:Charge|Discharge)?)(?:_\d+)?$', r'\1', str(lst[prop_i]))
+                                new_idx.append(tuple(lst))
+                            _optSum_df.index = pd.MultiIndex.from_tuples(new_idx, names=_optSum_df.index.names)
                             if isinstance(_optSum_df, pd.Series):
                                 _optSum_df = _optSum_df.to_frame().T
                             optSum_df_comp = pd.concat(
                                 [optSum_df_comp, _optSum_df],
                                 axis=0,
                             )
-    
                         if "operation" in variable and "_1" in variable:                                            # operation needed to be renamed in conversion
                             optSum_df_comp = optSum_df_comp.rename(index={variable:variable.replace("_1", "")})     # to dataset and xarray and now is renamed to operation again
+
 
                     if isinstance(optSum_df_comp, pd.Series):
                         optSum_df_comp = optSum_df_comp.to_frame().T

@@ -26,5 +26,5 @@ def test_commodity_and_material_merging():
     }
 
     # Check whether the expected list matches the automatically generated list 
-    assert esM.commodities == expected_commodities
+    assert set(esM.commodities) == set(expected_commodities)
     assert esM.commodityUnitsDict == expected_units

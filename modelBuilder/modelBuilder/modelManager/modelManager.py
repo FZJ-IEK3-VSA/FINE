@@ -5,7 +5,7 @@ import fine as fn
 import yaml
 import sys
 import os
-import fine.IOManagement.xarrayIO as xrIO
+import fine.IOManagement.xarrayIO_2 as xrIO
 import natsort
 import osgeo
 import geokit as gk

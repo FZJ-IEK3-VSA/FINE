@@ -9,7 +9,7 @@ from fine.aggregations.spatialAggregation import grouping
 from fine.aggregations.spatialAggregation import aggregation
 from fine.aggregations.spatialAggregation import managerUtils as manUtils
 from fine.IOManagement.standardIO import timer
-from fine.IOManagement import xarrayIO as xrIO, utilsIO
+from fine.IOManagement import utilsIO, xarrayIO as xrIO
 
 # ruff: noqa
 
