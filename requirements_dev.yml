@@ -5,24 +5,24 @@ channels:
   - nodefaults
 
 dependencies:
-  - python>=3.10,<3.14
-  - pip
-  - geopandas<=0.14.4
-  - glpk
+  - python>3.12,<3.14
+  - pip<=25.2
+  - geopandas<=1.1.2
+  - glpk<=5.0
   - openpyxl<=3.1.5
-  - matplotlib<=3.9.2
+  - matplotlib<=3.10.6
   - xlrd<=2.0.1
-  - pyomo<=6.8.0
-  - numpy<=1.26.4
-  - pandas<=2.2.3
-  - scipy<=1.14.1
-  - scikit-learn>=1.2,<=1.5.2
-  - xarray<=2024.3
+  - pyomo<=6.9.4
+  - numpy<=2.3.3
+  - pandas<=2.3.2
+  - scipy<=1.16.1
+  - scikit-learn<=1.7.2
+  - xarray<=2025.9.0
   - rasterio<=1.4.1
   - netcdf4<=1.7.2
-  - tsam
+  - tsam<=2.3.9
   - pwlf<=2.2.1
-  - psutil<=5.9.8
+  - psutil<=7.0.0
   - gurobi-logtools<=3.1.0
   - ipykernel<=6.29.5
   # develop
@@ -33,4 +33,5 @@ dependencies:
   - pytest-cov<=4.1.0
   - pytest-xdist<=3.6.1
   - nbval<=0.11.0
-  - ruff<=0.12.0
+  - ruff<=0.13.0
+  
