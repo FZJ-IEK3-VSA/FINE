@@ -1,0 +1,86 @@
+on:
+  pull_request:
+    branches: ["develop"]
+
+jobs:
+  TestPullCondaForgeDev:
+    name: Test development version on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [
+            "ubuntu-latest",
+            "ubuntu-22.04",
+            "macos-latest",
+            "macos-13",
+            "windows-latest",
+            "windows-2022",
+          ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge
+          activate-environment: test_env
+          conda-remove-defaults: true
+      - name: Run tests
+        shell: pwsh
+        run: |
+          ls
+          echo "LS Done"
+          mamba env create --name test_env --yes --file requirements-dev.yml
+          mamba run --name test_env pip install . --no-deps
+          echo "Installation done"
+          mamba list --name test_env
+          echo "libaries printed"
+          echo "start pytest"
+          mamba run --name test_env pytest -vv
+          echo "Pytest done"
+      - name: Run Examples
+        shell: pwsh
+        run: |
+            python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
+            
+  TestPullPyPIDev:
+    name: Test PyPi development version on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [
+            "ubuntu-latest",
+            "ubuntu-22.04",
+            "macos-latest",
+            "macos-13",
+            "windows-latest",
+            "windows-2022",
+          ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge
+          activate-environment: test_env
+          conda-remove-defaults: true
+      - name: Run tests
+        shell: pwsh
+        run: |
+          ls
+          echo "LS Done"
+          mamba env create --name test_env python=3.10
+          mamba run --name test_env pip install . --no-deps
+          echo "Installation done"
+          mamba list --name test_env
+          echo "libaries printed"
+          echo "start pytest"
+          mamba run --name test_env pytest -vv
+          echo "Pytest done"
+      - name: Run Examples
+        shell: pwsh
+        run: |
+            python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
