@@ -42,7 +42,7 @@ jobs:
       - name: Run Examples Conda Forge
         shell: pwsh
         run: |
-            python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
+            mamba run --name test_env python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
 
   TestPullPyPIDev:
     name: Test PyPi development version on ${{ matrix.os }}
@@ -73,7 +73,7 @@ jobs:
           ls
           echo "LS Done"
           mamba env create --name test_env python=3.10 
-          mamba run --name test_env pip install . --no-deps pytest-xdist
+          mamba run --name test_env pip install . pytest-xdist
           echo "Installation done"
           mamba list --name test_env
           echo "libaries printed"
