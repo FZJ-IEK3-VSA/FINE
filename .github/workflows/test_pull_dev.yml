@@ -72,8 +72,8 @@ jobs:
         run: |
           ls
           echo "LS Done"
-          mamba env create --name test_env python=3.10
-          mamba run --name test_env pip install . --no-deps
+          mamba env create --name test_env python=3.10 
+          mamba run --name test_env pip install . --no-deps pytest-xdist
           echo "Installation done"
           mamba list --name test_env
           echo "libaries printed"
