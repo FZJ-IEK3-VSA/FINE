@@ -45,7 +45,7 @@ jobs:
             mamba run --name test_env python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
 
   TestPullPyPIDev:
-    name: Test PyPi development version on ${{ matrix.os }}
+    name: Test PyPI development version on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
