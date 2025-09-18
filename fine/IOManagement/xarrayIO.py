@@ -50,7 +50,7 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     for transmission_class in ["LinearOptimalPowerFlow", "Transmission"]:
         for tech in component_dict[transmission_class].keys():
             _mapC_dict[tech] = esM.getComponent(tech)._mapC
-            
+
     # STEP 4. Add all df variables to xr_ds
     xr_dss = utilsIO.addDFVariablesToXarray(
         xr_dss, component_dict, df_iteration_dict, _mapC_dict, list(esM.locations)
@@ -72,14 +72,10 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     attributes_xr = xr.Dataset()
     attributes_xr.attrs = esm_dict
 
-    xr_dss = {"Input": xr_dss, "Parameters": attributes_xr}
-
-    return xr_dss
+    return {"Input": xr_dss, "Parameters": attributes_xr}
 
 
 def convertPerformanceSummaryToDatasets(esM):
-    import pandas as pd
-
     df = esM.performanceSummary.squeeze()
     df = df.droplevel("Category")
     df = df.apply(lambda x: pd.to_numeric(x, errors="ignore"))
@@ -92,9 +88,7 @@ def convertPerformanceSummaryToDatasets(esM):
     summary_xr = xr.Dataset()
     summary_xr.attrs = summary_dict
 
-    xr_dss = {"PerformanceSummary": summary_xr}
-
-    return xr_dss
+    return {"PerformanceSummary": summary_xr}
 
 
 def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
@@ -135,42 +129,43 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 for component in optSum.index.get_level_values(0).unique():
                     for variable in (
                         optSum.loc[component].index.get_level_values(0).unique()
-                        ):
+                    ):
                         df_o = optSum.loc[(component, variable)]
-                        # differentiate if two entries per variable
-                        if df_o.shape[0]==2:
+                        # differentiate if two entries per variable, i.e. operation: annual and normal, because nc4 can not save two entries with the same name
+                        if df_o.shape[0] == 2:
+                            # first half of df_o, as it is annual and normal operation
                             df = df_o.iloc[0].copy()
                             df.name = variable
                             df.index.rename("space", inplace=True)
-                            df = pd.to_numeric(df)
+                            df =pd.to_numeric(df,errors='ignore')
                             xr_da = df.to_xarray()
                             unit = df_o.iloc[0].name
                             # unit = variables_unit[variable]
                             xr_da.attrs[variable] = unit
                             # merge to overall xr_dss
                             xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da],
-                            combine_attrs="drop_conflicts",
-                            )                           
-                            # if a variable occurs twice keep both in separate lines, example: operation_annual, operation
+                                [xr_dss[ip][name][component], xr_da],
+                                combine_attrs="drop_conflicts",
+                            )
+                            # second half of df_o, as it is annual and normal operation
                             df = df_o.iloc[1].copy()
                             df.name = f"{variable}_{1}"
                             df.index.rename("space", inplace=True)
-                            df = pd.to_numeric(df)
+                            df =pd.to_numeric(df,errors='ignore')
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[1].name
-                            xr_da.attrs[df.name] = unit    
+                            xr_da.attrs[df.name] = unit
                         else:
                             df = df_o.iloc[-1]
                             df.name = variable
                             df.index.rename("space", inplace=True)
-                            df = pd.to_numeric(df)
+                            df =pd.to_numeric(df,errors='ignore')
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[-1].name
                             xr_da.attrs[variable] = unit
-                        
+
                         # merge to overall xr_ds
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
@@ -182,8 +177,11 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         optSum.loc[component].index.get_level_values(0).unique()
                     ):
                         df_o = optSum.loc[(component, variable)]
-                        if "operation" in variable or variable=="operation":
-                            df = df_o.iloc[0:2,:].copy()
+                        # differentiate if two entries per variable, i.e. operation: annual and normal
+                        if "operation" in variable or variable == "operation":
+                            # first half of df_o, as it is annual and normal operation
+                            len_df_o = int(len(df_o))
+                            df = df_o.iloc[0:int(len_df_o/2), :].copy()
                             if len(df.index.get_level_values(0).unique()) > 1:
                                 idx = df.index.get_level_values(0).unique()[-1]
                                 df = df.xs(idx, level=0)
@@ -191,11 +189,11 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                                 df.index = df.index.droplevel(0)
                             df = df.stack()
                             df.name = variable
-                            df.index.rename(["space", "space_2"], inplace=True)
-                            df = pd.to_numeric(df)
+                            df.index.rename(["LocationIn", "LocationOut"], inplace=True)
+                            df =pd.to_numeric(df,errors='ignore')
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            unit = df_o.iloc[0:2,:].index.get_level_values(0)[0]
+                            unit = df_o.iloc[0:int(len_df_o/2), :].index.get_level_values(0)[0]
                             xr_da.attrs[variable] = unit
                             # merge to overall xr_ds
                             xr_dss[ip][name][component] = xr.merge(
@@ -203,8 +201,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                                 combine_attrs="drop_conflicts",
                             )
 
-                            # if a variable occurs twice keep both in separate lines, example: operation_annual, operation
-                            df = df_o.iloc[2:4,:].copy()
+                            # second half of df_o, as it is annual and normal operation
+                            df = df_o.iloc[int(len_df_o/2):len_df_o, :].copy()
                             if len(df.index.get_level_values(0).unique()) > 1:
                                 idx = df.index.get_level_values(0).unique()[-1]
                                 df = df.xs(idx, level=0)
@@ -212,11 +210,11 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                                 df.index = df.index.droplevel(0)
                             df = df.stack()
                             df.name = f"{variable}_{1}"
-                            df.index.rename(["space", "space_2"], inplace=True)
-                            df = pd.to_numeric(df)
+                            df.index.rename(["LocationIn", "LocationOut"], inplace=True)
+                            df =pd.to_numeric(df,errors='ignore')
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            unit = df_o.iloc[2:4,:].index.get_level_values(0)[0]
+                            unit = df_o.iloc[int(len_df_o/2):len_df_o, :].index.get_level_values(0)[0]
                             xr_da.attrs[df.name] = unit
 
                         else:
@@ -228,8 +226,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                                 df.index = df.index.droplevel(0)
                             df = df.stack()
                             df.name = variable
-                            df.index.rename(["space", "space_2"], inplace=True)
-                            df = pd.to_numeric(df)
+                            df.index.rename(["LocationIn", "LocationOut"], inplace=True)
+                            df =pd.to_numeric(df,errors='ignore')
                             xr_da = df.to_xarray()
 
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
@@ -351,9 +349,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             xr_dss[ip][name][component].coords["space_2"].astype(str)
                         )
 
-    xr_dss = {"Results": xr_dss}
-
-    return xr_dss
+    return {"Results": xr_dss}
 
 
 def writeDatasetsToNetCDF(
@@ -408,7 +404,7 @@ def writeDatasetsToNetCDF(
             pass
 
     for group in datasets.keys():
-        if group == "Parameters" or group == "PerformanceSummary":
+        if group in ("Parameters", "PerformanceSummary"):
             xarray_dataset = datasets[group]
             _xarray_dataset = (
                 xarray_dataset.copy()
@@ -444,8 +440,15 @@ def writeDatasetsToNetCDF(
                     _df = _df.reindex(sorted(_df.columns), axis=1)
                     for idx, row in _df.iterrows():
                         xarray_dataset.attrs.update(
-                            {f"{attr_name}.{idx}": row.to_numpy()}
+                            {f"{attr_name}.{idx}": row.to_numpy().astype(str)}
                         )
+                        if attr_name == "balanceLimit":
+                            xarray_dataset.attrs.update(
+                                {f"{attr_name}_columns": _df.columns.tolist()}
+                            )
+                            xarray_dataset.attrs.update(
+                                {f"{attr_name}_dtypes": _df.dtypes.astype(str).tolist()}
+                            )
 
                     # Delete the original attribute
                     del xarray_dataset.attrs[attr_name]
@@ -598,6 +601,8 @@ def convertDatasetsToEnergySystemModel(datasets):
             operationVariablesOptimum_dict = {}
             capacityVariablesOptimum_dict = {}
             isBuiltVariablesOptimum_dict = {}
+            commissioningVariablesOptimum_dict = {}
+            decommissioningVariablesOptimum_dict = {}
             chargeOperationVariablesOptimum_dict = {}
             dischargeOperationVariablesOptimum_dict = {}
             stateOfChargeOperationVariablesOptimum_dict = {}
@@ -628,7 +633,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 [iterables[0] + [location]][0]
                                 for location in datasets["Results"][ip][model][
                                     component
-                                ][variable]["space"].values
+                                ][variable]["LocationIn"].values
                             ]
                             idx = pd.MultiIndex.from_tuples(tuple(iterables2))
                             _optSum_df.index = idx
@@ -666,9 +671,13 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 [optSum_df_comp, _optSum_df],
                                 axis=0,
                             )
-    
-                        if "operation" in variable and "_1" in variable:                                            # operation needed to be renamed in conversion
-                            optSum_df_comp = optSum_df_comp.rename(index={variable:variable.replace("_1", "")})     # to dataset and xarray and now is renamed to operation again
+
+                        if (
+                            "operation" in variable and "_1" in variable
+                        ):  # operation needed to be renamed in conversion
+                            optSum_df_comp = optSum_df_comp.rename(
+                                index={variable: variable.replace("_1", "")}
+                            )  # to dataset and xarray and now is renamed to operation again
 
                     if isinstance(optSum_df_comp, pd.Series):
                         optSum_df_comp = optSum_df_comp.to_frame().T
@@ -684,6 +693,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                 operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 capacityVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 isBuiltVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                commissioningVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                decommissioningVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 chargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 dischargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 stateOfChargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
@@ -692,6 +703,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                     _operationVariablesOptimum_df = pd.DataFrame([])
                     _capacityVariablesOptimum_df = pd.DataFrame([])
                     _isBuiltVariablesOptimum_df = pd.DataFrame([])
+                    _commissioningVariablesOptimum_df = pd.DataFrame([])
+                    _decommissioningVariablesOptimum_df = pd.DataFrame([])
                     _chargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
@@ -708,7 +721,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                         else:
                             continue
 
-                        if opt_variable == "_operationVariablesOptimum":
+                        if opt_variable == "operationVariablesOptimum":
                             if "space_2" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
@@ -728,7 +741,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     _operationVariablesOptimum_df = pd.concat(
                                         [_operationVariablesOptimum_df, _df],
                                         axis=0,
-                                    )
+                                    ).rename_axis(len(idx.names) * [None], axis=0)
 
                             else:
                                 _operationVariablesOptimum_df = (
@@ -744,9 +757,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 )
                                 _operationVariablesOptimum_df = (
                                     _operationVariablesOptimum_df.set_index(idx)
-                                )
+                                ).rename_axis(len(idx.names) * [None], axis=0)
 
-                        if opt_variable == "_capacityVariablesOptimum":
+                        if opt_variable == "capacityVariablesOptimum":
                             if "space_2" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
@@ -757,14 +770,14 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     [[component], list(df.index)]
                                 )
                                 _df = df.set_index(idx)
-                                _capacityVariablesOptimum_df = _df
+                                _capacityVariablesOptimum_df = _df.rename_axis(None, axis=1)
                             else:
                                 _capacityVariablesOptimum_df = xr_opt.to_dataframe().T
                                 _capacityVariablesOptimum_df = (
                                     _capacityVariablesOptimum_df.set_axis([component])
-                                )
+                                ).rename_axis(None, axis=1)
 
-                        if opt_variable == "_isBuiltVariablesOptimum":
+                        if opt_variable == "isBuiltVariablesOptimum":
                             _isBuiltVariablesOptimum_df = (
                                 xr_opt.to_dataframe()
                                 .unstack(level=0)
@@ -775,7 +788,41 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                             _isBuiltVariablesOptimum_df = (
                                 _isBuiltVariablesOptimum_df.set_index(idx)
-                            )
+                            ).rename_axis(None, axis=1)
+                        if opt_variable == "commissioningVariablesOptimum":
+                            if "space_2" in list(xr_opt.coords):
+                                df = (
+                                    xr_opt.to_dataframe()
+                                    .unstack(level=0)
+                                    .droplevel(0, axis=1)
+                                )
+                                idx = pd.MultiIndex.from_product(
+                                    [[component], list(df.index)]
+                                )
+                                _df = df.set_index(idx)
+                                _commissioningVariablesOptimum_df = _df.rename_axis(None, axis=1)
+                            else:
+                                _commissioningVariablesOptimum_df = xr_opt.to_dataframe().T
+                                _commissioningVariablesOptimum_df = (
+                                    _commissioningVariablesOptimum_df.set_axis([component])
+                                ).rename_axis(None, axis=1)
+                        if opt_variable == "decommissioningVariablesOptimum":
+                            if "space_2" in list(xr_opt.coords):
+                                df = (
+                                    xr_opt.to_dataframe()
+                                    .unstack(level=0)
+                                    .droplevel(0, axis=1)
+                                )
+                                idx = pd.MultiIndex.from_product(
+                                    [[component], list(df.index)]
+                                )
+                                _df = df.set_index(idx)
+                                _decommissioningVariablesOptimum_df = _df.rename_axis(None, axis=1)
+                            else:
+                                _decommissioningVariablesOptimum_df = xr_opt.to_dataframe().T
+                                _decommissioningVariablesOptimum_df = (
+                                    _decommissioningVariablesOptimum_df.set_axis([component])
+                                ).rename_axis(None, axis=1)
 
                         if opt_variable == "chargeOperationVariablesOptimum":
                             _chargeOperationVariablesOptimum_df = (
@@ -788,7 +835,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                             _chargeOperationVariablesOptimum_df = (
                                 _chargeOperationVariablesOptimum_df.set_index(idx)
-                            )
+                            ).rename_axis(len(idx.names) * [None], axis=0).rename_axis(None, axis=1)
 
                         if opt_variable == "dischargeOperationVariablesOptimum":
                             _dischargeOperationVariablesOptimum_df = (
@@ -804,7 +851,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                             _dischargeOperationVariablesOptimum_df = (
                                 _dischargeOperationVariablesOptimum_df.set_index(idx)
-                            )
+                            ).rename_axis(len(idx.names) * [None], axis=0).rename_axis(None, axis=1)
 
                         if opt_variable == "stateOfChargeOperationVariablesOptimum":
                             _stateOfChargeOperationVariablesOptimum_df = (
@@ -822,7 +869,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 _stateOfChargeOperationVariablesOptimum_df.set_index(
                                     idx
                                 )
-                            )
+                            ).rename_axis(len(idx.names) * [None], axis=0).rename_axis(None, axis=1)
                     if isinstance(_operationVariablesOptimum_df, pd.Series):
                         _operationVariablesOptimum_df = (
                             _operationVariablesOptimum_df.to_frame().T
@@ -853,6 +900,28 @@ def convertDatasetsToEnergySystemModel(datasets):
                         [
                             isBuiltVariablesOptimum_dict[int(ip)],
                             _isBuiltVariablesOptimum_df,
+                        ],
+                        axis=0,
+                    )
+                    if isinstance(_commissioningVariablesOptimum_df, pd.Series):
+                        _commissioningVariablesOptimum_df = (
+                            _commissioningVariablesOptimum_df.to_frame().T
+                        )
+                    commissioningVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            commissioningVariablesOptimum_dict[int(ip)],
+                            _commissioningVariablesOptimum_df,
+                        ],
+                        axis=0,
+                    )
+                    if isinstance(_decommissioningVariablesOptimum_df, pd.Series):
+                        _decommissioningVariablesOptimum_df = (
+                            _decommissioningVariablesOptimum_df.to_frame().T
+                        )
+                    decommissioningVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            decommissioningVariablesOptimum_dict[int(ip)],
+                            _decommissioningVariablesOptimum_df,
                         ],
                         axis=0,
                     )
@@ -899,6 +968,10 @@ def convertDatasetsToEnergySystemModel(datasets):
                     capacityVariablesOptimum_dict[int(ip)] = None
                 if isBuiltVariablesOptimum_dict[int(ip)].empty:
                     isBuiltVariablesOptimum_dict[int(ip)] = None
+                if commissioningVariablesOptimum_dict[int(ip)].empty:
+                    commissioningVariablesOptimum_dict[int(ip)] = None
+                if decommissioningVariablesOptimum_dict[int(ip)].empty:
+                    decommissioningVariablesOptimum_dict[int(ip)] = None
                 if chargeOperationVariablesOptimum_dict[int(ip)].empty:
                     chargeOperationVariablesOptimum_dict[int(ip)] = None
                 if dischargeOperationVariablesOptimum_dict[int(ip)].empty:
@@ -920,6 +993,16 @@ def convertDatasetsToEnergySystemModel(datasets):
                 esM.componentModelingDict[model],
                 "_isBuiltVariablesOptimum",
                 isBuiltVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_commissioningVariablesOptimum",
+                commissioningVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_decommissioningVariablesOptimum",
+                decommissioningVariablesOptimum_dict,
             )
             setattr(
                 esM.componentModelingDict[model],
@@ -1188,6 +1271,5 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     xr_dss = readNetCDFToDatasets(filePath, groupPrefix)
 
     # xarray dataset to esm
-    esM = convertDatasetsToEnergySystemModel(xr_dss)
-
-    return esM
+    # return esm
+    return convertDatasetsToEnergySystemModel(xr_dss)

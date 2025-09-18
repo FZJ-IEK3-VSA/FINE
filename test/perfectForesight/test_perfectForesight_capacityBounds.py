@@ -48,7 +48,12 @@ def test_capacityBounds():
         )
         # capacityFix
         assert esM.getComponent("PressureTank" + type).capacityFix is None
-        assert all(x is None for x in esM.getComponent("PressureTank" + type).processedCapacityFix.values())
+        assert all(
+            x is None
+            for x in esM.getComponent(
+                "PressureTank" + type
+            ).processedCapacityFix.values()
+        )
         # capacity max and min
         assert isinstance(
             esM.getComponent("PressureTank" + type).processedCapacityMax, dict
@@ -92,7 +97,10 @@ def test_capacityBounds():
         assert isinstance(
             esM.getComponent("Pipelines" + type).processedCapacityMax, dict
         )
-        assert all(x is None for x in esM.getComponent("Pipelines" + type).processedCapacityFix.values())
+        assert all(
+            x is None
+            for x in esM.getComponent("Pipelines" + type).processedCapacityFix.values()
+        )
         assert list(
             esM.getComponent("Pipelines" + type).locationalEligibility.index
         ) == [

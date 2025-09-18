@@ -1,3 +1,5 @@
+import warnings
+
 from fine.component import Component, ComponentModel
 from fine import utils
 import pyomo.environ as pyomo
@@ -48,6 +50,7 @@ class Transmission(Component):
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
+        pwlcfParameters=None,
     ):
         """
         Constructor for creating an Transmission class instance.
@@ -226,13 +229,19 @@ class Transmission(Component):
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
         preprocessedCommissioningMin = utils.preprocess2dimData(
-            commissioningMin, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningMin,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningMax = utils.preprocess2dimData(
-            commissioningMax, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningMax,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningFix = utils.preprocess2dimData(
-            commissioningFix, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningFix,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         # stockCommissioning
         if stockCommissioning is None:
@@ -288,6 +297,7 @@ class Transmission(Component):
             technicalLifetime=self.technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
             stockCommissioning=self.stockCommissioning,
+            pwlcfParameters=pwlcfParameters,
         )
         # Set general component data
         utils.checkCommodities(esM, {commodity})
@@ -407,7 +417,7 @@ class Transmission(Component):
         )
         self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
-        
+
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
@@ -538,13 +548,11 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
-            pyM,
-            "opConstrSet",
-            "processedOperationRateMax",
-            "processedOperationRateFix"
+            pyM, "opConstrSet", "processedOperationRateMax", "processedOperationRateFix"
         )
 
     ####################################################################################################################
@@ -582,7 +590,7 @@ class TransmissionModel(ComponentModel):
         # Operation of component [commodityUnit]
         self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "op_bin")
+        self.declareOperationBinaryVars(pyM)
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -631,7 +639,7 @@ class TransmissionModel(ComponentModel):
 
         .. math::
 
-            op^{comp,op}_{(loc_1,loc_2),ip,p,t} + op^{op}_{(loc_2,loc_1),ip,p,t} \leq \\tau^{hours} \cdot \\text{cap}^{comp}_{(loc_{in},loc_{out})}
+            op^{comp,op}_{(loc_1,loc_2),ip,p,t} + op^{op}_{(loc_2,loc_1),ip,p,t} \\leq \\tau^{hours} \\cdot \\text{cap}^{comp}_{(loc_{in},loc_{out})}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -726,6 +734,15 @@ class TransmissionModel(ComponentModel):
         # Operation [commodityUnit*h] is limited by the installed capacity [commodityUnit] multiplied by operation time
         # series [-] and the hours per time step [h]
         self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+        # Couple binary operation variable to operation variable
+        self.binaryOperation(
+            pyM,
+            "ConstrOperation",
+            "opConstrSet",
+            "partLoadMin",
+            "op",
+            "op_bin",
+        )
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
@@ -763,16 +780,14 @@ class TransmissionModel(ComponentModel):
         )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance. 
-        
+        """ Get contribution to a commodity balance.
             .. math::
                 :nowrap:
 
                 \\begin{eqnarray*}
-                \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
-                & - & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
+                \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}: loc_{in}=loc}}{ \\sum } \\left(1-\\eta_{(loc_{in},loc_{out})} \\cdot I_{(loc_{in},loc_{out})} \\right) \\cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
+                & - & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}:loc_{out}=loc}}{ \\sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
                 \\end{eqnarray*}
-            
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = (
@@ -834,6 +849,13 @@ class TransmissionModel(ComponentModel):
         :param componentNames: Names of components which contribute to the balance limit
         :type componentNames: list
         """
+        if loc == "Total":
+            if set(componentNames).issubset(set(self.componentsDict.keys())):
+                warnings.warn(
+                    "The balance limit constraint for the all "
+                    "regions is not supported for Transmission components."
+                )
+            return 0
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
         opVarDictIn = getattr(pyM, "operationVarDictIn_" + abbrvName)
@@ -849,7 +871,7 @@ class TransmissionModel(ComponentModel):
         else:
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
-        aut = sum(
+        return sum(
             opVar[loc_ + "_" + loc, compName, ip, p, t]
             * (
                 1
@@ -870,7 +892,6 @@ class TransmissionModel(ComponentModel):
             for p in periods
             for t in timeSteps
         )
-        return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
@@ -1049,9 +1070,7 @@ class TransmissionModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = opSum.values / esM.numberOfYears
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")

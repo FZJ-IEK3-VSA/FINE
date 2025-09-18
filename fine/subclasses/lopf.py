@@ -178,6 +178,7 @@ class LOPFModel(TransmissionModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
 
         # Declare operation variable set
@@ -204,10 +205,8 @@ class LOPFModel(TransmissionModel):
                 node0 = sorted(compDict[compName]._mapL)[0]
                 if loc == node0:
                     return (0, 0)
-                else:
-                    return (None, None)
-            else:
                 return (None, None)
+            return (None, None)
 
         setattr(
             pyM,
@@ -371,44 +370,43 @@ class LOPFModel(TransmissionModel):
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
-        elif name == "isBuiltVariablesOptimum":
+        if name == "isBuiltVariablesOptimum":
             return {
                 "values": self._isBuiltVariablesOptimum[ip],
                 "timeDependent": False,
                 "dimension": self.dimension,
             }
-        elif name == "operationVariablesOptimum":
+        if name == "operationVariablesOptimum":
             return {
                 "values": self._operationVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
-        elif name == "phaseAngleVariablesOptimum":
+        if name == "phaseAngleVariablesOptimum":
             return {
                 "values": self._phaseAngleVariablesOptimum[ip],
                 "timeDependent": True,
                 "dimension": "1dim",
             }
-        else:
-            return {
-                "capacityVariablesOptimum": {
-                    "values": self._capacityVariablesOptimum[ip],
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "isBuiltVariablesOptimum": {
-                    "values": self._isBuiltVariablesOptimum[ip],
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "operationVariablesOptimum": {
-                    "values": self._operationVariablesOptimum[ip],
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-                "phaseAngleVariablesOptimum": {
-                    "values": self._phaseAngleVariablesOptimum[ip],
-                    "timeDependent": True,
-                    "dimension": "1dim",
-                },
-            }
+        return {
+            "capacityVariablesOptimum": {
+                "values": self._capacityVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "isBuiltVariablesOptimum": {
+                "values": self._isBuiltVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "operationVariablesOptimum": {
+                "values": self._operationVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": self.dimension,
+            },
+            "phaseAngleVariablesOptimum": {
+                "values": self._phaseAngleVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": "1dim",
+            },
+        }

@@ -56,7 +56,7 @@ def getKeyHierarchyOfNestedDict(
         int(x) if (not isinstance(x, tuple) and x.isdigit()) else x for x in key_list
     ]
 
-    return key_list
+    return key_list  # noqa: RET504
 
 
 def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
@@ -89,14 +89,15 @@ def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
                         # which are ip depending -> 4 levels
                         # {"commodityConversionFactors":{ip:{"group1":{"electricity":1,"hydrogen":1}}}}}}
                         for key3, data3 in data2.items():
-                            key_lists_in_nested_dict.append([variable_name, key1, key2, key3])
+                            key_lists_in_nested_dict.append(
+                                [variable_name, key1, key2, key3]
+                            )
                     else:
                         key_lists_in_nested_dict.append([variable_name, key1, key2])
             else:
                 key_lists_in_nested_dict.append([variable_name, key1])
         return key_lists_in_nested_dict
-    else:
-        return [[variable_name]]
+    return [[variable_name]]
 
 
 def transform1dSeriesto2dDataFrame(series, locations):
@@ -177,9 +178,7 @@ def generateIterationDicts(component_dict, investmentPeriods):
     # Loop through every class-component-variable combination
     for classname in component_dict:
         for component in component_dict[classname]:
-            for variable_description in component_dict[classname][
-                component
-            ].keys():
+            for variable_description in component_dict[classname][component].keys():
                 # 1. iterate through nested dict levels until constant, series or df, add
                 # 1. find list of keys in nested dict level
                 key_lists = getListsOfKeyPathsInNestedDict(
@@ -229,7 +228,9 @@ def generateIterationDicts(component_dict, investmentPeriods):
     return df_iteration_dict, series_iteration_dict, constants_iteration_dict
 
 
-def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict, locations):
+def addDFVariablesToXarray(
+    xr_ds, component_dict, df_iteration_dict, _mapC_dict, locations
+):
     """Adds all variables whose data is contained in a pd.DataFrame to xarray dataset.
     These variables are normally regional time series (dimensions - space, time)
 
@@ -261,22 +262,23 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict,
             # If a . is present in variable name, then the data would be
             # another level further in the component_dict
             if "." in variable_description:
-                [var_name, subvar_name] = variable_description.split(".")
-                if subvar_name.isdigit():
-                    subvar_name = int(subvar_name)
-                data = component_dict[classname][component][var_name][subvar_name]
+                key_list = getKeyHierarchyOfNestedDict(variable_description)
+                value = component_dict[classname][component]
+                for key in key_list:
+                    value = value[key]
+                data = value
             else:
                 data = component_dict[classname][component][variable_description]
 
             multi_index_dataframe = data.stack()
             if "Period" in multi_index_dataframe.index.names:
                 multi_index_dataframe = multi_index_dataframe.droplevel(0)
-            
+
             multi_index_dataframe.index.set_names("time", level=0, inplace=True)
             multi_index_dataframe.index.set_names("space", level=1, inplace=True)
 
             if classname in ["Transmission", "LinearOptimalPowerFlow"]:
-                # use _mapC to split via location names 
+                # use _mapC to split via location names
                 space_index = multi_index_dataframe.index.get_level_values("space")
                 time_index = multi_index_dataframe.index.get_level_values("time")
                 # reconstruct multiindex
@@ -285,8 +287,15 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict,
                     loc1, loc2 = _mapC_dict[component][idx]
                     space_index_split.append((loc1, loc2))
                 multi_index_dataframe.index = pd.MultiIndex.from_tuples(
-                    [(time_index[i], space_index_split[i][0], space_index_split[i][1]) for i in range(len(space_index_split))],
-                    names=["time", "space", "space_2"]
+                    [
+                        (
+                            time_index[i],
+                            space_index_split[i][0],
+                            space_index_split[i][1],
+                        )
+                        for i in range(len(space_index_split))
+                    ],
+                    names=["time", "space", "space_2"],
                 )
                 df_dict_3dim[df_description] = multi_index_dataframe
             else:
@@ -319,13 +328,11 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict,
                     pass
             return xr_ds
 
-
         # check if there is data
         if len(df_dict) > 0:
             xr_ds = add_to_xarray(xr_ds, df_dict, variable_description)
         if len(df_dict_3dim) > 0:
             xr_ds = add_to_xarray(xr_ds, df_dict_3dim, variable_description)
-
 
     return xr_ds
 
@@ -391,9 +398,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 time_dict[df_description] = pd.concat(
                     {locations[0]: time_dict[df_description]}, names=["space"]
                 )
-                time_dict[df_description] = time_dict[
-                    df_description
-                ].reorder_levels(["time", "space"])
+                time_dict[df_description] = time_dict[df_description].reorder_levels(
+                    ["time", "space"]
+                )
 
         # If the dicts are populated with at least one item,
         # process them further and merge with xr_ds
@@ -556,7 +563,38 @@ def processXarrayAttributes(xarray_dataset):
 
     # STEP 1. Loop through each attribute, convert datatypes
     # or append to dot_attrs_dict for conversion in a later step
+    balanceLimit_dict = {}
+    balanceLimit_columns = None
+    balanceLimit_dtypes = {}
+    hasBalanceLimit = False
     for attr_name, attr_value in _xarray_dataset.attrs.items():
+        if "balanceLimit" in attr_name:
+            if attr_name == "balanceLimit_index":
+                keys_to_delete.append("balanceLimit_index")
+                continue
+            if attr_name == "balanceLimit_columns":
+                balanceLimit_columns = attr_value
+                keys_to_delete.append("balanceLimit_columns")
+            elif attr_name == "balanceLimit_dtypes":
+                balanceLimit_dtypes = attr_value
+                keys_to_delete.append("balanceLimit_dtypes")
+            else:
+                balanceLimit_dict[attr_name.replace("balanceLimit.", "")] = attr_value
+                keys_to_delete.append(attr_name)
+                hasBalanceLimit = True
+
+    if hasBalanceLimit:
+        balanceLimit_df = None
+    else:
+        balanceLimit_df = pd.DataFrame(
+            data=balanceLimit_dict, index=balanceLimit_columns
+        ).T
+        for column, dtype in zip(balanceLimit_df.columns, balanceLimit_dtypes):
+            balanceLimit_df[column] = balanceLimit_df[column].astype(dtype)
+
+    for attr_name, attr_value in _xarray_dataset.attrs.items():
+        if "balanceLimit" in attr_name:
+            continue
         if attr_name in ["locations", "commodities"] and isinstance(attr_value, str):
             xarray_dataset.attrs[attr_name] = set([attr_value])
         if attr_name in ["commodityUnitsDict"] and isinstance(attr_value, str):
@@ -623,8 +661,10 @@ def processXarrayAttributes(xarray_dataset):
                 xarray_dataset.attrs.update({new_attr_name: series})
 
         # cleaning up the many keys
-        for key in keys_to_delete:
-            xarray_dataset.attrs.pop(key)
+    for key in keys_to_delete:
+        xarray_dataset.attrs.pop(key)
+
+    xarray_dataset.attrs["balanceLimit"] = balanceLimit_df
 
     return xarray_dataset
 

@@ -1,12 +1,12 @@
 """
-    Aim: To check if passing "lean data" is possible i.e., pass spatially resolved data only for 
-    eligible locations 
-    Tests:
-        #For each component class: 
-            Give data only for subset of locations. FINE should then look for locationalEligibility. 
-                # If it is None, raises error saying that locationalEligibility is mandatory, in this case
-                # If it is provided, simply fills data at missing locations with 0. 
-                    A check is later made against locationalEligibility. 
+Aim: To check if passing "lean data" is possible i.e., pass spatially resolved data only for
+eligible locations
+Tests:
+    #For each component class:
+        Give data only for subset of locations. FINE should then look for locationalEligibility.
+            # If it is None, raises error saying that locationalEligibility is mandatory, in this case
+            # If it is provided, simply fills data at missing locations with 0.
+                A check is later made against locationalEligibility.
 """
 
 import sys
@@ -204,6 +204,16 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
             operationRateFix=data["Hydrogen demand, operationRateFix"]
             * FCEV_penetration,
             locationalEligibility=_locationalEligibility,
+        )
+    )
+
+    esM.add(  # just add because esM_init contains balanceLimit for CO2. Does nothing
+        fn.Source(
+            esM=esM,
+            name="CO2 from enviroment",
+            commodity="CO2",
+            hasCapacityVariable=False,
+            balanceLimitID="CO2 limit",
         )
     )
 

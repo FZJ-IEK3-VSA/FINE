@@ -2,6 +2,10 @@ import fine as fn
 import pandas as pd
 import numpy as np
 import copy
+import fine.IOManagement.xarrayIO as xrIO
+from pandas.testing import assert_frame_equal
+
+
 
 
 def create_simple_esm():
@@ -323,3 +327,56 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
         np.testing.assert_almost_equal(
             op_test_var[t], assertion_values_var[t], decimal=1
         )
+
+
+def test_variable_conversion_export_to_xarray():
+    esM = create_simple_esm()
+
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzers_VarConvFac_Export",
+            physicalUnit=r"kW$_{H_{2},LHV}$",
+            commodityConversionFactors={
+                0: {
+                    "electricity": pd.DataFrame(
+                        [np.array([-0.1, -1, -10, -100])],
+                        index=["ElectrolyzerLocation"]
+                    ).T,
+                    "hydrogen": 1,
+                }
+            }
+        )
+    )
+
+    esM_copy = copy.deepcopy(esM)
+    xrds = xrIO.convertOptimizationInputToDatasets(esM_copy)
+    input_ds = xrds["Input"]["Conversion"]["Electrolyzers_VarConvFac_Export"]
+
+    # === Check exported electricity DataFrame ===
+    expected_df = pd.DataFrame(
+        [np.array([-0.1, -1, -10, -100])],
+        index=["ElectrolyzerLocation"]
+    ).T
+
+    series = input_ds["ts_commodityConversionFactors.0.electricity"].to_pandas()
+    actual_df = series.to_frame(name="ElectrolyzerLocation")
+
+
+    # Normalize index/column names
+    expected_df.index.name = None
+    actual_df.index.name = None
+    expected_df.columns.name = None
+    actual_df.columns.name = None
+
+    assert_frame_equal(
+        actual_df.sort_index(),
+        expected_df.sort_index(),
+        check_dtype=False
+    )
+
+
+    # === Check exported hydrogen scalar ===
+    hydrogen_val = input_ds["0d_commodityConversionFactors.0.hydrogen"].item()
+
+    assert hydrogen_val == 1

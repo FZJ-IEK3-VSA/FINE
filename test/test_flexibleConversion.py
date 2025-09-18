@@ -2,11 +2,12 @@ import fine as fn
 import pandas as pd
 from pathlib import Path
 import pytest
+import numpy as np
 
 from fine.IOManagement.xarrayIO import writeEnergySystemModelToNetCDF
 
-def test_flexibleConversion_init():
 
+def test_flexibleConversion_init():
     esM = fn.EnergySystemModel(
         locations={"loc1"},
         commodities={"electricity", "hydrogen", "nat_gas"},
@@ -56,7 +57,7 @@ def test_flexibleConversion_init():
                 "in": {
                     "hydrogen": -4,
                     "nat_gas": -2,
-                }
+                },
             },
             hasCapacityVariable=True,
             investPerCapacity=0,
@@ -76,7 +77,7 @@ def test_flexibleConversion_init():
                 "in": {
                     "hydrogen": 4,
                     "nat_gas": 2,
-                }
+                },
             },
             hasCapacityVariable=True,
             investPerCapacity=0,
@@ -109,10 +110,7 @@ def test_flexibleConversion_init():
             name="Industry site",
             commodity="electricity",
             hasCapacityVariable=False,
-            operationRateFix=pd.DataFrame(
-                [100],
-                columns=["loc1"]
-            )
+            operationRateFix=pd.DataFrame([100], columns=["loc1"]),
         )
     )
     with pytest.raises(ValueError, match=r".*All commodity conversion factors of.*"):
@@ -126,7 +124,7 @@ def test_flexibleConversion_init():
                     "in": {
                         "hydrogen": 4,
                         "nat_gas": -2,
-                    }
+                    },
                 },
                 hasCapacityVariable=True,
                 investPerCapacity=0,
@@ -135,7 +133,10 @@ def test_flexibleConversion_init():
             )
         )
 
-    with pytest.raises(ValueError, match=r".*Commodity group names must be different from commodity names.*"):
+    with pytest.raises(
+        ValueError,
+        match=r".*Commodity group names must be different from commodity names.*",
+    ):
         esM.add(
             fn.Conversion(
                 esM=esM,
@@ -154,7 +155,9 @@ def test_flexibleConversion_init():
                 economicLifetime=10,
             )
         )
-    with pytest.raises(NotImplementedError, match=r".*The combination of flexible and.*"):
+    with pytest.raises(
+        NotImplementedError, match=r".*The combination of flexible and.*"
+    ):
         esM.add(
             fn.Conversion(
                 esM=esM,
@@ -195,11 +198,63 @@ def test_flexibleConversion_init():
                 economicLifetime=10,
             )
         )
+    with pytest.raises(
+        ValueError, match=r".*contain NaN values.*"
+    ):
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name="conversion_flex",
+                physicalUnit=r"kW$_{el}$",
+                commodityConversionFactors={
+                    "electricity": 1,
+                    "in": {
+                        "hydrogen": -4,
+                        "nat_gas": -2,
+                    },
+                },
+                hasCapacityVariable=True,
+                investPerCapacity=0,
+                interestRate=0,
+                economicLifetime=10,
+                emissionFactors={'co2': {'electricity': np.nan}}
+            )
+        )
+    with pytest.raises(
+        ValueError, match=r".*contain NaN values.*"
+    ):
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name="conversion_flex",
+                physicalUnit=r"kW$_{el}$",
+                commodityConversionFactors={
+                    "electricity": 1,
+                    "in": {
+                        "hydrogen": np.nan,
+                        "nat_gas": -2,
+                    },
+                },
+                hasCapacityVariable=True,
+                investPerCapacity=0,
+                interestRate=0,
+                economicLifetime=10,
+                emissionFactors={'co2': {'electricity': 3}}
+            )
+        )
 
 def test_flexibleConversion_groups():
     esM = fn.EnergySystemModel(
         locations={"loc1"},
-        commodities={"co2", "electricity", "hydrogen", "hydrogen_ren", "nat_gas", "bio_gas", "sng"},
+        commodities={
+            "co2",
+            "electricity",
+            "hydrogen",
+            "hydrogen_ren",
+            "nat_gas",
+            "bio_gas",
+            "sng",
+        },
         numberOfTimeSteps=1,
         commodityUnitsDict={
             "electricity": r"kW$_{el}$",
@@ -226,7 +281,7 @@ def test_flexibleConversion_groups():
             name="hydrogen_import",
             commodity="hydrogen",
             hasCapacityVariable=False,
-            #commodityCost=1,
+            # commodityCost=1,
         )
     )
 
@@ -236,8 +291,8 @@ def test_flexibleConversion_groups():
             name="nat_gas_import",
             commodity="nat_gas",
             hasCapacityVariable=False,
-            commodityCost=1/8760,
-            interestRate=0
+            commodityCost=1 / 8760,
+            interestRate=0,
         )
     )
 
@@ -352,21 +407,26 @@ def test_flexibleConversion_groups():
             name="demand",
             commodity="electricity",
             hasCapacityVariable=False,
-            operationRateFix=pd.Series([8760])
+            operationRateFix=pd.Series([8760]),
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver='glpk')
-    writeEnergySystemModelToNetCDF(esM, 'flex_conversion_esm.nc')
+    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    writeEnergySystemModelToNetCDF(esM, "flex_conversion_esm.nc")
     print("Objective Value: \n" + str(esM.pyM.Obj()))
     Path("flex_conversion_esm.nc").unlink()
+
 
 @pytest.mark.parametrize("use_balanceLimit", [False, True])
 def test_flexibleConversion_emissionFactors(use_balanceLimit):
     if use_balanceLimit:
         balanceLimit = {
-            2020: pd.DataFrame(data=[[-38280, True]], columns=["loc1", "lowerBound"], index=["co2"]),
-            2025: pd.DataFrame(data=[[-26280, True]], columns=["loc1", "lowerBound"], index=["co2"])
+            2020: pd.DataFrame(
+                data=[[-38280, True]], columns=["loc1", "lowerBound"], index=["co2"]
+            ),
+            2025: pd.DataFrame(
+                data=[[-26280, True]], columns=["loc1", "lowerBound"], index=["co2"]
+            ),
         }
     else:
         balanceLimit = None
@@ -397,8 +457,8 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
             name="nat_gas_import",
             commodity="nat_gas",
             hasCapacityVariable=False,
-            commodityCost=1/8760,
-            interestRate=0
+            commodityCost=1 / 8760,
+            interestRate=0,
         )
     )
 
@@ -408,8 +468,8 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
             name="bio_gas_import",
             commodity="bio_gas",
             hasCapacityVariable=False,
-            commodityCost=1/8760,
-            interestRate = 0
+            commodityCost=1 / 8760,
+            interestRate=0,
         )
     )
 
@@ -419,7 +479,7 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
             name="demand",
             commodity="electricity",
             hasCapacityVariable=False,
-            operationRateFix=pd.Series([8760])
+            operationRateFix=pd.Series([8760]),
         )
     )
 
@@ -429,7 +489,7 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
             name="co2Sink",
             commodity="co2",
             hasCapacityVariable=False,
-            balanceLimitID="co2"
+            balanceLimitID="co2",
         )
     )
 
@@ -439,7 +499,7 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
             name="co2Source",
             commodity="co2",
             hasCapacityVariable=False,
-            balanceLimitID="co2"
+            balanceLimitID="co2",
         )
     )
 
@@ -468,24 +528,59 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver='glpk')
+    esM.optimize(timeSeriesAggregation=False, solver="glpk")
     if use_balanceLimit:
         assert (
-                esM.getOptimizationSummary('SourceSinkModel', ip=2020).
-                loc['co2Sink', 'operation', '[Mio. t$_{CO_2}$/h*h/a]'].values[0] == 38280
+            esM.getOptimizationSummary("SourceSinkModel", ip=2020)
+            .loc["co2Sink", "operation", "[Mio. t$_{CO_2}$/h*h/a]"]
+            .values[0]
+            == 38280
         )
         assert (
-                esM.getOptimizationSummary('SourceSinkModel', ip=2025).
-                loc['co2Sink', 'operation', '[Mio. t$_{CO_2}$/h*h/a]'].values[0] == 26280
+            esM.getOptimizationSummary("SourceSinkModel", ip=2025)
+            .loc["co2Sink", "operation", "[Mio. t$_{CO_2}$/h*h/a]"]
+            .values[0]
+            == 26280
         )
-        assert esM.pyM.op_flex_conv['loc1', 'conversion_flex', 0, 'ch4', 'nat_gas', 0, 0]._value == 4000
-        assert esM.pyM.op_flex_conv['loc1', 'conversion_flex', 0, 'ch4', 'bio_gas', 0, 0]._value == 4760
-        assert esM.pyM.op_flex_conv['loc1', 'conversion_flex', 1, 'ch4', 'nat_gas', 0, 0]._value == 0
-        assert esM.pyM.op_flex_conv['loc1', 'conversion_flex', 1, 'ch4', 'bio_gas', 0, 0]._value == 8760
+        assert (
+            esM.pyM.op_flex_conv[
+                "loc1", "conversion_flex", 0, "ch4", "nat_gas", 0, 0
+            ]._value
+            == 4000
+        )
+        assert (
+            esM.pyM.op_flex_conv[
+                "loc1", "conversion_flex", 0, "ch4", "bio_gas", 0, 0
+            ]._value
+            == 4760
+        )
+        assert (
+            esM.pyM.op_flex_conv[
+                "loc1", "conversion_flex", 1, "ch4", "nat_gas", 0, 0
+            ]._value
+            == 0
+        )
+        assert (
+            esM.pyM.op_flex_conv[
+                "loc1", "conversion_flex", 1, "ch4", "bio_gas", 0, 0
+            ]._value
+            == 8760
+        )
 
     else:
-        assert esM.pyM.op_flex_conv['loc1', 'conversion_flex', 0, 'ch4', 'nat_gas', 0, 0]._value == 8760
-        assert esM.pyM.op_flex_conv['loc1', 'conversion_flex', 1, 'ch4', 'nat_gas', 0, 0]._value == 8760
+        assert (
+            esM.pyM.op_flex_conv[
+                "loc1", "conversion_flex", 0, "ch4", "nat_gas", 0, 0
+            ]._value
+            == 8760
+        )
+        assert (
+            esM.pyM.op_flex_conv[
+                "loc1", "conversion_flex", 1, "ch4", "nat_gas", 0, 0
+            ]._value
+            == 8760
+        )
+
 
 def test_flexibleConversionFlowShare():
     esM = fn.EnergySystemModel(
@@ -536,22 +631,11 @@ def test_flexibleConversionFlowShare():
                 "in": {
                     "hydrogen": -1,
                     "nat_gas": -2,
-                }
+                },
             },
             flowShares={
-                2020: {
-                    'max': {
-                        "hydrogen": pd.Series([0.5], index=['loc1'])
-                    }
-                },
-                2025: {
-                    'max': {
-                        "hydrogen": 0.8
-                    },
-                    'min': {
-                        "hydrogen": 0.6
-                    }
-                },
+                2020: {"max": {"hydrogen": pd.Series([0.5], index=["loc1"])}},
+                2025: {"max": {"hydrogen": 0.8}, "min": {"hydrogen": 0.6}},
             },
             hasCapacityVariable=True,
             investPerCapacity=10,
@@ -582,12 +666,20 @@ def test_flexibleConversionFlowShare():
             name="demand",
             commodity="electricity",
             hasCapacityVariable=False,
-            operationRateFix=pd.DataFrame([[8760, 8760]], columns=list(esM.locations))
+            operationRateFix=pd.DataFrame([[8760, 8760]], columns=list(esM.locations)),
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver='glpk')
-    assert (esM.pyM.op_flex_conv['loc1', 'conversion_flex', 0, 'in', 'hydrogen', 0, 0]._value <=
-            0.5 * esM.pyM.op_conv['loc1', 'conversion_flex', 0, 0, 0]._value)
-    assert (esM.pyM.op_flex_conv['loc2', 'conversion_flex', 1, 'in', 'hydrogen', 0, 0]._value >=
-            0.6 * esM.pyM.op_conv['loc2', 'conversion_flex', 1, 0, 0]._value)
+    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    assert (
+        esM.pyM.op_flex_conv[
+            "loc1", "conversion_flex", 0, "in", "hydrogen", 0, 0
+        ]._value
+        <= 0.5 * esM.pyM.op_conv["loc1", "conversion_flex", 0, 0, 0]._value
+    )
+    assert (
+        esM.pyM.op_flex_conv[
+            "loc2", "conversion_flex", 1, "in", "hydrogen", 0, 0
+        ]._value
+        >= 0.6 * esM.pyM.op_conv["loc2", "conversion_flex", 1, 0, 0]._value
+    )

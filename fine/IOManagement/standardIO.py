@@ -2,11 +2,18 @@ import fine as fn
 from fine import utils
 import pandas as pd
 import ast
+import datetime
 import inspect
 import time
 import warnings
 from functools import wraps
 import matplotlib.patches as mpatches
+
+
+#abbreviated class names necessary for saving into excel files as sheet names are restricted by string length
+abbreviatedClassName = {"ConversionDynamicModel" : "ConvDyn",
+                         "ConversionPartLoad" : "ConvPartLoad" }
+
 
 try:
     import geopandas as gpd
@@ -35,11 +42,7 @@ def timer(func):
         before = time.perf_counter()
         rv = func(*args, **kwargs)
         after = time.perf_counter()
-        print(
-            "elapsed time for {.__name__}: {:.2f} minutes".format(
-                func, (after - before) / 60
-            )
-        )
+        print(f"elapsed time for {func.__name__}: {(after - before) / 60:.2f} minutes")
         return rv
 
     return f
@@ -87,6 +90,11 @@ def writeOptimizationOutputToExcel(
         writer = pd.ExcelWriter(_outputFileName + ".xlsx")
 
         for name in esM.componentModelingDict.keys():
+            if name in abbreviatedClassName.keys():
+                abbreviatedName = abbreviatedClassName[name]
+            else:
+                abbreviatedName = name[:-5] #last 5 letters are "Model" and cut off
+
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
             oL_ = oL[name] if isinstance(oL, dict) else oL
@@ -95,7 +103,7 @@ def writeOptimizationOutputToExcel(
             if not optSum.empty:
                 optSum.to_excel(
                     writer,
-                    sheet_name=name[:-5]
+                    sheet_name=abbreviatedName
                     + "OptSummary_"
                     + esM.componentModelingDict[name].dimension,
                 )
@@ -123,7 +131,7 @@ def writeOptimizationOutputToExcel(
                         ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
                     ]
                 if not dfTD1dim.empty:
-                    dfTD1dim.to_excel(writer, sheet_name=name[:-5] + "_TDoptVar_1dim")
+                    dfTD1dim.to_excel(writer, sheet_name=abbreviatedName + "_TDoptVar_1dim")
             if dataTD2dim:
                 names = ["Variable", "Component", "LocationIn", "LocationOut"]
                 dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
@@ -132,7 +140,7 @@ def writeOptimizationOutputToExcel(
                         ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
                     ]
                 if not dfTD2dim.empty:
-                    dfTD2dim.to_excel(writer, sheet_name=name[:-5] + "_TDoptVar_2dim")
+                    dfTD2dim.to_excel(writer, sheet_name=abbreviatedName + "_TDoptVar_2dim")
             if dataTI:
                 if esM.componentModelingDict[name].dimension == "1dim":
                     names = ["Variable type", "Component"]
@@ -144,7 +152,7 @@ def writeOptimizationOutputToExcel(
                 if not dfTI.empty:
                     dfTI.to_excel(
                         writer,
-                        sheet_name=name[:-5]
+                        sheet_name=abbreviatedName
                         + "_TIoptVar_"
                         + esM.componentModelingDict[name].dimension,
                     )
@@ -546,7 +554,7 @@ def plotOperation(
         variableName, ip=ip
     )
     if data is None:
-        return
+        return None
     if locTrans is None:
         timeSeries = data["values"].loc[(compName, loc)].values
     else:
@@ -744,13 +752,9 @@ def plotOperationColorMap(
         timeSeries = timeSeries.reshape(nbPeriods, nbTimeStepsPerPeriod).T
     except ValueError as e:
         raise ValueError(
-            "Could not reshape array. Your timeSeries has {} values and it is therefore not possible".format(
-                len(timeSeries)
-            )
-            + " to reshape it to ({}, {}). Please correctly specify nbPeriods".format(
-                nbPeriods, nbTimeStepsPerPeriod
-            )
-            + " and nbTimeStepsPerPeriod The error was: {}.".format(e)
+            f"Could not reshape array. Your timeSeries has {len(timeSeries)} values and it is therefore not possible"
+            + f" to reshape it to ({nbPeriods}, {nbTimeStepsPerPeriod}). Please correctly specify nbPeriods"
+            + f" and nbTimeStepsPerPeriod The error was: {e}."
         )
     vmax = timeSeries.max() if vmax == -1 else vmax
 
@@ -794,7 +798,6 @@ def plotOperationColorMap(
         ax.set_yticklabels(yticklabels, fontsize=fontsize)
 
     if monthlabels:
-        import datetime
 
         xticks, xlabels = [], []
         for i in range(1, 13, 2):
@@ -1046,7 +1049,7 @@ def plotTransmission(
         linewidth=linewidth,
         color=color,
         marker="_",
-        label="{:>4.4}".format(str(capMax)) + " " + unit,
+        label=f"{str(capMax):>4.4}" + " " + unit,
     )
     lineMax23 = plt.Line2D(
         range(1),
@@ -1054,7 +1057,7 @@ def plotTransmission(
         linewidth=linewidth * 2 / 3,
         color=color,
         marker="_",
-        label="{:>4.4}".format(str(capMax * 2 / 3)) + " " + unit,
+        label=f"{str(capMax * 2 / 3):>4.4}" + " " + unit,
     )
     lineMax13 = plt.Line2D(
         range(1),
@@ -1062,7 +1065,7 @@ def plotTransmission(
         linewidth=linewidth * 1 / 3,
         color=color,
         marker="_",
-        label="{:>4.4}".format(str(capMax * 1 / 3)) + " " + unit,
+        label=f"{str(capMax * 1 / 3):>4.4}" + " " + unit,
     )
 
     leg = ax.legend(
@@ -1233,9 +1236,7 @@ def plotLocationalColorMap(
                 area_unit = "m$^2$"
             else:
                 raise NotImplementedError(
-                    "Area Factor not supported. Supported Area Factors {0},{1}".format(
-                        1, 1e3
-                    )
+                    f"Area Factor not supported. Supported Area Factors {1},{1e3}"
                 )
 
             unit = " [" + unit + "/" + area_unit + "]"

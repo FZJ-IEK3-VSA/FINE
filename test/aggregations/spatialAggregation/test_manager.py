@@ -262,3 +262,6 @@ def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):
         n_groups=1,
         aggregatedResultsPath=None,
     )
+
+
+# %%

@@ -53,7 +53,7 @@ class Conversion(Component):
         commissioningDependentCcf=False,
         emissionFactors=None,
         flowShares=None,
-        etlParameter=None
+        pwlcfParameters=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -259,7 +259,7 @@ class Conversion(Component):
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
-            etlParameter=etlParameter,
+            pwlcfParameters=pwlcfParameters,
         )
 
         # opexPerOperation
@@ -335,11 +335,9 @@ class Conversion(Component):
         # commodity conversions factors
         self.commissioningDependentCcf = commissioningDependentCcf
         self.commodityConversionFactors = commodityConversionFactors
-        (
-            self.isIpDepending,
-            self.isCommisDepending,
-            self.flexibleConversion
-        ) = utils.checkConversionFactorProperties(self, esM, commissioningDependentCcf)
+        (self.isIpDepending, self.isCommisDepending, self.flexibleConversion) = (
+            utils.checkConversionFactorProperties(self, esM, commissioningDependentCcf)
+        )
         (
             self.fullCommodityConversionFactors,
             self.processedCommodityConversionFactors,
@@ -657,7 +655,9 @@ class ConversionModel(ComponentModel):
                 for compName in flexConv
                 for loc in compDict[compName].processedLocationalEligibility.index
                 for ip in esM.investmentPeriods
-                for group, group_ccf in compDict[compName].processedCommodityConversionFactors[ip].items()
+                for group, group_ccf in compDict[compName]
+                .processedCommodityConversionFactors[ip]
+                .items()
                 if isinstance(group_ccf, dict)
                 if compDict[compName].processedLocationalEligibility[loc] == 1
             )
@@ -672,8 +672,12 @@ class ConversionModel(ComponentModel):
         def declareOpFlexVarSet(pyM):
             return (
                 (loc, compName, ip, group, commod)
-                for (loc, compName, ip, group) in getattr(pyM, "operationFlexGroupSet_" + self.abbrvName)
-                for commod in compDict[compName].processedCommodityConversionFactors[ip][group].keys()
+                for (loc, compName, ip, group) in getattr(
+                    pyM, "operationFlexGroupSet_" + self.abbrvName
+                )
+                for commod in compDict[compName]
+                .processedCommodityConversionFactors[ip][group]
+                .keys()
             )
 
         setattr(
@@ -690,10 +694,14 @@ class ConversionModel(ComponentModel):
         def declareOpFlexFlowShareConstrSet(pyM):
             return (
                 (loc, compName, ip, group, attr, commod)
-                for loc, compName, ip, group in getattr(pyM, "operationFlexGroupSet_" + self.abbrvName)
+                for loc, compName, ip, group in getattr(
+                    pyM, "operationFlexGroupSet_" + self.abbrvName
+                )
                 if self.componentsDict[compName].processedFlowShares
                 if ip in self.componentsDict[compName].processedFlowShares.keys()
-                for attr, fs in self.componentsDict[compName].processedFlowShares[ip].items()
+                for attr, fs in self.componentsDict[compName]
+                .processedFlowShares[ip]
+                .items()
                 for commod in fs.keys()
                 if loc in fs[commod].index
             )
@@ -896,6 +904,7 @@ class ConversionModel(ComponentModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
         self.declareOpFlexVarSets(esM, pyM)
         self.declareOpCommisVarSet(esM, pyM)
         self.declareFlexFlowShareConstrSet(pyM)
@@ -970,7 +979,7 @@ class ConversionModel(ComponentModel):
             flexibleConversion=True,
         )
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "op_bin")
+        self.declareOperationBinaryVars(pyM)
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -1112,19 +1121,23 @@ class ConversionModel(ComponentModel):
         )
 
         # # Operation [physicalUnit*h] is limited by minimum part Load
+        # Couple binary operation variable to operation variable
+        self.binaryOperation(
+            pyM, "ConstrOperation", "opConstrSet", "partLoadMin", "op", "op_bin"
+        )
+        self.binaryOperation(
+            pyM,
+            "ConstrOperationCommis",
+            "opCommisConstrSet",
+            "partLoadMin",
+            "op",
+            "op_bin",
+            isOperationCommisYearDepending=True,
+        )
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )
-        self.additionalMinPartLoad(
-            pyM,
-            esM,
-            "ConstrOperationCommis",
-            "opCommisConstrSet",
-            "op",
-            "op_bin",
-            "cap",
-            isOperationCommisYearDepending=True,
-        )
+
         # Operation for components with commissioning year dependent commodity conversion factors
         self.getTotalOperationCommissioningDependentOperation(pyM)
 
@@ -1146,19 +1159,18 @@ class ConversionModel(ComponentModel):
         def combinedOperation(pyM, loc, compName, ip, p, t):
             if not compDict[compName].isCommisDepending:
                 return pyomo.Constraint.Skip
-            else:
-                commisYearsWithOperationInIp = [
-                    _commis
-                    for (_commis, _ip) in compDict[
-                        compName
-                    ].processedCommodityConversionFactors
-                    if _ip == ip
-                ]
-                sumOpCommisVar = sum(
-                    opCommisVar[loc, compName, commis, ip, p, t]
-                    for commis in commisYearsWithOperationInIp
-                )
-                return opVar[loc, compName, ip, p, t] == sumOpCommisVar
+            commisYearsWithOperationInIp = [
+                _commis
+                for (_commis, _ip) in compDict[
+                    compName
+                ].processedCommodityConversionFactors
+                if _ip == ip
+            ]
+            sumOpCommisVar = sum(
+                opCommisVar[loc, compName, commis, ip, p, t]
+                for commis in commisYearsWithOperationInIp
+            )
+            return opVar[loc, compName, ip, p, t] == sumOpCommisVar
 
         setattr(
             pyM,
@@ -1189,29 +1201,33 @@ class ConversionModel(ComponentModel):
 
         operationFlexVarSet = getattr(esM.pyM, "operationFlexVarSet_" + self.abbrvName)
         flexible_commods = {
-            index[4]
-            for index in operationFlexVarSet
-            if index[0] == loc
+            index[4] for index in operationFlexVarSet if index[0] == loc
         }
-        return any(
-            [
-                (
-                    commod in comp.processedCommodityConversionFactors[yearDefinition]
-                    and (
-                        comp.processedCommodityConversionFactors[yearDefinition][commod]
-                        is not None
+        return (
+            any(
+                [
+                    (
+                        commod
+                        in comp.processedCommodityConversionFactors[yearDefinition]
+                        and (
+                            comp.processedCommodityConversionFactors[yearDefinition][
+                                commod
+                            ]
+                            is not None
+                        )
                     )
-                )
-                and comp.processedLocationalEligibility[loc] == 1
-                for comp in self.componentsDict.values()
-                for yearDefinition in comp.processedCommodityConversionFactors.keys()
-            ] +
-            [
-                commod in comp.processedEmissionFactors.keys()
-                for comp in self.componentsDict.values()
-                if comp.processedEmissionFactors is not None
-            ]
-        ) or commod in flexible_commods
+                    and comp.processedLocationalEligibility[loc] == 1
+                    for comp in self.componentsDict.values()
+                    for yearDefinition in comp.processedCommodityConversionFactors.keys()
+                ]
+                + [
+                    commod in comp.processedEmissionFactors.keys()
+                    for comp in self.componentsDict.values()
+                    if comp.processedEmissionFactors is not None
+                ]
+            )
+            or commod in flexible_commods
+        )
 
     def flexConversionConstraint(self, pyM, esM):
         """
@@ -1238,7 +1254,7 @@ class ConversionModel(ComponentModel):
             pyomo.Constraint(
                 getattr(pyM, "operationFlexGroupSet_" + self.abbrvName),
                 pyM.intraYearTimeSet,
-                rule=input_output_constr
+                rule=input_output_constr,
             ),
         )
 
@@ -1253,21 +1269,25 @@ class ConversionModel(ComponentModel):
         def flow_share_constr(pyM, loc, compName, ip, group, attr, commod, p, t):
             flowShares = compDict[compName].processedFlowShares
 
-            if attr == 'min':
+            if attr == "min":
                 return (
-                    opVarFlex[loc, compName, ip, group, commod, p, t] >=
-                    opVar[loc, compName, ip, p, t] * flowShares[ip][attr][commod].loc[loc]
+                    opVarFlex[loc, compName, ip, group, commod, p, t]
+                    >= opVar[loc, compName, ip, p, t]
+                    * flowShares[ip][attr][commod].loc[loc]
                 )
-            elif attr == 'max':
+            if attr == "max":
                 return (
-                    opVarFlex[loc, compName, ip, group, commod, p, t] <=
-                    opVar[loc, compName, ip, p, t] * flowShares[ip][attr][commod].loc[loc]
+                    opVarFlex[loc, compName, ip, group, commod, p, t]
+                    <= opVar[loc, compName, ip, p, t]
+                    * flowShares[ip][attr][commod].loc[loc]
                 )
-            elif attr == 'fix':
+            if attr == "fix":
                 return (
-                    opVarFlex[loc, compName, ip, group, commod, p, t] ==
-                    opVar[loc, compName, ip, p, t] * flowShares[ip][attr][commod].loc[loc]
+                    opVarFlex[loc, compName, ip, group, commod, p, t]
+                    == opVar[loc, compName, ip, p, t]
+                    * flowShares[ip][attr][commod].loc[loc]
                 )
+            return None
 
         setattr(
             pyM,
@@ -1275,7 +1295,7 @@ class ConversionModel(ComponentModel):
             pyomo.Constraint(
                 getattr(pyM, "operationFlexFlowShareConstrSet_" + self.abbrvName),
                 pyM.intraYearTimeSet,
-                rule=flow_share_constr
+                rule=flow_share_constr,
             ),
         )
 
@@ -1284,7 +1304,7 @@ class ConversionModel(ComponentModel):
 
         .. math::
 
-            \\text{C}^{comp,comm}_{loc,ip,p,t} =  \\text{conversionFactor}^{comp}_{comm} \cdot op_{loc,ip,p,t}^{comp,op}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} =  \\text{conversionFactor}^{comp}_{comm} \\cdot op_{loc,ip,p,t}^{comp,op}
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1294,10 +1314,9 @@ class ConversionModel(ComponentModel):
         opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
 
         def getFactor(commodCommodityConversionFactors, loc, p, t):
-            if isinstance(commodCommodityConversionFactors, (int, float)):
+            if isinstance(commodCommodityConversionFactors, int | float):
                 return commodCommodityConversionFactors
-            else:
-                return commodCommodityConversionFactors[loc][p, t]
+            return commodCommodityConversionFactors[loc][p, t]
 
         # 1.a get balance for components, which do not have commodity conversions varying with the commissioning year
         # prepare data
@@ -1322,7 +1341,9 @@ class ConversionModel(ComponentModel):
         sumCommisYearIndependentFlex = sum(
             opVarFlex[loc, compName, ip, group, commod, p, t]
             * getFactor(
-                compDict[compName].processedCommodityConversionFactors[ip][group][commod],
+                compDict[compName].processedCommodityConversionFactors[ip][group][
+                    commod
+                ],
                 loc,
                 p,
                 t,
@@ -1330,7 +1351,8 @@ class ConversionModel(ComponentModel):
             for compName, group in flexible_comp_commod_groups
             if not compDict[compName].isCommisDepending
             if compDict[compName].flexibleConversion
-            and commod in compDict[compName].processedCommodityConversionFactors[ip][group]
+            and commod
+            in compDict[compName].processedCommodityConversionFactors[ip][group]
         )
         # 2. commodity conversions factors is depending on the commissioning year (e.g. efficiencies) if
         # a) component has isCommisDepending
@@ -1375,21 +1397,31 @@ class ConversionModel(ComponentModel):
                 * compDict[compName].emissionFactors[commod][commodity]
                 * abs(
                     getFactor(
-                        compDict[compName].processedCommodityConversionFactors[ip][group][commodity],
+                        compDict[compName].processedCommodityConversionFactors[ip][
+                            group
+                        ][commodity],
                         loc,
                         p,
-                        t
+                        t,
                     )
                 )
                 for compName, group in flexible_comp_commod_groups
                 if compName in emission_comps.keys()
                 for commodity in emission_comps[compName]
-                if commodity in compDict[compName].processedCommodityConversionFactors[ip][group].keys()
+                if commodity
+                in compDict[compName]
+                .processedCommodityConversionFactors[ip][group]
+                .keys()
             )
         else:
             sumFlexEmission = 0
 
-        return sumCommisYearIndependent + sumCommisYearDependent + sumCommisYearIndependentFlex + sumFlexEmission
+        return (
+            sumCommisYearIndependent
+            + sumCommisYearDependent
+            + sumCommisYearIndependentFlex
+            + sumFlexEmission
+        )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """
@@ -1514,9 +1546,7 @@ class ConversionModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = opSum.values / esM.numberOfYears
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")

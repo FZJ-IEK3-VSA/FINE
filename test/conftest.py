@@ -344,8 +344,14 @@ def esM_init():
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
+    CO2_reductionTarget = 1
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
-    esM = fn.EnergySystemModel(
+    return fn.EnergySystemModel(
         locations=locations,
         commodities=commodities,
         numberOfTimeSteps=8760,
@@ -354,9 +360,9 @@ def esM_init():
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
+        balanceLimit=balanceLimit,
     )
 
-    return esM
 
 @pytest.fixture(scope="session")
 def multi_node_test_esM_init(esM_init):
@@ -364,8 +370,6 @@ def multi_node_test_esM_init(esM_init):
 
     # 2. Create an energy system model instance
     esM = esM_init
-
-    CO2_reductionTarget = 1
 
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources
@@ -475,8 +479,7 @@ def multi_node_test_esM_init(esM_init):
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -785,8 +788,7 @@ def multi_node_test_esM_init(esM_init):
             name="CO2 to enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -821,15 +823,13 @@ def test_esM_for_spagat(esM_init):
     )
 
     # CO2 from environment
-    CO2_reductionTarget = 1
     esM.add(
         fn.Source(
             esM=esM,
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -902,8 +902,6 @@ def multi_node_test_esM_optimized(esM_init):
     # 2. Create an energy system model instance
     esM = esM_init
 
-    CO2_reductionTarget = 1
-
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources
     ### Wind onshore
@@ -1012,8 +1010,7 @@ def multi_node_test_esM_optimized(esM_init):
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -1322,8 +1319,7 @@ def multi_node_test_esM_optimized(esM_init):
             name="CO2 to enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -1365,6 +1361,12 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
+    CO2_reductionTarget = 1
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -1375,9 +1377,8 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
+        balanceLimit=balanceLimit,
     )
-
-    CO2_reductionTarget = 1
 
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources
@@ -1491,8 +1492,7 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -1815,8 +1815,7 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
             name="CO2 to enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -1846,6 +1845,12 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
+    CO2_reductionTarget = 1
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -1856,10 +1861,8 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
-        balanceLimit=None,
+        balanceLimit=balanceLimit,
     )
-
-    CO2_reductionTarget = 1
 
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources
@@ -1969,8 +1972,7 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -2279,8 +2281,7 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
             name="CO2 to enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
