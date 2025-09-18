@@ -24,7 +24,7 @@ jobs:
         run: |
           ls
           echo "LS Done"
-          mamba env create --name test_env --yes --file requirements-dev.yml
+          mamba env create --name test_env --yes --file requirements_dev.yml
           mamba run --name test_env pip install . --no-deps
           echo "Installation done"
           mamba list --name test_env
@@ -36,7 +36,7 @@ jobs:
         shell: pwsh
         run: |
             python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
-            
+
   TestPushPyPIDev:
     name: Test PyPi development version on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
