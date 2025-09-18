@@ -8,10 +8,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v3
-        with: 
-            src: ".fine/"
+        with:
+          args: "--version"
       - name: Check Linter        
-        run: ruff check --output-format=github --config=pyproject.toml
+        run: ruff check --output-format=github --config=pyproject.toml fine
     # Needs to be activated to resolve issue https://github.com/FZJ-IEK3-VSA/FINE/issues/100
     #   - name: Check Format
     #     run: ruff format --check --config pyproject.toml
