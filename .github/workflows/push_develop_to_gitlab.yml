@@ -1,0 +1,27 @@
+name: Push dev to Jugit
+
+on:
+  push:
+    branches: [ ** ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with: 
+        repository: FZJ-IEK3-VSA/RESKit
+        fetch-depth: 0
+    - name: Push To Gitlab
+      env: 
+        token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+      run: |
+        echo Starting to push repo to gitlab
+        git config user.name "julian-belina-auto-commit"
+        git config user.email "j.belina@fz-juelich.de"
+        echo user name and email are set
+        git fetch
+        git switch dev
+        echo "Checkout complete"
+        echo start to push
+        git push --force https://push_to_jugit:${{ secrets.GITLAB_ACCESS_TOKEN }}@jugit.fz-juelich.de/iek-3/shared-code/fine.git develop
+        echo push done
