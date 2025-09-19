@@ -122,13 +122,10 @@ class ConversionDynamicModel(ConversionModel):
         :type pyM: pyomo ConcreteModel
         """
         super().declareSets(esM, pyM)
-        allBinaryParameters=["partLoadMin","downTimeMin","upTimeMin","rampUpMax","rampDownMax"]
+        allBinaryParameters=["partLoadMin","downTimeMin","upTimeMin"]
         self.declareBinOpVarSet(esM, pyM, binaryOperationParameter=allBinaryParameters, binaryOperationSetName="operationBinVarSet")
         self.declareBinOpVarSet(esM, pyM, binaryOperationParameter=["downTimeMin"], binaryOperationSetName="opConstrSet_downTimeMin")
         self.declareBinOpVarSet(esM, pyM, binaryOperationParameter=["upTimeMin"], binaryOperationSetName="opConstrSet_upTimeMin")
-        self.declareBinOpVarSet(esM, pyM, binaryOperationParameter=["rampUpMax"], binaryOperationSetName="opConstrSet_rampUpMax")
-        self.declareBinOpVarSet(esM, pyM, binaryOperationParameter=["rampDownMax"], binaryOperationSetName="opConstrSet_rampDownMax")
-
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
