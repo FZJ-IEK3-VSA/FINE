@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-version: latest
+          miniforge-version: 25.3.0-3
           channels: conda-forge
           activate-environment: ""
           conda-remove-defaults: "true"
@@ -78,7 +78,7 @@ jobs:
         uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-version: latest
+          miniforge-version: 25.3.0-3
           channels: conda-forge
           activate-environment: test_env
           conda-remove-defaults: "true"
