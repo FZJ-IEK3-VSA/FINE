@@ -1,22 +1,16 @@
 on:
-  pull_request:
-    branches: ["develop"]
+  push:
+    branches: ["70_add_ci"]
 
 jobs:
-  TestPullCondaForgeDev:
-    name: Test development version on ${{ matrix.os }}
+  TestPushCondaForgeDev:
+    name: Test conda-forge development version on ${{ matrix.os }} for python=${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [
-            "ubuntu-latest",
-            "ubuntu-22.04",
-            "macos-latest",
-            "macos-13",
-            "windows-latest",
-            "windows-2022",
-          ]
+        os: ["ubuntu-latest"]
+        python_version: ["3.9","3.10","3.11","3.12","3.13"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,6 +20,19 @@ jobs:
           channels: conda-forge
           activate-environment: test_env
           conda-remove-defaults: true
+      - name: Update values.yaml
+        uses: fjogeleit/yaml-update-action@main
+        with:
+          valueFile: 'requirements-dev.yml'
+          commitChange: false
+          method: CreateOrUpdate
+          # The number in the brackets needs behind at "dependencies[...]" needs to ab adjusted when dependencies are
+          # added or removed. It represents the position of the dependency in the "requirements-dev.yml" file starting
+          # with the first dependency as "0".
+          changes: |
+            {
+            "dependencies[0]": "python =${{ matrix.python_version }}"
+            }
       - name: Setup environment
         shell: pwsh
         run: |
@@ -47,20 +54,14 @@ jobs:
         run: |
             mamba run --name test_env python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
 
-  TestPullPyPIDev:
-    name: Test PyPI development version on ${{ matrix.os }}
+  TestPushPyPIDev:
+    name: Test PyPi development version on ${{ matrix.os }} for python=${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [
-            "ubuntu-latest",
-            "ubuntu-22.04",
-            "macos-latest",
-            "macos-13",
-            "windows-latest",
-            "windows-2022",
-          ]
+        os: ["ubuntu-latest"]
+        python_version: ["3.9","3.10","3.11","3.12","3.13"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,7 +76,7 @@ jobs:
         run: |
             ls
             echo "LS Done"
-            mamba env create --name test_env python=3.10 glpk
+            mamba env create --name test_env -c nodefaults -c conda-forge python=${{ matrix.python_version }} glpk
             echo "Python and glpk installation is done"
             mamba list --name test_env
             echo "Print dependencies from conda forge before installing pypi dependencies"
@@ -87,9 +88,10 @@ jobs:
         shell: pwsh
         run: 
           echo "start pytest"
-          mamba run --name test_env pytest -vv
+          mamba run --name test_env pytest -n auto  -vv
           echo "Pytest done"
       - name: Run Examples PyPI
         shell: pwsh
         run: |
             mamba run --name test_env python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
+

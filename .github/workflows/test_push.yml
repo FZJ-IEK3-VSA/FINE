@@ -73,7 +73,7 @@ jobs:
         shell: pwsh
         run: 
           echo "start pytest"
-          mamba run --name test_env pytest -vv
+          mamba run --name test_env pytest -n auto  -vv
           echo "Pytest done"
       - name: Run Examples PyPI
         shell: pwsh
