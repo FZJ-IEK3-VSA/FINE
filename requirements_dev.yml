@@ -24,7 +24,6 @@ dependencies:
   - psutil <=5.9.8
   - gurobi-logtools <=3.1.0
   - ipykernel <=6.29.5
-  # develop
   - sphinx <=7.4.7
   - sphinx_rtd_theme <=2.0.0
   - myst-parser <=2.0.0
