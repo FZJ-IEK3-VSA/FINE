@@ -1,6 +1,9 @@
 on:
   push:
     branches: ["70_add_ci"]
+  pull_request:
+    branches: ["develop"]
+
 
 jobs:
   TestPushCondaForgeDev:
@@ -17,9 +20,9 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
-          channels: conda-forge,nodefaults
+          channels: conda-forge
           activate-environment: test_env
-          conda-remove-defaults: true
+          conda-remove-defaults: "true"
       - name: Update values.yaml
         uses: fjogeleit/yaml-update-action@main
         with:
@@ -68,9 +71,9 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
-          channels: conda-forge,nodefaults
+          channels: conda-forge
           activate-environment: test_env
-          conda-remove-defaults: true
+          conda-remove-defaults: "true"
       - name: Setup Envionment
         shell: pwsh
         run: |

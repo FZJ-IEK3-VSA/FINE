@@ -1,27 +1,26 @@
-name: fine
+name: fine_env
 
 channels:
   - conda-forge
   - nodefaults
 
 dependencies:
-  - python>=3.10,<3.13
-  - pip
-  - geopandas<=0.14.4
-  - glpk
-  - openpyxl<=3.1.5
-  - matplotlib<=3.9.2
-  - xlrd<=2.0.1
-  - pyomo<=6.8.0
-  - numpy<=1.26.4
-  - pandas<=2.2.3
-  - scipy<=1.14.1
-  - scikit-learn>=1.2,<=1.5.2
-  - xarray<=2024.3
-  - rasterio<=1.4.1
-  - netcdf4<=1.7.2
-  - tsam
-  - pwlf<=2.2.1
-  - psutil<=5.9.8
-  - gurobi-logtools<=3.1.0
-  - ipykernel<=6.29.5
+  - python >=3.10,<3.13
+  - geopandas <=0.14.4
+  - glpk <=5.0
+  - openpyxl <=3.1.5
+  - matplotlib <=3.9.2
+  - xlrd <=2.0.1
+  - pyomo <=6.8.0
+  - numpy <=1.26.4
+  - pandas >=2,<=2.2.3
+  - scipy <=1.14.1
+  - scikit-learn >=1.2,<=1.5.2
+  - xarray <=2024.3
+  - rasterio <=1.4.1
+  - netcdf4 <=1.7.2
+  - tsam <=2.3.9
+  - pwlf <=2.2.1
+  - psutil <=5.9.8
+  - gurobi-logtools <=3.1.0
+  - ipykernel <=6.29.5
