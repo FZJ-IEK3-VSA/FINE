@@ -7,7 +7,7 @@ jobs:
     name: Test conda-forge development version on ${{ matrix.os }} for python=${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: ["ubuntu-latest"]
         python_version: ["3.9","3.10","3.11","3.12","3.13"]
@@ -23,7 +23,7 @@ jobs:
       - name: Update values.yaml
         uses: fjogeleit/yaml-update-action@main
         with:
-          valueFile: 'requirements-dev.yml'
+          valueFile: 'requirements_dev.yml'
           commitChange: false
           method: CreateOrUpdate
           # The number in the brackets needs behind at "dependencies[...]" needs to ab adjusted when dependencies are
