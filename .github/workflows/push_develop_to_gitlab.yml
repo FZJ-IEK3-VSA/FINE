@@ -19,7 +19,7 @@ jobs:
         git config user.email "j.belina@fz-juelich.de"
         echo user name and email are set
         git fetch
-        git switch dev
+        git switch develop
         echo "Checkout complete"
         echo start to push
         git push --force https://push_to_jugit:${{ secrets.GITLAB_ACCESS_TOKEN }}@jugit.fz-juelich.de/iek-3/shared-code/fine.git develop
