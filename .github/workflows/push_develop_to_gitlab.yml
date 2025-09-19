@@ -1,8 +1,7 @@
 name: Push dev to Jugit
-
 on:
   push:
-    branches: [ ** ]
+    branches: ["**"]
 jobs:
   build:
     runs-on: ubuntu-latest
