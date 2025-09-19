@@ -8,7 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with: 
-        repository: FZJ-IEK3-VSA/RESKit
+        repository: FZJ-IEK3-VSA/FINE
         fetch-depth: 0
     - name: Push To Gitlab
       env: 
