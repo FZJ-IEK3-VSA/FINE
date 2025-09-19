@@ -1,13 +1,13 @@
 on:
   push:
-    # branches: ["**"]
+    branches: ["**"]
 
 jobs:
   TestPushCondaForgeDev:
     name: Test conda-forge development version on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
     steps:
@@ -44,7 +44,7 @@ jobs:
     name: Test PyPi development version on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
     steps:
