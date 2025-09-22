@@ -170,8 +170,8 @@ def writeOptimizationOutputToExcel(
             segmentDuration = pd.concat(ls, axis=1).rename(
                 columns={"Segment Duration": "timeStepsPerSegment"}
             )
-            
-            segmentDuration.index.set_names(names="segmentNumber",inplace=True)  
+
+            segmentDuration.index.set_names(names="segmentNumber",inplace=True)
             segmentDuration.to_excel(writer, sheet_name="Misc", startrow=3)
         utils.output("\tSaving file...", esM.verbose, 0)
         writer.close()
@@ -1312,7 +1312,7 @@ def plotPieChart(
 
     property_subset = property_subset.droplevel(["Property", "Unit"]).fillna(0)
     property_subset = property_subset.transpose()
-    property_subset.index.set_names(names=indexColumn_in_shp,inplace=True) 
+    property_subset.index.set_names(names=indexColumn_in_shp,inplace=True)
 
     # Total property values in each region
     regional_property_sum = property_subset.sum(axis=1)

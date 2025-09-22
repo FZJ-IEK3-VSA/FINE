@@ -642,7 +642,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 "Property",
                                 "Unit",
                                 "LocationIn",
-                            ],inplace=True) 
+                            ],inplace=True)
                             _optSum_df = _optSum_df.droplevel(0, axis=1)
                             if isinstance(_optSum_df, pd.Series):
                                 _optSum_df = _optSum_df.to_frame().T
@@ -664,7 +664,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 ][variable].attrs.items()
                             ]
                             _optSum_df.index = pd.MultiIndex.from_tuples(iterables,names=["Component", "Property", "Unit"])
-                            
+
                             if isinstance(_optSum_df, pd.Series):
                                 _optSum_df = _optSum_df.to_frame().T
                             optSum_df_comp = pd.concat(
