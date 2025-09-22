@@ -14,26 +14,28 @@ def compare_values(value_1, value_2):
     # Dataframes and Series need a special treatment.
     if isinstance(value_1, DataFrame) and isinstance(value_2, DataFrame):
         # Reset index names
-        if isinstance(value_1.index, Index):
-            value_1.index.name = None
-        elif isinstance(value_1.index, MultiIndex):
-            value_1.index.names = None
+        value_1.index.set_names(names=None,inplace=True)
+        # if isinstance(value_1.index, Index):
+        #     value_1.index.set_names(None,inplace=True) 
+        # elif isinstance(value_1.index, MultiIndex):
+        #     value_1.index.set_names(None,inplace=True)
 
-        if isinstance(value_2.index, Index):
-            value_2.index.name = None
-        elif isinstance(value_2.index, MultiIndex):
-            value_2.index.names = None
+        value_2.index.set_names(names=None,inplace=True)
+        # if isinstance(value_2.index, Index):
+        #     value_2.index.set_names(None,inplace=True)
+        # elif isinstance(value_2.index, MultiIndex):
+        #     value_2.index.set_names(None,inplace=True)
 
-        value_1.columns.name = None
-        value_2.columns.name = None
+        value_1.columns.set_names(None,inplace=True)
+        value_2.columns.set_names(None,inplace=True)
 
         assert_frame_equal(
             value_1.sort_index(), value_2.sort_index(), check_dtype=False
         )
 
     elif isinstance(value_1, Series) and isinstance(value_2, Series):
-        value_1.index.name = None
-        value_2.index.name = None
+        value_1.index.set_names(names=None,inplace=True)
+        value_2.index.set_names(names=None,inplace=True)
 
         assert_series_equal(
             value_1.sort_index(), value_2.sort_index(), check_dtype=False
