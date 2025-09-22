@@ -34,7 +34,7 @@ jobs:
           # with the first dependency as "0".
           changes: |
             {
-            "dependencies[8]": "pandas =${{ matrix.pandas_version }}"
+            "dependencies[9]": "pandas =${{ matrix.pandas_version }}"
             }
       - name: Setup environment
         shell: pwsh
