@@ -14,13 +14,14 @@ def compare_values(value_1, value_2):
     # Dataframes and Series need a special treatment.
     if isinstance(value_1, DataFrame) and isinstance(value_2, DataFrame):
         # Reset index names
-        value_1.index.set_names(names=[None],inplace=True)
+        number_of_index_level_value_1=value_1.index.nlevels
+        value_1.index.set_names(names=[None]*number_of_index_level_value_1,inplace=True)
         # if isinstance(value_1.index, Index):
         #     value_1.index.set_names(None,inplace=True) 
         # elif isinstance(value_1.index, MultiIndex):
         #     value_1.index.set_names(None,inplace=True)
-
-        value_2.index.set_names(names=[None],inplace=True)
+        number_of_index_level_value_2=value_2.index.nlevels
+        value_2.index.set_names(names=[None]*number_of_index_level_value_2,inplace=True)
         # if isinstance(value_2.index, Index):
         #     value_2.index.set_names(None,inplace=True)
         # elif isinstance(value_2.index, MultiIndex):

@@ -13,7 +13,8 @@ def reconstruct_full_timeseries(esM, timeseries, ip):
     # switch first index level and column level
     df = timeseries.copy()
     df = df.stack().unstack(level=1)
-    df.index.set_names(names=[None],inplace=True)
+    number_of_index_level=df.index.nlevels
+    df.index.set_names(names=[None]*number_of_index_level,inplace=True)
     full_df = (
         buildFullTimeSeries(df, esM.periodsOrder[ip], ip=ip, esM=esM, divide=False)
         .reset_index(level=0, drop=True)

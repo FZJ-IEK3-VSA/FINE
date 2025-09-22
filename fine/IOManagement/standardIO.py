@@ -170,6 +170,7 @@ def writeOptimizationOutputToExcel(
             segmentDuration = pd.concat(ls, axis=1).rename(
                 columns={"Segment Duration": "timeStepsPerSegment"}
             )
+            
             segmentDuration.index.set_names(names="segmentNumber",inplace=True)  
             segmentDuration.to_excel(writer, sheet_name="Misc", startrow=3)
         utils.output("\tSaving file...", esM.verbose, 0)
