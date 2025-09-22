@@ -1,39 +1,59 @@
 on:
   push:
-    branches: ["**"]
+    branches: ["70_add_ci"]
+  pull_request:
+    branches: ["develop"]
+
 
 jobs:
   TestPushCondaForgeDev:
-    name: Test conda-forge development version on ${{ matrix.os }}
+    name: Test conda-forge development version on ${{ matrix.os }} for python=${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
+        python_version: ["3.9","3.10","3.11","3.12","3.13"]
     steps:
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@v2
       - name: Checkout
         uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-version: latest
+          miniforge-version: 25.3.0-3
           channels: conda-forge
-          activate-environment: test_env
+          activate-environment: ""
           conda-remove-defaults: "true"
+      - name: Update values.yaml
+        uses: fjogeleit/yaml-update-action@main
+        with:
+          valueFile: 'requirements_dev.yml'
+          commitChange: false
+          method: CreateOrUpdate
+          # The number in the brackets needs behind at "dependencies[...]" needs to ab adjusted when dependencies are
+          # added or removed. It represents the position of the dependency in the "requirements-dev.yml" file starting
+          # with the first dependency as "0".
+          changes: |
+            {
+            "dependencies[0]": "python =${{ matrix.python_version }}"
+            }
       - name: Setup environment
         shell: pwsh
         run: |
-          ls
-          echo "LS Done"
-          mamba env create --name test_env --yes --file requirements_dev.yml
-          mamba run --name test_env pip install -e . --no-deps
-          echo "Installation done"
-          mamba list --name test_env
-          echo "packages printed"
+            get-content requirements_dev.yml
+            ls
+            echo "LS Done"
+            mamba env create --name test_env --yes --file requirements_dev.yml
+            mamba run --name test_env pip install -e . --no-deps
+            echo "Installation done"
+            mamba list --name test_env
+            echo "packages printed"
       - name: Run tests
         shell: pwsh
         run: |
           echo "start pytest"
-          mamba run --name test_env pytest -vv
+          mamba run --name test_env pytest -n auto  -vv
           echo "Pytest done"
       - name: Run Examples Conda Forge
         shell: pwsh
@@ -41,18 +61,21 @@ jobs:
             mamba run --name test_env python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
 
   TestPushPyPIDev:
-    name: Test PyPi development version on ${{ matrix.os }}
+    name: Test PyPi development version on ${{ matrix.os }} for python=${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest"]
+        os: ["ubuntu-latest"]        
+        python_version: ["3.9","3.10","3.11","3.12","3.13"]
     steps:
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@v2
       - name: Checkout
         uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-version: latest
+          miniforge-version: 25.3.0-3
           channels: conda-forge
           activate-environment: test_env
           conda-remove-defaults: "true"
@@ -61,7 +84,7 @@ jobs:
         run: |
             ls
             echo "LS Done"
-            mamba env create --name test_env  python=3.10 glpk
+            mamba env create --name test_env python=${{ matrix.python_version }} glpk
             echo "Python and glpk installation is done"
             mamba list --name test_env
             echo "Print dependencies from conda forge before installing pypi dependencies"
