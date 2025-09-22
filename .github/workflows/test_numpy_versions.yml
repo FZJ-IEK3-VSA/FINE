@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [self-hosted"]
+        os: ["self-hosted"]
         numpy_version: ["2.3","2.2","2.1","2.0","1.26","1.25","1.24","1.23","1.22","1.21","1.20"]
     steps:
       - name: Collect Workflow Telemetry
@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [self-hosted"]        
+        os: ["self-hosted"]        
         numpy_version: ["2.3","2.2","2.1","2.0","1.26","1.25","1.24","1.23","1.22","1.21","1.20"]
     steps:
       - name: Collect Workflow Telemetry
