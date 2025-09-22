@@ -93,3 +93,4 @@ jobs:
         shell: pwsh
         run: |
             mamba run --name test_env python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
+
