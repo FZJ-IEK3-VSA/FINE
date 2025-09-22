@@ -2,7 +2,7 @@ name: Push master to Jugit
 
 on:
   push:
-    branches: [ master ]
+    branches: [ "master" ]
 
 jobs:
   build:
