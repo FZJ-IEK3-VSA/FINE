@@ -12,8 +12,9 @@ jobs:
       - uses: astral-sh/ruff-action@v3
         with:
           args: "--version"
+          version: "0.13.1"
       - name: Check Linter        
         run: ruff check --output-format=github --config=pyproject.toml fine
     # Needs to be activated to resolve issue https://github.com/FZJ-IEK3-VSA/FINE/issues/100
       - name: Check Format
-        run: ruff format --check --config pyproject.toml
+        run: ruff format --diff --config pyproject.toml
