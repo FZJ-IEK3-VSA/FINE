@@ -889,15 +889,14 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
 
     if rampUpMax is not None:
         # Check if values are postive floats or ints
-        if not isinstance(rampUpMax, (float,int)) and rampUpMax<=0:
+        if not isinstance(rampUpMax, (float, int)) and rampUpMax <= 0:
             raise TypeError(
                 "rampUpMax for " + name + " needs to be a positive float or int."
             )
 
-
     if rampDownMax is not None:
         # Check if values are postive floats or ints
-        if not isinstance(rampDownMax, (float,int)) and rampDownMax<=0:
+        if not isinstance(rampDownMax, (float, int)) and rampDownMax <= 0:
             raise TypeError(
                 "rampUpMax for " + name + " needs to be a positive float or int."
             )
@@ -908,7 +907,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
                 + name
                 + " needs to be specified when considering dynamic constraints."
             )
-    
+
     # check cyclic constraints
     if not isinstance(useTemporalCyclicConstraints, bool):
         raise ValueError("useTemporalCyclicConstraints must be a boolean.")
@@ -2004,15 +2003,16 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
         if data is not None and isinstance(data, pd.DataFrame):
             if mapC is None:
                 index, data_ = [], []
-                counter=0
+                counter = 0
                 if data.isnull().values.any():
-                    data.fillna(0,inplace=True)
-                    warnings.warn('Invalid input.  A matrix contains NaNs. NaN-values are adapted to Zero automatically. Please check your input!')
+                    data.fillna(0, inplace=True)
+                    warnings.warn(
+                        "Invalid input.  A matrix contains NaNs. NaN-values are adapted to Zero automatically. Please check your input!"
+                    )
 
                 for loc1 in data.columns:
                     for loc2 in data.index:
                         if loc1 != loc2:
-
                             if discard:
                                 # Structure: data[column][row]
                                 if data[loc1][loc2] > 0:
@@ -2027,11 +2027,12 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                                         data_.append(data[loc1][loc2]),
                                     )
                         else:
-                            if counter==0:
-                                if data[loc1][loc2]!=0:
-                                    warnings.warn('Matrix diagonale contains Non-Zeros. Location is connected to itself. Matrix adapted automatically. Please check your input!')
-                                    counter=counter+1
-
+                            if counter == 0:
+                                if data[loc1][loc2] != 0:
+                                    warnings.warn(
+                                        "Matrix diagonale contains Non-Zeros. Location is connected to itself. Matrix adapted automatically. Please check your input!"
+                                    )
+                                    counter = counter + 1
 
                 data_ = pd.Series(data_, index=index)
                 data_.sort_index(inplace=True)
@@ -2579,6 +2580,7 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
 
     return (isIpDepending, isCommisDepending, flexibleConversion)
 
+
 def checkNestedNanValues(obj):
     if isinstance(obj, dict):
         return any(checkNestedNanValues(v) for v in obj.values())
@@ -2591,7 +2593,8 @@ def checkNestedNanValues(obj):
     elif isinstance(obj, float):
         return math.isnan(obj)
     return False
-    
+
+
 def checkAndSetCommodityConversionFactor(comp, esM):
     """
     Set up the full commodity conversion factor, if necessary depending on
@@ -2656,7 +2659,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 for x in ccf.values()
                 if isinstance(x, (pd.Series, pd.DataFrame))
             ]
-            
+
             for key, value in ccf.items():
                 if isinstance(value, float) and math.isnan(value):
                     raise ValueError(f"NaN found at key '{key}'")
@@ -2664,8 +2667,10 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 elif isinstance(value, list):
                     for i, v in enumerate(value):
                         if isinstance(v, float) and math.isnan(v):
-                            raise ValueError(f"NaN found at key '{key}' in list index {i}")
-                        
+                            raise ValueError(
+                                f"NaN found at key '{key}' in list index {i}"
+                            )
+
         checkCommodities(esM, set(commodities))
         return commodTypes
 
@@ -2792,9 +2797,10 @@ def checkEmissionFactors(comp, esM):
     """
     Check emission factors for flexible conversion components.
     """
+
     def is_nan(val):
         return isinstance(val, float) and math.isnan(val)
-    
+
     if comp.emissionFactors is None:
         return None
     elif not comp.flexibleConversion:
@@ -2815,11 +2821,13 @@ def checkEmissionFactors(comp, esM):
         elif isinstance(value, list):
             for i, v in enumerate(value):
                 if isinstance(v, float) and is_nan(v):
-                    raise ValueError(f"NaN found in emission factor list for key '{key}', index {i}")
+                    raise ValueError(
+                        f"NaN found in emission factor list for key '{key}', index {i}"
+                    )
         if checkNestedNanValues(value):
-                                raise ValueError(
-                                    f"Emission factors for '{comp.name}', '{key}' contain NaN values."
-                        )
+            raise ValueError(
+                f"Emission factors for '{comp.name}', '{key}' contain NaN values."
+            )
 
     emission_commodities = list(comp.emissionFactors.keys())
     commodities = [
@@ -3001,4 +3009,3 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
         hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval,
         hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval,
     )
-

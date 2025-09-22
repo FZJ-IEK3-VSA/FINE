@@ -198,9 +198,7 @@ def test_flexibleConversion_init():
                 economicLifetime=10,
             )
         )
-    with pytest.raises(
-        ValueError, match=r".*contain NaN values.*"
-    ):
+    with pytest.raises(ValueError, match=r".*contain NaN values.*"):
         esM.add(
             fn.Conversion(
                 esM=esM,
@@ -217,12 +215,10 @@ def test_flexibleConversion_init():
                 investPerCapacity=0,
                 interestRate=0,
                 economicLifetime=10,
-                emissionFactors={'co2': {'electricity': np.nan}}
+                emissionFactors={"co2": {"electricity": np.nan}},
             )
         )
-    with pytest.raises(
-        ValueError, match=r".*contain NaN values.*"
-    ):
+    with pytest.raises(ValueError, match=r".*contain NaN values.*"):
         esM.add(
             fn.Conversion(
                 esM=esM,
@@ -239,9 +235,10 @@ def test_flexibleConversion_init():
                 investPerCapacity=0,
                 interestRate=0,
                 economicLifetime=10,
-                emissionFactors={'co2': {'electricity': 3}}
+                emissionFactors={"co2": {"electricity": 3}},
             )
         )
+
 
 def test_flexibleConversion_groups():
     esM = fn.EnergySystemModel(

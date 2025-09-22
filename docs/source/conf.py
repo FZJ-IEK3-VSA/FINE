@@ -45,7 +45,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
     "myst_parser",
-    "sphinx.ext.autosectionlabel"
+    "sphinx.ext.autosectionlabel",
 ]
 
 inheritance_graph_attrs = dict(

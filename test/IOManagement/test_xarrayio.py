@@ -14,29 +14,33 @@ def compare_values(value_1, value_2):
     # Dataframes and Series need a special treatment.
     if isinstance(value_1, DataFrame) and isinstance(value_2, DataFrame):
         # Reset index names
-        number_of_index_level_value_1=value_1.index.nlevels
-        value_1.index.set_names(names=[None]*number_of_index_level_value_1,inplace=True)
+        number_of_index_level_value_1 = value_1.index.nlevels
+        value_1.index.set_names(
+            names=[None] * number_of_index_level_value_1, inplace=True
+        )
         # if isinstance(value_1.index, Index):
-        #     value_1.index.set_names(None,inplace=True) 
+        #     value_1.index.set_names(None,inplace=True)
         # elif isinstance(value_1.index, MultiIndex):
         #     value_1.index.set_names(None,inplace=True)
-        number_of_index_level_value_2=value_2.index.nlevels
-        value_2.index.set_names(names=[None]*number_of_index_level_value_2,inplace=True)
+        number_of_index_level_value_2 = value_2.index.nlevels
+        value_2.index.set_names(
+            names=[None] * number_of_index_level_value_2, inplace=True
+        )
         # if isinstance(value_2.index, Index):
         #     value_2.index.set_names(None,inplace=True)
         # elif isinstance(value_2.index, MultiIndex):
         #     value_2.index.set_names(None,inplace=True)
 
-        value_1.columns.set_names(names=[None],inplace=True)
-        value_2.columns.set_names(names=[None],inplace=True)
+        value_1.columns.set_names(names=[None], inplace=True)
+        value_2.columns.set_names(names=[None], inplace=True)
 
         assert_frame_equal(
             value_1.sort_index(), value_2.sort_index(), check_dtype=False
         )
 
     elif isinstance(value_1, Series) and isinstance(value_2, Series):
-        value_1.index.set_names(names=[None],inplace=True)
-        value_2.index.set_names(names=[None],inplace=True)
+        value_1.index.set_names(names=[None], inplace=True)
+        value_2.index.set_names(names=[None], inplace=True)
 
         assert_series_equal(
             value_1.sort_index(), value_2.sort_index(), check_dtype=False
@@ -119,7 +123,7 @@ def test_esm_output_to_dataset_and_back(minimal_test_esM):
     for mdl in esm_original.componentModelingDict.keys():
         compare_dicts(
             esm_original.componentModelingDict[mdl].getOptimalValues(),
-            esm_from_datasets.componentModelingDict[mdl].getOptimalValues()
+            esm_from_datasets.componentModelingDict[mdl].getOptimalValues(),
         )
 
 
@@ -292,14 +296,15 @@ def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM):
 
     Path("test_esM_pf.nc").unlink()
 
+
 def test_operation_export_to_xarray(multi_node_test_esM_init):
-    '''Optimize an esM, write it to  xarray datasets, then load the esM from this file.
+    """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
     Check that the results of the transmission model are identical to the initial ones.
 
     Info: This test will fail as soon the annual operation will not be part of the
     optimization summary anymore. In that case convertOptimizationOutputToDatasets()
     in xarrayIO.py needs to be adapted.
-    '''
+    """
 
     esM = multi_node_test_esM_init
     esM.aggregateTemporally(
@@ -312,8 +317,15 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
-    optSum = esM.getOptimizationSummary('TransmissionModel').loc['DC cables','operation','[GW$_{el}$*h]']
-    xrRes = xrds['Results'][0]['TransmissionModel']['DC cables'].operation.to_series().unstack().dropna(how='all')
+    optSum = esM.getOptimizationSummary("TransmissionModel").loc[
+        "DC cables", "operation", "[GW$_{el}$*h]"
+    ]
+    xrRes = (
+        xrds["Results"][0]["TransmissionModel"]["DC cables"]
+        .operation.to_series()
+        .unstack()
+        .dropna(how="all")
+    )
     xrRes.columns.name = None
 
-    assert_frame_equal(optSum,xrRes,check_dtype=False)
+    assert_frame_equal(optSum, xrRes, check_dtype=False)

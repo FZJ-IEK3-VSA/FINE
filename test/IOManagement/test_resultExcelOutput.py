@@ -10,22 +10,21 @@ from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
 
 def test_compareResults_longClassNames():
-    '''
+    """
     Tests long, non-conventional class names which can lead to an error when writing the excel file (at most 31 characters allowed)
 
     Tests all possible subclasses (and subclasses of subclasses) of the component class
-    '''
+    """
 
-    #recursively get all subclasses which inherit from "component":
+    # recursively get all subclasses which inherit from "component":
 
     def recursive_check_inherits_from_component(obj):
-        #check whether it is empty
-        if len(obj.__bases__) == 0: #obj is empty and not component
+        # check whether it is empty
+        if len(obj.__bases__) == 0:  # obj is empty and not component
             return False
         if "component" in str(obj.__bases__[0]):
             return True
         return recursive_check_inherits_from_component(obj.__bases__[0])
-
 
     subclass_objects = []
     for name, obj in inspect.getmembers(subclasses):
@@ -36,35 +35,75 @@ def test_compareResults_longClassNames():
         if inheritsFromComponent:
             subclass_objects.append(obj)
 
-    #create ESM:
-    esM = fn.EnergySystemModel(locations={"Test", "Test1"},
+    # create ESM:
+    esM = fn.EnergySystemModel(
+        locations={"Test", "Test1"},
         commodities={"TestCom", "TargetCom"},
-        commodityUnitsDict={"TestCom" : "TestUnit",
-                            "TargetCom" : "TargetUnit"})
-    #add all subclasses which inherit from component to the esm:
-    '''
+        commodityUnitsDict={"TestCom": "TestUnit", "TargetCom": "TargetUnit"},
+    )
+    # add all subclasses which inherit from component to the esm:
+    """
     Adding all possible future subclasses does not work, because it is not clear which future parameters are required.
     Therefore, only the currently known subclasses "ConversionDynamic", "ConversionPartLoad" and "LinearOptimalPowerFlow" are added and an Error is raised if there are subclasses which do not match the ones known.
-    '''
+    """
     for possibleClass in subclass_objects:
         if "ConversionDynamic" in str(possibleClass):
-            esM.add(possibleClass(esM=esM, name=str(possibleClass),investPerCapacity=1, hasCapacityVariable=True,partLoadMin=0.2,bigM=1000, physicalUnit="TestUnit", commodityConversionFactors={"TestCom":-1, "TargetCom": 0.6}))
+            esM.add(
+                possibleClass(
+                    esM=esM,
+                    name=str(possibleClass),
+                    investPerCapacity=1,
+                    hasCapacityVariable=True,
+                    partLoadMin=0.2,
+                    bigM=1000,
+                    physicalUnit="TestUnit",
+                    commodityConversionFactors={"TestCom": -1, "TargetCom": 0.6},
+                )
+            )
         elif "ConversionPartLoad" in str(possibleClass):
-            continue #conversionPartLoad has an "internal" problem not related to this test. Need to be fixed before this test works properly.
+            continue  # conversionPartLoad has an "internal" problem not related to this test. Need to be fixed before this test works properly.
             Operation_level = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
             Efficiency = [0.1, 0.15, 0.5, 0.7, 0.7, 0.65, 0.63, 0.62, 0.61, 0.60]
             d = {"x": Operation_level, "y": Efficiency}
             partLoadData = pd.DataFrame(d)
-            esM.add(possibleClass(esM=esM, name=str(possibleClass),investPerCapacity=1, hasCapacityVariable=True, physicalUnit="TestUnit", commodityConversionFactors={"TestCom":-1, "TargetCom": 0.5},partLoadMin=0.2,bigM=1000, commodityConversionFactorsPartLoad={'TestCom':-1,'TargetCom':partLoadData}))
+            esM.add(
+                possibleClass(
+                    esM=esM,
+                    name=str(possibleClass),
+                    investPerCapacity=1,
+                    hasCapacityVariable=True,
+                    physicalUnit="TestUnit",
+                    commodityConversionFactors={"TestCom": -1, "TargetCom": 0.5},
+                    partLoadMin=0.2,
+                    bigM=1000,
+                    commodityConversionFactorsPartLoad={
+                        "TestCom": -1,
+                        "TargetCom": partLoadData,
+                    },
+                )
+            )
         elif "LinearOptimalPowerFlow" in str(possibleClass):
-            reactances  = pd.DataFrame(index=["Test", "Test1"], columns=["Test", "Test1"], data = [[1,1],[1,1]])
-            esM.add(possibleClass(esM=esM, name=str(possibleClass), commodity="TestCom", reactances =reactances ))
+            reactances = pd.DataFrame(
+                index=["Test", "Test1"],
+                columns=["Test", "Test1"],
+                data=[[1, 1], [1, 1]],
+            )
+            esM.add(
+                possibleClass(
+                    esM=esM,
+                    name=str(possibleClass),
+                    commodity="TestCom",
+                    reactances=reactances,
+                )
+            )
         else:
-            raise NotImplementedError(f"Test for class: {possibleClass} not implemented. If a new subclass is added, also add a possible abbreviation in case the name is too long for saving to excel.")
+            raise NotImplementedError(
+                f"Test for class: {possibleClass} not implemented. If a new subclass is added, also add a possible abbreviation in case the name is too long for saving to excel."
+            )
 
     esM.optimize()
 
-    #save to excel:
+    # save to excel:
 
     module_directory = Path(__file__).parent.absolute()
     dataPath = os.path.join(module_directory, "..", "data")
@@ -72,11 +111,9 @@ def test_compareResults_longClassNames():
     savePath = os.path.join(dataPath, "excelOutputLongClassNames")
 
     writeOptimizationOutputToExcel(
-        esM,
-        outputFileName=savePath,
-        optSumOutputLevel=2,
-        optValOutputLevel=2
+        esM, outputFileName=savePath, optSumOutputLevel=2, optValOutputLevel=2
     )
+
 
 def test_compareResults_miniSystem(minimal_test_esM):
     module_directory = Path(__file__).parent.absolute()

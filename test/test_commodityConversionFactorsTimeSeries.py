@@ -6,8 +6,6 @@ import fine.IOManagement.xarrayIO as xrIO
 from pandas.testing import assert_frame_equal
 
 
-
-
 def create_simple_esm():
     """
     To observe the effects of variable conversion factors, we create a simple test
@@ -341,11 +339,11 @@ def test_variable_conversion_export_to_xarray():
                 0: {
                     "electricity": pd.DataFrame(
                         [np.array([-0.1, -1, -10, -100])],
-                        index=["ElectrolyzerLocation"]
+                        index=["ElectrolyzerLocation"],
                     ).T,
                     "hydrogen": 1,
                 }
-            }
+            },
         )
     )
 
@@ -355,28 +353,29 @@ def test_variable_conversion_export_to_xarray():
 
     # === Check exported electricity DataFrame ===
     expected_df = pd.DataFrame(
-        [np.array([-0.1, -1, -10, -100])],
-        index=["ElectrolyzerLocation"]
+        [np.array([-0.1, -1, -10, -100])], index=["ElectrolyzerLocation"]
     ).T
 
     series = input_ds["ts_commodityConversionFactors.0.electricity"].to_pandas()
     actual_df = series.to_frame(name="ElectrolyzerLocation")
 
-
     # Normalize index/column names
-    number_of_index_level_expected=expected_df.index.nlevels
-    number_of_index_level_actual=actual_df.index.nlevels
-    expected_df.index.set_names(names=[None]*number_of_index_level_expected,inplace=True)
-    actual_df.index.set_names(names=[None]*number_of_index_level_actual,inplace=True)
-    expected_df.columns.set_names(names=[None]*number_of_index_level_expected,inplace=True)
-    actual_df.columns.set_names(names=[None]*number_of_index_level_actual,inplace=True)
-
-    assert_frame_equal(
-        actual_df.sort_index(),
-        expected_df.sort_index(),
-        check_dtype=False
+    number_of_index_level_expected = expected_df.index.nlevels
+    number_of_index_level_actual = actual_df.index.nlevels
+    expected_df.index.set_names(
+        names=[None] * number_of_index_level_expected, inplace=True
+    )
+    actual_df.index.set_names(names=[None] * number_of_index_level_actual, inplace=True)
+    expected_df.columns.set_names(
+        names=[None] * number_of_index_level_expected, inplace=True
+    )
+    actual_df.columns.set_names(
+        names=[None] * number_of_index_level_actual, inplace=True
     )
 
+    assert_frame_equal(
+        actual_df.sort_index(), expected_df.sort_index(), check_dtype=False
+    )
 
     # === Check exported hydrogen scalar ===
     hydrogen_val = input_ds["0d_commodityConversionFactors.0.hydrogen"].item()

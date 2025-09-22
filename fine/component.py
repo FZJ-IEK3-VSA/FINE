@@ -714,7 +714,9 @@ class Component(metaclass=ABCMeta):
 
         self.pwlcfParameters = pwlcfParameters
         self.pwlcf = None
-        if pwlcfParameters and not all(param is None for param in pwlcfParameters.values()):
+        if pwlcfParameters and not all(
+            param is None for param in pwlcfParameters.values()
+        ):
             pwlcfModule = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModule
             self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
 
@@ -2761,7 +2763,9 @@ class ComponentModel(metaclass=ABCMeta):
                         bigM = getBigM(compDict, compName)
                         return (
                             opVar[loc, compName, commis, ip, p, t]
-                            >= processedPartLoadMin * commisVar[loc, compName, commis] * esM.hoursPerTimeStep
+                            >= processedPartLoadMin
+                            * commisVar[loc, compName, commis]
+                            * esM.hoursPerTimeStep
                             - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
                         )
                 else:
@@ -2771,7 +2775,9 @@ class ComponentModel(metaclass=ABCMeta):
                         bigM = getBigM(compDict, compName)
                         return (
                             opVar[loc, compName, ip, p, t]
-                            >= processedPartLoadMin * capVar[loc, compName, ip]* esM.hoursPerTimeStep
+                            >= processedPartLoadMin
+                            * capVar[loc, compName, ip]
+                            * esM.hoursPerTimeStep
                             - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
                         )
             elif isOperationCommisYearDepending:
