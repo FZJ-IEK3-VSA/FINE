@@ -1,6 +1,8 @@
 name: Check code formatting and Linter hints
 
-on: [ push ]
+on:
+  push:
+    branches: ["**"]
 
 jobs:
   ruff:
