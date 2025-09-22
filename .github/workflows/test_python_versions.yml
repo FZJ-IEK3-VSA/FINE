@@ -2,7 +2,7 @@ on:
   push:
     branches: ["70_add_ci"]
   pull_request:
-    branches: ["develop"]
+    branches: ["70_add_ci"]
 
 
 jobs:
@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python_version: ["3.9","3.10","3.11","3.12","3.13"]
+        python_version: ["3.10","3.11","3.12","3.13"]
     steps:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@v2
