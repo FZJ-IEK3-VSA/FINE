@@ -1,6 +1,7 @@
 # %%
 import numpy as np
 import pandas as pd
+
 import fine as fn
 
 
@@ -68,7 +69,7 @@ def test_eos_NPV():
     np.testing.assert_almost_equal(capacity, 1.8)
 
     # correct obj:
-    np.testing.assert_almost_equal(esM.pyM.Obj(), 283.3024476)
+    np.testing.assert_almost_equal(actual=esM.pyM.Obj(), desired=283.3024476)
 
     # check for correct invest/TAC/NPV:
     invest = esM.getOptimizationSummary("SourceSinkModel", ip=0).loc[
@@ -77,7 +78,7 @@ def test_eos_NPV():
     investEOS = esM.getOptimizationSummary("SourceSinkModel", ip=0).loc[
         "PV", "invest_EOS", "[1 Euro]"
     ]["loc1"]
-    np.testing.assert_almost_equal(invest, investEOS)
+    np.testing.assert_almost_equal(actual=invest, desired=investEOS)
 
     tac = esM.getOptimizationSummary("SourceSinkModel", ip=0).loc[
         "PV", "TAC", "[1 Euro/a]"
@@ -85,7 +86,7 @@ def test_eos_NPV():
     tacEOS = esM.getOptimizationSummary("SourceSinkModel", ip=0).loc[
         "PV", "TAC_EOS", "[1 Euro/a]"
     ]["loc1"]
-    np.testing.assert_almost_equal(tac, tacEOS)
+    np.testing.assert_almost_equal(actual=tac, desired=tacEOS)
 
     npv = esM.getOptimizationSummary("SourceSinkModel", ip=0).loc[
         "PV", "NPVcontribution", "[1 Euro]"
@@ -93,4 +94,8 @@ def test_eos_NPV():
     npvEOS = esM.getOptimizationSummary("SourceSinkModel", ip=0).loc[
         "PV", "NPVcontribution_EOS", "[1 Euro]"
     ]["loc1"]
-    np.testing.assert_almost_equal(npv, npvEOS)
+    np.testing.assert_almost_equal(actual=npv, desired=npvEOS)
+
+
+if __name__ == "__main__":
+    test_eos_NPV()

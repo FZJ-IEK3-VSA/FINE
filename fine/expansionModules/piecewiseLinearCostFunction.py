@@ -1,8 +1,10 @@
-from fine import utils, utilsPWLCF
 import math
+
+import pandas as pd
 import pyomo.environ as pyomo
 from pyomo.core import Piecewise
-import pandas as pd
+
+from fine import utils, utilsPWLCF
 
 pyomo_pwlf = False
 
@@ -899,7 +901,14 @@ class PiecewiseLinearCostFunctionModel:
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.concat(
                     [optSummaryPwlcf[esM.investmentPeriodNames[ip]], mdlOptSummaryPwlcf]
                 )
+            self._add_pwlcf_summary(esM=esM, optSummaryPwlcf=optSummaryPwlcf)
 
+    def _add_pwlcf_summary(self, esM, optSummaryPwlcf):
+        """Add
+
+        Args:
+            esM (_type_): _description_
+        """
         for model in esM.componentModelingDict.values():
             optSummary = model._optSummary
             for ipName in esM.investmentPeriodNames:
@@ -916,31 +925,38 @@ class PiecewiseLinearCostFunctionModel:
                     if self.modulesDict[comp].pwlcf_type == "eos"
                 ]
                 optSummary[ipName] = pd.concat(
-                    [optSummary[ipName], optSummaryPwlcf[ipName].loc[etlComps, :, :]],
+                    [
+                        optSummary[ipName],
+                        optSummaryPwlcf[ipName].loc[etlComps, :, :],
+                    ],
                     axis=0,
                 ).sort_index()
                 optSummary[ipName] = pd.concat(
-                    [optSummary[ipName], optSummaryPwlcf[ipName].loc[eosComps, :, :]],
+                    [
+                        optSummary[ipName],
+                        optSummaryPwlcf[ipName].loc[eosComps, :, :],
+                    ],
                     axis=0,
                 ).sort_index()
+
                 if len(eosComps) > 0:
-                    optSummary[ipName].loc[eosComps, "TAC", :] += optSummaryPwlcf[
-                        ipName
-                    ].loc[:, "TAC_EOS", :]
-                    optSummary[ipName].loc[eosComps, "NPVcontribution", :] += (
-                        optSummaryPwlcf[ipName].loc[:, "NPVcontribution_EOS", :]
-                    )
-                    optSummary[ipName].loc[eosComps, "invest", :] += optSummaryPwlcf[
-                        ipName
-                    ].loc[:, "invest_EOS", :]
+                    for prop in ["TAC", "NPVcontribution", "invest"]:
+                        # add df to df
+                        property_slice = optSummaryPwlcf[ipName].loc[
+                            (slice(None), [f"{prop}_EOS"], slice(None))
+                        ]
+                        property_slice = property_slice.rename(
+                            index={f"{prop}_EOS": prop}, level="Property"
+                        )
+                        optSummary[ipName].loc[eosComps, prop, :] += property_slice
                 if len(etlComps) > 0:
-                    optSummary[ipName].loc[etlComps, "TAC", :] += optSummaryPwlcf[
-                        ipName
-                    ].loc[:, "TAC_ETL", :]
-                    optSummary[ipName].loc[etlComps, "NPVcontribution", :] += (
-                        optSummaryPwlcf[ipName].loc[:, "NPVcontribution_ETL", :]
-                    )
-                    optSummary[ipName].loc[eosComps, "invest", :] += optSummaryPwlcf[
-                        ipName
-                    ].loc[:, "invest_ETL", :]
+                    for prop in ["TAC", "NPVcontribution", "invest"]:
+                        # add df to df
+                        property_slice = optSummaryPwlcf[ipName].loc[
+                            (slice(None), [f"{prop}_ETL"], slice(None))
+                        ]
+                        property_slice = property_slice.rename(
+                            index={f"{prop}_ETL": prop}, level="Property"
+                        )
+                        optSummary[ipName].loc[eosComps, prop, :] += property_slice
             model.optSummary = optSummary[esM.startYear]
