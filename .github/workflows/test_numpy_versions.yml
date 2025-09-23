@@ -82,7 +82,7 @@ jobs:
         run: |
             ls
             echo "LS Done"
-            mamba env create --name test_env glpk
+            mamba env create --name test_env glpk python=3.13
             echo "Python and glpk installation is done"
             mamba list --name test_env
             echo "Print dependencies from conda forge before installing pypi dependencies"
