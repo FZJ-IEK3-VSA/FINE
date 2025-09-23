@@ -86,10 +86,12 @@ jobs:
             echo "Python and glpk installation is done"
             mamba list --name test_env
             echo "Print dependencies from conda forge before installing pypi dependencies"
-            mamba run --name test_env pip install .[develop]
+            mamba run --name test_env pip install -e .[develop]
             echo "pip installation is done"
             pip list -v
             echo "All dependencies are shown"
+            pip check
+            echo "checked for dependency conflicts"
       - name: Run Pytest
         shell: pwsh
         run: 

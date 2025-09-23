@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["self-hosted"]
-        numpy_version: ["2.3","2.2","2.1","2.0","1.26","1.25","1.24","1.23","1.22","1.21"]
+        numpy_version: ["2.3","2.2","2.1","2.0","1.26","1.25","1.24","1.23","1.22"]
     steps:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@v2
@@ -65,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["self-hosted"]        
-        numpy_version: ["2.3","2.2","2.1","2.0","1.26","1.25","1.24","1.23","1.22","1.21"]
+        numpy_version: ["2.3","2.2","2.1","2.0","1.26","1.25","1.24","1.23","1.22"]
     steps:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@v2
@@ -86,10 +86,12 @@ jobs:
             echo "Python and glpk installation is done"
             mamba list --name test_env
             echo "Print dependencies from conda forge before installing pypi dependencies"
-            mamba run --name test_env pip install .[develop] numpy=${{ matrix.numpy_version }}
+            mamba run --name test_env pip install -e .[develop] numpy==${{ matrix.numpy_version }}
             echo "pip installation is done"
             pip list -v
             echo "All dependencies are shown"
+            pip check
+            echo "checked for dependency conflicts"
       - name: Run Pytest
         shell: pwsh
         run: 
