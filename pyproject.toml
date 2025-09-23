@@ -36,7 +36,7 @@ dependencies = [
     "xlrd<=2.0.1",
     "pyomo<=6.9.4",
     "numpy<=2.2.4",
-    "pandas<=2.2.3",
+    "pandas<=2.3.2",
     "scipy<=1.15.2",
     "scikit-learn>=1.2,<=1.7.2",
     "xarray<=2025.9",
