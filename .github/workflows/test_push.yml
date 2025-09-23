@@ -69,6 +69,8 @@ jobs:
             echo "pip installation is done"
             pip list -v
             echo "All dependencies are shown"
+            pip check
+            echo "checked for dependency conflicts"
       - name: Run Pytest
         shell: pwsh
         run: 
