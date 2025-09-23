@@ -1,11 +1,13 @@
 from copy import deepcopy
 from pathlib import Path
-from pandas import DataFrame, Series, MultiIndex, Index
+
+import pandas as pd
+from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
+
+import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
 from fine.IOManagement.dictIO import exportToDict
-import fine as fn
-import pandas as pd
 
 
 def compare_values(value_1, value_2):
@@ -283,18 +285,21 @@ def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM):
         numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=2
     )
     esm_original_pf.optimize()
-
+    path_to_output_file = Path(__file__).parent.joinpath("test_esM_pf.nc")
+    path_to_output_file_str = str(path_to_output_file)
     xrIO.writeEnergySystemModelToNetCDF(
-        esm_original_pf, outputFilePath="test_esM_pf.nc"
+        esm_original_pf, outputFilePath=path_to_output_file_str
     )
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original_pf)
     assert "ts_aggregatedOperationRateMax" in esm_datasets["Input"]["Source"]["PV"]
 
-    esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM_pf.nc")
+    esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(
+        filePath=path_to_output_file_str
+    )
 
     compare_esm_inputs(esm_original_pf, esm_pf_from_netcdf)
 
-    Path("test_esM_pf.nc").unlink()
+    path_to_output_file.unlink()
 
 
 def test_operation_export_to_xarray(multi_node_test_esM_init):

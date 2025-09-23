@@ -901,7 +901,7 @@ class PiecewiseLinearCostFunctionModel:
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.concat(
                     [optSummaryPwlcf[esM.investmentPeriodNames[ip]], mdlOptSummaryPwlcf]
                 )
-            self._add_pwlcf_summary(esM=esM, optSummaryPwlcf=optSummaryPwlcf)
+        self._add_pwlcf_summary(esM=esM, optSummaryPwlcf=optSummaryPwlcf)
 
     def _add_pwlcf_summary(self, esM, optSummaryPwlcf):
         """Add
