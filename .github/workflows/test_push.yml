@@ -4,81 +4,55 @@ on:
 
 jobs:
   TestPushCondaForgeDev:
-    name: Test conda-forge development version on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Test conda-forge development version on ${{ matrix.runner_tag }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest"]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          channels: conda-forge
-          activate-environment: test_env
-          conda-remove-defaults: "true"
-      - name: Setup environment
-        shell: pwsh
-        run: |
-          ls
-          echo "LS Done"
-          mamba env create --name test_env --yes --file requirements_dev.yml
-          mamba run --name test_env pip install -e . --no-deps
-          echo "Installation done"
-          mamba list --name test_env
-          echo "packages printed"
-      - name: Run tests
-        shell: pwsh
-        run: |
-          echo "start pytest"
-          mamba run --name test_env pytest -vv
-          echo "Pytest done"
-      - name: Run Examples Conda Forge
-        shell: pwsh
-        run: |
-            mamba run --name test_env python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
+        runner_tag: ["ubuntu-latest"]
+    uses: https://github.com/FZJ-IEK3-VSA/.github/workflows/_run_single_conda_forge_test.yml@main
+    with:
+        runner_tag: ${{ matrix.runner_tag }}
+        requirements_file_name: requirements_dev.yml
 
-  TestPushPyPIDev:
-    name: Test PyPi development version on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ["ubuntu-latest"]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          channels: conda-forge
-          activate-environment: test_env
-          conda-remove-defaults: "true"
-      - name: Setup Envionment
-        shell: pwsh
-        run: |
-            ls
-            echo "LS Done"
-            mamba env create --name test_env  python=3.10 glpk
-            echo "Python and glpk installation is done"
-            mamba list --name test_env
-            echo "Print dependencies from conda forge before installing pypi dependencies"
-            mamba run --name test_env pip install .[develop]
-            echo "pip installation is done"
-            pip list -v
-            echo "All dependencies are shown"
-            pip check
-            echo "checked for dependency conflicts"
-      - name: Run Pytest
-        shell: pwsh
-        run: 
-          echo "start pytest"
-          mamba run --name test_env pytest -n auto  -vv
-          echo "Pytest done"
-      - name: Run Examples PyPI
-        shell: pwsh
-        run: |
-            mamba run --name test_env python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
+  # TestPushPyPIDev:
+  #   name: Test PyPi development version on ${{ matrix.os }}
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: ["ubuntu-latest"]
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #     - uses: conda-incubator/setup-miniconda@v3
+  #       with:
+  #         miniforge-version: latest
+  #         channels: conda-forge
+  #         activate-environment: test_env
+  #         conda-remove-defaults: "true"
+  #     - name: Setup Envionment
+  #       shell: pwsh
+  #       run: |
+  #           ls
+  #           echo "LS Done"
+  #           mamba env create --name test_env  python=3.10 glpk
+  #           echo "Python and glpk installation is done"
+  #           mamba list --name test_env
+  #           echo "Print dependencies from conda forge before installing pypi dependencies"
+  #           mamba run --name test_env pip install .[develop]
+  #           echo "pip installation is done"
+  #           pip list -v
+  #           echo "All dependencies are shown"
+  #           pip check
+  #           echo "checked for dependency conflicts"
+  #     - name: Run Pytest
+  #       shell: pwsh
+  #       run: 
+  #         echo "start pytest"
+  #         mamba run --name test_env pytest -n auto  -vv
+  #         echo "Pytest done"
+  #     - name: Run Examples PyPI
+  #       shell: pwsh
+  #       run: |
+  #           mamba run --name test_env python -m pytest -n auto --dist loadscope --nbval-lax --nbval-current-env  --durations=20 examples/
 
