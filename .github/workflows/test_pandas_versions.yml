@@ -1,6 +1,6 @@
 on:
   pull_request:
-    branches: ["70_add_ci"]
+    branches: ["master"]
 
 
 jobs:

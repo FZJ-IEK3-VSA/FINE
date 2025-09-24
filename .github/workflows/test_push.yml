@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["ubuntu-latest"]
-    uses: https://github.com/FZJ-IEK3-VSA/.github/workflows/_run_single_conda_forge_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
     with:
         runner_tag: ${{ matrix.runner_tag }}
         requirements_file_name: requirements_dev.yml
