@@ -1,6 +1,5 @@
 on:
-  push:
-    branches: ["70_add_ci"]
+
   pull_request:
     branches: ["master"]
 
@@ -21,18 +20,20 @@ jobs:
         library_name: "python"
         library_version: ${{ matrix.python_version }}
         dependency_position_env_file: "0"
-    
-  TestPushPyPIDev:
-    name: Test PyPi development version on ${{ matrix.runner_tag }} for python=${{ matrix.python_version }}
-    strategy:
-      fail-fast: false
-      matrix:
-        runner_tag: ["self-hosted"]        
-        python_version: ["3.13"]
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test.yml@main
-    with:
-        runner_tag: ${{ matrix.runner_tag }}
-        ipynb_example_folder: "examples"
-        python_version: "3.13"
-        optional_dependency_PyPI_tag: "[develop]"
-        additional_conda_forge_dependencies: "glpk"
+
+  # We decided not to test old dependency ranges on PyPI as there are many known incompatabilities
+  # of indirect dependencies. There is no method known to us to automatically test, store share this information
+  # TestPushPyPIDev:
+  #   name: Test PyPi development version on ${{ matrix.runner_tag }} for python=${{ matrix.python_version }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       runner_tag: ["self-hosted"]        
+  #       python_version: ["3.13"]
+  #   uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test.yml@main
+  #   with:
+  #       runner_tag: ${{ matrix.runner_tag }}
+  #       ipynb_example_folder: "examples"
+  #       python_version: "3.13"
+  #       optional_dependency_PyPI_tag: "[develop]"
+  #       additional_conda_forge_dependencies: "glpk"

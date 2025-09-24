@@ -22,7 +22,7 @@ If you would like to run ETHOS.FINE for your analysis we recommend to install it
     mamba create --name fine --channel conda-forge fine
 
 
-**Note on Mamba vs.Conda:** `mamba` commands can be substitued with `conda`. We highly recommend using `(Micro-)Mamba <https://mamba.readthedocs.io/en/latest/>`_ instead of Conda. The recommended way to use Mamba on your system is to install the `Miniforge distribution <https://github.com/conda-forge/miniforge#miniforge3>`_ . They offer installers for Windows, Linux and OS X. In principle, Conda and Mamba are interchangeable. The commands and concepts are the same. The distributions differ in the methodology for determining dependencies when installing Python packages. Mamba relies on a more modern methodology, which (with the same result) leads to very significant time savings during the installation of ETHOS.FINE. Switching to Mamba usually does not lead to any problems, as it is virtually identical to Conda in terms of operation.
+**Note on Mamba vs.Conda:** `mamba` commands can be substitued with `conda`. We highly recommend using `Mamba <https://mamba.readthedocs.io/en/latest/>`_ instead of Conda. The recommended way to use Mamba on your system is to install the `Miniforge distribution <https://github.com/conda-forge/miniforge#miniforge3>`_ . They offer installers for Windows, Linux and OS X. In principle, Conda and Mamba are interchangeable. The commands and concepts are the same.
 
 **Note on the solver:** The mamba/conda installation comes with `GLPK <https://www.gnu.org/software/glpk/>`_  as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install `GUROBI <http://www.gurobi.com/>`_ . See :ref:`Installation of an optimization solver<Installation of an optimization solver>` for more information.
 
@@ -40,6 +40,7 @@ Install ETHOS.FINE as editable install and without checking the dependencies fro
 
     python -m pip install --no-deps --editable .
 
+Installation from conda-forge is also recommended because conda-forge provides `Repodata patching <https://prefix.dev/blog/repodata_patching>`. This means that any known issues with dependency constraints are fed back to the automatic installation procedure, providing the best possible out-of-the-box installation experience. This is particularly important if you intend to use Fine within a more complex environment, e.g. to integrate it into a complex workflow. Fine is tested against multiple Python and dependency versions, providing more flexibility when creating complex environments, e.g. when using multiple tools from `ETHOS <https://www.fz-juelich.de/de/ice/ice-2/leistungen/model-services>`_ within the same environment.
 
 Installation from PyPI
 **********************
