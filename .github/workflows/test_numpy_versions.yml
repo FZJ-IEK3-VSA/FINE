@@ -1,6 +1,4 @@
 on:
-  push:
-    branches: ["70_add_ci"]
   pull_request:
     branches: ["master"]
 
