@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.4.1"
+version = "2.4.2"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
@@ -35,8 +35,8 @@ dependencies = [
     "matplotlib<=3.9.2",
     "xlrd<=2.0.1",
     "pyomo<=6.9.4",
-    "numpy<=2.2.4",
-    "pandas<=2.3.2",
+    "numpy<=2.3.3",
+    "pandas<=2.2.3",
     "scipy<=1.15.2",
     "scikit-learn>=1.2,<=1.7.2",
     "xarray<=2025.9",
