@@ -20,6 +20,7 @@ CAPACITY = 10
 
 OPERATION_HOURS = 10
 
+
 @pytest.mark.parametrize("hoursPerTimeStep", [0.25, 1])
 def test_conversionPartLoad_simple(hoursPerTimeStep):
     """Create energy system with several components.
@@ -36,7 +37,7 @@ def test_conversionPartLoad_simple(hoursPerTimeStep):
         locations={
             "region1",
         },
-        numberOfTimeSteps=int(OPERATION_HOURS/hoursPerTimeStep),
+        numberOfTimeSteps=int(OPERATION_HOURS / hoursPerTimeStep),
         hoursPerTimeStep=hoursPerTimeStep,
         commodities={"electricity", "methane", "heat"},
         commodityUnitsDict={"electricity": "kW", "methane": "kW", "heat": "kW"},
@@ -86,7 +87,10 @@ def test_conversionPartLoad_simple(hoursPerTimeStep):
             esM=esM,
             name="Heat demand",
             commodity="heat",
-            operationRateFix=pd.Series(data=[DEMAND*hoursPerTimeStep] * int(OPERATION_HOURS/hoursPerTimeStep)),
+            operationRateFix=pd.Series(
+                data=[DEMAND * hoursPerTimeStep]
+                * int(OPERATION_HOURS / hoursPerTimeStep)
+            ),
             hasCapacityVariable=False,
         )
     )
@@ -110,7 +114,6 @@ def test_conversionPartLoad_simple(hoursPerTimeStep):
     )
 
     assert expectedOperation == heater_operation
-
 
 
 sys.path.append(
@@ -236,5 +239,3 @@ def test_minimumPartLoad():
         "ConversionModel"
     ].operationVariablesOptimum.xs("restricted")
     np.testing.assert_array_almost_equal(testresults.values[0], results, decimal=2)
-
-
