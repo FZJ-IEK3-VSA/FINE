@@ -3,6 +3,8 @@ name: Check code formatting and Linter hints
 on:
   push:
     branches: ["**"]
+  pull_request:
+    branches: ["develop"]
 
 jobs:
   ruff:
@@ -17,4 +19,5 @@ jobs:
         run: ruff check --output-format=github --config=pyproject.toml fine
     # Needs to be activated to resolve issue https://github.com/FZJ-IEK3-VSA/FINE/issues/100
       - name: Check Format
+
         run: ruff format --diff --config pyproject.toml
