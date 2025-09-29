@@ -37,9 +37,21 @@ mamba create --name fine_env --channel conda-forge fine
 ```
 ### Installation from PyPI
 
-
+Create venv environment
 ```bash
 python -m venv .venv
+```
+
+Activate venv environment on Linux
+
+```bash
+source .venv/bin/activate
+```
+
+Activate venv environment on Windows
+
+```bash
+.venv\Scripts\activate
 ```
 
 Find more information on creating virtual environments with venv [here](https://docs.python.org/3/library/venv.html#how-venvs-work>).  
@@ -48,9 +60,6 @@ Find more information on creating virtual environments with venv [here](https://
 python -m pip install fine
 ```
 
-```bash
-python pip install fine
-```
 
 
 ### Solver
@@ -110,6 +119,18 @@ If you do not want to use conda-forge consider the steps in section [Installatio
 
 ```bash
 python -m venv .venv
+```
+
+Activate venv environment on Linux
+
+```bash
+source .venv/bin/activate
+```
+
+Activate venv environment on Windows
+
+```bash
+.venv\Scripts\activate
 ```
 
 ```bash
