@@ -10,9 +10,11 @@ from functools import wraps
 import matplotlib.patches as mpatches
 
 
-#abbreviated class names necessary for saving into excel files as sheet names are restricted by string length
-abbreviatedClassName = {"ConversionDynamicModel" : "ConvDyn",
-                         "ConversionPartLoad" : "ConvPartLoad" }
+# abbreviated class names necessary for saving into excel files as sheet names are restricted by string length
+abbreviatedClassName = {
+    "ConversionDynamicModel": "ConvDyn",
+    "ConversionPartLoad": "ConvPartLoad",
+}
 
 
 try:
@@ -93,7 +95,7 @@ def writeOptimizationOutputToExcel(
             if name in abbreviatedClassName.keys():
                 abbreviatedName = abbreviatedClassName[name]
             else:
-                abbreviatedName = name[:-5] #last 5 letters are "Model" and cut off
+                abbreviatedName = name[:-5]  # last 5 letters are "Model" and cut off
 
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
@@ -131,7 +133,9 @@ def writeOptimizationOutputToExcel(
                         ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
                     ]
                 if not dfTD1dim.empty:
-                    dfTD1dim.to_excel(writer, sheet_name=abbreviatedName + "_TDoptVar_1dim")
+                    dfTD1dim.to_excel(
+                        writer, sheet_name=abbreviatedName + "_TDoptVar_1dim"
+                    )
             if dataTD2dim:
                 names = ["Variable", "Component", "LocationIn", "LocationOut"]
                 dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
@@ -140,7 +144,9 @@ def writeOptimizationOutputToExcel(
                         ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
                     ]
                 if not dfTD2dim.empty:
-                    dfTD2dim.to_excel(writer, sheet_name=abbreviatedName + "_TDoptVar_2dim")
+                    dfTD2dim.to_excel(
+                        writer, sheet_name=abbreviatedName + "_TDoptVar_2dim"
+                    )
             if dataTI:
                 if esM.componentModelingDict[name].dimension == "1dim":
                     names = ["Variable type", "Component"]
@@ -171,7 +177,7 @@ def writeOptimizationOutputToExcel(
                 columns={"Segment Duration": "timeStepsPerSegment"}
             )
 
-            segmentDuration.index.set_names(names="segmentNumber",inplace=True)
+            segmentDuration.index.set_names(names="segmentNumber", inplace=True)
             segmentDuration.to_excel(writer, sheet_name="Misc", startrow=3)
         utils.output("\tSaving file...", esM.verbose, 0)
         writer.close()
@@ -799,7 +805,6 @@ def plotOperationColorMap(
         ax.set_yticklabels(yticklabels, fontsize=fontsize)
 
     if monthlabels:
-
         xticks, xlabels = [], []
         for i in range(1, 13, 2):
             xlabels.append(datetime.date(2050, i + 1, 1).strftime("%b"))
@@ -1312,7 +1317,8 @@ def plotPieChart(
 
     property_subset = property_subset.droplevel(["Property", "Unit"]).fillna(0)
     property_subset = property_subset.transpose()
-    property_subset.index.set_names(names=indexColumn_in_shp,inplace=True)
+
+    property_subset.index.set_names(names=indexColumn_in_shp, inplace=True)
 
     # Total property values in each region
     regional_property_sum = property_subset.sum(axis=1)

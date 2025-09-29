@@ -5,35 +5,37 @@ on:
 
 jobs:
   TestPushCondaForgeDev:
-    name: Test conda-forge development version on ${{ matrix.runner_tag }} for python=${{ matrix.python_version }}
+    name: Test conda-forge development version on ${{ matrix.runner_tag }} for pandas=${{ matrix.pandas_version }}
     strategy:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-        python_version: ["3.10","3.11","3.12","3.13"]
+        pandas_version: ["2.3","2.2","2.1","2.0","1.5","1.4"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
     with:
         runner_tag: ${{ matrix.runner_tag }}
         requirements_file_name: requirements_dev.yml
         ipynb_example_folder: "examples"
-        library_name: "python"
-        library_version: ${{ matrix.python_version }}
-        dependency_position_env_file: "0"
-
+        library_name: "pandas"
+        library_version: ${{ matrix.pandas_version }}
+        dependency_position_env_file: "9"
 
   # We decided not to test old dependency ranges on PyPI as there are many known incompatabilities
   # of indirect dependencies. There is no method known to us to automatically test, store share this information
   # TestPushPyPIDev:
-  #   name: Test PyPi development version on ${{ matrix.runner_tag }} for python=${{ matrix.python_version }}
+  #   name: Test PyPi development version on ${{ matrix.runner_tag }} for pandas=${{ matrix.pandas_version }}
   #   strategy:
   #     fail-fast: false
   #     matrix:
   #       runner_tag: ["self-hosted"]        
-  #       python_version: ["3.13"]
+  #       pandas_version: ["2.3","1.4"]
+  #       python_version: ["3.10","3.13"]
   #   uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test.yml@main
   #   with:
   #       runner_tag: ${{ matrix.runner_tag }}
   #       ipynb_example_folder: "examples"
-  #       python_version: "3.13"
+  #       python_version: ${{ matrix.python_version }}
   #       optional_dependency_PyPI_tag: "[develop]"
   #       additional_conda_forge_dependencies: "glpk"
+  #       library_name: "pandas"
+  #       library_version: ${{ matrix.pandas_version }}
