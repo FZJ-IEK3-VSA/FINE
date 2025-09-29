@@ -39,14 +39,14 @@ mamba create --name fine_env --channel conda-forge fine
 
 
 ```bash
-    python -m venv .venv
+python -m venv .venv
 ```
 
 Find more information on creating virtual environments with venv [here](https://docs.python.org/3/library/venv.html#how-venvs-work>).  
 
 ```bash
- python -m pip install fine
-```bash
+python -m pip install fine
+```
 
 ```bash
 python pip install fine
@@ -109,7 +109,7 @@ python -m pip install --no-deps --editable .
 If you do not want to use conda-forge consider the steps in section [Installation from PyPI](#Installation-from-pipy) and install ETHOS.FINE as editable install and with developer dependencies with
 
 ```bash
-    python -m venv .venv
+python -m venv .venv
 ```
 
 ```bash
