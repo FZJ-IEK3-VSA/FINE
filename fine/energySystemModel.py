@@ -2248,10 +2248,9 @@ class EnergySystemModel:
                 if logFileName == "":
                     gurobi_summary_dict = {}
                 else:
-                    absolute_logFilePath = Path.resolve(logFileName)
+                    absolute_logFilePath = Path(logFileName).resolve()
                     gurobi_summary_dict = glt.get_dataframe(
-                        [
-                            Path(absolute_logFilePath)
+                        [str(absolute_logFilePath)
                         ]  # passed path has to be a list
                     ).T.to_dict()[0]
             else:
