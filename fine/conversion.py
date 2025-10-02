@@ -924,7 +924,7 @@ class ConversionModel(ComponentModel):
             if comp.rampDownMax is not None
         ]
 
-        if rampDownComps:
+        if rampUpComps:
 
             def declareRampingSetUp(pyM):
                 return (
@@ -941,7 +941,7 @@ class ConversionModel(ComponentModel):
                 "opConstrSet_rampUpMax_" + abbrvName,
                 pyomo.Set(dimen=3, initialize=declareRampingSetUp),
             )
-        if rampUpComps:
+        if rampDownComps:
 
             def declareRampingSetDown(pyM):
                 return (
