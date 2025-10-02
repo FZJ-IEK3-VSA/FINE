@@ -10,7 +10,12 @@ import numpy as np
 import sys
 
 sys.path.append(
-    str(Path(__file__).parent / ".." / "examples" / "Multi-regional_Energy_System_Workflow")
+    str(
+        Path(__file__).parent
+        / ".."
+        / "examples"
+        / "Multi-regional_Energy_System_Workflow"
+    )
 )
 
 

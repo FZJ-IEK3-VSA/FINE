@@ -5,7 +5,7 @@ from pathlib import Path
 def getData(engine="openpyxl"):
     current_directory = Path(__file__).parent.absolute()
     inProfileDataPath = Path(current_directory) / "Input_profiles_fine.xlsx"
-    outProfileDataPath = Path(current_directory) /  "Output_profiles_fine.xlsx"
+    outProfileDataPath = Path(current_directory) / "Output_profiles_fine.xlsx"
     esDataPath = Path(current_directory) / "Potentials.xlsx"
 
     data = {}

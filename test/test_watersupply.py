@@ -6,10 +6,13 @@ import numpy as np
 import fine as fn
 from pathlib import Path
 
+
 def test_watersupply():
     # read in original results
     results = pd.read_csv(
-        Path(__file__).parent / "_testInputFiles" / "waterSupplySystem_totalTransmission.csv",
+        Path(__file__).parent
+        / "_testInputFiles"
+        / "waterSupplySystem_totalTransmission.csv",
         index_col=[0, 1, 2],
         header=None,
     ).squeeze("columns")

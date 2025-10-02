@@ -23,8 +23,6 @@ def getModel():
         balanceLimit=None,
     )
 
-
-
     ### Buy electricity at the electricity market
     costs = pd.DataFrame(
         [

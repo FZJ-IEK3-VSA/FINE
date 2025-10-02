@@ -9,7 +9,10 @@ import fine as fn
 
 sys.path.append(
     str(
-        Path(__file__).parent / ".." / "examples" / "03_Multi-regional_Energy_System_Workflow"
+        Path(__file__).parent
+        / ".."
+        / "examples"
+        / "03_Multi-regional_Energy_System_Workflow"
     )
 )
 from getData import getData
@@ -342,7 +345,11 @@ def esM_init():
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
     CO2_reductionTarget = 1
-    balanceLimit = pd.DataFrame(index=["CO2 limit"], columns=["Total", "lowerBound"], data=[[-366 * (1 - CO2_reductionTarget), True]])
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
     return fn.EnergySystemModel(
         locations=locations,
@@ -353,8 +360,9 @@ def esM_init():
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
-        balanceLimit=balanceLimit
+        balanceLimit=balanceLimit,
     )
+
 
 @pytest.fixture(scope="session")
 def multi_node_test_esM_init(esM_init):
@@ -1354,7 +1362,11 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
     CO2_reductionTarget = 1
-    balanceLimit = pd.DataFrame(index=["CO2 limit"], columns=["Total", "lowerBound"], data=[[-366 * (1 - CO2_reductionTarget), True]])
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -1365,9 +1377,8 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
-        balanceLimit=balanceLimit
+        balanceLimit=balanceLimit,
     )
-
 
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources
@@ -1835,7 +1846,11 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
     CO2_reductionTarget = 1
-    balanceLimit = pd.DataFrame(index=["CO2 limit"], columns=["Total", "lowerBound"], data=[[-366 * (1 - CO2_reductionTarget), True]])
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -1848,7 +1863,6 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
         verboseLogLevel=0,
         balanceLimit=balanceLimit,
     )
-
 
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources

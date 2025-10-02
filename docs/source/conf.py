@@ -20,7 +20,11 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, Path.resolve("."))
-insertPaths = [str(p) for p in [Path("../..")] + list(Path("../..").glob("**/")) if not p.name.endswith("_")]
+insertPaths = [
+    str(p)
+    for p in [Path("../..")] + list(Path("../..").glob("**/"))
+    if not p.name.endswith("_")
+]
 for path in insertPaths:
     sys.path.insert(0, Path.resolve(path))
 
@@ -44,7 +48,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
     "myst_parser",
-    "sphinx.ext.autosectionlabel"
+    "sphinx.ext.autosectionlabel",
 ]
 
 inheritance_graph_attrs = dict(

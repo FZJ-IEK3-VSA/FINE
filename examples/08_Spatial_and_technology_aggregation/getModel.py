@@ -1,5 +1,3 @@
-
-
 import fine as fn
 
 from getData import getData
@@ -38,7 +36,6 @@ def getModel():
         lengthUnit="km",
         verboseLogLevel=0,
     )
-
 
     # 2. Add commodity sources to the energy system model
 

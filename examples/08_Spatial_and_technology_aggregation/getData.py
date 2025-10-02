@@ -14,7 +14,10 @@ def getData(engine="openpyxl"):
         engine=engine,
     ).squeeze("columns")
     operationRateMax = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "Wind" / "maxOperationRateOnshore_el.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "Wind"
+        / "maxOperationRateOnshore_el.xlsx",
         header=0,
         index_col=0,
         engine=engine,
@@ -30,7 +33,10 @@ def getData(engine="openpyxl"):
         engine=engine,
     ).squeeze("columns")
     operationRateMax = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "Wind" / "maxOperationRateOffshore_el.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "Wind"
+        / "maxOperationRateOffshore_el.xlsx",
         header=0,
         index_col=0,
         engine=engine,
@@ -57,7 +63,10 @@ def getData(engine="openpyxl"):
 
     # Run of river data
     capacityFix = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "HydroPower" / "fixCapacityROR_GW_el.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "HydroPower"
+        / "fixCapacityROR_GW_el.xlsx",
         index_col=0,
         engine=engine,
     ).squeeze("columns")
@@ -73,7 +82,10 @@ def getData(engine="openpyxl"):
 
     # Biogas data
     operationRateMax = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "Biogas" / "biogasPotential_GWh_biogas.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "Biogas"
+        / "biogasPotential_GWh_biogas.xlsx",
         header=0,
         index_col=0,
         engine=engine,
@@ -82,7 +94,10 @@ def getData(engine="openpyxl"):
     data.update({"Biogas, operationRateMax": operationRateMax})
 
     biogasCommodityCostTimeSeries = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "Biogas" / "biogasPriceTimeSeries_MrdEuro_GWh.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "Biogas"
+        / "biogasPriceTimeSeries_MrdEuro_GWh.xlsx",
         header=0,
         index_col=0,
         engine=engine,
@@ -92,7 +107,10 @@ def getData(engine="openpyxl"):
 
     # Natural gas data
     naturalGasCommodityCostTimeSeries = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "NaturalGas" / "naturalGasPriceTimeSeries_MrdEuro_GWh.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "NaturalGas"
+        / "naturalGasPriceTimeSeries_MrdEuro_GWh.xlsx",
         header=0,
         index_col=0,
         engine=engine,
@@ -104,7 +122,10 @@ def getData(engine="openpyxl"):
 
     # Natural gas plant data
     capacityMax = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "NaturalGasPlants" / "existingCombinedCycleGasTurbinePlantsCapacity_GW_el.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "NaturalGasPlants"
+        / "existingCombinedCycleGasTurbinePlantsCapacity_GW_el.xlsx",
         index_col=0,
         engine=engine,
     ).squeeze("columns")
@@ -114,7 +135,10 @@ def getData(engine="openpyxl"):
     # Hydrogen salt cavern data
     capacityMax = (
         pd.read_excel(
-            Path(inputDataPath) / "SpatialData" / "GeologicalStorage" / "existingSaltCavernsCapacity_GWh_methane.xlsx",
+            Path(inputDataPath)
+            / "SpatialData"
+            / "GeologicalStorage"
+            / "existingSaltCavernsCapacity_GWh_methane.xlsx",
             index_col=0,
             engine=engine,
         ).squeeze("columns")
@@ -126,7 +150,10 @@ def getData(engine="openpyxl"):
 
     # Methane salt cavern data
     capacityMax = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "GeologicalStorage" / "existingSaltCavernsCapacity_GWh_methane.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "GeologicalStorage"
+        / "existingSaltCavernsCapacity_GWh_methane.xlsx",
         index_col=0,
         engine=engine,
     ).squeeze("columns")
@@ -135,7 +162,10 @@ def getData(engine="openpyxl"):
 
     # Pumped hydro storage data
     capacityFix = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "HydroPower" / "fixCapacityPHS_storage_GWh_energyPHS.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "HydroPower"
+        / "fixCapacityPHS_storage_GWh_energyPHS.xlsx",
         index_col=0,
         engine=engine,
     ).squeeze("columns")
@@ -144,7 +174,10 @@ def getData(engine="openpyxl"):
 
     # AC cables data
     capacityFix = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "ElectricGrid" / "ACcableExistingCapacity_GW_el.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "ElectricGrid"
+        / "ACcableExistingCapacity_GW_el.xlsx",
         index_col=0,
         header=0,
         engine=engine,
@@ -163,7 +196,10 @@ def getData(engine="openpyxl"):
 
     # DC cables data
     capacityFix = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "ElectricGrid" / "DCcableExistingCapacity_GW_el.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "ElectricGrid"
+        / "DCcableExistingCapacity_GW_el.xlsx",
         index_col=0,
         header=0,
         engine=engine,
@@ -204,7 +240,10 @@ def getData(engine="openpyxl"):
 
     # Electricity demand data
     operationRateFix = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "Demands" / "electricityDemand_GWh_el.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "Demands"
+        / "electricityDemand_GWh_el.xlsx",
         header=0,
         index_col=0,
         engine=engine,
@@ -214,7 +253,10 @@ def getData(engine="openpyxl"):
 
     # Hydrogen demand data
     operationRateFix = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "Demands" / "hydrogenDemand_GWh_hydrogen.xlsx",
+        Path(inputDataPath)
+        / "SpatialData"
+        / "Demands"
+        / "hydrogenDemand_GWh_hydrogen.xlsx",
         header=0,
         index_col=0,
         engine=engine,
