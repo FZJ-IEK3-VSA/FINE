@@ -451,7 +451,6 @@ class Conversion(Component):
                     "Time series aggregation is not supported for rampUpMax and rampDownMax."
                 )
 
-
     def getDataForTimeSeriesAggregation(self, ip):
         """Function for getting the required data if a time series aggregation is requested.
 
