@@ -228,7 +228,7 @@ class Conversion(Component):
                 }
             }
         :type flowShares: dict
-        
+
         :param rampUpMax: A maximum ramping rate to limit the increase in the operation of the component as share of the installed capacity.
             The maximum ramping is defined per hour and not per hoursPerTimeStep.
             |br| * the default value is None
@@ -912,10 +912,7 @@ class ConversionModel(ComponentModel):
         Declare ramping constraint sets if ramp rates are given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
-
         # rampUpMax and rampDownMax
-
         rampUpComps = [
             compName
             for (compName, comp) in compDict.items()
@@ -976,7 +973,7 @@ class ConversionModel(ComponentModel):
             |br| * the default value is None.
 
         """
-        if not rampingType in ["rampDownMax", "rampUpMax"]:
+        if rampingType not in ["rampDownMax", "rampUpMax"]:
             raise ValueError(
                 f"Ramping type {rampingType} is not valid. Please choose between rampDownMax and rampUpMax."
             )
@@ -1011,7 +1008,7 @@ class ConversionModel(ComponentModel):
 
             if t == 0 and not isCyclic:
                 return pyomo.Constraint.Skip
-            elif t == 0:
+            if t == 0:
                 return (
                     factor
                     * (
@@ -1020,7 +1017,7 @@ class ConversionModel(ComponentModel):
                     )
                     <= rampRateMax * timeStepLength * capVar[loc, compName, ip]
                 )
-            else:
+            if t > 0:
                 return (
                     factor
                     * (
@@ -1029,6 +1026,7 @@ class ConversionModel(ComponentModel):
                     )
                     <= rampRateMax * timeStepLength * capVar[loc, compName, ip]
                 )
+            return pyomo.Constraint.Skip
 
         setattr(
             pyM,
