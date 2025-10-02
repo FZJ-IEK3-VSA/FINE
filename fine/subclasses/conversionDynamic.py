@@ -40,16 +40,6 @@ class ConversionDynamic(Conversion):
             |br| * the default value is None
         :type upTimeMin: None or integer value in range \[0,numberOfTimeSteps*hoursPerTimeStep\]
 
-        :param rampUpMax: A maximum ramping rate to limit the increase in the operation of the component as share of the installed capacity.
-            The maximum ramping is defined per hour and not per hoursPerTimeStep.
-            |br| * the default value is None
-        :type rampUpMax: None or float value in range \]0.0,1.0\]
-
-        :param rampDownMax: A maximum ramping rate to limit the decrease in the operation of the component as share of the installed capacity.
-            The maximum ramping is defined per hour and not per hoursPerTimeStep.
-            |br| * the default value is None
-        :type rampDownMax: None or float value in range \]0.0,1.0\]
-
         :param useTemporalCyclicConstraints: If True, the temporal cyclic constraints are used.
             This means that the operation of the first time steps are mathematically linked to the operation of the last time steps.
             |br| * the default value is True
