@@ -834,6 +834,7 @@ def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPer
                 + f"periods of the esM ('{investmentPeriods}')",
             )
 
+
 def checkRampRates(
     esM,
     name,

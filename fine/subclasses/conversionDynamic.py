@@ -311,7 +311,6 @@ class ConversionDynamicModel(ConversionModel):
             pyomo.Constraint(constrSetMinTime, pyM.intraYearTimeSet, rule=minimumTime2),
         )
 
-
     def declareComponentConstraints(self, esM, pyM):
         """
         Declare time independent and dependent constraints.

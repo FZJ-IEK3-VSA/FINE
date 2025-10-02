@@ -323,7 +323,6 @@ class Conversion(Component):
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
 
-
         self.rampUpMax = rampUpMax
         self.rampDownMax = rampDownMax
         self.useTemporalCyclicConstraints = useTemporalCyclicConstraints
@@ -914,6 +913,7 @@ class ConversionModel(ComponentModel):
         ]
 
         if rampDownComps:
+
             def declareRampingSetUp(pyM):
                 return (
                     (loc, compName, ip)
@@ -930,6 +930,7 @@ class ConversionModel(ComponentModel):
                 pyomo.Set(dimen=3, initialize=declareRampingSetUp),
             )
         if rampUpComps:
+
             def declareRampingSetDown(pyM):
                 return (
                     (loc, compName, ip)
@@ -945,8 +946,6 @@ class ConversionModel(ComponentModel):
                 "opConstrSet_rampDownMax_" + abbrvName,
                 pyomo.Set(dimen=3, initialize=declareRampingSetDown),
             )
-        
-
 
     def declareRampingConstraints(self, pyM, esM, rampingType):
         """Set up the ramping contraints.
@@ -1021,9 +1020,6 @@ class ConversionModel(ComponentModel):
             f"Constr{rampingType}_{abbrvName}",
             pyomo.Constraint(constrSetRamp, pyM.intraYearTimeSet, rule=ramping),
         )
-        
-
-
 
     def declareSets(self, esM, pyM):
         """
@@ -1074,7 +1070,7 @@ class ConversionModel(ComponentModel):
         # Declare maximum yearly full load hour set
         self.declareYearlyFullLoadHoursMaxSet(pyM)
         self.declareYearlyFullLoadHoursCommisMaxSet(pyM)
-        
+
         # Declare ramping constraint sets
         self.declareRampingVarSets(esM, pyM)
 
@@ -1132,8 +1128,6 @@ class ConversionModel(ComponentModel):
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
-        
-        
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -1212,7 +1206,7 @@ class ConversionModel(ComponentModel):
             "op_commis",
             isOperationCommisYearDepending=True,
         )
-        
+
         self.declareRampingConstraints(pyM, esM, rampingType="rampUpMax")
         self.declareRampingConstraints(pyM, esM, rampingType="rampDownMax")
 
