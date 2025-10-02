@@ -1,6 +1,5 @@
 import time
 from pathlib import Path
-
 import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
@@ -76,7 +75,6 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
 
 
 def convertPerformanceSummaryToDatasets(esM):
-    import pandas as pd
 
     df = esM.performanceSummary.squeeze()
     df = df.droplevel("Category")

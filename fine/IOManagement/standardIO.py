@@ -7,6 +7,7 @@ import time
 import warnings
 from functools import wraps
 import matplotlib.patches as mpatches
+import datetime
 
 try:
     import geopandas as gpd
@@ -786,7 +787,6 @@ def plotOperationColorMap(
         ax.set_yticklabels(yticklabels, fontsize=fontsize)
 
     if monthlabels:
-        import datetime
 
         xticks, xlabels = [], []
         for i in range(1, 13, 2):
