@@ -834,14 +834,32 @@ def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPer
                 + f"periods of the esM ('{investmentPeriods}')",
             )
 
+def checkRampRates(
+    esM,
+    name,
+    rampUpMax,
+    rampDownMax,
+):
+    if rampUpMax is not None:
+        # Check if values are postive floats or ints
+        if not isinstance(rampUpMax, (float, int)) and rampUpMax <= 0:
+            raise TypeError(
+                "rampUpMax for " + name + " needs to be a positive float or int."
+            )
+
+    if rampDownMax is not None:
+        # Check if values are postive floats or ints
+        if not isinstance(rampDownMax, (float, int)) and rampDownMax <= 0:
+            raise TypeError(
+                "rampUpMax for " + name + " needs to be a positive float or int."
+            )
+
 
 def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     downTimeMin = compFancy.downTimeMin
     upTimeMin = compFancy.upTimeMin
     numberOfTimeSteps = esM.numberOfTimeSteps
     name = compFancy.name
-    rampUpMax = compFancy.rampUpMax
-    rampDownMax = compFancy.rampDownMax
     bigM = compFancy.bigM
     useTemporalCyclicConstraints = compFancy.useTemporalCyclicConstraints
 
@@ -887,20 +905,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
                 + " needs to be an integer in the intervall ]0,numberOfTimeSteps]."
             )
 
-    if rampUpMax is not None:
-        # Check if values are postive floats or ints
-        if not isinstance(rampUpMax, (float, int)) and rampUpMax <= 0:
-            raise TypeError(
-                "rampUpMax for " + name + " needs to be a positive float or int."
-            )
-
-    if rampDownMax is not None:
-        # Check if values are postive floats or ints
-        if not isinstance(rampDownMax, (float, int)) and rampDownMax <= 0:
-            raise TypeError(
-                "rampUpMax for " + name + " needs to be a positive float or int."
-            )
-    if any(x is not None for x in [downTimeMin, upTimeMin, rampUpMax, rampDownMax]):
+    if any(x is not None for x in [downTimeMin, upTimeMin]):
         if bigM is None:
             raise ValueError(
                 "bigM for "

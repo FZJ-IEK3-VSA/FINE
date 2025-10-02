@@ -54,6 +54,9 @@ class Conversion(Component):
         emissionFactors=None,
         flowShares=None,
         pwlcfParameters=None,
+        rampUpMax=None,
+        rampDownMax=None,
+        useTemporalCyclicConstraints=True,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -319,6 +322,17 @@ class Conversion(Component):
         )
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
+
+
+        self.rampUpMax = rampUpMax
+        self.rampDownMax = rampDownMax
+        self.useTemporalCyclicConstraints = useTemporalCyclicConstraints
+        utils.checkRampRates(
+            esM,
+            name,
+            self.rampUpMax,
+            self.rampDownMax,
+        )
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
@@ -879,6 +893,138 @@ class ConversionModel(ComponentModel):
         self.declareOpCommisConstrSet4(pyM, "opCommisConstrSet", rateMin)
         self.declareOpCommisConstrSetMinPartLoad(pyM, "opCommisConstrSet")
 
+    def declareRampingVarSets(self, esM, pyM):
+        """
+        Declare ramping constraint sets if ramp rates are given.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        varSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        # rampUpMax and rampDownMax
+
+        rampUpComps = [
+            compName
+            for (compName, comp) in compDict.items()
+            if comp.rampUpMax is not None
+        ]
+        rampDownComps = [
+            compName
+            for (compName, comp) in compDict.items()
+            if comp.rampDownMax is not None
+        ]
+
+        if rampDownComps:
+            def declareRampingSetUp(pyM):
+                return (
+                    (loc, compName, ip)
+                    for compName, comp in compDict.items()
+                    if compName in rampUpComps
+                    for loc in comp.processedLocationalEligibility.index
+                    for ip in esM.investmentPeriods
+                    if comp.processedLocationalEligibility[loc] == 1
+                )
+
+            setattr(
+                pyM,
+                "opConstrSet_rampUpMax_" + abbrvName,
+                pyomo.Set(dimen=3, initialize=declareRampingSetUp),
+            )
+        if rampUpComps:
+            def declareRampingSetDown(pyM):
+                return (
+                    (loc, compName, ip)
+                    for compName, comp in compDict.items()
+                    if compName in rampDownComps
+                    for loc in comp.processedLocationalEligibility.index
+                    for ip in esM.investmentPeriods
+                    if comp.processedLocationalEligibility[loc] == 1
+                )
+
+            setattr(
+                pyM,
+                "opConstrSet_rampDownMax_" + abbrvName,
+                pyomo.Set(dimen=3, initialize=declareRampingSetDown),
+            )
+        
+
+
+    def declareRampingConstraints(self, pyM, esM, rampingType):
+        """Set up the ramping contraints.
+
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo Concrete Model
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param rampingType: Type of ramping constraints to set up. Can be either rampDownMax or rampUpMax
+            |br| * the default value is None.
+
+        """
+        if not rampingType in ["rampDownMax", "rampUpMax"]:
+            raise ValueError(
+                f"Ramping type {rampingType} is not valid. Please choose between rampDownMax and rampUpMax."
+            )
+
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+
+        # first check if the parameter and therefore the set is defined
+        if not hasattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName):
+            return
+
+        # if set exists, set up the constraint
+        opVar = getattr(pyM, "op_" + abbrvName)
+        capVar = getattr(pyM, "cap_" + abbrvName)
+
+        constrSetRamp = getattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName)
+
+        factor = 1 if rampingType == "rampDownMax" else -1
+
+        if not pyM.hasSegmentation:
+            numberOfTimeSteps = len(esM.timeStepsPerPeriod)
+        else:
+            numberOfTimeSteps = len(esM.segmentsPerPeriod)
+
+        def ramping(pyM, loc, compName, ip, p, t):
+            rampRateMax = getattr(compDict[compName], rampingType)
+            isCyclic = getattr(compDict[compName], "useTemporalCyclicConstraints")
+            timeStepLength = (
+                esM.timeStepsPerPeriod[ip].to_dict()[p, t]
+                if pyM.hasSegmentation
+                else esM.hoursPerTimeStep
+            )
+
+            if t == 0 and not isCyclic:
+                return pyomo.Constraint.Skip
+            elif t == 0:
+                return (
+                    factor
+                    * (
+                        opVar[loc, compName, ip, p, numberOfTimeSteps - 1]
+                        - opVar[loc, compName, ip, p, t]
+                    )
+                    <= rampRateMax * timeStepLength * capVar[loc, compName, ip]
+                )
+            else:
+                return (
+                    factor
+                    * (
+                        opVar[loc, compName, ip, p, t - 1]
+                        - opVar[loc, compName, ip, p, t]
+                    )
+                    <= rampRateMax * timeStepLength * capVar[loc, compName, ip]
+                )
+
+        setattr(
+            pyM,
+            f"Constr{rampingType}_{abbrvName}",
+            pyomo.Constraint(constrSetRamp, pyM.intraYearTimeSet, rule=ramping),
+        )
+        
+
+
+
     def declareSets(self, esM, pyM):
         """
         Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
@@ -928,6 +1074,9 @@ class ConversionModel(ComponentModel):
         # Declare maximum yearly full load hour set
         self.declareYearlyFullLoadHoursMaxSet(pyM)
         self.declareYearlyFullLoadHoursCommisMaxSet(pyM)
+        
+        # Declare ramping constraint sets
+        self.declareRampingVarSets(esM, pyM)
 
     ####################################################################################################################
     #                                                Declare variables                                                 #
@@ -983,6 +1132,8 @@ class ConversionModel(ComponentModel):
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
+        
+        
 
     ####################################################################################################################
     #                                          Declare component constraints                                           #
@@ -1061,6 +1212,9 @@ class ConversionModel(ComponentModel):
             "op_commis",
             isOperationCommisYearDepending=True,
         )
+        
+        self.declareRampingConstraints(pyM, esM, rampingType="rampUpMax")
+        self.declareRampingConstraints(pyM, esM, rampingType="rampDownMax")
 
         ################################################################################################################
         #                                    Declare pathway constraints                                               #
