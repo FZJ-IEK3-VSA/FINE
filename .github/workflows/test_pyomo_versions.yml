@@ -1,4 +1,6 @@
 on:
+  push:
+    branches: ["480_test_pyomo"]
   pull_request:
     branches: ["master"]
 
