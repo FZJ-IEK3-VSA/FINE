@@ -1,6 +1,7 @@
 name: Check code formatting and Linter hints
 
 on:
+  workflow_dispatch:
   push:
     branches: ["**"]
   pull_request:
@@ -15,9 +16,9 @@ jobs:
         with:
           args: "--version"
           version: "0.13.1"
-      - name: Check Linter        
+      - name: Check Linter
         run: ruff check --output-format=github --config=pyproject.toml fine
-    # Needs to be activated to resolve issue https://github.com/FZJ-IEK3-VSA/FINE/issues/100
+      # Needs to be activated to resolve issue https://github.com/FZJ-IEK3-VSA/FINE/issues/100
       - name: Check Format
 
         run: ruff format --diff --config pyproject.toml

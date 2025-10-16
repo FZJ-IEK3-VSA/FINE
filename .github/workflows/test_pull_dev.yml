@@ -1,4 +1,5 @@
 on:
+  workflow_dispatch:
   pull_request:
     branches: ["develop"]
 
@@ -8,7 +9,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner_tag: [
+        runner_tag:
+          [
             "ubuntu-latest",
             "ubuntu-22.04",
             "macos-latest",
@@ -16,21 +18,22 @@ jobs:
             "windows-latest",
             "windows-2022",
           ]
-        python_version: ["3.10","3.13"]
+        python_version: ["3.10", "3.13"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
     with:
-        runner_tag: ${{ matrix.runner_tag }}
-        requirements_file_name: requirements_dev.yml
-        ipynb_example_folder: "examples"
-        library_name: "python"
-        library_version: ${{ matrix.python_version }}
-        dependency_position_env_file: "0"
+      runner_tag: ${{ matrix.runner_tag }}
+      requirements_file_name: requirements_dev.yml
+      ipynb_example_folder: "examples"
+      library_name: "python"
+      library_version: ${{ matrix.python_version }}
+      dependency_position_env_file: "0"
   TestPullPyPIDev:
     name: Test PyPI development version on ${{ matrix.runner_tag }}
     strategy:
       fail-fast: false
       matrix:
-        runner_tag: [
+        runner_tag:
+          [
             "ubuntu-latest",
             "ubuntu-22.04",
             "macos-latest",
@@ -40,8 +43,8 @@ jobs:
           ]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test.yml@main
     with:
-        runner_tag: ${{ matrix.runner_tag }}
-        ipynb_example_folder: "examples"
-        python_version: "3.13"
-        optional_dependency_PyPI_tag: "[develop]"
-        additional_conda_forge_dependencies: "glpk"
+      runner_tag: ${{ matrix.runner_tag }}
+      ipynb_example_folder: "examples"
+      python_version: "3.13"
+      optional_dependency_PyPI_tag: "[develop]"
+      additional_conda_forge_dependencies: "glpk"
