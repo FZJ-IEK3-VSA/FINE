@@ -1,4 +1,4 @@
-image: mambaorg/micromamba
+image: mambaorg/micromamba:2.3.1
 
 stages:
   - test
@@ -29,7 +29,7 @@ variables:
       - ".cache/pkgs"
     policy: pull
   before_script:
-    - micromamba install -n base -y --file=requirements_dev.yml
+    - micromamba install -n base -y -v --file=requirements_dev.yml
     - python -m pip install --no-deps .
   rules:
     # Switch from branch pipeline to merge pipeline once a merge request has
@@ -88,7 +88,7 @@ variables:
       - ".cache/pkgs"
     policy: pull
   before_script:
-    - micromamba install -n base -y --file=requirements_dev.yml
+    - micromamba install -n base -y -v --file=requirements_dev.yml
     - python -m pip install --no-deps .
   rules:
     # Do not run for pushes to master or develop and for merge requests to master
@@ -123,7 +123,7 @@ variables:
 test-pypi:
   stage: test
   script:
-    - micromamba install -c conda-forge -n base -y python=3.10 glpk gdal
+    - micromamba install -c conda-forge -n base -y -v python=3.10 glpk gdal
     - python -m pip install .[develop]
     - python -m pytest -n auto test/
   rules:

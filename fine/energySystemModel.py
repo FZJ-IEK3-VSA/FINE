@@ -1792,7 +1792,7 @@ class EnergySystemModel:
 
         if hasattr(self, "pwlcfModel"):
             utils.output(
-                "Declaring sets, variables and constraints for ETL components",
+                "Declaring sets, variables and constraints for PWLCF components",
                 self.verbose,
                 0,
             )

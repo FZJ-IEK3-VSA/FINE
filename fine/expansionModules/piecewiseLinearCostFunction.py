@@ -1,8 +1,10 @@
-from fine import utils, utilsPWLCF
 import math
+
+import pandas as pd
 import pyomo.environ as pyomo
 from pyomo.core import Piecewise
-import pandas as pd
+
+from fine import utils, utilsPWLCF
 
 pyomo_pwlf = False
 
@@ -12,49 +14,101 @@ class PiecewiseLinearCostFunctionModule:
         self,
         comp,
         esM,
-        etlParameters = None,
-        eosParameters = None,
+        etlParameters=None,
+        eosParameters=None,
     ):
+        """
+        Constructor for initialization of piecewise linear cost function module. At this stage, either endogenous technology learning or economies of scale (plant/location specific) can be used.
+
+        :param comp: component for which the pwlcf should be added.
+        :type comp: Component instance from the FINE package
+
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param etlParameters: parameters used for the endogenous technology learning approach. Required entries:
+            "initCost": float, initial Cost at initial capacity, i.e. 500 €/kW
+            "learningRate": float, learning rate for cost reductions
+            "initCapacity": float, initial capacity
+            "maxCapacity": float, maximum capacity until where learning effects are valid
+            "noSegments": float, number of segments used for approximation of nonlinear cost function. defaults to 4.
+        :type etlParameters: dict
+
+        "eosParameters": pd.DataFrame(data=np.array([[0,1,2,3],[0,1000, 1800, 2400],[0, 10, 18, 24]]).T, columns=["capacity", "totalInvest", "totalOpex"])
+        :param eosParameters: parameters used for economies of scale approach. Required columns:
+            "capacity": float, capacity at which the totalInvest/totalOpex are valid
+            "totalInvest": float, total Invest at specified capacity
+            "totalOpex": float, total opex at specified capacity
+            -At each index rising capacities are defined and corresponding invest/opex are defined. Between the defined supporting points the cost is linearily interpolated.
+        :type eosParameters: pandas DataFrame
+        """
         self.comp = comp
 
-        if etlParameters and  eosParameters is not None:
-            raise NotImplementedError(f"Specifying both, endogenous technology learning (etl) and economies of scale (eos) is not valid. Check component: {self.comp}.")
+        if etlParameters and eosParameters is not None:
+            raise NotImplementedError(
+                f"Specifying both, endogenous technology learning (etl) and economies of scale (eos) is not valid. Check component: {self.comp}."
+            )
         if etlParameters:
-            self.pwlcf_type = 'etl'
-            self.learningRate = etlParameters['learningRate']
-            self.learningIndex = utilsPWLCF.checkAndSetLearningIndex(etlParameters['learningRate'])
-            self.initCost = utilsPWLCF.checkAndSetInitCost(etlParameters['initCost'], comp)
+            self.pwlcf_type = "etl"
+            self.learningRate = etlParameters["learningRate"]
+            self.learningIndex = utilsPWLCF.checkAndSetLearningIndex(
+                etlParameters["learningRate"]
+            )
+            self.initCost = utilsPWLCF.checkAndSetInitCost(
+                etlParameters["initCost"], comp
+            )
             self.initCapacity, self.maxCapacity = utilsPWLCF.checkCapacitiesEtl(
-                etlParameters['initCapacity'], etlParameters['maxCapacity'], comp
+                etlParameters["initCapacity"], etlParameters["maxCapacity"], comp
             )
             utilsPWLCF.checkStock(comp, self.initCapacity)
+            utilsPWLCF.checkMaxCapacity(comp, self.maxCapacity)
             utilsPWLCF.checkEtlCompParams(comp)
 
-            if etlParameters['noSegments'] is None:
+            if etlParameters["noSegments"] is None:
                 self.noSegments = 4
             else:
-                utils.isStrictlyPositiveInt(int(etlParameters['noSegments']))
-                self.noSegments = int(etlParameters['noSegments'])
+                utils.isStrictlyPositiveInt(int(etlParameters["noSegments"]))
+                self.noSegments = int(etlParameters["noSegments"])
 
                 self.linEtlParameter = self.linearizeLearningCurveEtl()
 
         elif eosParameters is not None:
             if pyomo_pwlf:
-                raise NotImplementedError("SOS2 Constraints via pyomo.pwlf currently not implemented for economies of scale.")
-            self.pwlcf_type = 'eos'
+                raise NotImplementedError(
+                    "SOS2 Constraints via pyomo.pwlf currently not implemented for economies of scale."
+                )
+            self.pwlcf_type = "eos"
             utilsPWLCF.checkInvestmentPeriods(esM)
-            self.eosParameters = utilsPWLCF.checkAndSetEosParameters(comp, eosParameters)
+            self.eosParameters = utilsPWLCF.checkAndSetEosParameters(
+                comp, eosParameters
+            )
             self.initCapacity = 0
             self.noSegments = len(eosParameters["capacity"]) - 1
 
         self.commisYears = comp.processedStockYears + esM.investmentPeriods
 
     def getTotalCostEtl(self, capacity):
+        """
+        Function to calculate the total cost of a component with ETL.
+
+        :param capacity: The capacity of the component for which the total cost (Invest) is calculated
+        :type capacity: float
+
+        :return: total cost at capacity
+        :rtype: float
+        """
         return ((self.initCapacity * self.initCost) / (1 - self.learningIndex)) * (
             capacity / self.initCapacity
         ) ** (1 - self.learningIndex)
 
     def linearizeLearningCurveEtl(self):
+        """
+        Function to linearize the learning curve based on the given initial capacity, cost, and maximal capacity as well as the learning  rate.
+
+        :return: linearized etl parameters:
+            cumulative experience, totalCost, slope and interception for each segments linear approximation
+        :rtype: pd.DataFrame
+        """
         linEtlParameter = pd.DataFrame(
             index=range(self.noSegments + 1),
             columns=["experience", "totalCost", "slope", "interception"],
@@ -99,11 +153,30 @@ class PiecewiseLinearCostFunctionModel:
         self.modulesDict = {}
 
     def declareSets(self, esM, pyM):
+        """
+        Function to declare the necessary sets for the variables of the pwlcf model.
+
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         self.declarePwlcfDesignSet(pyM, esM)
         if not pyomo_pwlf:
             self.declarePwlcfDesignSegmentSet(pyM, esM)
 
     def declarePwlcfDesignSet(self, pyM, esM):
+        """
+        Function to declare the necessary sets for the variables of the pwlcf model, if the pwlcf approach from pyomo via SOS2 constraints is used. Declares set for each module, investment period.
+
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+
         def declareDesignSet(pyM):
             return (
                 (moduleName, ip)
@@ -114,6 +187,16 @@ class PiecewiseLinearCostFunctionModel:
         pyM.pwlcfDesignSet = pyomo.Set(dimen=2, initialize=declareDesignSet)
 
     def declarePwlcfDesignSegmentSet(self, pyM, esM):
+        """
+        Function to declare the necessary sets for the variables of the pwlcf model. Declares set for each module, investment period and segment.
+
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+
         def declareDesignSegmentSet(pyM):
             return (
                 (moduleName, ip, segment)
@@ -122,23 +205,55 @@ class PiecewiseLinearCostFunctionModel:
                 for segment in range(module.noSegments)
             )
 
-        pyM.pwlcfDesignSegmentSet = pyomo.Set(dimen=3, initialize=declareDesignSegmentSet)
+        pyM.pwlcfDesignSegmentSet = pyomo.Set(
+            dimen=3, initialize=declareDesignSegmentSet
+        )
 
     def declareVariables(self, esM, pyM):
-        if not pyomo_pwlf:
-            self.declareBinaryPwlcfVar(esM, pyM)
-            self.declareSegmentCapacityPwlcfVar(esM, pyM)
+        """
+        Function to declare the variables of the pwlcf model. Declares binary variables for each segment to indicate which segment is active as well as segment capacity variables which give the exact capacity (for each segment, 0 if the corresponding binary is 0).
 
-    def declareBinaryPwlcfVar(self, esM, pyM):
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        if not pyomo_pwlf:
+            self.declareBinaryPwlcfVar(pyM)
+            self.declareSegmentCapacityPwlcfVar(pyM)
+
+    def declareBinaryPwlcfVar(self, pyM):
+        """
+        Function to add the binary variables.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         pyM.binaryPwlcfVar = pyomo.Var(pyM.pwlcfDesignSegmentSet, domain=pyomo.Binary)
 
-    def declareSegmentCapacityPwlcfVar(self, esM, pyM):
+    def declareSegmentCapacityPwlcfVar(self, pyM):
+        """
+        Function to add the segment capacity variables.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         pyM.segmentCapacityPwlcfVar = pyomo.Var(
             pyM.pwlcfDesignSegmentSet,
             domain=pyomo.NonNegativeReals,
         )
 
     def declareComponentConstraints(self, esM, pyM):
+        """
+        Function to declare the constraints of the pwlcf model.
+
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         if pyomo_pwlf:
             self.declarePwlfPyomo(esM, pyM)
         else:
@@ -147,6 +262,18 @@ class PiecewiseLinearCostFunctionModel:
             self.declareCapacityCommissioningPwlcfConstr(esM, pyM)
 
     def declareBinaryPwlcfConstr(self, pyM):
+        """
+        Function to add the binary constraints: for each component exactly one binary has to be 1 and the others 0. The binary indicates, which segment is active.
+
+        .. math::
+            \\begin{eqnarray*}
+            \\underset{segment}{ \\sum } binVar^{comp}_{ip,segment} = 1
+            \\end{eqnarray*}
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+
         def binaryPwlcfConstr(pyM, moduleName, ip, segment):
             return (
                 sum(
@@ -161,6 +288,18 @@ class PiecewiseLinearCostFunctionModel:
         )
 
     def declareSegmentCapacityPwlcfConstr(self, pyM):
+        """
+        Function to add the segment capacity constraints: Each segment capacity variable has to be within the lower and upper bounds of the corresponding segment, if the segment is active (indicated by the binary segment variable). If the segment is not active, the capacity segment variable is zero.
+
+        .. math::
+            \\begin{eqnarray*}
+            lowerCapacityBound^{comp}_{ip,segment} \\cdot binVar^{comp}_{ip,segment} \\leq capSegmentVar^{comp}_{ip,segment} \\leq  upperCapacityBound^{comp}_{ip,segment} \\cdot binVar^{comp}_{ip,segment}
+            \\end{eqnarray*}
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+
         def lowerSegmentCapacityPwlcfConstr(pyM, moduleName, ip, segment):
             module = self.modulesDict[moduleName]
             if module.pwlcf_type == "etl":
@@ -194,6 +333,20 @@ class PiecewiseLinearCostFunctionModel:
         )
 
     def declareCapacityCommissioningPwlcfConstr(self, esM, pyM):
+        """Function to enforce that capacity segment variable equals totalCommisioning (in all locations over all ips) + initial capacity
+
+        .. math::
+            \\begin{eqnarray*}
+            \\underset{segment}{ \\sum } segmentCapacityPwlcfVar^{comp}_{ip,segment} = underset{ip,comp}{ \\sum } commVar^{comp}_{ip,segment,loc} + initCapacity^{comp}
+            \\end{eqnarray*}
+
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+
         def capacityCommissioningPwlcfConstr(pyM, moduleName, ip):
             module = self.modulesDict[moduleName]
             compClass = module.comp.modelingClass().abbrvName
@@ -212,7 +365,6 @@ class PiecewiseLinearCostFunctionModel:
         pyM.ConstrCapacityCommissioningPwlcf = pyomo.Constraint(
             pyM.pwlcfDesignSet, rule=capacityCommissioningPwlcfConstr
         )
-
 
     def declarePwlfPyomo(self, esM, pyM):
         """
@@ -244,7 +396,9 @@ class PiecewiseLinearCostFunctionModel:
 
             return pyM.totalCapacity[moduleName, ip] == commVarSum + module.initCapacity
 
-        pyM.fixTotalCapacity = pyomo.Constraint(pyM.pwlfDesignSet, rule=fixTotalCapacity)
+        pyM.fixTotalCapacity = pyomo.Constraint(
+            pyM.pwlfDesignSet, rule=fixTotalCapacity
+        )
 
         xdata = {
             idx: list(self.modulesDict[idx[0]].linEtlParameter["experience"])
@@ -276,6 +430,21 @@ class PiecewiseLinearCostFunctionModel:
         getOptValue=False,
         getOptValueCostType="TAC",
     ):
+        """
+        Function to get the economic contribution to the cost function of pwlcf components.
+
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param getOptValue: indicator if optimal value extracted from optimization output should be used
+        :type getOptValue: binary
+
+        :param getOptValueCostType: indicator which cost type is used, i.e. "TAC" or "NPV"
+        :type getOptValueCostType: string
+        """
         componentYears = {
             moduleName: esM.getComponentAttribute(moduleName, "processedStockYears")
             + esM.investmentPeriods
@@ -306,20 +475,44 @@ class PiecewiseLinearCostFunctionModel:
             )
 
             for commisYear in module.commisYears:
-
                 if self.modulesDict[moduleName].pwlcf_type == "eos":
-                    opex = self.getCostContributionsPwlcf(pyM, moduleName, self.modulesDict[moduleName].pwlcf_type, 'opex', getOptValue=getOptValue)
-                    annuity = self.getCostContributionsPwlcf(pyM, moduleName, self.modulesDict[moduleName].pwlcf_type, 'annuity', getOptValue=getOptValue)
+                    opex = self.getCostContributionsPwlcf(
+                        pyM,
+                        moduleName,
+                        self.modulesDict[moduleName].pwlcf_type,
+                        "opex",
+                        getOptValue=getOptValue,
+                    )
+                    annuity = self.getCostContributionsPwlcf(
+                        pyM,
+                        moduleName,
+                        self.modulesDict[moduleName].pwlcf_type,
+                        "annuity",
+                        getOptValue=getOptValue,
+                    )
                 else:
-                    opex = self.getCostContributionsPwlcf(pyM, moduleName, self.modulesDict[moduleName].pwlcf_type, 'opex', commisYear=commisYear, getOptValue=getOptValue)
-                    annuity = self.getCostContributionsPwlcf(pyM, moduleName, self.modulesDict[moduleName].pwlcf_type, 'annuity', commisYear=commisYear, getOptValue=getOptValue)
+                    opex = self.getCostContributionsPwlcf(
+                        pyM,
+                        moduleName,
+                        self.modulesDict[moduleName].pwlcf_type,
+                        "opex",
+                        commisYear=commisYear,
+                        getOptValue=getOptValue,
+                    )
+                    annuity = self.getCostContributionsPwlcf(
+                        pyM,
+                        moduleName,
+                        self.modulesDict[moduleName].pwlcf_type,
+                        "annuity",
+                        commisYear=commisYear,
+                        getOptValue=getOptValue,
+                    )
 
                 for i in range(commisYear, commisYear + fullCostIntervals):
                     costContribution[moduleName][(commisYear, i)] = (
-                        (annuity + opex)
-                        * utils.annuityPresentValueFactor(
-                            esM, moduleName, loc, esM.investmentPeriodInterval
-                        )
+                        annuity + opex
+                    ) * utils.annuityPresentValueFactor(
+                        esM, moduleName, loc, esM.investmentPeriodInterval
                     )
 
                 if costInLastEconInterval:
@@ -366,25 +559,31 @@ class PiecewiseLinearCostFunctionModel:
         if getOptValue:
             cost_results = {ip: pd.DataFrame() for ip in esM.investmentPeriods}
             for moduleName in self.modulesDict.keys():
-                commis = {ip: esM.getOptimizationSummary(
-                        esM.componentNames[moduleName],
-                        ip=esM.investmentPeriodNames[ip]
-                    ).loc[moduleName, 'commissioning'].iloc[0]
+                commis = {
+                    ip: esM.getOptimizationSummary(
+                        esM.componentNames[moduleName], ip=esM.investmentPeriodNames[ip]
+                    )
+                    .loc[moduleName, "commissioning"]
+                    .iloc[0]
                     for ip in esM.investmentPeriods
                 }
                 for ip in esM.investmentPeriods:
                     for _loc in esM.locations:
                         cContrSum = sum(
-                            costContribution[moduleName].get((y, ip), 0) * commis[y][_loc] / commis[y].sum()
-                            if y > 0 and commis[y].sum() != 0 else
-                            0
-                            if y > 0 else
-                            costContribution[moduleName].get((y, ip), 0) / len(commis[ip])
+                            costContribution[moduleName].get((y, ip), 0)
+                            * commis[y][_loc]
+                            / commis[y].sum()
+                            if y > 0 and commis[y].sum() != 0
+                            else 0
+                            if y > 0
+                            else costContribution[moduleName].get((y, ip), 0)
+                            / len(commis[ip])
                             for y in componentYears[moduleName]
                         )
                         if getOptValueCostType == "NPV":
                             cost_results[ip].loc[moduleName, _loc] = (
-                                cContrSum * utils.discountFactor(esM, ip, moduleName, _loc)
+                                cContrSum
+                                * utils.discountFactor(esM, ip, moduleName, _loc)
                             )
                         elif getOptValueCostType == "TAC":
                             cost_results[ip].loc[moduleName, _loc] = (
@@ -396,8 +595,15 @@ class PiecewiseLinearCostFunctionModel:
                         elif getOptValueCostType == "invest":
                             if commis[ip].sum() != 0:
                                 cost_results[ip].loc[moduleName, _loc] = (
-                                    annuity * self.modulesDict[moduleName].comp.CCF[0].mean()
-                                ) * commis[ip][_loc] / commis[ip].sum()
+                                    (
+                                        annuity
+                                        * self.modulesDict[moduleName]
+                                        .comp.CCF[0]
+                                        .mean()
+                                    )
+                                    * commis[ip][_loc]
+                                    / commis[ip].sum()
+                                )
                             else:
                                 cost_results[ip].loc[moduleName, _loc] = 0
 
@@ -426,52 +632,87 @@ class PiecewiseLinearCostFunctionModel:
             for ip in esM.investmentPeriods
         )
 
-    def getCostContributionsPwlcf(self, pyM, moduleName, pwlcf_type, costType, commisYear=None, getOptValue=False):
+    def getCostContributionsPwlcf(
+        self, pyM, moduleName, pwlcf_type, costType, commisYear=None, getOptValue=False
+    ):
+        """
+        Function to extract the cost contribution (opex and annuity) from a specified component and for a specified commisioning year.
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param moduleName: name of the module/component
+        :type moduleName: string
+
+        :param pwlcf_type: type of the pwlcf, i.e. "etl" or "eos"
+        :type pwlcf_type:  string
+
+        :param costType: indicator which cost should be extracted, i.e. "opex" or "annuity"
+        :type costType: string
+
+        :param commisYear: for which comissioning year the data should be extracted. defaults to None (if only single IP)
+        :type commisYear: float
+
+        :param getOptValue: indicator, if value after optimization is wanted. defaults to False
+        :type getOptValue: boolean
+        """
         module = self.modulesDict[moduleName]
         commisYears = module.commisYears
-        if costType == 'opex':
-            if pwlcf_type == 'eos':
+        if costType == "opex":
+            if pwlcf_type == "eos":
                 if not getOptValue:
                     totalOpexFix = sum(
-                        pyM.binaryPwlcfVar[moduleName, 0, segment] * module.eosParameters["interceptionTotalOpex"].iloc[segment] +
-                        pyM.segmentCapacityPwlcfVar[moduleName, 0, segment] * module.eosParameters["slopeTotalOpex"].iloc[segment]
+                        pyM.binaryPwlcfVar[moduleName, 0, segment]
+                        * module.eosParameters["interceptionTotalOpex"].iloc[segment]
+                        + pyM.segmentCapacityPwlcfVar[moduleName, 0, segment]
+                        * module.eosParameters["slopeTotalOpex"].iloc[segment]
                         for segment in range(module.noSegments)
                     )
                 else:
                     totalOpexFix = sum(
-                        pyM.binaryPwlcfVar[moduleName, 0, segment].value * module.eosParameters["interceptionTotalOpex"].iloc[segment] +
-                        pyM.segmentCapacityPwlcfVar[moduleName, 0, segment].value * module.eosParameters["slopeTotalOpex"].iloc[segment]
+                        pyM.binaryPwlcfVar[moduleName, 0, segment].value
+                        * module.eosParameters["interceptionTotalOpex"].iloc[segment]
+                        + pyM.segmentCapacityPwlcfVar[moduleName, 0, segment].value
+                        * module.eosParameters["slopeTotalOpex"].iloc[segment]
                         for segment in range(module.noSegments)
                     )
-            elif pwlcf_type == 'etl':
-                totalOpexFix = 0 #varying opex not implemented for etl
+            elif pwlcf_type == "etl":
+                totalOpexFix = 0  # varying opex not implemented for etl
             return totalOpexFix
-        if costType == 'annuity':
-            if pwlcf_type == 'eos':
+        if costType == "annuity":
+            if pwlcf_type == "eos":
                 if not getOptValue:
                     totalCost = sum(
-                        pyM.binaryPwlcfVar[moduleName, 0, segment] * module.eosParameters["interceptionTotalInvest"].iloc[segment] +
-                        pyM.segmentCapacityPwlcfVar[moduleName, 0, segment] * module.eosParameters["slopeTotalInvest"].iloc[segment]
+                        pyM.binaryPwlcfVar[moduleName, 0, segment]
+                        * module.eosParameters["interceptionTotalInvest"].iloc[segment]
+                        + pyM.segmentCapacityPwlcfVar[moduleName, 0, segment]
+                        * module.eosParameters["slopeTotalInvest"].iloc[segment]
                         for segment in range(module.noSegments)
                     )
                 else:
                     totalCost = sum(
-                        pyM.binaryPwlcfVar[moduleName, 0, segment].value * module.eosParameters["interceptionTotalInvest"].iloc[segment] +
-                        pyM.segmentCapacityPwlcfVar[moduleName, 0, segment].value * module.eosParameters["slopeTotalInvest"].iloc[segment]
+                        pyM.binaryPwlcfVar[moduleName, 0, segment].value
+                        * module.eosParameters["interceptionTotalInvest"].iloc[segment]
+                        + pyM.segmentCapacityPwlcfVar[moduleName, 0, segment].value
+                        * module.eosParameters["slopeTotalInvest"].iloc[segment]
                         for segment in range(module.noSegments)
                     )
-            elif pwlcf_type == 'etl':
+            elif pwlcf_type == "etl":
+
                 def getIpTotalCost(ip):
                     if ip == commisYears[0] - 1:
                         totalCost = module.getTotalCostEtl(
-                            module.initCapacity - module.comp.stockCapacityStartYear.sum()
+                            module.initCapacity
+                            - module.comp.stockCapacityStartYear.sum()
                         )
                     elif ip < 0:
                         unbuildStockUntilIp = sum(
                             module.comp.processedStockCommissioning[i].sum()
                             for i in range(ip + 1, 0)
                         )
-                        totalCost = module.getTotalCostEtl(module.initCapacity - unbuildStockUntilIp)
+                        totalCost = module.getTotalCostEtl(
+                            module.initCapacity - unbuildStockUntilIp
+                        )
                     elif pyomo_pwlf:
                         if not getOptValue:
                             totalCost = pyM.totalCost[moduleName, ip]
@@ -494,15 +735,25 @@ class PiecewiseLinearCostFunctionModel:
                             for segment in range(module.noSegments)
                         )
                     return totalCost
+
                 totalCostCommisYear = getIpTotalCost(commisYear)
                 totalCostPreCommisYear = getIpTotalCost(commisYear - 1)
-                totalCost = (totalCostCommisYear - totalCostPreCommisYear)
-            return totalCost / module.comp.CCF[0].mean() #total annuity
+                totalCost = totalCostCommisYear - totalCostPreCommisYear
+            return totalCost / module.comp.CCF[0].mean()  # total annuity
         raise NotImplementedError(
             f"Getting cost contribution of a pwlcf component is only defined for opex or annuity and not for {costType}."
         )
 
     def setOptimalValues(self, esM, pyM):
+        """
+        Function to set the optimal values into the optimization summary.
+
+        :param esM: energy system model to which the component should be added. Used for unit checks.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
         tac = self.getEconomicsPwlcf(
             esM, pyM, getOptValue=True, getOptValueCostType="TAC"
         )
@@ -517,11 +768,15 @@ class PiecewiseLinearCostFunctionModel:
         for ip in esM.investmentPeriods:
             optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.DataFrame()
             for moduleName, module in self.modulesDict.items():
-
-                #initialize different dataframe for ETL/EOS:
+                # initialize different dataframe for ETL/EOS:
                 if module.pwlcf_type == "etl":
                     curPWLCFtype = "ETL"
-                    props = ["TAC_ETL", "NPVcontribution_ETL", "invest_ETL", "knowledgeStock_ETL"]
+                    props = [
+                        "TAC_ETL",
+                        "NPVcontribution_ETL",
+                        "invest_ETL",
+                        "knowledgeStock_ETL",
+                    ]
                     units = [
                         "[" + esM.costUnit + "/a]",
                         "[" + esM.costUnit + "]",
@@ -558,11 +813,15 @@ class PiecewiseLinearCostFunctionModel:
                             "["
                             + getattr(
                                 self.modulesDict[x[0]].comp,
-                                unitDict[self.modulesDict[x[0]].comp.modelingClass().abbrvName][
-                                    0
-                                ],
+                                unitDict[
+                                    self.modulesDict[x[0]]
+                                    .comp.modelingClass()
+                                    .abbrvName
+                                ][0],
                             )
-                            + unitDict[self.modulesDict[x[0]].comp.modelingClass().abbrvName][1]
+                            + unitDict[
+                                self.modulesDict[x[0]].comp.modelingClass().abbrvName
+                            ][1]
                             + "]",
                         )
                         if x[1] == "knowledgeStock_ETL"
@@ -574,7 +833,9 @@ class PiecewiseLinearCostFunctionModel:
                     tuples, names=["Component", "Property", "Unit"]
                 )
 
-                mdlOptSummaryPwlcf = pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
+                mdlOptSummaryPwlcf = pd.DataFrame(
+                    index=mIndex, columns=list(esM.locations)
+                ).sort_index()
                 # optSummaryPwlcf = {
                 #     ip: pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
                 #     for ip in esM.investmentPeriodNames
@@ -596,19 +857,30 @@ class PiecewiseLinearCostFunctionModel:
                     knowledgeStock = pyM.totalCapacity[moduleName, ip].value
                 elif curPWLCFtype == "ETL":
                     if ip == 0:
-                        stockCapacityStartYear = self.modulesDict[moduleName].comp.stockCapacityStartYear
+                        stockCapacityStartYear = self.modulesDict[
+                            moduleName
+                        ].comp.stockCapacityStartYear
                         knowledgeStock_last_ip = stockCapacityStartYear + (
-                            (self.modulesDict[moduleName].initCapacity - stockCapacityStartYear.sum())
+                            (
+                                self.modulesDict[moduleName].initCapacity
+                                - stockCapacityStartYear.sum()
+                            )
                             / len(esM.locations)
                         )
                     else:
                         knowledgeStock_last_ip = (
-                            optSummaryPwlcf[esM.investmentPeriodNames[ip-1]].loc[moduleName, 'knowledgeStock_ETL'].iloc[0]
+                            optSummaryPwlcf[esM.investmentPeriodNames[ip - 1]]
+                            .loc[moduleName, "knowledgeStock_ETL"]
+                            .iloc[0]
                         )
-                    commis_ip = esM.getOptimizationSummary(
-                        esM.componentNames[moduleName],
-                        ip=esM.investmentPeriodNames[ip]
-                    ).loc[moduleName, 'commissioning'].iloc[0]
+                    commis_ip = (
+                        esM.getOptimizationSummary(
+                            esM.componentNames[moduleName],
+                            ip=esM.investmentPeriodNames[ip],
+                        )
+                        .loc[moduleName, "commissioning"]
+                        .iloc[0]
+                    )
 
                     knowledgeStock = knowledgeStock_last_ip + commis_ip
 
@@ -629,7 +901,14 @@ class PiecewiseLinearCostFunctionModel:
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.concat(
                     [optSummaryPwlcf[esM.investmentPeriodNames[ip]], mdlOptSummaryPwlcf]
                 )
+        self._add_pwlcf_summary(esM=esM, optSummaryPwlcf=optSummaryPwlcf)
 
+    def _add_pwlcf_summary(self, esM, optSummaryPwlcf):
+        """Add
+
+        Args:
+            esM (_type_): _description_
+        """
         for model in esM.componentModelingDict.values():
             optSummary = model._optSummary
             for ipName in esM.investmentPeriodNames:
@@ -646,19 +925,38 @@ class PiecewiseLinearCostFunctionModel:
                     if self.modulesDict[comp].pwlcf_type == "eos"
                 ]
                 optSummary[ipName] = pd.concat(
-                    [optSummary[ipName], optSummaryPwlcf[ipName].loc[etlComps, :, :]],
+                    [
+                        optSummary[ipName],
+                        optSummaryPwlcf[ipName].loc[etlComps, :, :],
+                    ],
                     axis=0,
                 ).sort_index()
                 optSummary[ipName] = pd.concat(
-                    [optSummary[ipName], optSummaryPwlcf[ipName].loc[eosComps, :, :]],
+                    [
+                        optSummary[ipName],
+                        optSummaryPwlcf[ipName].loc[eosComps, :, :],
+                    ],
                     axis=0,
                 ).sort_index()
+
                 if len(eosComps) > 0:
-                    optSummary[ipName].loc[eosComps,'TAC',:] += optSummaryPwlcf[ipName].loc[:,'TAC_EOS',:]
-                    optSummary[ipName].loc[eosComps,'NPVcontribution',:] += optSummaryPwlcf[ipName].loc[:,'NPVcontribution_EOS',:]
-                    optSummary[ipName].loc[eosComps,'invest',:] += optSummaryPwlcf[ipName].loc[:,'invest_EOS',:]
+                    for prop in ["TAC", "NPVcontribution", "invest"]:
+                        # add df to df
+                        property_slice = optSummaryPwlcf[ipName].loc[
+                            (slice(None), [f"{prop}_EOS"], slice(None))
+                        ]
+                        property_slice = property_slice.rename(
+                            index={f"{prop}_EOS": prop}, level="Property"
+                        )
+                        optSummary[ipName].loc[eosComps, prop, :] += property_slice
                 if len(etlComps) > 0:
-                    optSummary[ipName].loc[etlComps,'TAC',:] += optSummaryPwlcf[ipName].loc[:,'TAC_ETL',:]
-                    optSummary[ipName].loc[etlComps,'NPVcontribution',:] += optSummaryPwlcf[ipName].loc[:,'NPVcontribution_ETL',:]
-                    optSummary[ipName].loc[eosComps,'invest',:] += optSummaryPwlcf[ipName].loc[:,'invest_ETL',:]
+                    for prop in ["TAC", "NPVcontribution", "invest"]:
+                        # add df to df
+                        property_slice = optSummaryPwlcf[ipName].loc[
+                            (slice(None), [f"{prop}_ETL"], slice(None))
+                        ]
+                        property_slice = property_slice.rename(
+                            index={f"{prop}_ETL": prop}, level="Property"
+                        )
+                        optSummary[ipName].loc[eosComps, prop, :] += property_slice
             model.optSummary = optSummary[esM.startYear]

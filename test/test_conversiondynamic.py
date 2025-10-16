@@ -8,7 +8,6 @@ import pandas as pd
 import pytest
 
 
-
 NUMBER_OF_HOURS = 10
 ENERGY_FLOW = 10
 
@@ -86,7 +85,12 @@ def _create_system(
 
 @pytest.mark.parametrize(
     ["hoursPerTimeStep", "partLoadMin"],
-    [(0.25, None), (1, None),  (1, 0.5), (0.25, 0.5),],
+    [
+        (0.25, None),
+        (1, None),
+        (1, 0.5),
+        (0.25, 0.5),
+    ],
 )
 def test_downTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints=True):
     """Test the downtime of the system
@@ -114,7 +118,7 @@ def test_downTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints
             "downTimeMin": downTimeMin,
             "bigM": 10000,
             "partLoadMin": partLoadMin,
-            "useTemporalCyclicConstraints": useTemporalCyclicConstraints
+            "useTemporalCyclicConstraints": useTemporalCyclicConstraints,
         },
     )
 
@@ -122,7 +126,7 @@ def test_downTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints
     esM.optimize()
 
     # Check results: operation of the methane heater must be 3h*10kW less
-    expectedOperation = ENERGY_FLOW* (NUMBER_OF_HOURS  - downTimeMin)
+    expectedOperation = ENERGY_FLOW * (NUMBER_OF_HOURS - downTimeMin)
     heater_operation = (
         esM.getOptimizationSummary("ConversionDynamicModel")
         .loc["Methane heater", "operation", "[kW*h]"]
@@ -130,7 +134,6 @@ def test_downTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints
     )
 
     assert expectedOperation == heater_operation
-
 
 
 @pytest.mark.parametrize(
@@ -158,7 +161,7 @@ def test_upTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints=T
             "upTimeMin": upTimeMin,
             "bigM": 1000,
             "partLoadMin": partLoadMin,
-            "useTemporalCyclicConstraints": useTemporalCyclicConstraints
+            "useTemporalCyclicConstraints": useTemporalCyclicConstraints,
         },
     )
 
@@ -170,10 +173,10 @@ def test_upTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints=T
     opRateFix[
         range(
             0,
-            int(upTimeMin/hoursPerTimeStep),
+            int(upTimeMin / hoursPerTimeStep),
         )
     ] = ENERGY_FLOW
-    opRateFix[int(upTimeMin/hoursPerTimeStep)] = 0
+    opRateFix[int(upTimeMin / hoursPerTimeStep)] = 0
     esM.updateComponent("Heat demand", {"operationRateFix": opRateFix})
 
     # optimize
@@ -190,7 +193,7 @@ def test_upTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints=T
 
 
 @pytest.mark.parametrize(
-    ["hoursPerTimeStep", "partLoadMin","rampUpMax"],
+    ["hoursPerTimeStep", "partLoadMin", "rampUpMax"],
     [
         (0.25, None, 0.5),
         (0.25, None, 1),
@@ -199,9 +202,12 @@ def test_upTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints=T
         (0.25, 0.5, 0.5),
         (0.25, 0.5, 1),
         (1, 0.5, 0.5),
-        (1, 0.5, 1)],
+        (1, 0.5, 1),
+    ],
 )
-def test_rampUpMax(hoursPerTimeStep, partLoadMin, rampUpMax, useTemporalCyclicConstraints=False):
+def test_rampUpMax(
+    hoursPerTimeStep, partLoadMin, rampUpMax, useTemporalCyclicConstraints=False
+):
     """Test the maximum ramping up of the component methane heater.
 
     The heat production with a methane heater is cheaper and therefore preferred.
@@ -221,7 +227,7 @@ def test_rampUpMax(hoursPerTimeStep, partLoadMin, rampUpMax, useTemporalCyclicCo
             "rampUpMax": rampUpMax,
             "bigM": 10000,
             "partLoadMin": partLoadMin,
-            "useTemporalCyclicConstraints": useTemporalCyclicConstraints
+            "useTemporalCyclicConstraints": useTemporalCyclicConstraints,
         },
     )
 
@@ -235,9 +241,9 @@ def test_rampUpMax(hoursPerTimeStep, partLoadMin, rampUpMax, useTemporalCyclicCo
     esM.optimize()
 
     # Check results
-    if partLoadMin is not None and rampUpMax<partLoadMin:
-        expectedOperation=0
-        expectedTimeStepOperation=0
+    if partLoadMin is not None and rampUpMax < partLoadMin:
+        expectedOperation = 0
+        expectedTimeStepOperation = 0
     else:
         # total operation
         rampingTimeSteps = 1 / (rampUpMax) - 1
@@ -251,22 +257,26 @@ def test_rampUpMax(hoursPerTimeStep, partLoadMin, rampUpMax, useTemporalCyclicCo
         expectedOperation = operationRamping + operationFullLoad
 
         # specific time step operation of first ramping step
-        expectedTimeStepOperation=rampUpMax*ENERGY_FLOW*hoursPerTimeStep
+        expectedTimeStepOperation = rampUpMax * ENERGY_FLOW * hoursPerTimeStep
 
     heater_operation = (
         esM.getOptimizationSummary("ConversionDynamicModel")
         .loc["Methane heater", "operation", "[kW*h]"]
         .loc["region1"]
     )
-    timeSeries = esM.componentModelingDict["ConversionDynamicModel"].operationVariablesOptimum
-    specificTimeStepOperation = timeSeries.loc["Methane heater", "region1"][numberOfTimeStepsWithoutDemand]
+    timeSeries = esM.componentModelingDict[
+        "ConversionDynamicModel"
+    ].operationVariablesOptimum
+    specificTimeStepOperation = timeSeries.loc["Methane heater", "region1"][
+        numberOfTimeStepsWithoutDemand
+    ]
 
     assert expectedOperation == heater_operation
     assert expectedTimeStepOperation == specificTimeStepOperation
 
 
 @pytest.mark.parametrize(
-    ["hoursPerTimeStep", "partLoadMin","rampDownMax"],
+    ["hoursPerTimeStep", "partLoadMin", "rampDownMax"],
     [
         (0.25, None, 0.5),
         (0.25, None, 1),
@@ -275,7 +285,8 @@ def test_rampUpMax(hoursPerTimeStep, partLoadMin, rampUpMax, useTemporalCyclicCo
         (0.25, 0.5, 0.5),
         (0.25, 0.5, 1),
         (1, 0.5, 0.5),
-        (1, 0.5, 1)],
+        (1, 0.5, 1),
+    ],
 )
 def test_rampDownMax(hoursPerTimeStep, partLoadMin, rampDownMax):
     """Test the maximum ramping down of the component methane heater.
@@ -294,40 +305,35 @@ def test_rampDownMax(hoursPerTimeStep, partLoadMin, rampDownMax):
     # Update ConversionDynamic: Use rampDownMax
     esM.updateComponent(
         "Methane heater",
-        {
-            "rampDownMax": rampDownMax,
-            "bigM": 1000,
-            "partLoadMin": partLoadMin
-            },
+        {"rampDownMax": rampDownMax, "bigM": 1000, "partLoadMin": partLoadMin},
     )
 
     # Update Demand: Step function for the heat demand
     numberOfTimeStepsWithoutDemand = 5
     opRateFix = esM.getComponent("Heat demand").operationRateFix.copy()
-    opRateFix[range(numberOfTimeSteps-numberOfTimeStepsWithoutDemand, numberOfTimeSteps)] = 0
+    opRateFix[
+        range(numberOfTimeSteps - numberOfTimeStepsWithoutDemand, numberOfTimeSteps)
+    ] = 0
     esM.updateComponent("Heat demand", {"operationRateFix": opRateFix})
 
     # optimize
     esM.optimize()
 
     # Check results
-    if partLoadMin is not None and rampDownMax<partLoadMin:
-        expectedOperation=0
-        expectedTimeStepOperation=0
+    if partLoadMin is not None and rampDownMax < partLoadMin:
+        expectedOperation = 0
+        expectedTimeStepOperation = 0
     else:
         rampingTimeSteps = 1 / (rampDownMax) - 1
         operationRamping = 0.5 * ENERGY_FLOW * rampingTimeSteps * hoursPerTimeStep
         timeStepsFullLoad = (
-            numberOfTimeSteps
-            - rampingTimeSteps
-            - numberOfTimeStepsWithoutDemand
+            numberOfTimeSteps - rampingTimeSteps - numberOfTimeStepsWithoutDemand
         )
         operationFullLoad = ENERGY_FLOW * timeStepsFullLoad * hoursPerTimeStep
         expectedOperation = operationRamping + operationFullLoad
 
         # specific time step operation of first ramping step
-        expectedTimeStepOperation=rampDownMax*ENERGY_FLOW*hoursPerTimeStep
-
+        expectedTimeStepOperation = rampDownMax * ENERGY_FLOW * hoursPerTimeStep
 
     heater_operation = (
         esM.getOptimizationSummary("ConversionDynamicModel")
@@ -335,13 +341,15 @@ def test_rampDownMax(hoursPerTimeStep, partLoadMin, rampDownMax):
         .loc["region1"]
     )
 
-    timeSeries = esM.componentModelingDict["ConversionDynamicModel"].operationVariablesOptimum
-    specificTimeStepOperation = timeSeries.loc["Methane heater", "region1"].iloc[-numberOfTimeStepsWithoutDemand-1]
-
+    timeSeries = esM.componentModelingDict[
+        "ConversionDynamicModel"
+    ].operationVariablesOptimum
+    specificTimeStepOperation = timeSeries.loc["Methane heater", "region1"].iloc[
+        -numberOfTimeStepsWithoutDemand - 1
+    ]
 
     assert expectedOperation == heater_operation
     assert expectedTimeStepOperation == specificTimeStepOperation
-
 
 
 def test_ConversionDynamicNeedsCapacity():
@@ -477,26 +485,29 @@ def test_ConversionDynamicCommissioningDependent():
         verboseLogLevel=2,
         numberOfInvestmentPeriods=2,
     )
-    error_msg="Currently commissioning-depending constraints are not possible"
+    error_msg = "Currently commissioning-depending constraints are not possible"
     with pytest.raises(ValueError, match=error_msg):
         fn.ConversionDynamic(
             esM=esM,
             name="restricted",
             physicalUnit=r"GW$_{el}$",
             commodityConversionFactors={
-                (0,0):{"electricity": 1, "methane": -1 / 0.6},
-                (0,1):{"electricity": 1, "methane": -1 / 0.65},
-                (1,1):{"electricity": 1, "methane": -1 / 0.7},
+                (0, 0): {"electricity": 1, "methane": -1 / 0.6},
+                (0, 1): {"electricity": 1, "methane": -1 / 0.65},
+                (1, 1): {"electricity": 1, "methane": -1 / 0.7},
             },
             partLoadMin=0.3,
             bigM=100,
             rampDownMax=0.5,
         )
 
-@pytest.mark.parametrize("parameter", ["upTimeMin", "downTimeMin", "rampUpMax", "rampDownMax"])
+
+@pytest.mark.parametrize(
+    "parameter", ["upTimeMin", "downTimeMin", "rampUpMax", "rampDownMax"]
+)
 def test_error_message_timeSeriesAggregation(parameter):
     hoursPerTimeStep = 1
-    NUMBER_OF_HOURS=96
+    NUMBER_OF_HOURS = 96
     esM = _create_system(
         numberOfTimeSteps=NUMBER_OF_HOURS / hoursPerTimeStep,
         hoursPerTimeStep=hoursPerTimeStep,
@@ -510,8 +521,7 @@ def test_error_message_timeSeriesAggregation(parameter):
     )
 
     esM.aggregateTemporally(numberOfTypicalPeriods=2)
-    with pytest.raises(ValueError, match=r".*Time series aggregation is not supported.*"):
+    with pytest.raises(
+        ValueError, match=r".*Time series aggregation is not supported.*"
+    ):
         esM.optimize(timeSeriesAggregation=True)
-
-
-

@@ -496,9 +496,24 @@ class Component(metaclass=ABCMeta):
             parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval,
             by default True. The costs will then be applied to the corrected interval.
 
-        :param: pwlcfParameters: paramter dict for piecewise linear cost functions. Enables a standardized endogenous technological
-            learning approach with a fixed learning rate. In that case, the learning is conducted in each investment period and connected throughout.
-            Alternatively enables an economies of scale approach. In that case, the cost scaling is indepent in each investment period.
+        :param pwlcfParameters: parameters used for piecewise linear cost function module. Can be used to approximate non-linear cost functions for endogenous technology learning (etl) or economies of scale (eos).
+                Enables a standardized endogenous technological learning approach with a fixed learning rate. In that case, the learning is conducted in each investment period and connected throughout.
+                Alternatively enables an economies of scale approach. In that case, the cost scaling is indepent in each investment period.
+
+            Example: For etl, the cost reduce with the total cumulative installed capacity via a learning curve approach which is linearized.
+            pwlcfParameters = {
+                "etlParameters": {
+                    "initCost": 1,
+                    "learningRate": 0.18,
+                    "initCapacity": 10,
+                    "maxCapacity": 50,
+                    "noSegments": 4,
+                }
+            Example: For eos, the cost of a specific component (at one location and in one investment period) decreases with increased plant size.
+            pwlcfParameters = {
+                "eosParameters": pd.DataFrame(data=np.array([[0,1,2,3],[0,1000, 1800, 2400],[0, 10, 18, 24]]).T, columns=["capacity", "totalInvest", "totalOpex"])
+            }
+        :type pwlcfParameters: dict
         """
         # Set general component data
         utils.isEnergySystemModelInstance(esM)
@@ -699,7 +714,9 @@ class Component(metaclass=ABCMeta):
 
         self.pwlcfParameters = pwlcfParameters
         self.pwlcf = None
-        if pwlcfParameters and not all(param is None for param in pwlcfParameters.values()):
+        if pwlcfParameters and not all(
+            param is None for param in pwlcfParameters.values()
+        ):
             pwlcfModule = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModule
             self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
 
@@ -2746,7 +2763,9 @@ class ComponentModel(metaclass=ABCMeta):
                         bigM = getBigM(compDict, compName)
                         return (
                             opVar[loc, compName, commis, ip, p, t]
-                            >= processedPartLoadMin * commisVar[loc, compName, commis] * esM.hoursPerTimeStep
+                            >= processedPartLoadMin
+                            * commisVar[loc, compName, commis]
+                            * esM.hoursPerTimeStep
                             - (1 - opVarBin[loc, compName, commis, ip, p, t]) * bigM
                         )
                 else:
@@ -2756,7 +2775,9 @@ class ComponentModel(metaclass=ABCMeta):
                         bigM = getBigM(compDict, compName)
                         return (
                             opVar[loc, compName, ip, p, t]
-                            >= processedPartLoadMin * capVar[loc, compName, ip]* esM.hoursPerTimeStep
+                            >= processedPartLoadMin
+                            * capVar[loc, compName, ip]
+                            * esM.hoursPerTimeStep
                             - (1 - opVarBin[loc, compName, ip, p, t]) * bigM
                         )
             elif isOperationCommisYearDepending:

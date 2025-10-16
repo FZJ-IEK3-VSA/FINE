@@ -40,7 +40,7 @@ def test_etl_NPV():
                     "maxCapacity": 58.52369,
                     "noSegments": 4,
                 },
-            }
+            },
         )
     )
 
@@ -69,7 +69,9 @@ def test_etl_NPV():
     np.testing.assert_almost_equal(commissioning, [1] * 5)
 
     slope = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[2, "slope"]
-    interception = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[2, "interception"]
+    interception = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[
+        2, "interception"
+    ]
     initCapacity = esM.pwlcfModel.modulesDict["PV"].initCapacity
     initTotalCost = esM.pwlcfModel.modulesDict["PV"].linEtlParameter.loc[0, "totalCost"]
 
@@ -156,7 +158,9 @@ def test_etl_stock_NPV():
     ]
     slope = esM.pwlcfModel.modulesDict["PV_with_etl"].linEtlParameter.loc[2, "slope"]
     initCapacity = esM.pwlcfModel.modulesDict["PV_with_etl"].initCapacity
-    initTotalCost = esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(initCapacity)
+    initTotalCost = esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(
+        initCapacity
+    )
     stockCost2010 = (
         esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(8)
         - esM.pwlcfModel.modulesDict["PV_with_etl"].getTotalCostEtl(7)
@@ -223,7 +227,9 @@ def test_etl_multi_regional():
             name="electricity_sink",
             commodity="electricity",
             hasCapacityVariable=False,
-            operationRateFix=pd.DataFrame([[2190, 2190/2]] * 4, columns=["loc1", "loc2"]),
+            operationRateFix=pd.DataFrame(
+                [[2190, 2190 / 2]] * 4, columns=["loc1", "loc2"]
+            ),
         )
     )
 
