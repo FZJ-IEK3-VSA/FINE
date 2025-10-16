@@ -1,9 +1,9 @@
 import pytest
+import matplotlib.pyplot as plt
 
 
 def test_matplot():
     """Test if matplotlib works."""
-    import matplotlib.pyplot as plt
 
     plt.plot([1, 2, 3, 4])
 

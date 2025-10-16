@@ -5,7 +5,6 @@
 import fine as fn
 import pandas as pd
 import numpy as np
-import pytest
 import sys
 from pathlib import Path
 

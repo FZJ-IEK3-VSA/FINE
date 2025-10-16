@@ -1,6 +1,7 @@
 import pytest
 
 import fine as fn
+import pandas as pd
 
 
 def test_export_to_dict_minimal(minimal_test_esM):
@@ -53,7 +54,6 @@ def test_export_to_dict_minimal(minimal_test_esM):
     expected_Industrysite_operationRateFix = minimal_test_esM.getComponentAttribute(
         "Industry site", "operationRateFix"
     )
-    import pandas as pd
 
     investPerCapacity = pd.DataFrame(
         [[0.177, 0.17], [0.177, 0.14]],

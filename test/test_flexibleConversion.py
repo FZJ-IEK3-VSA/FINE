@@ -240,7 +240,6 @@ def test_flexibleConversion_init():
         )
 
 
-
 def test_flexibleConversion_groups():
     esM = fn.EnergySystemModel(
         locations={"loc1"},

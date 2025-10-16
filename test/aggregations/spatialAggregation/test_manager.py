@@ -25,8 +25,8 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
     )
 
     PATH_TO_SAVE = os.path.join(  # noqa: PTH118
-        os.path.dirname(__file__)
-    )  # noqa: PTH120
+        os.path.dirname(__file__)  # noqa: PTH120
+    )
     netcdf_file_name = "my_xr.nc"
     shp_file_name = "my_shp"
 

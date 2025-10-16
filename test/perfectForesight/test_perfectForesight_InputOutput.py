@@ -5,6 +5,7 @@ import shutil
 import fine as fn
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 from pathlib import Path
+from pandas.testing import assert_frame_equal
 
 
 def test_perfectForesight_excel(perfectForesight_test_esM):
@@ -128,8 +129,6 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
             expected_OptSum = expected_OptSum.astype(float).round(2).sort_index()
             output_OptSum = output_OptSum.astype(float).round(2).sort_index()
 
-            from pandas.testing import assert_frame_equal
-
             assert_frame_equal(expected_OptSum, output_OptSum, check_dtype=False)
 
     # 2.check result for reloaded esM from netcdf
@@ -197,8 +196,6 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
 
             expected_OptSum = expected_OptSum.astype(float).round(2).sort_index()
             output_OptSum = output_OptSum.astype(float).round(2).sort_index()
-
-            from pandas.testing import assert_frame_equal
 
             assert_frame_equal(expected_OptSum, output_OptSum, check_dtype=False)
 
