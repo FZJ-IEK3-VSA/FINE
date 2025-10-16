@@ -83,7 +83,6 @@ documentation = "https://vsa-fine.readthedocs.io/en/master/"
 
 [tool.ruff]
 extend-include = ["*.ipynb"]
-# extend-exclude = ["test/"] # XXX temporaray, might be deleted later on XXX
 
 [tool.ruff.lint]
 select = ["F", "PL", "R", "ARG", "RET", "E", "W", "UP", "ICN", "TID", "D"]
@@ -105,4 +104,6 @@ ignore = [
     "E501",    # Lines to long 
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"test/**/*.py" = ["D103"] # missing docstrings rule in test/ is temporarily(?) excluded  
 
