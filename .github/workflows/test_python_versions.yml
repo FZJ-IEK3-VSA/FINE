@@ -1,7 +1,7 @@
 on:
+  workflow_dispatch:
   pull_request:
     branches: ["master"]
-
 
 jobs:
   TestPushCondaForgeDev:
@@ -10,15 +10,15 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-        python_version: ["3.10","3.11","3.12","3.13"]
+        python_version: ["3.10", "3.11", "3.12", "3.13"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
     with:
-        runner_tag: ${{ matrix.runner_tag }}
-        requirements_file_name: requirements_dev.yml
-        ipynb_example_folder: "examples"
-        library_name: "python"
-        library_version: ${{ matrix.python_version }}
-        dependency_position_env_file: "0"
+      runner_tag: ${{ matrix.runner_tag }}
+      requirements_file_name: requirements_dev.yml
+      ipynb_example_folder: "examples"
+      library_name: "python"
+      library_version: ${{ matrix.python_version }}
+      dependency_position_env_file: "0"
 
   # We decided not to test old dependency ranges on PyPI as there are many known incompatabilities
   # of indirect dependencies. There is no method known to us to automatically test, store share this information
@@ -27,7 +27,7 @@ jobs:
   #   strategy:
   #     fail-fast: false
   #     matrix:
-  #       runner_tag: ["self-hosted"]        
+  #       runner_tag: ["self-hosted"]
   #       python_version: ["3.13"]
   #   uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test.yml@main
   #   with:
