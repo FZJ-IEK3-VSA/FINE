@@ -17,8 +17,7 @@ def optimizeTSAmultiStage(
     optimizationSpecs="",
     warmstart=False,
 ):
-    """
-    Call the optimize function for a temporally aggregated MILP (so the model has to include
+    """Call the optimize function for a temporally aggregated MILP (so the model has to include
     hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again
     without temporal aggregation. Furthermore, a LP with relaxed binary variables can be solved to
     obtain both, an upper and lower bound for the fully resolved MILP.
@@ -177,8 +176,7 @@ def optimizeTSAmultiStage(
 
 
 def fixBinaryVariables(esM):
-    """
-    Search for the optimized binary variables and set them as fixed.
+    """Search for the optimized binary variables and set them as fixed.
 
     :param esM: energy system model to which the component should be added. Used for unit checks.
     :type esM: EnergySystemModel instance from the FINE package

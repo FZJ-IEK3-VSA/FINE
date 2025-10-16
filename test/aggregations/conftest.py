@@ -223,8 +223,8 @@ def xr_for_parameter_based_grouping():
 
 @pytest.fixture()
 def xr_and_dict_for_basic_representation():
-    """
-    xarray to test basic representation functions-
+    """Xarray to test basic representation functions.
+
     1. test_aggregate_based_on_sub_to_sup_region_id_dict()
     2. test_aggregate_time_series()
     3. test_aggregate_values()
