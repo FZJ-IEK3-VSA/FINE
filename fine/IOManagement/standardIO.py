@@ -1250,7 +1250,7 @@ def plotLocationalColorMap(
 
     vmax = gdf["data"].max() if vmax == -1 else vmax
 
-    fig, ax = plt.subplots(1, 1, figsize=figsize, **kwargs)
+    fig, ax = plt.subplots(1, 1, figsize=figsize, constrained_layout=True, **kwargs)
     ax.set_aspect("equal")
     ax.axis("off")
 
@@ -1265,14 +1265,14 @@ def plotLocationalColorMap(
         vmax=vmax,
     )
 
+    ## Create color bar
     sm1 = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
     sm1._A = []
-    cb1 = fig.colorbar(sm1, ax=ax, pad=0.05, aspect=7, fraction=0.07)
+    cb1 = fig.colorbar(sm1, ax=ax, fraction=0.07, pad=0.05, shrink=0.5)
+    label = (zlabel or "").strip()
+    label = label.replace(" [", "\n[")
+    cb1.ax.set_title(label, fontsize=fontsize, pad=6)
     cb1.ax.tick_params(labelsize=fontsize)
-    cb1.ax.set_xlabel(zlabel, size=fontsize)
-    cb1.ax.xaxis.set_label_position("top")
-
-    fig.tight_layout()
 
     if save:
         plt.savefig(fileName, dpi=dpi, bbox_inches="tight")
