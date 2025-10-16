@@ -61,6 +61,7 @@ class Storage(Component):
         socOffsetDown=-1,
         socOffsetUp=-1,
         stockCommissioning=None,
+        pwlcfParameters=None,
     ):
         """
         Constructor for creating an Storage class instance.
@@ -281,6 +282,7 @@ class Storage(Component):
             technicalLifetime=technicalLifetime,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            pwlcfParameters=pwlcfParameters,
         )
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,
@@ -625,6 +627,7 @@ class StorageModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
 
         if pyM.hasTSA:
             varSet = getattr(pyM, "operationVarSet_" + self.abbrvName)
@@ -752,8 +755,8 @@ class StorageModel(ComponentModel):
             relevanceThreshold=relevanceThreshold,
         )
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "chargeOp_bin")
-        self.declareOperationBinaryVars(pyM, "dischargeOp_bin")
+        self.declareOperationBinaryVars(pyM, opVarBinName="chargeOp_bin")
+        self.declareOperationBinaryVars(pyM, opVarBinName="dischargeOp_bin")
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -1046,8 +1049,7 @@ class StorageModel(ComponentModel):
         )
 
     def connectInterPeriodSOC(self, pyM, esM):
-        """
-        Declare the constraint that the state of charge at the end of each period has to be equivalent to the state of
+        """Declare the constraint that the state of charge at the end of each period has to be equivalent to the state of
         charge of the period before it (minus its self discharge) plus the change in the state of charge which
         happened during the typical period which was assigned to that period.
 
@@ -1206,8 +1208,7 @@ class StorageModel(ComponentModel):
         )
 
     def limitSOCwithSimpleTsa(self, pyM, esM):
-        """
-        Simplified version of the state of charge limitation control.
+        """Simplified version of the state of charge limitation control.
         The error compared to the precise version is small in cases of small selfDischarge.
 
         .. math::
@@ -1366,8 +1367,7 @@ class StorageModel(ComponentModel):
         )
 
     def operationModeSOCwithTSA(self, pyM, esM):
-        """
-        Declare the constraint that the state of charge [commodityUnit*h] is limited by the installed capacity
+        """Declare the constraint that the state of charge [commodityUnit*h] is limited by the installed capacity
         # [commodityUnit*h] and the relative maximum state of charge [-].
 
         .. math::
@@ -1433,8 +1433,7 @@ class StorageModel(ComponentModel):
         )
 
     def minSOCwithTSAprecise(self, pyM, esM):
-        """
-        Declare the constraint that the state of charge [commodityUnit*h] at each time step cannot be smaller
+        """Declare the constraint that the state of charge [commodityUnit*h] at each time step cannot be smaller
         than the installed capacity [commodityUnit*h] multiplied with the relative minimum state of charge [-].
 
         .. math::
@@ -1592,6 +1591,24 @@ class StorageModel(ComponentModel):
             "chargeOpConstrSet",
             "chargeOp",
             "processedChargeOpRateMax",
+        )
+
+        # Couple binary operation variable to operation variable
+        self.binaryOperation(
+            pyM,
+            "ConstrCharge",
+            "chargeOpConstrSet",
+            "partLoadMin",
+            "chargeOp",
+            "chargeOp_bin",
+        )
+        self.binaryOperation(
+            pyM,
+            "ConstrDischarge",
+            "dischargeOpConstrSet",
+            "partLoadMin",
+            "dischargeOp",
+            "dischargeOp_bin",
         )
 
         # Operation [physicalUnit*h] is limited by minimum part Load

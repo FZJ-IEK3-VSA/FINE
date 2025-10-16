@@ -5,32 +5,32 @@ channels:
   - nodefaults
 
 dependencies:
-  - python>=3.10,<3.13
+  - python >=3.10,<3.14
   - pip
-  - geopandas<=0.14.4
+  - geopandas <=0.14.4
   - glpk
-  - openpyxl<=3.1.5
-  - matplotlib<=3.9.2
-  - xlrd<=2.0.1
-  - pyomo<=6.8.0
-  - numpy<=1.26.4
-  - pandas<=2.2.3
-  - scipy<=1.14.1
-  - scikit-learn>=1.2,<=1.5.2
-  - xarray<=2024.3
-  - rasterio<=1.4.1
-  - netcdf4<=1.7.2
+  - openpyxl <=3.1.5
+  - matplotlib <=3.9.2
+  - xlrd <=2.0.1
+  - pyomo <=6.9.4
+  - numpy >=1.22,<=2.3.3
+  - pandas >=1.4,<=2.2.3
+  - scipy <=1.16.2
+  - scikit-learn >=1.2,<=1.7.2
+  - xarray <=2025.9.0
+  - rasterio <=1.4.3
+  - netcdf4 <=1.7.2
   - tsam
-  - pwlf<=2.2.1
-  - psutil<=5.9.8
-  - gurobi-logtools<=3.1.0
-  - ipykernel<=6.29.5
+  - pwlf <=2.2.1
+  - psutil <=7.1.0
+  - gurobi-logtools <=3.1.0
+  - ipykernel <=6.29.5
   # develop
-  - sphinx<=7.4.7
-  - sphinx_rtd_theme<=2.0.0
-  - myst-parser<=2.0.0
-  - pytest<=8.3.3
-  - pytest-cov<=4.1.0
-  - pytest-xdist<=3.6.1
-  - nbval<=0.11.0
-  - ruff<=0.7.0
+  - sphinx <=7.4.7
+  - sphinx_rtd_theme <=2.0.0
+  - myst-parser <=2.0.0
+  - pytest <=8.3.3
+  - pytest-cov <=4.1.0
+  - pytest-xdist <=3.6.1
+  - nbval <=0.11.0
+  - ruff <=0.13.1

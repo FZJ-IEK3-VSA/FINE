@@ -842,6 +842,8 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     name = compFancy.name
     rampUpMax = compFancy.rampUpMax
     rampDownMax = compFancy.rampDownMax
+    bigM = compFancy.bigM
+    useTemporalCyclicConstraints = compFancy.useTemporalCyclicConstraints
 
     if downTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
@@ -886,40 +888,29 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
             )
 
     if rampUpMax is not None:
-        # Check if values are floats and the intervall ]0,1].
-        if type(rampUpMax) != float:
+        # Check if values are postive floats or ints
+        if not isinstance(rampUpMax, (float, int)) and rampUpMax <= 0:
             raise TypeError(
-                "rampUpMax for " + name + " needs to be a float in the intervall ]0,1]."
-            )
-        if rampUpMax <= 0:
-            raise ValueError(
-                "rampUpMax for " + name + " needs to be a float in the intervall ]0,1]."
-            )
-        if rampUpMax > 1:
-            raise ValueError(
-                "rampUpMax for " + name + " needs to be a float in the intervall ]0,1]."
+                "rampUpMax for " + name + " needs to be a positive float or int."
             )
 
     if rampDownMax is not None:
-        # Check if values are floats and the intervall ]0,1].
-        if type(rampDownMax) != float:
+        # Check if values are postive floats or ints
+        if not isinstance(rampDownMax, (float, int)) and rampDownMax <= 0:
             raise TypeError(
-                "rampDownMax for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
+                "rampUpMax for " + name + " needs to be a positive float or int."
             )
-        if rampDownMax <= 0:
+    if any(x is not None for x in [downTimeMin, upTimeMin, rampUpMax, rampDownMax]):
+        if bigM is None:
             raise ValueError(
-                "rampDownMax for "
+                "bigM for "
                 + name
-                + " needs to be a float in the intervall ]0,1]."
+                + " needs to be specified when considering dynamic constraints."
             )
-        if rampDownMax > 1:
-            raise ValueError(
-                "rampDownMax for "
-                + name
-                + " needs to be a float in the intervall ]0,1]."
-            )
+
+    # check cyclic constraints
+    if not isinstance(useTemporalCyclicConstraints, bool):
+        raise ValueError("useTemporalCyclicConstraints must be a boolean.")
 
 
 def setLocationalEligibility(
@@ -2012,6 +2003,13 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
         if data is not None and isinstance(data, pd.DataFrame):
             if mapC is None:
                 index, data_ = [], []
+                counter = 0
+                if data.isnull().values.any():
+                    data.fillna(0, inplace=True)
+                    warnings.warn(
+                        "Invalid input.  A matrix contains NaNs. NaN-values are adapted to Zero automatically. Please check your input!"
+                    )
+
                 for loc1 in data.columns:
                     for loc2 in data.index:
                         if loc1 != loc2:
@@ -2028,6 +2026,14 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                                         index.append(loc1 + "_" + loc2),
                                         data_.append(data[loc1][loc2]),
                                     )
+                        else:
+                            if counter == 0:
+                                if data[loc1][loc2] != 0:
+                                    warnings.warn(
+                                        "Matrix diagonale contains Non-Zeros. Location is connected to itself. Matrix adapted automatically. Please check your input!"
+                                    )
+                                    counter = counter + 1
+
                 data_ = pd.Series(data_, index=index)
                 data_.sort_index(inplace=True)
                 return data_
@@ -2575,6 +2581,20 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
     return (isIpDepending, isCommisDepending, flexibleConversion)
 
 
+def checkNestedNanValues(obj):
+    if isinstance(obj, dict):
+        return any(checkNestedNanValues(v) for v in obj.values())
+    elif isinstance(obj, (list, tuple)):
+        return any(checkNestedNanValues(v) for v in obj)
+    elif isinstance(obj, pd.Series):
+        return obj.isnull().any()
+    elif isinstance(obj, pd.DataFrame):
+        return obj.isnull().values.any()
+    elif isinstance(obj, float):
+        return math.isnan(obj)
+    return False
+
+
 def checkAndSetCommodityConversionFactor(comp, esM):
     """
     Set up the full commodity conversion factor, if necessary depending on
@@ -2617,6 +2637,10 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                         for x in item[1].values()
                         if isinstance(x, (pd.Series, pd.DataFrame))
                     ]
+                    if checkNestedNanValues(item[1]):
+                        raise ValueError(
+                            f"Commodity conversion factors for '{item[0]}' contain NaN values."
+                        )
                     if not (
                         all(ccf > 0 for ccf in item[1].values())
                         or all(ccf < 0 for ccf in item[1].values())
@@ -2635,6 +2659,18 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 for x in ccf.values()
                 if isinstance(x, (pd.Series, pd.DataFrame))
             ]
+
+            for key, value in ccf.items():
+                if isinstance(value, float) and math.isnan(value):
+                    raise ValueError(f"NaN found at key '{key}'")
+
+                elif isinstance(value, list):
+                    for i, v in enumerate(value):
+                        if isinstance(v, float) and math.isnan(v):
+                            raise ValueError(
+                                f"NaN found at key '{key}' in list index {i}"
+                            )
+
         checkCommodities(esM, set(commodities))
         return commodTypes
 
@@ -2761,6 +2797,10 @@ def checkEmissionFactors(comp, esM):
     """
     Check emission factors for flexible conversion components.
     """
+
+    def is_nan(val):
+        return isinstance(val, float) and math.isnan(val)
+
     if comp.emissionFactors is None:
         return None
     elif not comp.flexibleConversion:
@@ -2775,6 +2815,19 @@ def checkEmissionFactors(comp, esM):
         raise NotImplementedError(
             "Emission factors can not be specified per investment period."
         )
+    for key, value in comp.emissionFactors.items():
+        if isinstance(value, float) and is_nan(value):
+            raise ValueError(f"NaN found in emission factor for key '{key}'")
+        elif isinstance(value, list):
+            for i, v in enumerate(value):
+                if isinstance(v, float) and is_nan(v):
+                    raise ValueError(
+                        f"NaN found in emission factor list for key '{key}', index {i}"
+                    )
+        if checkNestedNanValues(value):
+            raise ValueError(
+                f"Emission factors for '{comp.name}', '{key}' contain NaN values."
+            )
 
     emission_commodities = list(comp.emissionFactors.keys())
     commodities = [

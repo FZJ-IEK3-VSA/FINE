@@ -1,3 +1,6 @@
+import fine as fn
+
+
 def test_updateComponent(minimal_test_esM):
     _invest_before = minimal_test_esM.getComponentAttribute(
         componentName="Electrolyzers", attributeName="investPerCapacity"
@@ -56,4 +59,34 @@ def test_updateComponent(minimal_test_esM):
             componentName="New Electrolyzer", attributeName="name"
         )
         == _new_name
+    )
+
+
+def test_updateComponent_conversionDynamic():
+    esM = fn.EnergySystemModel(
+        locations={"region1"},
+        numberOfTimeSteps=10,
+        hoursPerTimeStep=1,
+        commodities={"electricity", "heat"},
+        commodityUnitsDict={"electricity": "kW", "heat": "kW"},
+    )
+
+    esM.add(
+        fn.ConversionDynamic(
+            esM=esM,
+            name="Methane heater",
+            physicalUnit="kW",
+            capacityFix=1,
+            commodityConversionFactors={"electricity": -1, "heat": 1},
+        )
+    )
+    assert esM.getComponent("Methane heater").capacityFix == 1
+    assert (
+        esM.getComponent("Methane heater").processedCapacityFix[0].loc["region1"] == 1
+    )
+
+    esM.updateComponent("Methane heater", {"capacityFix": 2})
+    assert esM.getComponent("Methane heater").capacityFix == 2
+    assert (
+        esM.getComponent("Methane heater").processedCapacityFix[0].loc["region1"] == 2
     )
