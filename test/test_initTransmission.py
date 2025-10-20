@@ -4,8 +4,7 @@ import numpy as np
 
 
 def test_initializeTransmission():
-    """
-    Tests if Transmission components are initialized without error if
+    """Tests if Transmission components are initialized without error if
     just required parameters are given.
     """
     # Define general parameters for esM-instance
@@ -36,8 +35,7 @@ def test_initializeTransmission():
 
 
 def test_initializeTransmission_withDataFrame():
-    """
-    Tests if Transmission components are initialized without error if
+    """Tests if Transmission components are initialized without error if
     additional parameters are given as DataFrame.
     """
     # Define general parameters for esM-instance
@@ -86,8 +84,7 @@ def test_initializeTransmission_withDataFrame():
 
 
 def test_initializeTransmission_withFloat():
-    """
-    Tests if Transmission components are initialized without error if
+    """Tests if Transmission components are initialized without error if
     additional parameters are given as float.
     """
     # Define general parameters for esM-instance
@@ -129,8 +126,7 @@ def test_initializeTransmission_withFloat():
 
 
 def test_initializeTransmission_withSeries():
-    """
-    Tests if Transmission components are initialized without error if
+    """Tests if Transmission components are initialized without error if
     additional parameters are given as data series.
     """
     # Define general parameters for esM-instance

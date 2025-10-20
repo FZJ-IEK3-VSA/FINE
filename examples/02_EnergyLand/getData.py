@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 def getData(engine="openpyxl"):
+    """Get example data for the energy land example."""
     current_directory = Path(__file__).parent.absolute()
     inProfileDataPath = os.path.join(current_directory, "Input_profiles_fine.xlsx")
     outProfileDataPath = os.path.join(current_directory, "Output_profiles_fine.xlsx")

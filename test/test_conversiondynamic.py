@@ -16,7 +16,7 @@ def _create_system(
     numberOfTimeSteps,
     hoursPerTimeStep,
 ):
-    """Create energy system with several components
+    """Create energy system with several components.
 
     Heat purchase (grid) -------------------------------------------->
                                                                         Heat Demand
@@ -93,7 +93,7 @@ def _create_system(
     ],
 )
 def test_downTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints=True):
-    """Test the downtime of the system
+    """Test the downtime of the system.
 
     The heat production with a methane heater is cheaper and therefore preferred.
 
