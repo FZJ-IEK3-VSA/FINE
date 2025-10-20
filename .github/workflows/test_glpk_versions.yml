@@ -1,12 +1,12 @@
 on:
-  push:
-    branches: ["485_test_dependency_range_new_release"]
+  # push:
+  #   branches: ["485_test_dependency_range_new_release"]
   pull_request:
     branches: ["master"]
 
 jobs:
   TestPushCondaForgeDev:
-    name: Test conda-forge development version on ${{ matrix.runner_tag }} for netcdf4=${{ matrix.glpk_version }}
+    name: Test conda-forge development version on ${{ matrix.runner_tag }} for glpk=${{ matrix.glpk_version }}
     strategy:
       fail-fast: false
       matrix:
