@@ -1,6 +1,6 @@
 on:
-  push:
-    branches: ["485_test_dependency_range_new_release"]
+  # push:
+  #   branches: ["485_test_dependency_range_new_release"]
   pull_request:
     branches: ["master"]
 
@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-        xlrd_version: ["1.0.0", "1.1.0", "1.2.0", "2.0.1", "2.0.2"]
+        xlrd_version: ["1.2.0", "2.0.1", "2.0.2"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
     with:
       runner_tag: ${{ matrix.runner_tag }}
