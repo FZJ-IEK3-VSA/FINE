@@ -7,7 +7,7 @@ channels:
 dependencies:
   - python >=3.10,<=3.13
   - pip
-  - geopandas >=12.0.0,<=0.14.4
+  - geopandas >=0.12.0,<=0.14.4
   - glpk >=4.63,<=5.0
   - openpyxl <=3.1.5
   - matplotlib <=3.9.2
