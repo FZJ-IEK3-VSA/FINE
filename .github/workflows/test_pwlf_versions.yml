@@ -1,4 +1,5 @@
 on:
+  workflow_dispatch:
   # push:
   #   branches: ["485_test_dependency_range_new_release"]
   pull_request:

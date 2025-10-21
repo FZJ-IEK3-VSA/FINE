@@ -1,6 +1,7 @@
 on:
-  push:
-    branches: ["485_test_dependency_range_new_release"]
+  workflow_dispatch:
+  # push:
+  #   branches: ["485_test_dependency_range_new_release"]
   pull_request:
     branches: ["master"]
 
