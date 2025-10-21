@@ -6,6 +6,7 @@ data = getData()
 
 
 def getModel():
+    """Get example energy system model for the spatial and technology aggregation example."""
     # 1. Create an energy system model instance
     locations = {
         "cluster_0",

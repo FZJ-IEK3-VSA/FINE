@@ -1,5 +1,4 @@
-"""
-Created on Thu Nov  8 10:02:46 2018
+"""Created on Thu Nov  8 10:02:46 2018.
 
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
@@ -10,6 +9,7 @@ from pathlib import Path
 
 
 def getData(engine="openpyxl"):
+    """Get example data for the district optimization example."""
     current_directory = Path(__file__).parent.absolute()
     inputDataPath = os.path.join(current_directory, "InputData")
     data = {}

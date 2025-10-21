@@ -6,10 +6,7 @@ import fine.IOManagement.xarrayIO as xrIO
 
 
 def test_etl_NPV():
-    """
-    Test case for basic npv calculation with etl module and Input Output test.
-    """
-
+    """Test case for basic npv calculation with etl module and Input Output test."""
     esM = fn.EnergySystemModel(
         locations={"loc1"},
         commodities={"electricity"},
@@ -92,10 +89,7 @@ def test_etl_NPV():
 
 
 def test_etl_stock_NPV():
-    """
-    Test case for basic npv calculation with etl module when stock is considered.
-    """
-
+    """Test case for basic npv calculation with etl module when stock is considered."""
     esM = fn.EnergySystemModel(
         locations={"loc1"},
         commodities={"electricity"},

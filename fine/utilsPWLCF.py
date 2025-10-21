@@ -62,7 +62,7 @@ def checkAndSetEosParameters(comp, eosParameters):
 
 
 def checkInvestmentPeriods(esM):
-    """Check that esM only has one IP, if eos is used"""
+    """Check that esM only has one IP, if eos is used."""
     if esM.numberOfInvestmentPeriods != 1:
         raise NotImplementedError(
             "Economies of Scale are currently only "
@@ -71,7 +71,7 @@ def checkInvestmentPeriods(esM):
 
 
 def checkEtlCompParams(comp):
-    """Check Lifetime and Interest Rate of ETL Components"""
+    """Check Lifetime and Interest Rate of ETL Components."""
     if comp.economicLifetime.nunique() > 1:
         raise ValueError(
             f"Economic Lifetime of ETL Component {comp.name} must be constant for all investment periods."
@@ -96,7 +96,7 @@ def checkStock(comp, initCapacity):
 
 
 def checkMaxCapacity(comp, maxCapacity):
-    """Check if stock is only slightly smaller than max capacity and give a warning if not"""
+    """Check if stock is only slightly smaller than max capacity and give a warning if not."""
     if comp.stockCapacityStartYear.sum() / maxCapacity > 0.99:
         raise Warning(
             f"Stock of component {comp.name} is only slightly smaller than specified max capacity."
@@ -104,7 +104,7 @@ def checkMaxCapacity(comp, maxCapacity):
 
 
 def checkAndSetLearningIndex(learningRate):
-    """Check Learning rate is between 0 and 1"""
+    """Check Learning rate is between 0 and 1."""
     if 1 > learningRate > 0:
         learningIndex = np.log2(1 / (1 - learningRate))
     else:
@@ -128,7 +128,7 @@ def checkAndSetInitCost(initCost, comp):
 
 
 def checkCapacitiesEtl(initCapacity, maxCapacity, comp):
-    """Check hasCapacityVariable, initial capacity is greater than stock and maxCapacity is greater than initial"""
+    """Check hasCapacityVariable, initial capacity is greater than stock and maxCapacity is greater than initial."""
     if not comp.hasCapacityVariable:
         raise ValueError("ETL Component must have Capacity Variable")
 

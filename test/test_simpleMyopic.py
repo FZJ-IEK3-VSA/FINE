@@ -324,8 +324,7 @@ def test_CO2ReductionTargets():
 @pytest.mark.skip()
 def test_exceededLifetime():
     # load a minimal test system
-    """Returns minimal instance of esM"""
-
+    """Returns minimal instance of esM."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 

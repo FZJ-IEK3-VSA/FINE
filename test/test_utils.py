@@ -6,9 +6,7 @@ import pytest
 
 
 def test_checkSimultaneousChargeDischarge():
-    """
-    Test a minimal example, with two regions and 10 days, where simultaneous charge and discharge occurs.
-    """
+    """Test a minimal example, with two regions and 10 days, where simultaneous charge and discharge occurs."""
     locations = {"Region1", "Region2"}
     commodityUnitDict = {"electricity": r"MW$_{el}$"}
     commodities = {"electricity"}
@@ -160,9 +158,7 @@ def test_checkSimultaneousChargeDischarge():
 
 
 def test_functionality_checkSimultaneousChargeDischarge():
-    """
-    Simple functionality test for utils.checkSimultaneousChargeDischarge
-    """
+    """Simple functionality test for utils.checkSimultaneousChargeDischarge."""
     # Define charge and discharge time series for one region
     tsCharge = pd.DataFrame(columns=["Region1"])
     tsCharge["Region1"] = 3 * [1] + 1 * [0]

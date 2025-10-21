@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 def getData(engine="openpyxl"):
+    """Get example data for the one node example."""
     current_directory = Path(__file__).parent.absolute()
     inputDataPath = os.path.join(current_directory, "InputData")
     data = {}
