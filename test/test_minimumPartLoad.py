@@ -5,17 +5,112 @@
 import fine as fn
 import pandas as pd
 import numpy as np
-import sys
-from pathlib import Path
+import pytest
 
-sys.path.append(
-    str(
-        Path(__file__).parent
-        / ".."
-        / "examples"
-        / "Multi-regional_Energy_System_Workflow"
+
+HEAT_GRID_PRICE = 0.5
+GAS_PRICE = 0.1
+
+DEMAND = 5
+PARTLOADMIN = 6
+CAPACITY = 10
+
+OPERATION_HOURS = 10
+
+
+@pytest.mark.parametrize("hoursPerTimeStep", [0.25, 1])
+def test_conversionPartLoad_simple(hoursPerTimeStep):
+    """Create energy system with several components.
+    Methan boiler is forced to produce with higher rate than heat demand due to partLoadMin.
+    The rest of the produced heat is dumped.
+    Heat purchase (grid) -------------------------------------------->
+                                                                        Heat Demand + DUMMY Source
+    Methane purchase -----> Methane boiler (Conversion Dynamic) ----->
+    """
+    esM = fn.EnergySystemModel(
+        locations={
+            "region1",
+        },
+        numberOfTimeSteps=int(OPERATION_HOURS / hoursPerTimeStep),
+        hoursPerTimeStep=hoursPerTimeStep,
+        commodities={"electricity", "methane", "heat"},
+        commodityUnitsDict={"electricity": "kW", "methane": "kW", "heat": "kW"},
+        verboseLogLevel=2,
     )
-)
+
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Methane heater",
+            physicalUnit="kW",
+            commodityConversionFactors={
+                "methane": -1,
+                "heat": 1,
+            },
+            hasCapacityVariable=True,
+            capacityFix=CAPACITY,
+            partLoadMin=PARTLOADMIN / CAPACITY,
+            bigM=1000,
+        )
+    )
+
+
+    # add heat source from grid
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Heating Grid",
+            commodity="heat",
+            hasCapacityVariable=False,
+            commodityCost=HEAT_GRID_PRICE,  # some value higher than methan
+        )
+    )
+
+    # add methane purchase
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Methane purchase",
+            commodity="methane",
+            hasCapacityVariable=False,
+            commodityCost=GAS_PRICE,
+        )
+    )
+    # add methane purchase
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Heat demand",
+            commodity="heat",
+            operationRateFix=pd.Series(
+                data=[DEMAND * hoursPerTimeStep]
+                * int(OPERATION_HOURS / hoursPerTimeStep)
+            ),
+            hasCapacityVariable=False,
+        )
+    )
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Dummy Sink",
+            commodity="heat",
+            hasCapacityVariable=False,
+        )
+    )
+    esM.optimize()
+
+    # Check results: operation of the methane heater must be 3h*10kW less
+    expectedOperation = PARTLOADMIN * OPERATION_HOURS
+
+    heater_operation = (
+        esM.getOptimizationSummary("ConversionModel")
+        .loc["Methane heater", "operation", "[kW*h]"]
+        .loc["region1"]
+    )
+
+    assert expectedOperation == heater_operation
+
 
 
 def test_minimumPartLoad():
