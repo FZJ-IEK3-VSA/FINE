@@ -18,7 +18,6 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
             and has all the info originally present.
         - If temporal aggregation and optimization run successfully
     """
-
     SHAPEFILE_PATH = os.path.join(  # noqa: PTH118 # uses basic aggragation functions and when changing to pathlib output the error: TypeError: shapefile must either be a path to a shapefile or a geopandas dataframe --> therefore excluded here
         os.path.dirname(__file__),  # noqa: PTH120
         "../../../examples/03_Multi-regional_Energy_System_Workflow/",

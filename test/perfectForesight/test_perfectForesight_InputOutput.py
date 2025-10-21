@@ -7,7 +7,6 @@ import fine as fn
 from pandas.testing import assert_frame_equal
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 from pathlib import Path
-from pandas.testing import assert_frame_equal
 
 
 def test_perfectForesight_excel(perfectForesight_test_esM):

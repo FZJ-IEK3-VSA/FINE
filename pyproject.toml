@@ -103,3 +103,7 @@ ignore = [
     "ARG002",
     "E501", # Lines to long 
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"test/**/*.py" = ["D103"] # missing docstrings rule in test/ is temporarily(?) excluded  
+

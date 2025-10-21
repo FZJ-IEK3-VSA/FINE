@@ -21,6 +21,7 @@ OPERATION_HOURS = 10
 @pytest.mark.parametrize("hoursPerTimeStep", [0.25, 1])
 def test_conversionPartLoad_simple(hoursPerTimeStep):
     """Create energy system with several components.
+
     Methan boiler is forced to produce with higher rate than heat demand due to partLoadMin.
     The rest of the produced heat is dumped.
     Heat purchase (grid) -------------------------------------------->
