@@ -54,7 +54,6 @@ def test_conversionPartLoad_simple(hoursPerTimeStep):
         )
     )
 
-
     # add heat source from grid
     esM.add(
         fn.Source(
@@ -110,7 +109,6 @@ def test_conversionPartLoad_simple(hoursPerTimeStep):
     )
 
     assert expectedOperation == heater_operation
-
 
 
 def test_minimumPartLoad():
