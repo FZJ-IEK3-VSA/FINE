@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 def getData(engine="openpyxl"):
+    """Get example data for the partload example."""
     current_directory = (
         Path(__file__).parents[1].joinpath("01_1node_Energy_System_Workflow").absolute()
     )

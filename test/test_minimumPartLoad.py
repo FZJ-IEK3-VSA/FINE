@@ -112,8 +112,7 @@ def test_conversionPartLoad_simple(hoursPerTimeStep):
 
 
 def test_minimumPartLoad():
-    """
-    Two conversion components can serve the demand. One 10 GW conversion has
+    """Two conversion components can serve the demand. One 10 GW conversion has
     high operation costs and no investment costs, one varible sized conversion
     has low operation costs but investment costs. The 10 GW conversion is
     restricted to a minimum part load of 4 GW.
@@ -123,7 +122,6 @@ def test_minimumPartLoad():
     would not be economically beneficial since the 10 GW has no cost. The
     restricted component should not run under 4 GW.
     """
-
     # read in original results
     results = [4.0, 4.0, 0.0, 0.0, 4.0]
 

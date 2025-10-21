@@ -7,9 +7,7 @@ import fine as fn
 
 # %%
 def test_eos_NPV():
-    """
-    Test case for basic npv calculation with eos module.
-    """
+    """Test case for basic npv calculation with eos module."""
     # %%
     esM = fn.EnergySystemModel(
         locations={"loc1"},

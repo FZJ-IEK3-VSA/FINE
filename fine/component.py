@@ -9,8 +9,7 @@ import math
 
 
 class Component(metaclass=ABCMeta):
-    """
-    The Component class includes the general methods and arguments for the components which are add-able to
+    """The Component class includes the general methods and arguments for the components which are add-able to
     the energy system model (e.g. storage component, source component, transmission component). Every of these
     components inherits from the Component class.
     """
@@ -50,8 +49,7 @@ class Component(metaclass=ABCMeta):
         floorTechnicalLifetime=True,
         pwlcfParameters=None,
     ):
-        """
-        Constructor for creating an instance of the Component class.
+        """Create an instance of the Component class.
 
         **Required arguments:**
 
@@ -721,8 +719,7 @@ class Component(metaclass=ABCMeta):
             self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
 
     def addToEnergySystemModel(self, esM):
-        """
-        Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
+        """Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
         the esM, it is added as well.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -755,8 +752,7 @@ class Component(metaclass=ABCMeta):
             esM.pwlcfModel.modulesDict.update({self.name: self.pwlcf})
 
     def prepareTSAInput(self, rate, rateName, rateWeight, weightDict, data, ip):
-        """
-        Format the time series data of a component to fit the requirements of the time series aggregation package and
+        """Format the time series data of a component to fit the requirements of the time series aggregation package and
         return a list of formatted data.
 
         :param rate: a fixed/maximum/minimum operation time series or None
@@ -801,8 +797,7 @@ class Component(metaclass=ABCMeta):
         return weightDict, data
 
     def getTSAOutput(self, rate, rateName, data, ip):
-        """
-        Return a reformatted time series data after applying time series aggregation, if the original time series
+        """Return a reformatted time series data after applying time series aggregation, if the original time series
         data is not None.
 
         :param rate: Full (unclustered) time series data or None
@@ -849,8 +844,7 @@ class Component(metaclass=ABCMeta):
 
     @abstractmethod
     def setTimeSeriesData(self, hasTSA):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
+        """Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Sets
         the time series data of a component (either the full time series if hasTSA is false or the aggregated
         time series if hasTSA is True).
 
@@ -861,8 +855,7 @@ class Component(metaclass=ABCMeta):
 
     @abstractmethod
     def getDataForTimeSeriesAggregation(self, ip):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Get
+        """Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Get
         all time series data of a component for time series aggregation.
 
         :param ip: investment period of transformation path analysis.
@@ -872,8 +865,7 @@ class Component(metaclass=ABCMeta):
 
     @abstractmethod
     def setAggregatedTimeSeriesData(self, data, ip):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Set
+        """Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises). Set
         aggregated time series data after applying time series aggregation.
 
         :param data: time series data
@@ -886,14 +878,13 @@ class Component(metaclass=ABCMeta):
 
 
 class ComponentModel(metaclass=ABCMeta):
-    """
-    The ComponentModel class provides the general methods used for modeling the components.
+    """The ComponentModel class provides the general methods used for modeling the components.
     Every model class of the several component technologies inherits from the ComponentModel class.
     Within the ComponentModel class, general valid sets, variables and constraints are declared.
     """
 
     def __init__(self):
-        """Constructor for creating a ComponentModel class instance."""
+        """Create a ComponentModel class instance."""
         self.abbrvName = ""
         self.dimension = ""
         self.componentsDict = {}
@@ -908,8 +899,8 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def declareCommissioningVarSet(self, pyM, esM):
-        """
-        Declare set for commisioning variables in the pyomo object for a modeling class.
+        """Declare set for commisioning variables in the pyomo object for a modeling class.
+
         The commissioning variable must be set for past investment periods
         (stock commissioning) and future/optimized investment periods
 
@@ -938,8 +929,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareDesignVarSet(self, pyM, esM):
-        """
-        Declare set for capacity variables in the pyomo object for a modeling class.
+        """Declare set for capacity variables in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -947,7 +937,6 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         def declareDesignVarSet(pyM):
@@ -967,8 +956,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareLocationComponentSet(self, pyM):
-        """
-        Declare set with location and component in the pyomo object for a modeling class.
+        """Declare set with location and component in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -991,8 +979,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declarePathwaySets(self, pyM, esM):
-        """
-        Declare set for capacity development in the pyomo object for a modeling class.
+        """Declare set for capacity development in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1019,8 +1006,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareContinuousDesignVarSet(self, pyM):
-        """
-        Declare set for continuous number of installed components in the pyomo object for a modeling class.
+        """Declare set for continuous number of installed components in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1045,8 +1031,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareDiscreteDesignVarSet(self, pyM):
-        """
-        Declare set for discrete number of installed components in the pyomo object for a modeling class.
+        """Declare set for discrete number of installed components in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1069,8 +1054,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareDesignDecisionVarSet(self, pyM):
-        """
-        Declare set for design decision variables in the pyomo object for a modeling class.
+        """Declare set for design decision variables in the pyomo object for a modeling class.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1094,8 +1078,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareOpVarSet(self, esM, pyM):
-        """
-        Declare operation related sets (operation variables and mapping sets) in the pyomo object for a
+        """Declare operation related sets (operation variables and mapping sets) in the pyomo object for a
         modeling class.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -1188,8 +1171,7 @@ class ComponentModel(metaclass=ABCMeta):
         binaryOperationParameter=["partLoadMin"],
         binaryOperationSetName="operationBinVarSet",
     ):
-        """
-        Declare binary operation variables.
+        """Declare binary operation variables.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel instance
@@ -1237,8 +1219,7 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def declareOpConstrSet1(self, pyM, constrSetName, rateMax, rateFix):
-        """
-        Declare set of locations and components for which hasCapacityVariable is set to True and neither the
+        """Declare set of locations and components for which hasCapacityVariable is set to True and neither the
         maximum nor the fixed operation rate is given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1260,8 +1241,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareOpConstrSet2(self, pyM, constrSetName, rateFix):
-        """
-        Declare set of locations and components for which hasCapacityVariable is set to True and a fixed
+        """Declare set of locations and components for which hasCapacityVariable is set to True and a fixed
         operation rate is given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1282,8 +1262,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareOpConstrSet3(self, pyM, constrSetName, rateMax):
-        """
-        Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
+        """Declare set of locations and components for which  hasCapacityVariable is set to True and a maximum
         operation rate is given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1304,8 +1283,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareOpConstrSet4(self, pyM, constrSetName, rateMin):
-        """
-        Declare set of locations and components for which  hasCapacityVariable is set to True and a minimum
+        """Declare set of locations and components for which  hasCapacityVariable is set to True and a minimum
         operation rate is given.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -1326,9 +1304,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
-        """
-        Declare set of locations and components for which partLoadMin is not None.
-        """
+        """Declare set of locations and components for which partLoadMin is not None."""
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
@@ -1348,8 +1324,7 @@ class ComponentModel(metaclass=ABCMeta):
     def declareOperationModeSets(
         self, pyM, constrSetName, rateMax, rateFix, rateMin=None
     ):
-        """
-        Declare operating mode sets.
+        """Declare operating mode sets.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1375,9 +1350,7 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
 
     def declareYearlyFullLoadHoursMinSet(self, pyM):
-        """
-        Declare set of locations and components for which minimum yearly full load hours are given.
-        """
+        """Declare set of locations and components for which minimum yearly full load hours are given."""
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
@@ -1395,9 +1368,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareYearlyFullLoadHoursMaxSet(self, pyM):
-        """
-        Declare set of locations and components for which maximum yearly full load hours are given.
-        """
+        """Declare set of locations and components for which maximum yearly full load hours are given."""
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
@@ -1419,8 +1390,7 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def declareCapacityVars(self, pyM):
-        """
-        Declare capacity variables.
+        r"""Declare capacity variables.
 
         .. math::
 
@@ -1440,7 +1410,7 @@ class ComponentModel(metaclass=ABCMeta):
         abbrvName = self.abbrvName
 
         def capBounds(pyM, loc, compName, ip):
-            """Function for setting lower and upper capacity bounds."""
+            """Set the lower and upper capacity bounds."""
             comp = self.componentsDict[compName]
             if (
                 comp.processedCapacityFix[ip] is not None
@@ -1478,8 +1448,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareCommissioningVars(self, pyM, esM):
-        """
-        Declare commissioning variable for capacity development of component.
+        """Declare commissioning variable for capacity development of component.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1489,7 +1458,7 @@ class ComponentModel(metaclass=ABCMeta):
         """
 
         def commisBounds(pyM, loc, compName, ip):
-            """Function for setting lower and upper commissioning bounds."""
+            """Set the lower and upper commissioning bounds."""
             comp = self.componentsDict[compName]
             if ip < 0:
                 return None, None
@@ -1531,8 +1500,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareDecommissioningVars(self, pyM, esM):
-        """
-        Declare decommissioning variable for capacity development of component.
+        """Declare decommissioning variable for capacity development of component.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1540,7 +1508,6 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-
         abbrvName = self.abbrvName
         setattr(
             pyM,
@@ -1552,8 +1519,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareRealNumbersVars(self, pyM):
-        """
-        Declare variables representing the (continuous) number of installed components [-].
+        """Declare variables representing the (continuous) number of installed components [-].
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1569,8 +1535,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareIntNumbersVars(self, pyM):
-        """
-        Declare variables representing the (discrete/integer) number of installed components [-].
+        """Declare variables representing the (discrete/integer) number of installed components [-].
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1586,8 +1551,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def declareBinaryDesignDecisionVars(self, pyM, relaxIsBuiltBinary):
-        """
-        Declare binary variables [-] indicating if a component is considered at a location or not [-].
+        r"""Declare binary variables [-] indicating if a component is considered at a location or not [-].
 
         If a isBuiltFix parameter is given, the bounds are set to enforce
 
@@ -1600,10 +1564,7 @@ class ComponentModel(metaclass=ABCMeta):
         abbrvName, compDict = self.abbrvName, self.componentsDict
 
         def binDomain(pyM, loc, compName, ip):
-            """
-            returns minimal necessary domain for the binary variable depending on the given conditions,
-            e.g., if values are already fixed, or binary variables should be relaxed
-            """
+            """Return the minimal necessary domain for the binary variable depending on the given conditions, e.g., if values are already fixed or if binary variables should be relaxed."""
             if relaxIsBuiltBinary:
                 # If binary variables are relaxed, value can take all non negative reals (between 0 and 1)
                 return pyomo.NonNegativeReals
@@ -1618,7 +1579,7 @@ class ComponentModel(metaclass=ABCMeta):
             return pyomo.Binary
 
         def binBounds(pyM, loc, compName, ip):
-            """returns bounds with minimal necessary freedom for the binary variables (e.g. (0,0) or (1,1))"""
+            """Return bounds with the minimal necessary freedom for the binary variables (e.g., (0, 0) or (1, 1))."""
             if ip < 0:
                 return None, None
             if compDict[compName].isBuiltFix is not None:
@@ -1672,8 +1633,7 @@ class ComponentModel(metaclass=ABCMeta):
         flexibleConversion=False,
         relevanceThreshold=None,
     ):
-        """
-        Declare operation variables.
+        r"""Declare operation variables.
 
         The following operation modes are directly handled during variable creation as bounds instead of constraints.
 
@@ -1807,8 +1767,7 @@ class ComponentModel(metaclass=ABCMeta):
         opVarBinName="op_bin",
         opBinSetName="operationBinVarSet",
     ):
-        """
-        Declare binary operation variables.
+        """Declare binary operation variables.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -1835,8 +1794,7 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def capToNbReal(self, pyM):
-        """
-        Determine the components' capacities from the number of installed units.
+        r"""Determine the components' capacities from the number of installed units.
 
         .. math::
 
@@ -1869,8 +1827,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def capToNbInt(self, pyM):
-        """
-        Determine the components' capacities from the number of installed units.
+        r"""Determine the components' capacities from the number of installed units.
 
         .. math::
 
@@ -1900,8 +1857,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def bigM(self, pyM):
-        """
-        Enforce the consideration of the binary design variables of a component.
+        r"""Enforce the consideration of the binary design variables of a component.
 
         .. math::
 
@@ -1941,8 +1897,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def capacityMinDec(self, pyM):
-        """
-        Enforce the consideration of minimum capacities for components with design decision variables.
+        r"""Enforce the consideration of minimum capacities for components with design decision variables.
 
         Minimal capacity which needs to be reached for every investment period with commissioning.
         As the commisBinVar is coupled with commissioning var, constraint only sets minimal Capacity if component is commissioned.
@@ -1979,8 +1934,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def designBinFix(self, pyM):
-        """
-        Set, if applicable, the installed capacities of a component.
+        r"""Set, if applicable, the installed capacities of a component.
 
         .. math::
 
@@ -2010,8 +1964,7 @@ class ComponentModel(metaclass=ABCMeta):
     #                               Functions for declaring pathway dependent constraints                              #
     ####################################################################################################################
     def designDevelopmentConstraint(self, pyM, esM):
-        """
-        Link the capacity development between investment periods.
+        """Link the capacity development between investment periods.
 
         For stochastic: The capacity design must be equal between the different years.
 
@@ -2073,8 +2026,7 @@ class ComponentModel(metaclass=ABCMeta):
             )
 
     def stockCapacityConstraint(self, pyM, esM):
-        """
-        Set the stock capacity constraint. The stock capacity is the sum of the stock
+        """Set the stock capacity constraint. The stock capacity is the sum of the stock
         commissioning, which do not exceed its technical lifetime.
 
         For stochastic, the stock of past investment periods is not only valid for ip=0 but for all investment periods.
@@ -2094,7 +2046,6 @@ class ComponentModel(metaclass=ABCMeta):
         :param esM: energy system model containing general information.
         :type esM: EnergySystemModel instance from the FINE package
         """
-
         abbrvName = self.abbrvName
         capVar = getattr(pyM, "cap_" + abbrvName)
         commisVar = getattr(pyM, "commis_" + abbrvName)
@@ -2136,8 +2087,7 @@ class ComponentModel(metaclass=ABCMeta):
             )
 
     def stockCommissioningConstraint(self, pyM, esM):
-        """
-        Set commissioning variable for past investment periods. For past investment periods,
+        """Set commissioning variable for past investment periods. For past investment periods,
         where no stock commissioning is specified the commissioning variable is set to zero.
         """
         commisConstrSet = getattr(pyM, "designCommisVarSet_" + self.abbrvName)
@@ -2164,8 +2114,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def decommissioningConstraint(self, pyM, esM):
-        """
-        Declase the decommissioning after the technical lifetime from investment
+        r"""Declase the decommissioning after the technical lifetime from investment
         period of commissioning.
 
         .. math::
@@ -2234,8 +2183,7 @@ class ComponentModel(metaclass=ABCMeta):
         isStateOfCharge=False,
         isOperationCommisYearDepending=False,
     ):
-        """
-        Define operation mode 1. The operation [commodityUnit*h] is limited by the installed capacity in:\n
+        r"""Define operation mode 1. The operation [commodityUnit*h] is limited by the installed capacity in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
         An additional factor can limited the operation further.
@@ -2338,8 +2286,9 @@ class ComponentModel(metaclass=ABCMeta):
         isStateOfCharge=False,
         isOperationCommisYearDepending=False,
     ):
-        """
-        Define operation mode 2. The operation [commodityUnit*h] is equal to the installed capacity multiplied
+        r"""Define operation mode 2.
+
+        The operation [commodityUnit*h] is equal to the installed capacity multiplied
         with a time series in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
@@ -2431,8 +2380,9 @@ class ComponentModel(metaclass=ABCMeta):
         isOperationCommisYearDepending=False,
         relevanceThreshold=None,
     ):
-        """
-        Define operation mode 3. The operation [commodityUnit*h] is limited by an installed capacity multiplied
+        r"""Define operation mode 3.
+
+        The operation [commodityUnit*h] is limited by an installed capacity multiplied
         with a time series in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
@@ -2546,9 +2496,10 @@ class ComponentModel(metaclass=ABCMeta):
         isOperationCommisYearDepending=False,
         relevanceThreshold=None,
     ):
-        """
-        Define operation mode 4. The operation [commodityUnit*h] is limited by an installed capacity multiplied
-        with a time series in:\n
+        r"""Define operation mode 4.
+
+        The operation [commodityUnit*h] is limited by an installed capacity
+        multiplied with a time series in:\n
         * [commodityUnit*h] (for storages) or in
         * [commodityUnit] multiplied by the hours per time step (else).\n
 
@@ -2659,6 +2610,12 @@ class ComponentModel(metaclass=ABCMeta):
         opVarBinName,
         isOperationCommisYearDepending=False,
     ):
+        """Create binary operation constraints for component operation.
+
+        Defines two constraints linking a continuous operation variable
+        to its corresponding binary variable using the Big-M formulation.
+        Handles both standard and commissioning year-dependent cases.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
@@ -2730,8 +2687,7 @@ class ComponentModel(metaclass=ABCMeta):
         capVarName,
         isOperationCommisYearDepending=False,
     ):
-        """
-        Set, if applicable, the minimal part load of a component.
+        """Set, if applicable, the minimal part load of a component.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -2823,8 +2779,7 @@ class ComponentModel(metaclass=ABCMeta):
         isOperationCommisYearDepending=False,
     ):
         # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
-        """
-        Limit the annual full load hours to a minimum value.
+        """Limit the annual full load hours to a minimum value.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -2899,8 +2854,7 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         isOperationCommisYearDepending=False,
     ):
-        """
-        Limit the annual full load hours to a maximum value.
+        """Limit the annual full load hours to a maximum value.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -2972,8 +2926,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     @abstractmethod
     def declareSets(self, esM, pyM):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        """Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
         Declare sets of components and constraints in the componentModel class.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -2986,8 +2939,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     @abstractmethod
     def declareVariables(self, esM, pyM, relevanceThreshold):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        """Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
         Declare variables of components in the componentModel class.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -3004,8 +2956,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     @abstractmethod
     def declareComponentConstraints(self, esM, pyM):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        """Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
         Declare constraints of components in the componentModel class.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -3018,8 +2969,7 @@ class ComponentModel(metaclass=ABCMeta):
 
     @abstractmethod
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if operation variables exist in the modeling class at a location which are connected to a commodity.
+        """Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -3030,20 +2980,17 @@ class ComponentModel(metaclass=ABCMeta):
         :param commod: name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
         :param commod: string
         """
-
         raise NotImplementedError
 
     @abstractmethod
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """
-        Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
+        """Abstract method which has to be implemented by subclasses (otherwise a NotImplementedError raises).
         Get contribution to a commodity balance.
         """
         raise NotImplementedError
 
     def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
+        """Get contribution to the objective function.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel instance
@@ -3089,9 +3036,7 @@ class ComponentModel(metaclass=ABCMeta):
         return capexCap + capexDec + opexCap + opexDec
 
     def getSharedPotentialContribution(self, pyM, key, loc, ip):
-        """
-        Get the share which the components of the modeling class have on a shared maximum potential at a location.
-        """
+        """Get the share which the components of the modeling class have on a shared maximum potential at a location."""
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(pyM, "cap_" + abbrvName)
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
@@ -3115,8 +3060,7 @@ class ComponentModel(metaclass=ABCMeta):
         getOptValue=False,
         getOptValueCostType="TAC",
     ):
-        """
-        Set design dependent cost equations for the individual components. The equations will be set
+        """Set design dependent cost equations for the individual components. The equations will be set
         for all components of a modeling class and all locations.
 
         **Required arguments**
@@ -3382,8 +3326,7 @@ class ComponentModel(metaclass=ABCMeta):
         QPdivisorNames=[],
         getOptValue=False,
     ):
-        """
-        Set time-independent equation specified for one component in one location in one investment period.
+        """Set time-independent equation specified for one component in one location in one investment period.
 
         **Required arguments:**
 
@@ -3502,8 +3445,7 @@ class ComponentModel(metaclass=ABCMeta):
         getOptValue=False,
         getOptValueCostType="TAC",
     ):
-        """
-        Set time-dependent equations for the individual components. The equations will be set for all components of a modeling class
+        """Set time-dependent equations for the individual components. The equations will be set for all components of a modeling class
         and all locations as well as for each considered time step.
         In case of a two-dimensional component (e.g. a transmission component), the equations will be set for all possible connections between the
         defined locations.
@@ -3701,8 +3643,7 @@ class ComponentModel(metaclass=ABCMeta):
         ip,
         getOptValue=False,
     ):
-        """
-        Set time-dependent cost functions for the individual components. The equations will be set for all components
+        """Set time-dependent cost functions for the individual components. The equations will be set for all components
         of a modeling class and all locations as well as for each considered time step.
 
         **Required arguments:**
@@ -3813,8 +3754,7 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
-        """
-        Set the optimal values for the considered components and return a summary of them.
+        r"""Set the optimal values for the considered components and return a summary of them.
         The function is called after optimization was successful and an optimal solution was found.
         Each sub class of the component class calls this function for setting the common optimal values,
         e.g. investment and maintenance costs proportional to optimal capacity expansion.
@@ -4322,8 +4262,7 @@ class ComponentModel(metaclass=ABCMeta):
         return optSummary
 
     def getOptimalValues(self, name="all", ip=0):
-        """
-        Return optimal values of the components.
+        """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 

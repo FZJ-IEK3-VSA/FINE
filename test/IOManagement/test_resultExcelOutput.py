@@ -9,12 +9,10 @@ from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
 
 def test_compareResults_longClassNames():
-    """
-    Tests long, non-conventional class names which can lead to an error when writing the excel file (at most 31 characters allowed)
+    """Tests long, non-conventional class names which can lead to an error when writing the excel file (at most 31 characters allowed).
 
-    Tests all possible subclasses (and subclasses of subclasses) of the component class
+    Tests all possible subclasses (and subclasses of subclasses) of the component class.
     """
-
     # recursively get all subclasses which inherit from "component":
 
     def recursive_check_inherits_from_component(obj):

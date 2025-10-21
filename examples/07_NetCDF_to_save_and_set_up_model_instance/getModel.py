@@ -4,6 +4,7 @@ import numpy as np
 
 
 def getModel():
+    """Get example energy system model for the NetCDF example."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 

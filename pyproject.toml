@@ -34,7 +34,7 @@ dependencies = [
     "openpyxl<=3.1.5",
     "matplotlib<=3.9.2",
     "xlrd<=2.0.1",
-    "pyomo<=6.9.4",
+    "pyomo>=6.8,<=6.9.4",
     "numpy<=2.3.3",
     "pandas<=2.2.3",
     "scipy<=1.15.2",
@@ -85,9 +85,15 @@ documentation = "https://vsa-fine.readthedocs.io/en/master/"
 extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
-select = ["F", "PL", "R", "ARG", "RET", "E", "W", "UP", "ICN", "TID", "PTH"]
+select = ["F", "PL", "R", "ARG", "RET", "E", "W", "UP", "ICN", "TID", "D", "PTH"]
 # See https://docs.astral.sh/ruff/rules for explanations
 ignore = [
+    "D200", # One-line docstring should fit on one line
+    "D205", # 1 blank line required between summary line and description
+    "D100", # Missing docstring in public module (beginning of a py file)
+    "D104", # Missing docstring in public package (within the __init__.py files)
+    "D105", # Missing docstring in magic method
+    "D107", # Missing docstring in `__init__`
     "F403",    # ‘from module import *’ used; unable to detect undefined names
     "PLR0913", # Too many arguments in function definition ( > 5) 
     "PLR0912", # Too many branches ( > 12) (if, else statements)
@@ -97,4 +103,3 @@ ignore = [
     "ARG002",
     "E501", # Lines to long 
 ]
-
