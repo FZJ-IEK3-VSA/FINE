@@ -2,14 +2,11 @@
 
 # # Workflow for a multi-regional energy system
 #
-
-import os
+import fine as fn
 import pandas as pd
 import numpy as np
 import pytest
-import sys
 
-import fine as fn
 
 HEAT_GRID_PRICE = 0.5
 GAS_PRICE = 0.1
@@ -27,11 +24,9 @@ def test_conversionPartLoad_simple(hoursPerTimeStep):
 
     Methan boiler is forced to produce with higher rate than heat demand due to partLoadMin.
     The rest of the produced heat is dumped.
-
     Heat purchase (grid) -------------------------------------------->
                                                                         Heat Demand + DUMMY Source
     Methane purchase -----> Methane boiler (Conversion Dynamic) ----->
-
     """
     esM = fn.EnergySystemModel(
         locations={
@@ -94,6 +89,7 @@ def test_conversionPartLoad_simple(hoursPerTimeStep):
             hasCapacityVariable=False,
         )
     )
+
     esM.add(
         fn.Sink(
             esM=esM,
@@ -114,16 +110,6 @@ def test_conversionPartLoad_simple(hoursPerTimeStep):
     )
 
     assert expectedOperation == heater_operation
-
-
-sys.path.append(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "examples",
-        "Multi-regional_Energy_System_Workflow",
-    )
-)
 
 
 def test_minimumPartLoad():
