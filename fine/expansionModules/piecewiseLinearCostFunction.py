@@ -453,6 +453,7 @@ class PiecewiseLinearCostFunctionModel:
 
     def declareSos2PwlcfConstr(self, pyM):
         """Declare SOS2 constraints for pwlcf model."""
+
         def sos2rule(pyM, module_name, ip):
             return [
                 pyM.sos2PwlcfVar[module_name, ip, segment]
@@ -518,7 +519,7 @@ class PiecewiseLinearCostFunctionModel:
             pw_repn="SOS2",
         )
 
-    def getObjectiveFunctionContribution(self, esM, pyM): # noqa D102
+    def getObjectiveFunctionContribution(self, esM, pyM):  # noqa D102
         return self.getEconomicsPwlcf(esM, pyM)
 
     def getEconomicsPwlcf(
@@ -730,7 +731,7 @@ class PiecewiseLinearCostFunctionModel:
         )
 
     def getCostContributionsPwlcf(
-            self, pyM, moduleName, pwlcf_type, costType, commisYear=None, getOptValue=False
+        self, pyM, moduleName, pwlcf_type, costType, commisYear=None, getOptValue=False
     ):
         """Extract the cost contribution from a specified component and for a specified commissioning year.
 
