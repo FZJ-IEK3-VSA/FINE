@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner_tag: ["ubuntu-latest"]
+        runner_tag: ["self-hosted"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
     with:
       runner_tag: ${{ matrix.runner_tag }}
