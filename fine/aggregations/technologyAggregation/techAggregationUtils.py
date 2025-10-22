@@ -1,11 +1,11 @@
 """Functions to assist technology aggregation algorithm."""
 
-import os
 import numpy as np
 from affine import Affine
 import xarray as xr
 from rasterio import features
 import geopandas as gpd
+from pathlib import Path
 
 
 def rasterize_geometry(geometry, coords, latitude="y", longitude="x"):
@@ -116,7 +116,7 @@ def rasterize_xr_ds(
 
     ## shp_file
     if isinstance(shp_file, str):
-        if not os.path.isfile(shp_file):
+        if not Path.is_file(shp_file):
             raise FileNotFoundError("The shp_file path specified is not valid")
         shp_file = gpd.read_file(shp_file)
 
