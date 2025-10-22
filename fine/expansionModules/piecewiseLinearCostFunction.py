@@ -5,7 +5,7 @@ from pyomo.core import Piecewise
 import pandas as pd
 
 pyomo_pwlf = False
-use_sos2 = True
+use_sos2 = False
 
 
 class PiecewiseLinearCostFunctionModule:
