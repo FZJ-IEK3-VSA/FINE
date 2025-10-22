@@ -11,7 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner_tag: ["self-hosted"]
+        # runner_tag: ["self-hosted"]
+        runner_tag: ["ubuntu-latest", "windows-latest"]
         pwlf_version:
           [
             "2.0.4",
