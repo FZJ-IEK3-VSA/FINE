@@ -16,14 +16,17 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
+from pathlib import Path
 import sys
 
-sys.path.insert(0, os.path.abspath("."))
-insertPaths = [x[0] for x in os.walk(r"../..") if (x[0][-1] != "_")]
+sys.path.insert(0, Path.resolve("."))
+insertPaths = [
+    str(p)
+    for p in [Path("../..")] + list(Path("../..").glob("**/"))
+    if not p.name.endswith("_")
+]
 for path in insertPaths:
-    sys.path.insert(0, os.path.abspath(path))
-
+    sys.path.insert(0, Path.resolve(path))
 
 # -- General configuration ------------------------------------------------
 
