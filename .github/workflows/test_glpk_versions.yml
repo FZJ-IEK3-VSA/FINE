@@ -11,7 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner_tag: ["ubuntu-latest", "windows-latest"]
+        # runner_tag: ["ubuntu-latest", "windows-latest"]
+        runner_tag: ["self-hosted"]
         glpk_version: ["4.63", "4.65", "5.0"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
     with:
