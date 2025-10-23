@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # runner_tag: ["self-hosted"]
-        runner_tag: ["ubuntu-latest", "windows-latest"]
+        # runner_tag: ["ubuntu-latest", "windows-latest"]
+        runner_tag: ["self-hosted"]
         xarray_version:
           [
             "2022.3.0",

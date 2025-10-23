@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # runner_tag: ["self-hosted"]
-        runner_tag: ["ubuntu-latest", "windows-latest"]
+        # runner_tag: ["ubuntu-latest", "windows-latest"]
+        runner_tag: ["self-hosted"]
         netcdf4_version:
           [
             "1.5.8",
