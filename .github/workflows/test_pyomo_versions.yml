@@ -11,7 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner_tag: ["self-hosted"]
+        # runner_tag: ["self-hosted"]
+        runner_tag: ["ubuntu-latest", "windows-latest"]
         pyomo_version:
           [
             "6.8.0",

@@ -1,4 +1,5 @@
 on:
+  workflow_dispatch:
   # push:
   #   branches: ["485_test_dependency_range_new_release"]
   pull_request:
@@ -10,7 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner_tag: ["self-hosted"]
+        # runner_tag: ["self-hosted"]
+        runner_tag: ["ubuntu-latest", "windows-latest"]
         gurobi_logtools_version: ["3.0.0", "3.1.0", "3.2.0"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
     with:
