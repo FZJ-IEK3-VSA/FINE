@@ -1,7 +1,7 @@
 on:
   workflow_dispatch:
-   push:
-     branches: ["bug_fix_set_optimal_values_pwlcf"]
+  push:
+    branches: ["bug_fix_set_optimal_values_pwlcf"]
 #  pull_request:
 #    branches: ["master"]
 
