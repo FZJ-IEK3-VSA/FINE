@@ -86,10 +86,13 @@ def test_etl_NPV():
     np.testing.assert_almost_equal(esm_from_netcdf.pyM.Obj(), esM.pyM.Obj(), 5)
     np.testing.assert_almost_equal(esm_from_netcdf.pyM.Obj(), 4.6906658, 5)
     np.testing.assert_almost_equal(
-        esM.getOptimizationSummary('SourceSinkModel', ip=2030).loc['PV', 'invest', '[1 Euro]']['loc1'],
+        esM.getOptimizationSummary("SourceSinkModel", ip=2030).loc[
+            "PV", "invest", "[1 Euro]"
+        ]["loc1"],
         0.902734,
-        5
+        5,
     )
+
 
 def test_etl_stock_NPV():
     """Test case for basic npv calculation with etl module when stock is considered."""

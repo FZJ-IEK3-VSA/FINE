@@ -1043,7 +1043,9 @@ class PiecewiseLinearCostFunctionModel:
                     )
                     optSummary[ipName].loc[eosComps, "NPVcontribution", :] = (
                         optSummary[ipName].loc[eosComps, "NPVcontribution", :].fillna(0)
-                        + optSummaryPwlcf[ipName].loc[eosComps, "NPVcontribution_EOS", :].values
+                        + optSummaryPwlcf[ipName]
+                        .loc[eosComps, "NPVcontribution_EOS", :]
+                        .values
                     )
                     optSummary[ipName].loc[eosComps, "invest", :] = (
                         optSummary[ipName].loc[eosComps, "invest", :].fillna(0)
@@ -1056,7 +1058,9 @@ class PiecewiseLinearCostFunctionModel:
                     )
                     optSummary[ipName].loc[etlComps, "NPVcontribution", :] = (
                         optSummary[ipName].loc[etlComps, "NPVcontribution", :].fillna(0)
-                        + optSummaryPwlcf[ipName].loc[etlComps, "NPVcontribution_ETL", :].values
+                        + optSummaryPwlcf[ipName]
+                        .loc[etlComps, "NPVcontribution_ETL", :]
+                        .values
                     )
                     optSummary[ipName].loc[etlComps, "invest", :] = (
                         optSummary[ipName].loc[etlComps, "invest", :].fillna(0)
