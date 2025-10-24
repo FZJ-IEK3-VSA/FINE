@@ -49,7 +49,6 @@ jobs:
             "2025.7.0",
             "2025.7.1",
             "2025.8.0",
-            "2025.9.0",
             "2025.10.1",
           ]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
