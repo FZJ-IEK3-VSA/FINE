@@ -11,7 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner_tag: [ubuntu-latest, windows-latest, macos-latest]
+        # runner_tag: [ubuntu-latest, windows-latest, macos-latest]
+        runner_tag: ["self-hosted"]
         numpy_version:
           ["2.3", "2.2", "2.1", "2.0", "1.26", "1.25", "1.24", "1.23", "1.22"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main

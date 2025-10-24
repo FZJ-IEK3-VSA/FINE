@@ -1037,23 +1037,33 @@ class PiecewiseLinearCostFunctionModel:
                     axis=0,
                 ).sort_index()
                 if len(eosComps) > 0:
-                    optSummary[ipName].loc[eosComps, "TAC", :] += optSummaryPwlcf[
-                        ipName
-                    ].loc[:, "TAC_EOS", :]
-                    optSummary[ipName].loc[eosComps, "NPVcontribution", :] += (
-                        optSummaryPwlcf[ipName].loc[:, "NPVcontribution_EOS", :]
+                    optSummary[ipName].loc[eosComps, "TAC", :] = (
+                        optSummary[ipName].loc[eosComps, "TAC", :].fillna(0)
+                        + optSummaryPwlcf[ipName].loc[eosComps, "TAC_EOS", :].values
                     )
-                    optSummary[ipName].loc[eosComps, "invest", :] += optSummaryPwlcf[
-                        ipName
-                    ].loc[:, "invest_EOS", :]
+                    optSummary[ipName].loc[eosComps, "NPVcontribution", :] = (
+                        optSummary[ipName].loc[eosComps, "NPVcontribution", :].fillna(0)
+                        + optSummaryPwlcf[ipName]
+                        .loc[eosComps, "NPVcontribution_EOS", :]
+                        .values
+                    )
+                    optSummary[ipName].loc[eosComps, "invest", :] = (
+                        optSummary[ipName].loc[eosComps, "invest", :].fillna(0)
+                        + optSummaryPwlcf[ipName].loc[eosComps, "invest_EOS", :].values
+                    )
                 if len(etlComps) > 0:
-                    optSummary[ipName].loc[etlComps, "TAC", :] += optSummaryPwlcf[
-                        ipName
-                    ].loc[:, "TAC_ETL", :]
-                    optSummary[ipName].loc[etlComps, "NPVcontribution", :] += (
-                        optSummaryPwlcf[ipName].loc[:, "NPVcontribution_ETL", :]
+                    optSummary[ipName].loc[etlComps, "TAC", :] = (
+                        optSummary[ipName].loc[etlComps, "TAC", :].fillna(0)
+                        + optSummaryPwlcf[ipName].loc[etlComps, "TAC_ETL", :].values
                     )
-                    optSummary[ipName].loc[eosComps, "invest", :] += optSummaryPwlcf[
-                        ipName
-                    ].loc[:, "invest_ETL", :]
+                    optSummary[ipName].loc[etlComps, "NPVcontribution", :] = (
+                        optSummary[ipName].loc[etlComps, "NPVcontribution", :].fillna(0)
+                        + optSummaryPwlcf[ipName]
+                        .loc[etlComps, "NPVcontribution_ETL", :]
+                        .values
+                    )
+                    optSummary[ipName].loc[etlComps, "invest", :] = (
+                        optSummary[ipName].loc[etlComps, "invest", :].fillna(0)
+                        + optSummaryPwlcf[ipName].loc[etlComps, "invest_ETL", :].values
+                    )
             model.optSummary = optSummary[esM.startYear]
