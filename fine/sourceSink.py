@@ -1121,30 +1121,37 @@ class SourceSinkModel(ComponentModel):
     
 
     
-    def getMaterialRecoveryContribution(self, pyM, mat, loc, ip):
+    def getMaterialRecoveryContribution(self, pyM, mat, loc, ip, scrap_source_name):
+        compDict = self.componentsDict
+        decommisVar = getattr(pyM, "decommis_" + self.abbrvName)
+        
+        rhs = 0
+        for (loc2, compName, ip2) in decommisVar:
+            if loc2 != loc or ip2 != ip:
+                continue
+            if compName not in compDict:
+                continue
+            comp = compDict[compName]
+            if not hasattr(comp, "processedMaterialIntensity"):
+                continue
 
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        decommisVar = getattr(pyM, "decommis_" + abbrvName)
+            # Expected: windonshore_steel_scrap
+            expected_name = f"{compName}_{mat}_scrap"
+            if scrap_source_name != expected_name:
+                continue
 
-        rhs_comp = sum(
-            decommisVar[loc, compName, ip] *
-            compDict[compName].processedMaterialIntensity[loc][mat][
-                ip - (
-                    math.floor(compDict[compName].ipTechnicalLifetime[loc])
-                    if compDict[compName].floorTechnicalLifetime
-                    else math.ceil(compDict[compName].ipTechnicalLifetime[loc])
-                )
-            ] *
-            compDict[compName].processedMaterialRecovery[loc][mat][ip]
-            for (loc2, compName, ip2) in decommisVar
-            if loc2 == loc and ip2 == ip
-            and compName in compDict
-            and hasattr(compDict[compName], "processedMaterialIntensity")
-            and ip in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
-        )
+            offset = ip - (
+                math.floor(comp.ipTechnicalLifetime[loc])
+                if comp.floorTechnicalLifetime else
+                math.ceil(comp.ipTechnicalLifetime[loc])
+            )
 
-        #print("RHS_per_comp_recovery", rhs_comp)
-        return rhs_comp
+            intensity = comp.processedMaterialIntensity.get(loc, {}).get(mat, {}).get(offset, 0)
+            recovery = comp.processedMaterialRecovery.get(loc, {}).get(mat, {}).get(ip, 0)
+
+            rhs += decommisVar[loc, compName, ip] * intensity * recovery
+
+        return rhs
     
     
 
