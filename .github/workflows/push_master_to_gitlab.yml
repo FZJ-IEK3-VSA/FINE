@@ -25,5 +25,5 @@ jobs:
           git switch master
           echo "Checkout complete"
           echo start to push
-          git push --force https://push_to_jugit:${{ secrets.GITLAB_ACCESS_TOKEN }}@jugit.fz-juelich.de/iek-3/shared-code/shared-code/fine.git master
+          git push --force https://push_to_jugit:${{ secrets.GITLAB_ACCESS_TOKEN }}@jugit.fz-juelich.de/iek-3/shared-code/fine.git master
           echo push done
