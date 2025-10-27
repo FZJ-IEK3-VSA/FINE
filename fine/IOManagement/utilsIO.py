@@ -6,8 +6,8 @@ import operator
 
 
 def getFromDict(dataDict, mapList):
-    """
-    Get value from a dict by a list, which contains the dict keys.
+    """Get value from a dict by a list, which contains the dict keys.
+
     e.g. for dict={'a': {'b': 1}} with mapList ['a','b'] the function returns 1
 
     :param dataDict: nested dict, e.g. {'a': {'b'}
@@ -20,8 +20,8 @@ def getFromDict(dataDict, mapList):
 
 
 def setInDict(dataDict, mapList, value):
-    """
-    Set a value in a nested dict, where mapList contains the dict keys.
+    """Set a value in a nested dict, where mapList contains the dict keys.
+
     e.g. for dict={'a': {'b': 1}} with mapList ['a','b'] and value 2, the function sets dict={'a': {'b': 2}}
 
     :param dataDict: nested dict, e.g. {'a': {'b'}
@@ -36,8 +36,8 @@ def setInDict(dataDict, mapList, value):
 def getKeyHierarchyOfNestedDict(
     variable_description,
 ):
-    """
-    Get a list of dictionary keys for a nested dict from the variable description.
+    """Get a list of dictionary keys for a nested dict from the variable description.
+
     e.g. 'processedCapacityMax.0.1' leads to ['processedCapacityMax', 0, 1]
 
     :param variable_description: variable description
@@ -56,13 +56,13 @@ def getKeyHierarchyOfNestedDict(
         int(x) if (not isinstance(x, tuple) and x.isdigit()) else x for x in key_list
     ]
 
-    return key_list
+    return key_list  # noqa: RET504
 
 
 def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
-    """
-    Get a list of all paths in a nested dict, starting after the variable_name,
+    """Get a list of all paths in a nested dict, starting after the variable_name,
     until the next value is not a dict anymore.
+
     e.g. variable_name='a' and data_dict ={
         'a': {
             'b':{'c':1},
@@ -89,19 +89,19 @@ def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
                         # which are ip depending -> 4 levels
                         # {"commodityConversionFactors":{ip:{"group1":{"electricity":1,"hydrogen":1}}}}}}
                         for key3, data3 in data2.items():
-                            key_lists_in_nested_dict.append([variable_name, key1, key2, key3])
+                            key_lists_in_nested_dict.append(
+                                [variable_name, key1, key2, key3]
+                            )
                     else:
                         key_lists_in_nested_dict.append([variable_name, key1, key2])
             else:
                 key_lists_in_nested_dict.append([variable_name, key1])
         return key_lists_in_nested_dict
-    else:
-        return [[variable_name]]
+    return [[variable_name]]
 
 
 def transform1dSeriesto2dDataFrame(series, locations):
-    """
-    Expands pandas Series into a pandas DataFrame.
+    """Expand pandas Series into a pandas DataFrame.
 
     :param series: the series that need to be converted
     :type series: pd.Series
@@ -140,16 +140,12 @@ class PowerDict(dict):
         self.key = key
 
     def __missing__(self, key):
-        """
-        Creation of subdictionaries on fly
-        """
+        """Creation of subdictionaries on fly."""
         self[key] = PowerDict(self, key)
         return self[key]
 
     def append(self, item):
-        """
-        Additional append function for lists in dict
-        """
+        """Additional append function for lists in dict."""
         self.parent[self.key] = [item]
 
     def __setitem__(self, key, val):
@@ -160,7 +156,7 @@ class PowerDict(dict):
 
 
 def generateIterationDicts(component_dict, investmentPeriods):
-    """Creates iteration dictionaries that contain descriptions of all
+    """Create iteration dictionaries that contain descriptions of all
     dataframes, series, and constants present in component_dict.
 
     :param component_dict: dictionary containing information about the esM instance's components
@@ -171,15 +167,12 @@ def generateIterationDicts(component_dict, investmentPeriods):
 
     :return: df_iteration_dict, series_iteration_dict, constants_iteration_dict
     """
-
     df_iteration_dict, series_iteration_dict, constants_iteration_dict = {}, {}, {}
 
     # Loop through every class-component-variable combination
     for classname in component_dict:
         for component in component_dict[classname]:
-            for variable_description in component_dict[classname][
-                component
-            ].keys():
+            for variable_description in component_dict[classname][component].keys():
                 # 1. iterate through nested dict levels until constant, series or df, add
                 # 1. find list of keys in nested dict level
                 key_lists = getListsOfKeyPathsInNestedDict(
@@ -229,8 +222,11 @@ def generateIterationDicts(component_dict, investmentPeriods):
     return df_iteration_dict, series_iteration_dict, constants_iteration_dict
 
 
-def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict, locations):
-    """Adds all variables whose data is contained in a pd.DataFrame to xarray dataset.
+def addDFVariablesToXarray(
+    xr_ds, component_dict, df_iteration_dict, _mapC_dict, locations
+):
+    """Add all variables whose data is contained in a pd.DataFrame to xarray dataset.
+
     These variables are normally regional time series (dimensions - space, time)
 
     :param xr_ds: xarray dataset or a dict of xarray datasets to which the DF variables should be added
@@ -261,22 +257,23 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict,
             # If a . is present in variable name, then the data would be
             # another level further in the component_dict
             if "." in variable_description:
-                [var_name, subvar_name] = variable_description.split(".")
-                if subvar_name.isdigit():
-                    subvar_name = int(subvar_name)
-                data = component_dict[classname][component][var_name][subvar_name]
+                key_list = getKeyHierarchyOfNestedDict(variable_description)
+                value = component_dict[classname][component]
+                for key in key_list:
+                    value = value[key]
+                data = value
             else:
                 data = component_dict[classname][component][variable_description]
 
             multi_index_dataframe = data.stack()
             if "Period" in multi_index_dataframe.index.names:
                 multi_index_dataframe = multi_index_dataframe.droplevel(0)
-            
+
             multi_index_dataframe.index.set_names("time", level=0, inplace=True)
             multi_index_dataframe.index.set_names("space", level=1, inplace=True)
 
             if classname in ["Transmission", "LinearOptimalPowerFlow"]:
-                # use _mapC to split via location names 
+                # use _mapC to split via location names
                 space_index = multi_index_dataframe.index.get_level_values("space")
                 time_index = multi_index_dataframe.index.get_level_values("time")
                 # reconstruct multiindex
@@ -285,8 +282,15 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict,
                     loc1, loc2 = _mapC_dict[component][idx]
                     space_index_split.append((loc1, loc2))
                 multi_index_dataframe.index = pd.MultiIndex.from_tuples(
-                    [(time_index[i], space_index_split[i][0], space_index_split[i][1]) for i in range(len(space_index_split))],
-                    names=["time", "space", "space_2"]
+                    [
+                        (
+                            time_index[i],
+                            space_index_split[i][0],
+                            space_index_split[i][1],
+                        )
+                        for i in range(len(space_index_split))
+                    ],
+                    names=["time", "space", "space_2"],
                 )
                 df_dict_3dim[df_description] = multi_index_dataframe
             else:
@@ -319,19 +323,18 @@ def addDFVariablesToXarray(xr_ds, component_dict, df_iteration_dict, _mapC_dict,
                     pass
             return xr_ds
 
-
         # check if there is data
         if len(df_dict) > 0:
             xr_ds = add_to_xarray(xr_ds, df_dict, variable_description)
         if len(df_dict_3dim) > 0:
             xr_ds = add_to_xarray(xr_ds, df_dict_3dim, variable_description)
 
-
     return xr_ds
 
 
 def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, locations):
-    """Adds all variables whose data is contained in a pd.Series to xarray dataset.
+    """Add all variables whose data is contained in a pd.Series to xarray dataset.
+
     These variables can be either:
         - 2d (dimensions - space, space). Series indices in this case are packed like loc1_loc2
         or
@@ -355,7 +358,6 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
     :return: xr_ds
     """
-
     for variable_description, description_tuple_list in series_iteration_dict.items():
         space_space_dict = {}
         space_dict = {}
@@ -391,9 +393,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 time_dict[df_description] = pd.concat(
                     {locations[0]: time_dict[df_description]}, names=["space"]
                 )
-                time_dict[df_description] = time_dict[
-                    df_description
-                ].reorder_levels(["time", "space"])
+                time_dict[df_description] = time_dict[df_description].reorder_levels(
+                    ["time", "space"]
+                )
 
         # If the dicts are populated with at least one item,
         # process them further and merge with xr_ds
@@ -475,7 +477,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 def addConstantsToXarray(
     xr_ds, component_dict, constants_iteration_dict, useProcessedValues
 ):
-    """Adds all variables whose data is just a constant value, to xarray dataset.
+    """Add all variables whose data is just a constant value, to xarray dataset.
 
     :param xr_ds: A dict of xarray datasets to which the constant value variables should be added
     :type xr_ds: dict
@@ -490,7 +492,6 @@ def addConstantsToXarray(
 
     :return: xr_ds
     """
-
     for (
         variable_description,
         description_tuple_list,
@@ -537,16 +538,14 @@ def addConstantsToXarray(
 
 
 def processXarrayAttributes(xarray_dataset):
-    """Data types such as sets, dicts, bool, pandas df/series and Nonetype
-    are not serializable. Therefore, they are converted to lists/strings while saving.
-    They are converted back to right formats while setting up the esM instance.
+    """Convert non-serializable data types such as sets, dicts, bools, pandas DataFrames/Series, and NoneType to lists
+    or strings when saving, and convert them back to their original formats when setting up the esM instance.
 
     :param xarray_dataset: The xarray datasets holding all data required to set up an esM instance.
     :type xarray_dataset: Dict[xr.Dataset]
 
     :return: xarray_dataset
     """
-
     _xarray_dataset = (
         xarray_dataset.copy()
     )  # Copying to avoid errors due to change of size during iteration
@@ -556,7 +555,38 @@ def processXarrayAttributes(xarray_dataset):
 
     # STEP 1. Loop through each attribute, convert datatypes
     # or append to dot_attrs_dict for conversion in a later step
+    balanceLimit_dict = {}
+    balanceLimit_columns = None
+    balanceLimit_dtypes = {}
+    hasBalanceLimit = False
     for attr_name, attr_value in _xarray_dataset.attrs.items():
+        if "balanceLimit" in attr_name:
+            if attr_name == "balanceLimit_index":
+                keys_to_delete.append("balanceLimit_index")
+                continue
+            if attr_name == "balanceLimit_columns":
+                balanceLimit_columns = attr_value
+                keys_to_delete.append("balanceLimit_columns")
+            elif attr_name == "balanceLimit_dtypes":
+                balanceLimit_dtypes = attr_value
+                keys_to_delete.append("balanceLimit_dtypes")
+            else:
+                balanceLimit_dict[attr_name.replace("balanceLimit.", "")] = attr_value
+                keys_to_delete.append(attr_name)
+                hasBalanceLimit = True
+
+    if hasBalanceLimit:
+        balanceLimit_df = None
+    else:
+        balanceLimit_df = pd.DataFrame(
+            data=balanceLimit_dict, index=balanceLimit_columns
+        ).T
+        for column, dtype in zip(balanceLimit_df.columns, balanceLimit_dtypes):
+            balanceLimit_df[column] = balanceLimit_df[column].astype(dtype)
+
+    for attr_name, attr_value in _xarray_dataset.attrs.items():
+        if "balanceLimit" in attr_name:
+            continue
         if attr_name in ["locations", "commodities"] and isinstance(attr_value, str):
             xarray_dataset.attrs[attr_name] = set([attr_value])
         if attr_name in ["commodityUnitsDict"] and isinstance(attr_value, str):
@@ -623,8 +653,10 @@ def processXarrayAttributes(xarray_dataset):
                 xarray_dataset.attrs.update({new_attr_name: series})
 
         # cleaning up the many keys
-        for key in keys_to_delete:
-            xarray_dataset.attrs.pop(key)
+    for key in keys_to_delete:
+        xarray_dataset.attrs.pop(key)
+
+    xarray_dataset.attrs["balanceLimit"] = balanceLimit_df
 
     return xarray_dataset
 
@@ -632,8 +664,7 @@ def processXarrayAttributes(xarray_dataset):
 def addTimeSeriesVariableToDict(
     component_dict, comp_var_xr, component, variable, drop_component=True
 ):
-    """Converts the time series variable data to required format and adds it to
-    component_dict
+    """Convert the time series variable data to required format and add it to component_dict.
 
     :param component_dict: The dict to which the variable data needs to be added
     :type component_dict: dict
@@ -649,7 +680,6 @@ def addTimeSeriesVariableToDict(
 
     :return: component_dict
     """
-
     if len(comp_var_xr.space.dims) == 0:
         df = comp_var_xr.to_series()
     elif drop_component:
@@ -696,8 +726,7 @@ def addTimeSeriesVariableToDict(
 def add2dVariableToDict(
     component_dict, comp_var_xr, component, variable, drop_component=True
 ):
-    """Converts the 2d variable data to required format and adds it to
-    component_dict
+    """Convert the 2d variable data to required format and add it to component_dict.
 
     :param component_dict: The dict to which the variable data needs to be added
     :type component_dict: dict
@@ -739,8 +768,7 @@ def add2dVariableToDict(
 def add1dVariableToDict(
     component_dict, comp_var_xr, component, variable, drop_component=True
 ):
-    """Converts the 1d variable data to required format and adds it to
-    component_dict
+    """Convert the 1d variable data to required format and add it to component_dict.
 
     :param component_dict: The dict to which the variable data needs to be added
     :type component_dict: dict
@@ -756,7 +784,6 @@ def add1dVariableToDict(
 
     :return: component_dict
     """
-
     if len(comp_var_xr.dims) == 0:
         # We check for the dimensionality again because single node models will have scalars here.
         series = pd.Series([comp_var_xr.item()], index=[comp_var_xr.space.item()])
@@ -779,8 +806,7 @@ def add1dVariableToDict(
 
 
 def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
-    """Converts the dimensionless variable data to required format and adds it to
-    component_dict
+    """Convert the dimensionless variable data to required format and add it to component_dict.
 
     :param component_dict: The dict to which the variable data needs to be added
     :type component_dict: dict

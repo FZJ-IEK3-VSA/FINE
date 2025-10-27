@@ -1,9 +1,3 @@
-import os
-import sys
-
-import pandas as pd
-import xarray as xr
-
 import fine as fn
 
 from getData import getData
@@ -12,6 +6,7 @@ data = getData()
 
 
 def getModel():
+    """Get example energy system model for the spatial and technology aggregation example."""
     # 1. Create an energy system model instance
     locations = {
         "cluster_0",
@@ -42,8 +37,6 @@ def getModel():
         lengthUnit="km",
         verboseLogLevel=0,
     )
-
-    CO2_reductionTarget = 1
 
     # 2. Add commodity sources to the energy system model
 

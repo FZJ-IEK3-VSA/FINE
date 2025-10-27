@@ -1,6 +1,4 @@
-"""
-Functions to assist spatial aggregation 
-"""
+"""Functions to assist spatial aggregation."""
 
 import warnings
 import numpy as np
@@ -16,8 +14,7 @@ except ImportError:
 
 
 def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"):
-    """
-    Creates a geodataframe.
+    """Create a geodataframe.
 
     :param df: The dataframe which would, among other things, have the region ids/names
     :type df: pd.DataFrame
@@ -44,7 +41,6 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
     :returns: gdf - A geodataframe that is created
     :rtype: gpd.GeoDataFrame
     """
-
     gdf = gpd.GeoDataFrame(df, geometry=geometries, crs=f"EPSG:{crs}")
 
     if file_path is not None:
@@ -57,8 +53,7 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
 def create_geom_xarray(
     shapefile, geom_col_name="geometry", geom_id_col_name="index", add_centroids=True
 ):
-    """
-    Creates an xr.Dataset with geometry info from the `shapefile`.
+    """Create an xr.Dataset with geometry information from the shapefile.
 
     :param shapefile: The shapefile to be converted
     :type shapefile: gpd.GeoDataFrame
@@ -81,7 +76,6 @@ def create_geom_xarray(
     :returns: xr_ds - The xarray dataset holding 'geometries', 'centroids', 'centroid_distances'
     :rtype: xr.Dataset
     """
-
     # geometries and their IDs
     geometries = shapefile[geom_col_name]
     geom_ids = shapefile[geom_id_col_name]
@@ -131,9 +125,7 @@ def create_geom_xarray(
 def save_shapefile_from_xarray(
     geom_xr, save_path, shp_name="aggregated_regions", crs: int = 3035
 ):
-    """
-    Extracts regions and their geometries from `xarray_dataset`
-    and saves to a shapefile.
+    """Extract regions and their geometries from xarray_dataset and save them to a shapefile.
 
     :param geom_xr: The xarray dataset holding the geom info
     :type geom_xr: xr.Dataset
@@ -151,7 +143,6 @@ def save_shapefile_from_xarray(
         |br| * the default value is 3035
     :type crs: int
     """
-
     df = geom_xr.space.to_dataframe()
     geometries = geom_xr.values
 

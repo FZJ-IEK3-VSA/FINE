@@ -6,13 +6,16 @@ from fine.utils import buildFullTimeSeries
 import pandas as pd
 from fine import utils
 
+
 def reconstruct_full_timeseries(esM, timeseries, ip):
+    """Reconstruct the full timeseries from the time series aggregation (TSA) results."""
     print("Reconstructing timeseries from TSA")
 
     # switch first index level and column level
     df = timeseries.copy()
     df = df.stack().unstack(level=1)
-    df.index.names = [None] * len(df.index.names)
+    number_of_index_level = df.index.nlevels
+    df.index.set_names(names=[None] * number_of_index_level, inplace=True)
     full_df = (
         buildFullTimeSeries(df, esM.periodsOrder[ip], ip=ip, esM=esM, divide=False)
         .reset_index(level=0, drop=True)
@@ -24,8 +27,7 @@ def reconstruct_full_timeseries(esM, timeseries, ip):
 
 
 def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
-    """
-    Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
+    """Write the input arguments of EnergySysteModel and its Components input to a dictionary.
 
     :param esM: EnergySystemModel instance in which the optimization model is held
     :type esM: EnergySystemModel instance
@@ -33,7 +35,6 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
     :return: esmDict, compDict - dicts containing input arguments of
             EnergySysteModel and its Components input, respectively
     """
-
     # Get all input properties of the esM
     inputkwargs = inspect.getfullargspec(fn.EnergySystemModel.__init__)
 
@@ -67,7 +68,7 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
                 _prop_list = prop_list.copy()
                 for prop in _prop_list:
                     # for soc min/max the original input must be used to ensure compatibility with spatial aggregation
-                    if prop in ['stateOfChargeMin', 'stateOfChargeMax']:
+                    if prop in ["stateOfChargeMin", "stateOfChargeMax"]:
                         prop_list.remove(prop)
                         prop_list.append((prop, prop))
                     # for the transmission investment parameters, the preprocessed version
@@ -104,36 +105,46 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
                         _data = getattr(component, prop[1])
                         # useprocessedValues is only used for xarray and we want to have the original investment period names
                         if isinstance(_data, dict):
-                            investmentPeriodMapper = dict(zip(esM.investmentPeriods, esM.investmentPeriodNames))
+                            investmentPeriodMapper = dict(
+                                zip(esM.investmentPeriods, esM.investmentPeriodNames)
+                            )
                             # replace keys with investment period names in _data
-                            _data = {investmentPeriodMapper[k]: v for k, v in _data.items()}
+                            _data = {
+                                investmentPeriodMapper[k]: v for k, v in _data.items()
+                            }
                         compDict[classname][componentname][prop[0]] = _data
             else:
                 # Loop over all input props
                 for prop in prop_list:
                     if class_ is not fn.Transmission:
-                        if (prop != "self") and (prop != "esM"):
+                        if prop not in ("self", "esM"):
                             compDict[classname][componentname][prop] = getattr(
                                 component, prop
                             )
-                    elif (prop != "self") and (prop != "esM"):
-                            _data = getattr(component, prop)
-                            if isinstance(_data, pd.DataFrame) and "operationRate" not in prop:
-                                _data = utils.preprocess2dimData(_data)
-                                compDict[classname][componentname][prop] = _data
-                            elif isinstance(_data, dict):
-                                for ip, _data in _data.items():
-                                    if isinstance(_data, pd.DataFrame) and "operationRate" not in prop:
-                                        _data = utils.preprocess2dimData(_data)
-                                    compDict[classname][componentname][prop][ip] = _data
-                            else:
-                                compDict[classname][componentname][prop] = _data
-                            
+                    elif prop not in ("self", "esM"):
+                        _data = getattr(component, prop)
+                        if (
+                            isinstance(_data, pd.DataFrame)
+                            and "operationRate" not in prop
+                        ):
+                            _data = utils.preprocess2dimData(_data)
+                            compDict[classname][componentname][prop] = _data
+                        elif isinstance(_data, dict):
+                            for ip, _data in _data.items():
+                                if (
+                                    isinstance(_data, pd.DataFrame)
+                                    and "operationRate" not in prop
+                                ):
+                                    _data = utils.preprocess2dimData(_data)
+                                compDict[classname][componentname][prop][ip] = _data
+                        else:
+                            compDict[classname][componentname][prop] = _data
+
                 # Add aggregatedRate timeseries from TSA
                 if esM.isTimeSeriesDataClustered:
                     prop_list_full_set = component.__dict__.keys()
                     for prop in prop_list_full_set:
-                        if (prop != "self") and (prop != "esM"):
+                        if prop not in ("self", "esM"):
                             if ("aggregated" in prop) and ("Rate" in prop):
                                 timeseries = getattr(component, prop)
                                 # if only one time series was given by user, independent of the number of investment periods, we only save that
@@ -186,8 +197,7 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
 
 
 def importFromDict(esmDict, compDict):
-    """
-    Converts the dictionaries created by the exportToDict function to an EnergySystemModel.
+    """Convert the dictionaries created by the exportToDict function to an EnergySystemModel.
 
     :param esMDict: dictionary created from exportToDict contains all esM information
     :type dict: dictionary instance
