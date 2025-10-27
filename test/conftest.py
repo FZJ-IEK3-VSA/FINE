@@ -1,6 +1,6 @@
 import pytest
 import sys
-import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -8,11 +8,11 @@ import pandas as pd
 import fine as fn
 
 sys.path.append(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "examples",
-        "03_Multi-regional_Energy_System_Workflow",
+    str(
+        Path(__file__).parent
+        / ".."
+        / "examples"
+        / "03_Multi-regional_Energy_System_Workflow"
     )
 )
 from getData import getData
@@ -20,8 +20,7 @@ from getData import getData
 
 @pytest.fixture
 def minimal_test_esM(scope="session"):
-    """Returns minimal instance of esM"""
-
+    """Return minimal instance of esM."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -203,8 +202,7 @@ def minimal_test_esM(scope="session"):
 
 @pytest.fixture
 def single_node_test_esM():
-    """Returns minimal instance of esM with one node"""
-
+    """Return minimal instance of esM with one node."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -344,8 +342,14 @@ def esM_init():
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
+    CO2_reductionTarget = 1
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
-    esM = fn.EnergySystemModel(
+    return fn.EnergySystemModel(
         locations=locations,
         commodities=commodities,
         numberOfTimeSteps=8760,
@@ -354,9 +358,9 @@ def esM_init():
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
+        balanceLimit=balanceLimit,
     )
 
-    return esM
 
 @pytest.fixture(scope="session")
 def multi_node_test_esM_init(esM_init):
@@ -364,8 +368,6 @@ def multi_node_test_esM_init(esM_init):
 
     # 2. Create an energy system model instance
     esM = esM_init
-
-    CO2_reductionTarget = 1
 
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources
@@ -475,8 +477,7 @@ def multi_node_test_esM_init(esM_init):
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -785,8 +786,7 @@ def multi_node_test_esM_init(esM_init):
             name="CO2 to enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -795,8 +795,7 @@ def multi_node_test_esM_init(esM_init):
 
 @pytest.fixture(scope="session")
 def test_esM_for_spagat(esM_init):
-    """
-    Simpler version of multi_node_test_esM_init.
+    """Simpler version of multi_node_test_esM_init.
     Makes spagat tests faster.
     """
     data = getData()
@@ -821,15 +820,13 @@ def test_esM_for_spagat(esM_init):
     )
 
     # CO2 from environment
-    CO2_reductionTarget = 1
     esM.add(
         fn.Source(
             esM=esM,
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -902,8 +899,6 @@ def multi_node_test_esM_optimized(esM_init):
     # 2. Create an energy system model instance
     esM = esM_init
 
-    CO2_reductionTarget = 1
-
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources
     ### Wind onshore
@@ -1012,8 +1007,7 @@ def multi_node_test_esM_optimized(esM_init):
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -1322,8 +1316,7 @@ def multi_node_test_esM_optimized(esM_init):
             name="CO2 to enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -1365,6 +1358,12 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
+    CO2_reductionTarget = 1
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -1375,9 +1374,8 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
+        balanceLimit=balanceLimit,
     )
-
-    CO2_reductionTarget = 1
 
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources
@@ -1491,8 +1489,7 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -1815,8 +1812,7 @@ def multi_node_test_esM_init(scope="session"):  # noqa: F811
             name="CO2 to enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -1846,6 +1842,12 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
         "hydrogen": r"GW$_{H_{2},LHV}$",
     }
     commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
+    CO2_reductionTarget = 1
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -1856,10 +1858,8 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
         costUnit="1e9 Euro",
         lengthUnit="km",
         verboseLogLevel=0,
-        balanceLimit=None,
+        balanceLimit=balanceLimit,
     )
-
-    CO2_reductionTarget = 1
 
     # 3. Add commodity sources to the energy system model
     ## 3.1. Electricity sources
@@ -1969,8 +1969,7 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
             name="CO2 from enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -2279,8 +2278,7 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
             name="CO2 to enviroment",
             commodity="CO2",
             hasCapacityVariable=False,
-            commodityLimitID="CO2 limit",
-            yearlyLimit=366 * (1 - CO2_reductionTarget),
+            balanceLimitID="CO2 limit",
         )
     )
 
@@ -2301,8 +2299,7 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
 
 @pytest.fixture
 def dsm_test_esM(scope="session"):
-    """
-    Generate a simple energy system model with one node, two fixed generators and one load time series
+    """Generate a simple energy system model with one node, two fixed generators and one load time series
     for testing demand side management functionality.
     """
     # load without dsm

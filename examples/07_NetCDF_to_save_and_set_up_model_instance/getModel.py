@@ -4,6 +4,7 @@ import numpy as np
 
 
 def getModel():
+    """Get example energy system model for the NetCDF example."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -22,9 +23,6 @@ def getModel():
         verboseLogLevel=1,
         balanceLimit=None,
     )
-
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
     ### Buy electricity at the electricity market
     costs = pd.DataFrame(

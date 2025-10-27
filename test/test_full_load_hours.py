@@ -1,10 +1,9 @@
 import pandas as pd
+import fine as fn
 
 
 def test_fullloadhours_above(minimal_test_esM):
-    """
-    Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000.
-    """
+    """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000."""
     esM = minimal_test_esM
 
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
@@ -31,10 +30,7 @@ def test_fullloadhours_above(minimal_test_esM):
 
 
 def test_fullloadhours_max(minimal_test_esM):
-    """
-    Get the minimal test system, and check if the fulllload hour limitation works
-    """
-
+    """Get the minimal test system, and check if the fulllload hour limitation works."""
     # modify full load hour limit
     esM = minimal_test_esM
 
@@ -89,10 +85,7 @@ def test_fullloadhours_max(minimal_test_esM):
 
 
 def test_fullloadhours_min(minimal_test_esM):
-    """
-    Get the minimal test system, and check if the fulllload hour limitation works
-    """
-
+    """Get the minimal test system, and check if the fulllload hour limitation works."""
     # modify full load hour limit
     esM = minimal_test_esM
 
@@ -147,9 +140,6 @@ def test_fullloadhours_min(minimal_test_esM):
 
 
 def test_init_full_load_hours(minimal_test_esM):
-    import fine as fn
-    import pandas as pd
-
     # load minimal test system
     esM = minimal_test_esM
 

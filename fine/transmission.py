@@ -1,3 +1,5 @@
+import warnings
+
 from fine.component import Component, ComponentModel
 from fine import utils
 import pyomo.environ as pyomo
@@ -5,9 +7,7 @@ import pandas as pd
 
 
 class Transmission(Component):
-    """
-    A Transmission component can transmit a commodity between locations of the energy system.
-    """
+    """A Transmission component can transmit a commodity between locations of the energy system."""
 
     def __init__(
         self,
@@ -48,11 +48,11 @@ class Transmission(Component):
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
+        pwlcfParameters=None,
         materialIntensity=None,
         materialRecovery=None,
     ):
-        """
-        Constructor for creating an Transmission class instance.
+        r"""Create a Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
         input arguments are described in the Component class.
 
@@ -228,13 +228,19 @@ class Transmission(Component):
             capacityMin, self._mapC, locationalEligibility=self.locationalEligibility
         )
         preprocessedCommissioningMin = utils.preprocess2dimData(
-            commissioningMin, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningMin,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningMax = utils.preprocess2dimData(
-            commissioningMax, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningMax,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         preprocessedCommissioningFix = utils.preprocess2dimData(
-            commissioningFix, self._mapC, locationalEligibility=self.locationalEligibility,
+            commissioningFix,
+            self._mapC,
+            locationalEligibility=self.locationalEligibility,
         )
         # stockCommissioning
         if stockCommissioning is None:
@@ -290,6 +296,7 @@ class Transmission(Component):
             technicalLifetime=self.technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
             stockCommissioning=self.stockCommissioning,
+            pwlcfParameters=pwlcfParameters,
             materialIntensity=materialIntensity, 
             materialRecovery=materialRecovery,
         )
@@ -411,7 +418,7 @@ class Transmission(Component):
         )
         self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
-        
+
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
@@ -438,9 +445,7 @@ class Transmission(Component):
         self.processedLocationalEligibility = self.locationalEligibility
 
     def setTimeSeriesData(self, hasTSA):
-        """
-        Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
-        analysis is requested or not.
+        """Set the maximum operation rate and fixed operation rate depending on whether a time series analysis is requested or not.
 
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
@@ -453,7 +458,7 @@ class Transmission(Component):
         )
 
     def getDataForTimeSeriesAggregation(self, ip):
-        """Function for getting the required data if a time series aggregation is requested.
+        """Get the required data if a time series aggregation is requested.
 
         :param ip: investment period of transformation path analysis.
         :type ip: int
@@ -480,8 +485,7 @@ class Transmission(Component):
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data, ip):
-        """
-        Function for determining the aggregated maximum rate and the aggregated fixed operation rate.
+        """Determine the aggregated maximum rate and the aggregated fixed operation rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the conversion component
         :type data: Pandas DataFrame
@@ -489,7 +493,6 @@ class Transmission(Component):
         :param ip: investment period of transformation path analysis.
         :type ip: int
         """
-
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(
             self.fullOperationRateFix, "_operationRateFix_", data, ip
         )
@@ -499,15 +502,14 @@ class Transmission(Component):
 
 
 class TransmissionModel(ComponentModel):
-    """
-    A TransmissionModel class instance will be instantly created if a Transmission class instance is initialized.
+    """Instantly create a TransmissionModel class instance when a Transmission class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the Transmission class
     instance. These declarations are necessary for the modeling and optimization of the energy system model.
     The TransmissionModel class inherits from the ComponentModel class.
     """
 
     def __init__(self):
-        """ " Constructor for creating a TransmissionModel class instance"""
+        """Create a TransmissionModel class instance."""
         super().__init__()
         self.abbrvName = "trans"
         self.dimension = "2dim"
@@ -519,8 +521,7 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
 
     def declareSets(self, esM, pyM):
-        """
-        Declare sets: design variable sets, operation variable set and operation mode sets.
+        """Declare sets: design variable sets, operation variable set and operation mode sets.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -528,7 +529,6 @@ class TransmissionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         # # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
@@ -542,13 +542,11 @@ class TransmissionModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
 
         # Declare operation mode sets
         self.declareOperationModeSets(
-            pyM,
-            "opConstrSet",
-            "processedOperationRateMax",
-            "processedOperationRateFix"
+            pyM, "opConstrSet", "processedOperationRateMax", "processedOperationRateFix"
         )
 
     ####################################################################################################################
@@ -556,8 +554,7 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
-        """
-        Declare design and operation variables
+        """Declare design and operation variables.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -574,7 +571,6 @@ class TransmissionModel(ComponentModel):
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
         """
-
         # Capacity variables [commodityUnit]
         self.declareCapacityVars(pyM)
         # (Continuous) numbers of installed components [-]
@@ -586,7 +582,7 @@ class TransmissionModel(ComponentModel):
         # Operation of component [commodityUnit]
         self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
         # Operation of component as binary [1/0]
-        self.declareOperationBinaryVars(pyM, "op_bin")
+        self.declareOperationBinaryVars(pyM)
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -596,8 +592,7 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
 
     def symmetricalCapacity(self, pyM):
-        """
-        Ensure that the capacity between location_1 and location_2 is the same as the one
+        """Ensure that the capacity between location_1 and location_2 is the same as the one
         between location_2 and location_1.
 
         .. math::
@@ -626,8 +621,7 @@ class TransmissionModel(ComponentModel):
         )
 
     def operationMode1_2dim(self, pyM, esM, constrName, constrSetName, opVarName):
-        """
-        Declare the constraint that the operation [commodityUnit*hour] is limited by the installed
+        r"""Declare the constraint that the operation [commodityUnit*hour] is limited by the installed
         capacity [commodityUnit] multiplied by the hours per time step.
         Since the flow should either go in one direction or the other, the limitation can be enforced on the sum
         of the forward and backward flow over the line. This leads to one of the flow variables being set to zero
@@ -635,7 +629,7 @@ class TransmissionModel(ComponentModel):
 
         .. math::
 
-            op^{comp,op}_{(loc_1,loc_2),ip,p,t} + op^{op}_{(loc_2,loc_1),ip,p,t} \leq \\tau^{hours} \cdot \\text{cap}^{comp}_{(loc_{in},loc_{out})}
+            op^{comp,op}_{(loc_1,loc_2),ip,p,t} + op^{op}_{(loc_2,loc_1),ip,p,t} \\leq \\tau^{hours} \\cdot \\text{cap}^{comp}_{(loc_{in},loc_{out})}
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
@@ -681,8 +675,7 @@ class TransmissionModel(ComponentModel):
             )
 
     def declareComponentConstraints(self, esM, pyM):
-        """
-        Declare time independent and dependent constraints
+        """Declare time independent and dependent constraints.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -690,7 +683,6 @@ class TransmissionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         ################################################################################################################
         #                                    Declare time independent constraints                                      #
         ################################################################################################################
@@ -730,6 +722,15 @@ class TransmissionModel(ComponentModel):
         # Operation [commodityUnit*h] is limited by the installed capacity [commodityUnit] multiplied by operation time
         # series [-] and the hours per time step [h]
         self.operationMode3(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+        # Couple binary operation variable to operation variable
+        self.binaryOperation(
+            pyM,
+            "ConstrOperation",
+            "opConstrSet",
+            "partLoadMin",
+            "op",
+            "op_bin",
+        )
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
@@ -740,8 +741,7 @@ class TransmissionModel(ComponentModel):
     ####################################################################################################################
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if the commodity´s transfer between a given location and the other locations of the energy system model
+        """Check if the commodity´s transfer between a given location and the other locations of the energy system model
         is eligible.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -753,7 +753,6 @@ class TransmissionModel(ComponentModel):
         :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
         :param commod: string
         """
-
         return any(
             [
                 comp.commodity == commod
@@ -767,10 +766,44 @@ class TransmissionModel(ComponentModel):
         )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance. 
-        
-            .. math::
-                :nowrap:
+        r"""Get contribution to a commodity balance.
+
+        .. math::
+            :nowrap:
+
+            \\begin{eqnarray*}
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}: loc_{in}=loc}}{ \\sum } \\left(1-\\eta_{(loc_{in},loc_{out})} \\cdot I_{(loc_{in},loc_{out})} \\right) \\cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
+                & - & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}:loc_{out}=loc}}{ \\sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
+            \\end{eqnarray*}
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVar, opVarDictIn = (
+            getattr(pyM, "op_" + abbrvName),
+            getattr(pyM, "operationVarDictIn_" + abbrvName),
+        )
+        opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
+        return sum(
+            opVar[loc_ + "_" + loc, compName, ip, p, t]
+            * (
+                1
+                - compDict[compName].losses[loc_ + "_" + loc]
+                * compDict[compName].distances[loc_ + "_" + loc]
+            )
+            for loc_ in opVarDictIn[ip][loc].keys()
+            for compName in opVarDictIn[ip][loc][loc_]
+            if commod == compDict[compName].commodity
+        ) - sum(
+            opVar[loc + "_" + loc_, compName, ip, p, t]
+            for loc_ in opVarDictOut[ip][loc].keys()
+            for compName in opVarDictOut[ip][loc][loc_]
+            if commod == compDict[compName].commodity
+        )
+    
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
+        r"""Get contribution to a commodity balance.
+
+        .. math::
+            :nowrap:
 
                 \\begin{eqnarray*}
                 \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
@@ -800,47 +833,13 @@ class TransmissionModel(ComponentModel):
             for compName in opVarDictOut[ip][loc][loc_]
             if commod == compDict[compName].commodity
         )
-    
-    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """ Get contribution to a commodity balance. 
-        
-            .. math::
-                :nowrap:
-
-                \\begin{eqnarray*}
-                \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}: loc_{in}=loc}}{ \sum } \left(1-\eta_{(loc_{in},loc_{out})} \cdot I_{(loc_{in},loc_{out})} \\right) \cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
-                & - & \\underset{\substack{(loc_{in},loc_{out}) \in \\ \mathcal{L}^{tans}:loc_{out}=loc}}{ \sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
-                \\end{eqnarray*}
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar, opVarDictIn = (
-            getattr(pyM, "op_" + abbrvName),
-            getattr(pyM, "operationVarDictIn_" + abbrvName),
-        )
-        opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
-        return sum(
-            opVar[loc_ + "_" + loc, compName, ip, p, t]
-            * (
-                1
-                - compDict[compName].losses[loc_ + "_" + loc]
-                * compDict[compName].distances[loc_ + "_" + loc]
-            )
-            for loc_ in opVarDictIn[ip][loc].keys()
-            for compName in opVarDictIn[ip][loc][loc_]
-            if commod == compDict[compName].commodity
-        ) - sum(
-            opVar[loc + "_" + loc_, compName, ip, p, t]
-            for loc_ in opVarDictOut[ip][loc].keys()
-            for compName in opVarDictOut[ip][loc][loc_]
-            if commod == compDict[compName].commodity
-        )
 
 
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, loc, timeSeriesAggregation, componentNames
     ):
-        """
-        Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+        """Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+
         Sum of the operation time series of a Transmission component is used as the balanceLimit contribution:
 
         - If commodity is transferred out of region a negative sign is used.
@@ -873,6 +872,13 @@ class TransmissionModel(ComponentModel):
         :param componentNames: Names of components which contribute to the balance limit
         :type componentNames: list
         """
+        if loc == "Total":
+            if set(componentNames).issubset(set(self.componentsDict.keys())):
+                warnings.warn(
+                    "The balance limit constraint for the all "
+                    "regions is not supported for Transmission components."
+                )
+            return 0
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
         opVarDictIn = getattr(pyM, "operationVarDictIn_" + abbrvName)
@@ -888,7 +894,7 @@ class TransmissionModel(ComponentModel):
         else:
             periods = esM.periods
             timeSteps = esM.totalTimeSteps
-        aut = sum(
+        return sum(
             opVar[loc_ + "_" + loc, compName, ip, p, t]
             * (
                 1
@@ -909,11 +915,9 @@ class TransmissionModel(ComponentModel):
             for p in periods
             for t in timeSteps
         )
-        return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
+        """Get contribution to the objective function.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -921,7 +925,6 @@ class TransmissionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         opexOp = self.getEconomicsOperation(
             pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDictOut"
         )
@@ -964,8 +967,7 @@ class TransmissionModel(ComponentModel):
         return opexOp + capexCap + capexDec + opexCap + opexDec
 
     def setOptimalValues(self, esM, pyM):
-        """
-        Set the optimal values of the components.
+        """Set the optimal values of the components.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -1088,9 +1090,7 @@ class TransmissionModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = opSum.values / esM.numberOfYears
                 optSummary.loc[
                     [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
@@ -1163,8 +1163,7 @@ class TransmissionModel(ComponentModel):
             self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):
-        """
-        Return optimal values of the components.
+        """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 

@@ -217,8 +217,9 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
                 ip: pd.DataFrame(
                     data=[[0.2, 0.2], [0.25, 0.25]],
                     index=list(esM.locations),
-                    columns=list(esM.locations)
-                ) * (1+(ip-2020)/40)
+                    columns=list(esM.locations),
+                )
+                * (1 + (ip - 2020) / 40)
                 for ip in esM.investmentPeriodNames
             },
             interestRate=0.08,
