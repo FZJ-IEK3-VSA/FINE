@@ -63,6 +63,7 @@ class Storage(Component):
         pwlcfParameters=None,
         materialIntensity=None,
         materialCollection=None,
+        material=False,
     ):
         """Create a Storage class instance.
         The Storage component specific input arguments are described below. The general component

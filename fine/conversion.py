@@ -58,6 +58,7 @@ class Conversion(Component):
         useTemporalCyclicConstraints=True,
         materialIntensity=None,
         materialCollection=None,
+        material=False,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations

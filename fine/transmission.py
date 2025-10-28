@@ -51,6 +51,7 @@ class Transmission(Component):
         pwlcfParameters=None,
         materialIntensity=None,
         materialCollection=None,
+        material=False,
     ):
         r"""Create a Transmission class instance.
         The Transmission component specific input arguments are described below. The general component

@@ -53,8 +53,8 @@ class Source(Component):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         pwlcfParameters=None,
-        materialIntensity=0,
-        materialCollection=0,
+        materialIntensity=None,
+        materialCollection=None,
         material=False,
     ):
         """Create a Source class instance.
