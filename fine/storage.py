@@ -4,7 +4,6 @@ import pyomo.environ as pyomo
 import warnings
 import pandas as pd
 import numpy as np
-import math
 
 
 class Storage(Component):
@@ -1736,71 +1735,6 @@ class StorageModel(ComponentModel):
             for compName in opVarDict[ip][loc]
             if commod == self.componentsDict[compName].commodity
         )
-
-    def getMaterialDemandContribution(self, pyM, mat, loc, ip):
-        r"""Calculate material demand from newly commissioned components.
-
-        .. math::
-
-            m^{demand}_{loc,ip,mat} =  \text{commis}^{comp}_{loc,ip} \cdot MaterialIntensity^{comp}_{loc,ip, mat}
-
-        """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        commisVar = getattr(pyM, "commis_" + abbrvName)
-
-        return sum(
-            commisVar[loc, compName, ip]
-            * compDict[compName].processedMaterialIntensity[loc][mat][ip]
-            for (loc2, compName, ip2) in commisVar
-            if loc2 == loc
-            and ip2 == ip
-            and compName in compDict
-            and hasattr(compDict[compName], "processedMaterialIntensity")
-            and ip
-            in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
-        )
-
-    def getMaterialRecoveryContribution(self, pyM, mat, loc, ip, scrap_source_name):
-        r"""Calculate recovered material from decommissioned components.
-
-        .. math::
-
-            m^{secondary}_{loc,ip,mat} = \sum_{comp} \text{decommis}^{comp}_{loc,ip} \cdot MaterialIntensity^{comp}_{loc,ip-lt,mat} \cdot CollectionRate^{comp}_{loc,ip,mat}
-
-        """
-        compDict = self.componentsDict
-        decommisVar = getattr(pyM, "decommis_" + self.abbrvName)
-
-        rhs = 0
-        for loc2, compName, ip2 in decommisVar:
-            if loc2 != loc or ip2 != ip:
-                continue
-            if compName not in compDict:
-                continue
-            comp = compDict[compName]
-            if not hasattr(comp, "processedMaterialIntensity"):
-                continue
-
-            expected_name = f"{compName}_{mat}_scrap"
-            if scrap_source_name != expected_name:
-                continue
-
-            offset = ip - (
-                math.floor(comp.ipTechnicalLifetime[loc])
-                if comp.floorTechnicalLifetime
-                else math.ceil(comp.ipTechnicalLifetime[loc])
-            )
-
-            intensity = (
-                comp.processedMaterialIntensity.get(loc, {}).get(mat, {}).get(offset, 0)
-            )
-            recovery = (
-                comp.processedMaterialCollection.get(loc, {}).get(mat, {}).get(ip, 0)
-            )
-
-            rhs += decommisVar[loc, compName, ip] * intensity * recovery
-
-        return rhs
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """Get contribution to the objective function.
