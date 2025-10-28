@@ -57,7 +57,7 @@ class Conversion(Component):
         rampDownMax=None,
         useTemporalCyclicConstraints=True,
         materialIntensity=None,
-        materialRecovery=None,
+        materialCollection=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -281,7 +281,7 @@ class Conversion(Component):
             stockCommissioning=stockCommissioning,
             pwlcfParameters=pwlcfParameters,
             materialIntensity=materialIntensity,
-            materialRecovery=materialRecovery,
+            materialCollection=materialCollection,
         )
 
         # opexPerOperation
@@ -1272,7 +1272,7 @@ class ConversionModel(ComponentModel):
             "op_commis",
             isOperationCommisYearDepending=True,
         )
-        
+
         # # Operation [physicalUnit*h] is limited by minimum part Load
         # Couple binary operation variable to operation variable
         self.binaryOperation(
@@ -1353,25 +1353,31 @@ class ConversionModel(ComponentModel):
         flexible_commods = {
             index[4] for index in operationFlexVarSet if index[0] == loc
         }
-        return any(
-            [
-                (
-                    commod in comp.processedCommodityConversionFactors[yearDefinition]
-                    and (
-                        comp.processedCommodityConversionFactors[yearDefinition][commod]
-                        is not None
+        return (
+            any(
+                [
+                    (
+                        commod
+                        in comp.processedCommodityConversionFactors[yearDefinition]
+                        and (
+                            comp.processedCommodityConversionFactors[yearDefinition][
+                                commod
+                            ]
+                            is not None
+                        )
                     )
-                )
-                and comp.processedLocationalEligibility[loc] == 1
-                for comp in self.componentsDict.values()
-                for yearDefinition in comp.processedCommodityConversionFactors.keys()
-            ] +
-            [
-                commod in comp.processedEmissionFactors.keys()
-                for comp in self.componentsDict.values()
-                if comp.processedEmissionFactors is not None
-            ]
-        ) or commod in flexible_commods
+                    and comp.processedLocationalEligibility[loc] == 1
+                    for comp in self.componentsDict.values()
+                    for yearDefinition in comp.processedCommodityConversionFactors.keys()
+                ]
+                + [
+                    commod in comp.processedEmissionFactors.keys()
+                    for comp in self.componentsDict.values()
+                    if comp.processedEmissionFactors is not None
+                ]
+            )
+            or commod in flexible_commods
+        )
 
     def flexConversionConstraint(self, pyM, esM):
         """Declare constraint that ensures that the sum of all flexible operation variables of one component are equal
@@ -1563,34 +1569,42 @@ class ConversionModel(ComponentModel):
             + sumFlexEmission
         )
 
-    
-
     def getMaterialDemandContribution(self, pyM, mat, loc, ip):
+        r"""Calculate material demand from newly commissioned components.
 
+        .. math::
+
+            m^{demand}_{loc,ip,mat} =  \text{commis}^{comp}_{loc,ip} \cdot MaterialIntensity^{comp}_{loc,ip, mat}
+
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         commisVar = getattr(pyM, "commis_" + abbrvName)
 
-
-        rhs_comp = sum(
+        return sum(
             commisVar[loc, compName, ip]
             * compDict[compName].processedMaterialIntensity[loc][mat][ip]
             for (loc2, compName, ip2) in commisVar
-            if loc2 == loc and ip2 == ip
+            if loc2 == loc
+            and ip2 == ip
             and compName in compDict
             and hasattr(compDict[compName], "processedMaterialIntensity")
-            and ip in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
+            and ip
+            in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
         )
 
-        #print("RHS_per_comp", rhs_comp)
-        return rhs_comp
-    
-
     def getMaterialRecoveryContribution(self, pyM, mat, loc, ip, scrap_source_name):
+        r"""Calculate recovered material from decommissioned components.
+
+        .. math::
+
+            m^{secondary}_{loc,ip,mat} = \sum_{comp} \text{decommis}^{comp}_{loc,ip} \cdot MaterialIntensity^{comp}_{loc,ip-lt,mat} \cdot CollectionRate^{comp}_{loc,ip,mat}
+
+        """
         compDict = self.componentsDict
         decommisVar = getattr(pyM, "decommis_" + self.abbrvName)
-        
+
         rhs = 0
-        for (loc2, compName, ip2) in decommisVar:
+        for loc2, compName, ip2 in decommisVar:
             if loc2 != loc or ip2 != ip:
                 continue
             if compName not in compDict:
@@ -1599,25 +1613,26 @@ class ConversionModel(ComponentModel):
             if not hasattr(comp, "processedMaterialIntensity"):
                 continue
 
-            # Expected: windonshore_steel_scrap
             expected_name = f"{compName}_{mat}_scrap"
             if scrap_source_name != expected_name:
                 continue
 
             offset = ip - (
                 math.floor(comp.ipTechnicalLifetime[loc])
-                if comp.floorTechnicalLifetime else
-                math.ceil(comp.ipTechnicalLifetime[loc])
+                if comp.floorTechnicalLifetime
+                else math.ceil(comp.ipTechnicalLifetime[loc])
             )
 
-            intensity = comp.processedMaterialIntensity.get(loc, {}).get(mat, {}).get(offset, 0)
-            recovery = comp.processedMaterialRecovery.get(loc, {}).get(mat, {}).get(ip, 0)
+            intensity = (
+                comp.processedMaterialIntensity.get(loc, {}).get(mat, {}).get(offset, 0)
+            )
+            recovery = (
+                comp.processedMaterialCollection.get(loc, {}).get(mat, {}).get(ip, 0)
+            )
 
             rhs += decommisVar[loc, compName, ip] * intensity * recovery
 
         return rhs
-
-    
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """Get contribution to the objective function.

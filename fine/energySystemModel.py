@@ -16,6 +16,8 @@ from fine import utils
 from fine.aggregations.spatialAggregation import manager as spagat
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
+from fine.sourceSink import Source
+from fine.sourceSink import Sink
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -70,8 +72,8 @@ class EnergySystemModel:
     def __init__(
         self,
         locations,
-        commodities = None,
-        commodityUnitsDict = None,
+        commodities=None,
+        commodityUnitsDict=None,
         numberOfTimeSteps=8760,
         hoursPerTimeStep=1,
         startYear=0,
@@ -84,7 +86,7 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
-        materials=None, 
+        materials=None,
         materialUnitsDict=None,
     ):
         r"""Create an EnergySystemModel class instance.
@@ -353,8 +355,9 @@ class EnergySystemModel:
         # The commodityUnitsDict parameter is a dictionary which assigns each considered commodity (string) a
         # unit (string) which can be used by results output functions.
         self.commodities = commodities if commodities is not None else []
-        self.commodityUnitsDict = commodityUnitsDict if commodityUnitsDict is not None else {}
-
+        self.commodityUnitsDict = (
+            commodityUnitsDict if commodityUnitsDict is not None else {}
+        )
 
         # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
         self.balanceLimit = balanceLimit
@@ -365,9 +368,11 @@ class EnergySystemModel:
         self.processedPathwayBalanceLimit = utils.checkAndSetPathwayBalanceLimit(
             self, pathwayBalanceLimit, locations
         )
-        # Declare materials as commodities 
+        # Integrate materials into the model by treating them as commodities
         self.materials = materials if materials is not None else []
-        self.materialUnitsDict = materialUnitsDict if materialUnitsDict is not None else {} 
+        self.materialUnitsDict = (
+            materialUnitsDict if materialUnitsDict is not None else {}
+        )
 
         if materials is None:
             self.materials = set()
@@ -376,10 +381,11 @@ class EnergySystemModel:
         else:
             self.materials = set(materials)
 
-        self.commodities = set(self.commodities).union(self.materials) 
+        self.commodities = set(self.commodities).union(self.materials)
 
-        self.commodityUnitsDict.update({m: self.materialUnitsDict[m] for m in sorted(self.materials)})
-
+        self.commodityUnitsDict.update(
+            {m: self.materialUnitsDict[m] for m in sorted(self.materials)}
+        )
 
         ################################################################################################################
         #                                        Component specific parameters                                         #
@@ -618,10 +624,9 @@ class EnergySystemModel:
         if isinstance(attr, dict) and list(attr.keys()) == [0]:
             return attr[0]
         return attr
-        
 
     def generationMaterialSinks(self):
-
+        """Generate automatic material sinks."""
         sinkModel = self.componentModelingDict.get("SourceSinkModel", None)
         if sinkModel is not None:
             existingMaterialCommodities = {
@@ -630,13 +635,11 @@ class EnergySystemModel:
                 if getattr(comp, "material", False)
                 and comp.__class__.__name__ == "Sink"
             }
-            print(f"Existing material sinks: {existingMaterialCommodities}")  
-
+            print(f"Existing material sinks: {existingMaterialCommodities}")
 
             missingMaterials = set(self.materials) - existingMaterialCommodities
-            print(f"Missing materials sinks: {missingMaterials}")  
+            print(f"Missing materials sinks: {missingMaterials}")
 
-            from fine.sourceSink import Sink 
             for mat in missingMaterials:
                 sinkName = f"{mat.capitalize()} demand"
                 newSink = Sink(
@@ -646,12 +649,11 @@ class EnergySystemModel:
                     hasCapacityVariable=False,
                     material=True,
                 )
-                self.add(newSink)  
-                print(f"New sink added: {newSink.name}")  
-
+                self.add(newSink)
+                print(f"New sink added: {newSink.name}")
 
     def generationSecondaryMaterialSources(self):
-
+        """Generate automatic secondary material sources."""
         sourceModel = self.componentModelingDict.get("SourceSinkModel", None)
         if sourceModel is not None:
             existingMaterialCommodities = {
@@ -660,13 +662,11 @@ class EnergySystemModel:
                 if getattr(comp, "material", False)
                 and comp.__class__.__name__ == "Source"
             }
-            print(f"Existing material sources: {existingMaterialCommodities}")  
-
+            print(f"Existing material sources: {existingMaterialCommodities}")
 
             missingMaterials = set(self.materials) - existingMaterialCommodities
-            print(f"Missing materials sources: {missingMaterials}")  
+            print(f"Missing materials sources: {missingMaterials}")
 
-            from fine.sourceSink import Source 
             for mat in missingMaterials:
                 sourceName = f"{mat.capitalize()} recovery"
                 newSource = Source(
@@ -676,9 +676,8 @@ class EnergySystemModel:
                     hasCapacityVariable=False,
                     material=True,
                 )
-                self.add(newSource)  
-                print(f"New source added: {newSource.name}")  
-
+                self.add(newSource)
+                print(f"New source added: {newSource.name}")
 
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
         """Return the optimization summary (design variables, aggregated operation variables, and objective contributions) of a modeling class.
@@ -1010,8 +1009,7 @@ class EnergySystemModel:
             |br| * the default value is False
         :type storeTSAinstance: boolean
         """
-
-        #self.generationMaterialSinks()
+        # self.generationMaterialSinks()
 
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(
@@ -1701,141 +1699,82 @@ class EnergySystemModel:
         )
 
     def declareMaterialDemandConstraints(self, pyM):
-            """
-            Declare material balance constraints (one constraint for each location, sink, material, and investment period).
-    
-            .. math::
-    
-                \\sum_{p,t} op_{loc,sink,ip,p,t} = \\sum_{components} contribution_{loc,mat,ip}
-    
-            :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
-                        constraints and objective required for the optimization set up and solving.
-            :type pyM: pyomo ConcreteModel
-            """
-            utils.output("Declaring material balances...", self.verbose, 0)
-    
-            def initMaterialDemandSet(m):
-                compDict = self.componentModelingDict
-                # Only consider SourceSinkModel componentsDict
-                source_sink_model = compDict.get("SourceSinkModel")
-                if source_sink_model is None:
-                    return  
-            
-                components = getattr(source_sink_model, "componentsDict", {})
-                varSet = getattr(pyM, "operationVarSet_srcSnk", [])
-            
-                for loc, sinkName, ip in varSet:
-                    comp = components.get(sinkName)
-                    if comp is None:
-                        continue  # skip if sinkName not in componentsDict
-                
-                    if comp.__class__.__name__ == "Sink" and getattr(comp, "material", False):
-                        mat = comp.commodity
-                        yield (loc, sinkName, mat, ip)
-    
-    
-            pyM.materialDemandSet = pyomo.Set(dimen=4, initialize=initMaterialDemandSet)
-            for elem in pyM.materialDemandSet:
-                print(elem)
-    
-    
+        r"""Declare material balance constraints (one constraint for each location, material, and investment period) summed over all components.
+
+        .. math::
+
+            \\sum_{p,t} op^materialsink_{loc,ip,p,t} = \\sum_{components} contribution_{loc,mat,ip}
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+                    constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
+        """
+        utils.output("Declaring material demand constraints...", self.verbose, 0)
+
+        def initMaterialDemandSet(m):
+            compDict = self.componentModelingDict
+            # Only consider SourceSinkModel componentsDict
+            source_sink_model = compDict.get("SourceSinkModel")
+            if source_sink_model is None:
+                return
+
+            components = getattr(source_sink_model, "componentsDict", {})
+            varSet = getattr(pyM, "operationVarSet_srcSnk", [])
+
+            for loc, sinkName, ip in varSet:
+                comp = components.get(sinkName)
+                if comp is None:
+                    continue  # skip if sinkName not in componentsDict
+
+                if comp.__class__.__name__ == "Sink" and getattr(
+                    comp, "material", False
+                ):
+                    mat = comp.commodity
+                    yield (loc, sinkName, mat, ip)
+
+        pyM.materialDemandSet = pyomo.Set(dimen=4, initialize=initMaterialDemandSet)
+
         # Define the material balance constraint function
-            def materialDemandConstraint(m, loc, sinkName, mat, ip):
-            # opVar = getattr(m, "operationVarSet_srcSnk")
-                opVar = m.op_srcSnk
-                lhs = sum(opVar[loc, sinkName, ip, p, t] * self.periodOccurrences[ip][p]
-                            for p, t in m.intraYearTimeSet)
-                print("LHS_demand", lhs)
-                rhs = sum(
-                    mdl.getMaterialDemandContribution(m, mat, loc, ip)
-                    for mdl in self.componentModelingDict.values()
-                    if hasattr(mdl, "getMaterialDemandContribution")
-                )
+        def materialDemandConstraint(m, loc, sinkName, mat, ip):
+            opVar = m.op_srcSnk
 
-                for mdl in self.componentModelingDict.values():
-                    print(mdl)
-                    print("RHS_demand", rhs)
-
-                return lhs == rhs
-    
-            # Attach the constraint to the model indexed by the materialDemandSet
-            pyM.materialDemandConstraint = pyomo.Constraint(
-                pyM.materialDemandSet, rule=materialDemandConstraint
+            # LHS: operation of the manually added material Sink
+            lhs = sum(
+                opVar[loc, sinkName, ip, p, t] * self.periodOccurrences[ip][p]
+                for p, t in m.intraYearTimeSet
             )
+            print("LHS_demand", lhs)
 
+            # RHS: sum of material demand contributions from all components
+            rhs = sum(
+                mdl.getMaterialDemandContribution(m, mat, loc, ip)
+                for mdl in self.componentModelingDict.values()
+                if hasattr(mdl, "getMaterialDemandContribution")
+            )
+            print("RHS_demand", rhs)
 
+            return lhs == rhs
 
-    # def declareMaterialRecoveryConstraints(self, pyM):
-    #         """
-    #         Declare material balance constraints (one constraint for each location, sink, material, and investment period).
-    
-    #         .. math::
-    
-    #             \\sum_{p,t} op_{loc,sink,ip,p,t} = \\sum_{components} contribution_{loc,mat,ip}
-    
-    #         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
-    #                     constraints and objective required for the optimization set up and solving.
-    #         :type pyM: pyomo ConcreteModel
-    #         """
-    #         utils.output("Declaring material balances...", self.verbose, 0)
-    
-    #         def initMaterialRecoverySet(m):
-    #             compDict = self.componentModelingDict
-    #             # Only consider SourceSinkModel componentsDict
-    #             source_sink_model = compDict.get("SourceSinkModel")
-    #             if source_sink_model is None:
-    #                 return  
-            
-    #             components = getattr(source_sink_model, "componentsDict", {})
-    #             varSet = getattr(pyM, "operationVarSet_srcSnk", [])
-            
-    #             for loc, sinkName, ip in varSet:
-    #                 comp = components.get(sinkName)
-    #                 if comp is None:
-    #                     continue  # skip if sinkName not in componentsDict
-                
-    #                 if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
-    #                     mat = comp.commodity
-    #                     yield (loc, sinkName, mat, ip)
-    
-    
-    #         pyM.materialRecoverySet = pyomo.Set(dimen=4, initialize=initMaterialRecoverySet)
-    #         for elem in pyM.materialRecoverySet:
-    #             print(elem)
-    
-    
-    #     # Define the material balance constraint function
-    #         def materialRecoveryConstraint(m, loc, sinkName, mat, ip):
-    #         # opVar = getattr(m, "operationVarSet_srcSnk")
-    #             opVar = m.op_srcSnk
-    #             lhs = sum(opVar[loc, sinkName, ip, p, t] * self.periodOccurrences[ip][p]
-    #                         for p, t in m.intraYearTimeSet)
-    #             print("LHS_recovery", lhs)
-    #             rhs = sum(
-    #                 mdl.getMaterialRecoveryContribution(m, mat, loc, ip)
-    #                 for mdl in self.componentModelingDict.values()
-    #                 if hasattr(mdl, "getMaterialRecoveryContribution")
-    #             )
-    #             print("RHS_recovery", rhs)
-    #             return lhs <= rhs
-    
-    #         # Attach the constraint to the model indexed by the materialDemandSet
-    #         pyM.materialRecoveryConstraint = pyomo.Constraint(
-    #             pyM.materialRecoverySet, rule=materialRecoveryConstraint
-    #         )
+        pyM.materialDemandConstraint = pyomo.Constraint(
+            pyM.materialDemandSet, rule=materialDemandConstraint
+        )
 
     def declareMaterialScrapConstraints(self, pyM):
-        """
-        Declare constraints that link recovered material from decommissioned components
-        to manually created scrap Source inflows.
+        r"""Declare material recovery constraints (one constraint for each location, material, and investment period) summed over all components.
 
-        Constraint:
-            sum_t(op_scrapSource) == sum_t(getMaterialRecoveryContribution)
+        .. math::
+
+            \\sum_{p,t} op^materialsource{loc,ip,p,t} = \\sum_{components} contribution_{loc,mat,ip}
+
+        :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
+                    constraints and objective required for the optimization set up and solving.
+        :type pyM: pyomo ConcreteModel
         """
-        utils.output("Declaring material scrap constraints...", self.verbose, 0)
+        utils.output("Declaring material recovery constraints...", self.verbose, 0)
 
         def initMaterialScrapSet(m):
             compDict = self.componentModelingDict
+            # Only consider SourceSinkModel componentsDict
             source_sink_model = compDict.get("SourceSinkModel")
             if source_sink_model is None:
                 return
@@ -1846,47 +1785,46 @@ class EnergySystemModel:
             for loc, srcName, ip in varSet:
                 comp = components.get(srcName)
                 if comp is None:
-                    continue
+                    continue  # skip if srcName not in componentsDict
 
                 # Look for manually created scrap sources (material=True and '_scrap' in name)
-                if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
+                if comp.__class__.__name__ == "Source" and getattr(
+                    comp, "material", False
+                ):
                     if "_scrap" in comp.commodity:
                         try:
                             tech, mat = comp.commodity[:-6].rsplit("_", 1)
                             yield (loc, srcName, tech, mat, ip)
                         except ValueError:
-                            continue  # Skip malformed names
+                            continue
 
         pyM.materialScrapSet = pyomo.Set(dimen=5, initialize=initMaterialScrapSet)
 
+        # Define the material recovery constraint function
         def materialScrapConstraint(m, loc, scrap_source_name, tech, mat, ip):
             opVar = m.op_srcSnk
 
-            # LHS: operation of the manually added scrap Source
+            # LHS: operation of the manually added material scrap Source
             lhs = sum(
                 opVar[loc, scrap_source_name, ip, p, t] * self.periodOccurrences[ip][p]
                 for p, t in m.intraYearTimeSet
                 if (loc, scrap_source_name, ip, p, t) in opVar
             )
+            print("LHS_recovery", lhs)
 
-            # RHS: sum of material recovery contributions from all component models
+            # RHS: sum of material recovery contributions from all components
             rhs = sum(
                 mdl.getMaterialRecoveryContribution(m, mat, loc, ip, scrap_source_name)
                 for mdl in self.componentModelingDict.values()
                 if hasattr(mdl, "getMaterialRecoveryContribution")
             )
-            print(lhs)
-            print(rhs)
-
-
+            print("RHS_recovery", rhs)
 
             return lhs == rhs
 
         pyM.materialScrapConstraint = pyomo.Constraint(
             pyM.materialScrapSet, rule=materialScrapConstraint
         )
-
-
 
     def declareObjective(self, pyM):
         r"""Declare the objective function by obtaining the contributions to the objective function from all modeling
@@ -1992,8 +1930,6 @@ class EnergySystemModel:
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
         """
-
-
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
 
@@ -2076,12 +2012,12 @@ class EnergySystemModel:
         self.declareCommodityBalanceConstraints(pyM)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
-        # Declare material demand constraints (one balance constraint for each commodity, location and time step)
+        # Declare material demand constraints (one constraint for each material, location and time step)
         _t = time.time()
         self.declareMaterialDemandConstraints(pyM)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
-        # Declare material recovery constraints (one balance constraint for each commodity, location and time step)
+        # Declare material recovery constraints (one balance constraint for each material, location and time step)
         _t = time.time()
         self.declareMaterialScrapConstraints(pyM)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
@@ -2091,7 +2027,6 @@ class EnergySystemModel:
         self.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
         utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
-        
         ################################################################################################################
         #                                         Declare objective function                                           #
         ################################################################################################################

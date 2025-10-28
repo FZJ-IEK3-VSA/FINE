@@ -27,18 +27,17 @@ def getData(engine="openpyxl"):
         {"Wind (onshore), operationRateMax": operationRateMax.loc[:, "cluster_0"]}
     )
 
-    # Offshore data
+    # Onshore data
     capacityMax = pd.read_excel(
-        os.path.join(
-            inputDataPath, "SpatialData", "Wind", "maxCapacityOffshore_GW_el.xlsx"
-        ),
+        Path(inputDataPath) / "SpatialData" / "Wind" / "maxCapacityOffshore_GW_el.xlsx",
         index_col=0,
         engine=engine,
     ).squeeze("columns")
     operationRateMax = pd.read_excel(
-        os.path.join(
-            inputDataPath, "SpatialData", "Wind", "maxOperationRateOffshore_el.xlsx"
-        ),
+        Path(inputDataPath)
+        / "SpatialData"
+        / "Wind"
+        / "maxOperationRateOffshore_el.xlsx",
         engine=engine,
     )
 
@@ -46,7 +45,6 @@ def getData(engine="openpyxl"):
     data.update(
         {"Wind (offshore), operationRateMax": operationRateMax.loc[:, "cluster_0"]}
     )
-
 
     # Hydrogen salt cavern data
     capacityMax = (

@@ -14,7 +14,7 @@ class Storage(Component):
         self,
         esM,
         name,
-        commodity = None,
+        commodity=None,
         chargeRate=1,
         dischargeRate=1,
         chargeEfficiency=1,
@@ -62,7 +62,7 @@ class Storage(Component):
         stockCommissioning=None,
         pwlcfParameters=None,
         materialIntensity=None,
-        materialRecovery=None,
+        materialCollection=None,
     ):
         """Create a Storage class instance.
         The Storage component specific input arguments are described below. The general component
@@ -285,18 +285,17 @@ class Storage(Component):
             floorTechnicalLifetime=floorTechnicalLifetime,
             pwlcfParameters=pwlcfParameters,
             materialIntensity=materialIntensity,
-            materialRecovery=materialRecovery,
+            materialCollection=materialCollection,
         )
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,
         # selfDischarge, cyclicLifetime, stateOfChargeMin, stateOfChargeMax, isPeriodicalStorage, doPreciseTsaModeling,
         # relaxedPeriodConnection
-        self.commodity = commodity        # is this required for storage? Maybe later if stocks are inculded 
+        self.commodity = commodity  # is this required for storage? Maybe later if stocks are inculded
         if commodity:
             utils.checkCommodities(esM, {commodity})
             self.commodityUnit = esM.commodityUnitsDict[commodity]
 
-        
         utils.isStrictlyPositiveNumber(chargeRate)
         self.chargeRate = chargeRate
         utils.isStrictlyPositiveNumber(dischargeRate)
@@ -1716,8 +1715,6 @@ class StorageModel(ComponentModel):
                 for comp in self.componentsDict.values()
             ]
         )
-    
-
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         r"""Get contribution to a commodity balance.
@@ -1738,32 +1735,43 @@ class StorageModel(ComponentModel):
             for compName in opVarDict[ip][loc]
             if commod == self.componentsDict[compName].commodity
         )
-    
-    def getMaterialDemandContribution(self, pyM, mat, loc, ip):
 
+    def getMaterialDemandContribution(self, pyM, mat, loc, ip):
+        r"""Calculate material demand from newly commissioned components.
+
+        .. math::
+
+            m^{demand}_{loc,ip,mat} =  \text{commis}^{comp}_{loc,ip} \cdot MaterialIntensity^{comp}_{loc,ip, mat}
+
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         commisVar = getattr(pyM, "commis_" + abbrvName)
 
-
-        rhs_comp = sum(
+        return sum(
             commisVar[loc, compName, ip]
             * compDict[compName].processedMaterialIntensity[loc][mat][ip]
             for (loc2, compName, ip2) in commisVar
-            if loc2 == loc and ip2 == ip
+            if loc2 == loc
+            and ip2 == ip
             and compName in compDict
             and hasattr(compDict[compName], "processedMaterialIntensity")
-            and ip in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
+            and ip
+            in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
         )
 
-        #print("RHS_per_comp", rhs_comp)
-        return rhs_comp
-    
     def getMaterialRecoveryContribution(self, pyM, mat, loc, ip, scrap_source_name):
+        r"""Calculate recovered material from decommissioned components.
+
+        .. math::
+
+            m^{secondary}_{loc,ip,mat} = \sum_{comp} \text{decommis}^{comp}_{loc,ip} \cdot MaterialIntensity^{comp}_{loc,ip-lt,mat} \cdot CollectionRate^{comp}_{loc,ip,mat}
+
+        """
         compDict = self.componentsDict
         decommisVar = getattr(pyM, "decommis_" + self.abbrvName)
-        
+
         rhs = 0
-        for (loc2, compName, ip2) in decommisVar:
+        for loc2, compName, ip2 in decommisVar:
             if loc2 != loc or ip2 != ip:
                 continue
             if compName not in compDict:
@@ -1772,25 +1780,26 @@ class StorageModel(ComponentModel):
             if not hasattr(comp, "processedMaterialIntensity"):
                 continue
 
-            # Expected: windonshore_steel_scrap
             expected_name = f"{compName}_{mat}_scrap"
             if scrap_source_name != expected_name:
                 continue
 
             offset = ip - (
                 math.floor(comp.ipTechnicalLifetime[loc])
-                if comp.floorTechnicalLifetime else
-                math.ceil(comp.ipTechnicalLifetime[loc])
+                if comp.floorTechnicalLifetime
+                else math.ceil(comp.ipTechnicalLifetime[loc])
             )
 
-            intensity = comp.processedMaterialIntensity.get(loc, {}).get(mat, {}).get(offset, 0)
-            recovery = comp.processedMaterialRecovery.get(loc, {}).get(mat, {}).get(ip, 0)
+            intensity = (
+                comp.processedMaterialIntensity.get(loc, {}).get(mat, {}).get(offset, 0)
+            )
+            recovery = (
+                comp.processedMaterialCollection.get(loc, {}).get(mat, {}).get(ip, 0)
+            )
 
             rhs += decommisVar[loc, compName, ip] * intensity * recovery
 
         return rhs
-    
-
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """Get contribution to the objective function.
@@ -1872,7 +1881,6 @@ class StorageModel(ComponentModel):
             + offsetUpOp
             + offsetDownOp
         )
-    
 
     ####################################################################################################################
     #                                  Return optimal values of the component class                                    #

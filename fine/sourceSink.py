@@ -12,8 +12,8 @@ class Source(Component):
         self,
         esM,
         name,
-        commodity = None,
-        hasCapacityVariable = True,
+        commodity=None,
+        hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
         hasIsBuiltBinaryVariable=False,
@@ -54,7 +54,7 @@ class Source(Component):
         floorTechnicalLifetime=True,
         pwlcfParameters=None,
         materialIntensity=0,
-        materialRecovery=0,
+        materialCollection=0,
         material=False,
     ):
         """Create a Source class instance.
@@ -255,7 +255,7 @@ class Source(Component):
             stockCommissioning=stockCommissioning,
             pwlcfParameters=pwlcfParameters,
             materialIntensity=materialIntensity,
-            materialRecovery=materialRecovery,
+            materialCollection=materialCollection,
             material=material,
         )
 
@@ -409,13 +409,6 @@ class Source(Component):
             operationTimeSeries,
         )
 
-
-        # add materialConsumption and materialRecovery if declared 
-        self.materialIntensity = materialIntensity
-        self.materialRecovery = materialRecovery 
-        self.material= material
-
-
     def setTimeSeriesData(self, hasTSA):
         """Set the maximum operation rate, fixed operation rate, and cost or revenue time series depending on whether a time series analysis is requested or not.
 
@@ -527,7 +520,6 @@ class Source(Component):
             ip,
         )
 
-# inclusion of material arguments required? architecture of sourceSink construction not clear yet 
 
 class Sink(Source):
     """A Sink component can transfer a commodity over the energy system boundary out of the system."""
@@ -536,8 +528,8 @@ class Sink(Source):
         self,
         esM,
         name,
-        commodity = None,
-        hasCapacityVariable = True,
+        commodity=None,
+        hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
         hasIsBuiltBinaryVariable=False,
@@ -575,7 +567,7 @@ class Sink(Source):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         materialIntensity=0,
-        materialRecovery=0,
+        materialCollection=0,
         material=False,
     ):
         """Create a Sink class instance.
@@ -627,7 +619,7 @@ class Sink(Source):
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
             materialIntensity=materialIntensity,
-            materialRecovery=materialRecovery,
+            materialCollection=materialCollection,
             material=material,
         )
 
@@ -829,8 +821,6 @@ class SourceSinkModel(ComponentModel):
                 for comp in self.componentsDict.values()
             ]
         )
-    
-
 
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, timeSeriesAggregation, loc, componentNames
@@ -924,35 +914,43 @@ class SourceSinkModel(ComponentModel):
             for compName in opVarDict[ip][loc]
             if compDict[compName].commodity == commod
         )
-    
 
     def getMaterialDemandContribution(self, pyM, mat, loc, ip):
+        r"""Calculate material demand from newly commissioned components.
 
+        .. math::
+
+            m^{demand}_{loc,ip,mat} =  \text{commis}^{comp}_{loc,ip} \cdot MaterialIntensity^{comp}_{loc,ip, mat}
+
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         commisVar = getattr(pyM, "commis_" + abbrvName)
 
-
-        rhs_comp = sum(
+        return sum(
             commisVar[loc, compName, ip]
             * compDict[compName].processedMaterialIntensity[loc][mat][ip]
             for (loc2, compName, ip2) in commisVar
-            if loc2 == loc and ip2 == ip
+            if loc2 == loc
+            and ip2 == ip
             and compName in compDict
             and hasattr(compDict[compName], "processedMaterialIntensity")
-            and ip in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
+            and ip
+            in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
         )
 
-        #print("RHS_per_comp_demand", rhs_comp)
-        return rhs_comp
-    
-
-    
     def getMaterialRecoveryContribution(self, pyM, mat, loc, ip, scrap_source_name):
+        r"""Calculate recovered material from decommissioned components.
+
+        .. math::
+
+            m^{secondary}_{loc,ip,mat} = \sum_{comp} \text{decommis}^{comp}_{loc,ip} \cdot MaterialIntensity^{comp}_{loc,ip-lt,mat} \cdot CollectionRate^{comp}_{loc,ip,mat}
+
+        """
         compDict = self.componentsDict
         decommisVar = getattr(pyM, "decommis_" + self.abbrvName)
-        
+
         rhs = 0
-        for (loc2, compName, ip2) in decommisVar:
+        for loc2, compName, ip2 in decommisVar:
             if loc2 != loc or ip2 != ip:
                 continue
             if compName not in compDict:
@@ -961,26 +959,26 @@ class SourceSinkModel(ComponentModel):
             if not hasattr(comp, "processedMaterialIntensity"):
                 continue
 
-            # Expected: windonshore_steel_scrap
             expected_name = f"{compName}_{mat}_scrap"
             if scrap_source_name != expected_name:
                 continue
 
             offset = ip - (
                 math.floor(comp.ipTechnicalLifetime[loc])
-                if comp.floorTechnicalLifetime else
-                math.ceil(comp.ipTechnicalLifetime[loc])
+                if comp.floorTechnicalLifetime
+                else math.ceil(comp.ipTechnicalLifetime[loc])
             )
 
-            intensity = comp.processedMaterialIntensity.get(loc, {}).get(mat, {}).get(offset, 0)
-            recovery = comp.processedMaterialRecovery.get(loc, {}).get(mat, {}).get(ip, 0)
+            intensity = (
+                comp.processedMaterialIntensity.get(loc, {}).get(mat, {}).get(offset, 0)
+            )
+            recovery = (
+                comp.processedMaterialCollection.get(loc, {}).get(mat, {}).get(ip, 0)
+            )
 
             rhs += decommisVar[loc, compName, ip] * intensity * recovery
 
         return rhs
-    
-    
-
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """Get contribution to the objective function.
@@ -1192,23 +1190,26 @@ class SourceSinkModel(ComponentModel):
             ]
             # Replace placeholder with correct unit of component
             tuples = list(
-            map(
-                lambda x: (
-                    (
-                        x[0],
-                        x[1],
-                        x[2]
-                        .replace("-/a", esM.materialUnitsDict[compDict[x[0]].commodity] + "/a")
-                        if x[1] == "operation" and "-/a" in x[2] and compDict[x[0]].commodity in esM.materialUnitsDict
-                        else x[2]
-                        .replace("-", compDict[x[0]].commodityUnit) 
-                    )
-                    if x[1] == "operation"
-                    else x
-                ),
-                tuples,
+                map(
+                    lambda x: (
+                        (
+                            x[0],
+                            x[1],
+                            x[2].replace(
+                                "-/a",
+                                esM.materialUnitsDict[compDict[x[0]].commodity] + "/a",
+                            )
+                            if x[1] == "operation"
+                            and "-/a" in x[2]
+                            and compDict[x[0]].commodity in esM.materialUnitsDict
+                            else x[2].replace("-", compDict[x[0]].commodityUnit),
+                        )
+                        if x[1] == "operation"
+                        else x
+                    ),
+                    tuples,
+                )
             )
-        )
             mIndex = pd.MultiIndex.from_tuples(
                 tuples, names=["Component", "Property", "Unit"]
             )
@@ -1219,8 +1220,6 @@ class SourceSinkModel(ComponentModel):
                 # operation
                 opSum = optVal.sum(axis=1).unstack(-1)
 
-          
-
                 for ix in opSum.index:
                     commodity = compDict[ix].commodity
 
@@ -1229,18 +1228,14 @@ class SourceSinkModel(ComponentModel):
                             (
                                 ix,
                                 "operation",
-                                "[" + esM.materialUnitsDict[commodity] + "/a]"
+                                "[" + esM.materialUnitsDict[commodity] + "/a]",
                             ),
                             opSum.columns,
                         ] = opSum.loc[ix].values / esM.numberOfYears
 
                     else:
                         optSummary.loc[
-                            (
-                                ix,
-                                "operation",
-                                "[" + compDict[ix].commodityUnit + "*h]"
-                            ),
+                            (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]"),
                             opSum.columns,
                         ] = opSum.loc[ix].values
 
@@ -1248,11 +1243,10 @@ class SourceSinkModel(ComponentModel):
                             (
                                 ix,
                                 "operation",
-                                "[" + compDict[ix].commodityUnit + "*h/a]"
+                                "[" + compDict[ix].commodityUnit + "*h/a]",
                             ),
                             opSum.columns,
                         ] = opSum.loc[ix].values / esM.numberOfYears
-
 
                 # costs
                 tac_ox = resultsTAC_opexOp[ip]

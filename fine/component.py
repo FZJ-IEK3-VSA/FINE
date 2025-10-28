@@ -49,8 +49,8 @@ class Component(metaclass=ABCMeta):
         floorTechnicalLifetime=True,
         pwlcfParameters=None,
         materialIntensity=0,
-        materialRecovery=0,
-        material=False,   
+        materialCollection=0,
+        material=False,
     ):
         """Create an instance of the Component class.
 
@@ -724,32 +724,19 @@ class Component(metaclass=ABCMeta):
             pwlcfModule = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModule
             self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
 
-
-       # add materialConsumption and materialRecovery if declared 
+        # add materialConsumption and materialCollection if declared
         self.materialIntensity = materialIntensity
-        self.materialRecovery = materialRecovery 
-        self.material= material
-
-
+        self.materialCollection = materialCollection
+        self.material = material
 
         # check and set material parameters
-        
-        self.processedMaterialIntensity = (
-            utils.checkAndSetMaterialIntensity(
-                esM, 
-                materialIntensity, 
-                esM.locations, 
-                esM.investmentPeriods) 
+        self.processedMaterialIntensity = utils.checkAndSetMaterialIntensity(
+            esM, materialIntensity, esM.locations, esM.investmentPeriods
         )
 
-        self.processedMaterialRecovery = (
-            utils.checkAndSetMaterialRecovery(
-                esM, 
-                materialRecovery, 
-                esM.locations, 
-                esM.investmentPeriods) 
+        self.processedMaterialCollection = utils.checkAndSetMaterialCollection(
+            esM, materialCollection, esM.locations, esM.investmentPeriods
         )
-
 
     def addToEnergySystemModel(self, esM):
         """Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -1124,7 +1111,6 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Set for operation variables
         def declareOpVarSet(pyM):
-            
             return (
                 (loc, compName, ip)
                 for compName, comp in compDict.items()
@@ -1132,7 +1118,7 @@ class ComponentModel(metaclass=ABCMeta):
                 for ip in esM.investmentPeriods
                 if comp.processedLocationalEligibility[loc] == 1
             )
-        
+
         setattr(
             pyM,
             "operationVarSet_" + abbrvName,
@@ -1336,108 +1322,6 @@ class ComponentModel(metaclass=ABCMeta):
             constrSetName + "4_" + abbrvName,
             pyomo.Set(dimen=3, initialize=declareOpConstrSet4),
         )
- 
-    # def declareOpConstrSet5_sinks(self, esM, pyM, constrSetName):
-
-    #     # to add: docstring
-
-    #     compDict, abbrv = self.componentsDict, self.abbrvName
-    #     varSet = getattr(pyM, "operationVarSet_" + abbrv)
-
-    #     def initSinkSet(m):
-    #         # (loc, sinkName, mat, ip) -- one row per material‐demanding sink
-    #         for loc, sinkName, ip in varSet:
-    #             comp = compDict[sinkName]
-    #             if comp.__class__.__name__ == "Sink" and getattr(comp, "material", False):
-    #                 # assume that sink.commodity == the material it demands
-    #                 mat = comp.commodity
-    #                 yield (loc, sinkName, mat, ip)
-
-    #     setattr(
-    #         pyM,
-    #         constrSetName + "5_sinks_" + abbrv,
-    #         pyomo.Set(dimen=4, initialize=initSinkSet),
-    #     )
-
-
-    # def declareOpConstrSet5_Int_sinks(self, esM, pyM, constrSetName):
-
-    #     # to add: docstring
-
-    #     compDict, abbrv = self.componentsDict, self.abbrvName
-    #     varSet = getattr(pyM, "operationVarSet_" + abbrv)
-
-    #     def initIntSinkSet(m):
-    #         # (loc, sourceName, mat, ip) — one row per source with an intensity for mat at ip
-    #         for loc, intsinkName, ip in varSet:
-    #             comp = compDict[intsinkName]
-    #             if getattr(comp, "processedMaterialIntensity", None):
-    #                 for mat in esM.onlymaterials:
-    #                     # only keep those where intensity actually exists
-    #                     if (
-    #                         loc in comp.processedMaterialIntensity
-    #                         and mat in comp.processedMaterialIntensity[loc]
-    #                         and ip in comp.processedMaterialIntensity[loc][mat]
-    #                     ):
-    #                         yield (loc, intsinkName, mat, ip)
-
-    #     setattr(
-    #         pyM,
-    #         constrSetName + "5_int_sink_" + abbrv,
-    #         pyomo.Set(dimen=4, initialize=initIntSinkSet),
-    #     )
- 
-    # def declareOpConstrSet6_sources(self, esM, pyM, constrSetName):
-
-    #     # to add: docstring
-
-    #     compDict, abbrv = self.componentsDict, self.abbrvName
-    #     varSet = getattr(pyM, "operationVarSet_" + abbrv)
-
-    #     def initSourceSet(n):
-    #         # (loc, sinkName, mat, ip) -- one row per material‐demanding sink
-    #         for loc, sourceName, ip in varSet:
-    #             comp = compDict[sourceName]
-    #             if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
-    #                 mat = comp.commodity
-    #                 yield (loc, sourceName, mat, ip)
-
-    #     setattr(
-    #         pyM,
-    #         constrSetName + "6_sources_" + abbrv,
-    #         pyomo.Set(dimen=4, initialize=initSourceSet),
-    #     )
-
-
-    # def declareOpConstrSet6_Int_sources(self, esM, pyM, constrSetName):
-
-    #     # to add: docstring
-
-    #     compDict, abbrv = self.componentsDict, self.abbrvName
-    #     varSet = getattr(pyM, "operationVarSet_" + abbrv)
-
-    #     def initIntSourceSet(m):
-    #         # (loc, sourceName, mat, ip) — one row per source with an intensity for mat at ip
-    #         for loc, intsourceName, ip in varSet:
-    #             comp = compDict[intsourceName]
-    #             if getattr(comp, "processedMaterialIntensity", None) and getattr(comp, "processedMaterialRecovery", None): 
-    #                 for mat in esM.onlymaterials:
-    #                     # only keep those where intensity actually exists
-    #                     if (
-    #                         loc in comp.processedMaterialIntensity
-    #                         and mat in comp.processedMaterialIntensity[loc]
-    #                         and ip in comp.processedMaterialIntensity[loc][mat]
-    #                         and mat in comp.processedMaterialRecovery[loc]  # Und hier ebenfalls für materialRecovery
-    #                         and ip in comp.processedMaterialRecovery[loc][mat]
-    #                     ):
-    #                         yield (loc, intsourceName, mat, ip)
-
-    #     setattr(
-    #         pyM,
-    #         constrSetName + "6_int_source_" + abbrv,
-    #         pyomo.Set(dimen=4, initialize=initIntSourceSet),
-    #     )
- 
 
     def declareOpConstrSetMinPartLoad(self, pyM, constrSetName):
         """Declare set of locations and components for which partLoadMin is not None."""
@@ -1457,8 +1341,8 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpConstrSetMinPartLoad),
         )
 
-    def declareOperationModeSets(                                      
-        self, pyM, constrSetName, rateMax, rateFix, rateMin=None  
+    def declareOperationModeSets(
+        self, pyM, constrSetName, rateMax, rateFix, rateMin=None
     ):
         """Declare operating mode sets.
 
@@ -1482,12 +1366,6 @@ class ComponentModel(metaclass=ABCMeta):
         self.declareOpConstrSet3(pyM, constrSetName, rateMax)
         if rateMin:
             self.declareOpConstrSet4(pyM, constrSetName, rateMin)
-        
-        # declare material sets for operation constraints
-        # self.declareOpConstrSet5_sinks(pyM, esM, constrSetName)
-        # self.declareOpConstrSet5_Int_sinks(pyM, esM, constrSetName)
-        # self.declareOpConstrSet6_sources(pyM, esM, constrSetName)
-        # self.declareOpConstrSet6_Int_sources(pyM, esM, constrSetName)
 
         self.declareOpConstrSetMinPartLoad(pyM, constrSetName)
 
@@ -2986,8 +2864,6 @@ class ComponentModel(metaclass=ABCMeta):
                 yearlyFullLoadHoursMinSet, rule=yearlyFullLoadHoursMinConstraint
             ),
         )
-        
-
 
     def yearlyFullLoadHoursMax(
         self,
@@ -3110,7 +2986,6 @@ class ComponentModel(metaclass=ABCMeta):
         :type pyM: pyomo ConcreteModel
         """
         raise NotImplementedError
-    
 
     @abstractmethod
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
@@ -3133,7 +3008,6 @@ class ComponentModel(metaclass=ABCMeta):
         Get contribution to a commodity balance.
         """
         raise NotImplementedError
-    
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """Get contribution to the objective function.
@@ -3558,10 +3432,10 @@ class ComponentModel(metaclass=ABCMeta):
             factor *= factor_
 
         _var = var[loc, compName, ip]
-        #print("var name", varName)
-        #print("var value", _var.value)
-        #print("var", _var)
-        #print(" ")
+        # print("var name", varName)
+        # print("var value", _var.value)
+        # print("var", _var)
+        # print(" ")
         if self.componentsDict[compName].processedQPcostScale[ip][loc] == 0:
             if not getOptValue:
                 return factor * _var

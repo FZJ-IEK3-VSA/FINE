@@ -2,8 +2,7 @@ import pytest
 
 import fine as fn
 import pandas as pd
-import pprint
-import json
+
 
 def test_export_to_dict_minimal(minimal_test_esM):
     # EXPECTED
@@ -26,7 +25,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
                 "materials",
-                "materialUnitsDict"
+                "materialUnitsDict",
             ),
             (
                 minimal_test_esM.locations,
@@ -44,7 +43,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.balanceLimit,
                 minimal_test_esM.pathwayBalanceLimit,
                 minimal_test_esM.annuityPerpetuity,
-                minimal_test_esM.materials,             
+                minimal_test_esM.materials,
                 minimal_test_esM.materialUnitsDict,
             ),
         )
@@ -168,7 +167,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.balanceLimit,
                 single_node_test_esM.pathwayBalanceLimit,
                 single_node_test_esM.annuityPerpetuity,
-                single_node_test_esM.materials,             
+                single_node_test_esM.materials,
                 single_node_test_esM.materialUnitsDict,
             ),
         )
@@ -231,7 +230,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
                 "materials",
-                "materialUnitsDict"
+                "materialUnitsDict",
             ),
             (
                 multi_node_test_esM_init.locations,

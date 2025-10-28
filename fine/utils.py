@@ -241,7 +241,7 @@ def checkCommodities(esM, commodities):
             + "Energy system model commodities: "
             + str(esM.commodities)
         )
-    
+
 
 def checkCommodityUnits(esM, commodityUnit):
     """Check if the commodity unit matches the in the energy system model defined commodity units."""
@@ -1486,9 +1486,6 @@ def checkAndSetInvestmentPeriodCostParameter(
             )
     return parameter
 
-###############################################################################################################################################
-# here materialIntensity and recovery processing 
-
 
 def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPeriods):
     if materialIntensity is None or materialIntensity == 0:
@@ -1504,14 +1501,15 @@ def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPe
 
         for mat, series in materialIntensity[location].items():
             if not isinstance(series, pd.Series):
-                raise TypeError(f"Material '{mat}' in '{location}' should be a pandas Series.")
+                raise TypeError(
+                    f"Material '{mat}' in '{location}' should be a pandas Series."
+                )
 
             ip_map = {}
             for year in series.index:
                 if isinstance(year, str):
                     year = int(year)
 
-                # Sicherstellen, dass das Jahr exakt auf das Intervall passt
                 if (year - esM.startYear) % esM.investmentPeriodInterval != 0:
                     raise ValueError(
                         f"Year {year} in '{location}' / '{mat}' is not aligned with investment period interval "
@@ -1521,14 +1519,17 @@ def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPe
                 ip = int((year - esM.startYear) / esM.investmentPeriodInterval)
                 ip_map[year] = ip
 
-
-
-            # Check that all required IPs are present (excluding -1)
             present_ips = [ip_map[y] for y in series.index if ip_map[y] >= 0]
             missing_ips = [ip for ip in investmentPeriods if ip not in present_ips]
             if missing_ips:
-                missing_years = [esM.startYear + ip * esM.investmentPeriodInterval for ip in missing_ips]
-                expected_years = [esM.startYear + ip * esM.investmentPeriodInterval for ip in investmentPeriods]
+                missing_years = [
+                    esM.startYear + ip * esM.investmentPeriodInterval
+                    for ip in missing_ips
+                ]
+                expected_years = [
+                    esM.startYear + ip * esM.investmentPeriodInterval
+                    for ip in investmentPeriods
+                ]
                 raise ValueError(
                     f"Missing material intensity entries for '{location}' / '{mat}' in years: {missing_years}. "
                     f"Expected years: {expected_years}."
@@ -1556,22 +1557,25 @@ def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPe
     return processedMaterialIntensity
 
 
-
-def checkAndSetMaterialRecovery(esM, materialRecovery, locations, investmentPeriods):
-    if materialRecovery is None or materialRecovery == 0:
+def checkAndSetMaterialCollection(
+    esM, materialCollection, locations, investmentPeriods
+):
+    if materialCollection is None or materialCollection == 0:
         return {}
 
-    processedMaterialRecovery = {}
+    processedMaterialCollection = {}
 
     for location in locations:
-        if location not in materialRecovery:
+        if location not in materialCollection:
             raise KeyError(f"Location '{location}' is missing in material recovery.")
 
-        processedMaterialRecovery[location] = {}
+        processedMaterialCollection[location] = {}
 
-        for mat, series in materialRecovery[location].items():
+        for mat, series in materialCollection[location].items():
             if not isinstance(series, pd.Series):
-                raise TypeError(f"Material '{mat}' in '{location}' should be a pandas Series.")
+                raise TypeError(
+                    f"Material '{mat}' in '{location}' should be a pandas Series."
+                )
 
             ip_map = {}
             for year in series.index:
@@ -1591,12 +1595,17 @@ def checkAndSetMaterialRecovery(esM, materialRecovery, locations, investmentPeri
                     )
                 ip_map[year] = ip
 
-            # Check that all required IPs are present
             present_ips = [ip_map[y] for y in series.index]
             missing_ips = [ip for ip in investmentPeriods if ip not in present_ips]
             if missing_ips:
-                missing_years = [esM.startYear + ip * esM.investmentPeriodInterval for ip in missing_ips]
-                expected_years = [esM.startYear + ip * esM.investmentPeriodInterval for ip in investmentPeriods]
+                missing_years = [
+                    esM.startYear + ip * esM.investmentPeriodInterval
+                    for ip in missing_ips
+                ]
+                expected_years = [
+                    esM.startYear + ip * esM.investmentPeriodInterval
+                    for ip in investmentPeriods
+                ]
                 raise ValueError(
                     f"Missing material recovery entries for '{location}' / '{mat}' in years: {missing_years}. "
                     f"Expected years: {expected_years}."
@@ -1615,22 +1624,19 @@ def checkAndSetMaterialRecovery(esM, materialRecovery, locations, investmentPeri
                         f"for '{location}' / '{mat}'. Allowed: {investmentPeriods}"
                     )
 
-                if mat not in processedMaterialRecovery[location]:
-                    processedMaterialRecovery[location][mat] = {}
+                if mat not in processedMaterialCollection[location]:
+                    processedMaterialCollection[location][mat] = {}
 
-                processedMaterialRecovery[location][mat][ip] = value
+                processedMaterialCollection[location][mat][ip] = value
 
         # Convert all material entries for this location to Series
-        for mat in processedMaterialRecovery[location]:
-            processedMaterialRecovery[location][mat] = pd.Series(
-                processedMaterialRecovery[location][mat]
+        for mat in processedMaterialCollection[location]:
+            processedMaterialCollection[location][mat] = pd.Series(
+                processedMaterialCollection[location][mat]
             ).sort_index()
 
-    return processedMaterialRecovery
+    return processedMaterialCollection
 
-
-
-###############################################################################################################################################
 
 def checkAndSetLifetimeInvestmentPeriod(esM, name, lifetime):
     ip_LifeTime = lifetime / esM.investmentPeriodInterval

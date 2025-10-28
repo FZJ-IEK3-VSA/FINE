@@ -3,6 +3,7 @@ import pytest
 import fine as fn
 from fine import utils
 
+
 def test_valid_material_intensity_inputs():
     esM = fn.EnergySystemModel(
         locations={"A"},
@@ -16,8 +17,6 @@ def test_valid_material_intensity_inputs():
         lengthUnit="km",
     )
 
-
-
     # valid input
     comp = fn.Source(
         esM=esM,
@@ -25,26 +24,17 @@ def test_valid_material_intensity_inputs():
         commodity="electricity",
         hasCapacityVariable=True,
         materialIntensity={
-            "A": {
-                "steel": pd.Series({0: 2.0}),
-                "copper": pd.Series({0: 1.0})
-            }
-        }
+            "A": {"steel": pd.Series({0: 2.0}), "copper": pd.Series({0: 1.0})}
+        },
     )
     esM.add(comp)
 
-
     processedMaterialIntensity = utils.checkAndSetMaterialIntensity(
-        esM,
-        comp.materialIntensity,
-        esM.locations,
-        esM.investmentPeriods
+        esM, comp.materialIntensity, esM.locations, esM.investmentPeriods
     )
 
-    
     assert processedMaterialIntensity["A"]["steel"].equals(pd.Series({0: 2.0}))
     assert processedMaterialIntensity["A"]["copper"].equals(pd.Series({0: 1.0}))
-
 
     # invalid location
     with pytest.raises(KeyError):
@@ -55,11 +45,11 @@ def test_valid_material_intensity_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialIntensity={
-                    'B': {  
-                        'steel': pd.Series({0: 1.0}),
-                        'copper': pd.Series({0: 1.0}),
+                    "B": {
+                        "steel": pd.Series({0: 1.0}),
+                        "copper": pd.Series({0: 1.0}),
                     }
-                }
+                },
             )
         )
 
@@ -72,15 +62,15 @@ def test_valid_material_intensity_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialIntensity={
-                    'A': {
-                        'steel': pd.Series({1: 1.0}),  
-                        'copper': pd.Series({0: 1.0}),
+                    "A": {
+                        "steel": pd.Series({1: 1.0}),
+                        "copper": pd.Series({0: 1.0}),
                     }
-                }
+                },
             )
         )
 
-    # missing year 
+    # missing year
     with pytest.raises(ValueError):
         esM.add(
             fn.Source(
@@ -89,11 +79,11 @@ def test_valid_material_intensity_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialIntensity={
-                    'A': {
-                        'steel': pd.Series({2: 1.0}),  
-                        'copper': pd.Series({2: 1.0}),
+                    "A": {
+                        "steel": pd.Series({2: 1.0}),
+                        "copper": pd.Series({2: 1.0}),
                     }
-                }
+                },
             )
         )
 
@@ -106,15 +96,15 @@ def test_valid_material_intensity_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialIntensity={
-                    'A': {
-                        'steel': pd.Series({0: -1.0}), 
-                        'copper': pd.Series({0: 0.5}),
+                    "A": {
+                        "steel": pd.Series({0: -1.0}),
+                        "copper": pd.Series({0: 0.5}),
                     }
-                }
+                },
             )
         )
 
-    # no panas series 
+    # no panas series
     with pytest.raises(TypeError):
         esM.add(
             fn.Source(
@@ -123,13 +113,14 @@ def test_valid_material_intensity_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialIntensity={
-                    'A': {
-                        'steel': {0: 1.0}, 
-                        'copper': {0: 0.5},
+                    "A": {
+                        "steel": {0: 1.0},
+                        "copper": {0: 0.5},
                     }
-                }
+                },
             )
         )
+
 
 def test_valid_material_recovery_inputs():
     esM = fn.EnergySystemModel(
@@ -144,35 +135,24 @@ def test_valid_material_recovery_inputs():
         lengthUnit="km",
     )
 
-
-
     # valid input
     comp = fn.Source(
         esM=esM,
         name="Wind (onshore)",
         commodity="electricity",
         hasCapacityVariable=True,
-        materialRecovery={
-            "A": {
-                "steel": pd.Series({0: 0.7}),
-                "copper": pd.Series({0: 0.8})
-            }
-        }
+        materialCollection={
+            "A": {"steel": pd.Series({0: 0.7}), "copper": pd.Series({0: 0.8})}
+        },
     )
     esM.add(comp)
 
-
-    processedMaterialRecovery = utils.checkAndSetMaterialRecovery(
-        esM,
-        comp.materialRecovery,
-        esM.locations,
-        esM.investmentPeriods
+    processedMaterialCollection = utils.checkAndSetMaterialCollection(
+        esM, comp.materialCollection, esM.locations, esM.investmentPeriods
     )
 
-    
-    assert processedMaterialRecovery["A"]["steel"].equals(pd.Series({0: 0.7}))
-    assert processedMaterialRecovery["A"]["copper"].equals(pd.Series({0: 0.8}))
-
+    assert processedMaterialCollection["A"]["steel"].equals(pd.Series({0: 0.7}))
+    assert processedMaterialCollection["A"]["copper"].equals(pd.Series({0: 0.8}))
 
     # invalid location
     with pytest.raises(KeyError):
@@ -182,12 +162,12 @@ def test_valid_material_recovery_inputs():
                 name="Wind (onshore)",
                 commodity="electricity",
                 hasCapacityVariable=True,
-                materialRecovery={
-                    'B': {  
-                        'steel': pd.Series({0: 0.7}),
-                        'copper': pd.Series({0: 0.8}),
+                materialCollection={
+                    "B": {
+                        "steel": pd.Series({0: 0.7}),
+                        "copper": pd.Series({0: 0.8}),
                     }
-                }
+                },
             )
         )
 
@@ -199,16 +179,16 @@ def test_valid_material_recovery_inputs():
                 name="Wind (onshore)",
                 commodity="electricity",
                 hasCapacityVariable=True,
-                materialRecovery={
-                    'A': {
-                        'steel': pd.Series({-1: 0.7}),  
-                        'copper': pd.Series({0: 0.8}),
+                materialCollection={
+                    "A": {
+                        "steel": pd.Series({-1: 0.7}),
+                        "copper": pd.Series({0: 0.8}),
                     }
-                }
+                },
             )
         )
 
-    # missing year 
+    # missing year
     with pytest.raises(ValueError):
         esM.add(
             fn.Source(
@@ -216,12 +196,12 @@ def test_valid_material_recovery_inputs():
                 name="Wind (onshore)",
                 commodity="electricity",
                 hasCapacityVariable=True,
-                materialRecovery={
-                    'A': {
-                        'steel': pd.Series({2: 0.7}),  
-                        'copper': pd.Series({2: 0.8}),
+                materialCollection={
+                    "A": {
+                        "steel": pd.Series({2: 0.7}),
+                        "copper": pd.Series({2: 0.8}),
                     }
-                }
+                },
             )
         )
 
@@ -233,16 +213,16 @@ def test_valid_material_recovery_inputs():
                 name="Wind (onshore)",
                 commodity="electricity",
                 hasCapacityVariable=True,
-                materialRecovery={
-                    'A': {
-                        'steel': pd.Series({0: 1.8}), 
-                        'copper': pd.Series({0: 0.5}),
+                materialCollection={
+                    "A": {
+                        "steel": pd.Series({0: 1.8}),
+                        "copper": pd.Series({0: 0.5}),
                     }
-                }
+                },
             )
         )
 
-    # no panas series 
+    # no panas series
     with pytest.raises(TypeError):
         esM.add(
             fn.Source(
@@ -250,11 +230,11 @@ def test_valid_material_recovery_inputs():
                 name="Wind (onshore)",
                 commodity="electricity",
                 hasCapacityVariable=True,
-                materialRecovery={
-                    'A': {
-                        'steel': {0: 1.0}, 
-                        'copper': {0: 0.5},
+                materialCollection={
+                    "A": {
+                        "steel": {0: 1.0},
+                        "copper": {0: 0.5},
                     }
-                }
+                },
             )
         )
