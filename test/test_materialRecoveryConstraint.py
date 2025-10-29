@@ -10,18 +10,8 @@ def test_material_recovery_constraint():
         locations={"A"},
         commodities={"electricity"},
         commodityUnitsDict={"electricity": r"GW$_{el}$"},
-        materials={
-            "steel",
-            "copper",
-            "windonshore_steel_scrap",
-            "windonshore_copper_scrap",
-        },
-        materialUnitsDict={
-            "steel": "tons",
-            "copper": "tons",
-            "windonshore_steel_scrap": "tons",
-            "windonshore_copper_scrap": "tons",
-        },
+        materials={"steel", "copper"},
+        materialUnitsDict={"steel": "tons", "copper": "tons"},
         numberOfInvestmentPeriods=2,
         investmentPeriodInterval=5,
         startYear=2020,
@@ -36,7 +26,10 @@ def test_material_recovery_constraint():
             name="windonshore",
             commodity="electricity",
             hasCapacityVariable=True,
-            economicLifetime=5,
+            economicLifetime=10,
+            capacityMax=100,
+            operationRateMax={2020: pd.DataFrame(index=[0], columns=["A"], data=[[0.5]]),
+                              2025: pd.DataFrame(index=[0], columns=["A"], data=[[0.4]])},
             stockCommissioning={2015: 10},
             materialIntensity={
                 "A": {

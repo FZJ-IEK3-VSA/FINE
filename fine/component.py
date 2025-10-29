@@ -724,7 +724,7 @@ class Component(metaclass=ABCMeta):
             pwlcfModule = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModule
             self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
 
-        # add materialConsumption and materialCollection if declared
+        # add materialIntensity and materialCollection if declared
         self.materialIntensity = materialIntensity
         self.materialCollection = materialCollection
         self.material = material
@@ -737,6 +737,19 @@ class Component(metaclass=ABCMeta):
         self.processedMaterialCollection = utils.checkAndSetMaterialCollection(
             esM, materialCollection, esM.locations, esM.investmentPeriods
         )
+
+        # Generation of scrap materials
+        self.scrapCommodities = {}
+        if self.materialIntensity:
+            for loc, mat_dict in self.materialIntensity.items():
+                for mat in mat_dict.keys():
+                    scrap_name = f"{self.name}_{mat}_scrap"
+                    self.scrapCommodities[scrap_name] = esM.materialUnitsDict.get(mat)
+
+        # Add scrap materials to commodity list
+        esM.commodities.update(self.scrapCommodities.keys())
+        esM.commodityUnitsDict.update(self.scrapCommodities)
+
 
     def addToEnergySystemModel(self, esM):
         """Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
