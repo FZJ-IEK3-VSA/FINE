@@ -72,12 +72,12 @@ class ConversionDynamic(Conversion):
         :type hasTSA: boolean
         """
         super().setTimeSeriesData(hasTSA)
-        
-            # Information for refactoring:
-            # Time series aggregation is currently not supported for conversion dynamic class.
-            # The current constraints link the last time step / segment to the first time step / segment of the same TSA period.
-            # The order of periods over a year is not considered.
-            # For upTimeMin and downTimeMin, the constraint must consider the length of the time step / segments in future.
+
+        # Information for refactoring:
+        # Time series aggregation is currently not supported for conversion dynamic class.
+        # The current constraints link the last time step / segment to the first time step / segment of the same TSA period.
+        # The order of periods over a year is not considered.
+        # For upTimeMin and downTimeMin, the constraint must consider the length of the time step / segments in future.
 
 
 class ConversionDynamicModel(ConversionModel):

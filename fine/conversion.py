@@ -1012,11 +1012,11 @@ class ConversionModel(ComponentModel):
             rampRateMax = getattr(compDict[compName], rampingType)
             isCyclic = getattr(compDict[compName], "useTemporalCyclicConstraints")
             timeStepLength = (
-                        esM.timeStepsPerPeriod[ip].to_dict()[p, t]
-                        if pyM.hasSegmentation and hasattr(esM.timeStepsPerPeriod[ip], "to_dict")
-                        else esM.hoursPerTimeStep
-                    )
-
+                esM.timeStepsPerPeriod[ip].to_dict()[p, t]
+                if pyM.hasSegmentation
+                and hasattr(esM.timeStepsPerPeriod[ip], "to_dict")
+                else esM.hoursPerTimeStep
+            )
 
             if t == 0 and not isCyclic:
                 return pyomo.Constraint.Skip
@@ -1046,15 +1046,13 @@ class ConversionModel(ComponentModel):
             pyomo.Constraint(constrSetRamp, pyM.intraYearTimeSet, rule=ramping),
         )
 
-
     def InterPeriodRamping(self, esM, pyM, rampingType):
         compDict, abbrvName = self.componentsDict, self.abbrvName
-
 
         if not hasattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName):
             return
 
-        opVar  = getattr(pyM, "op_"  + abbrvName)
+        opVar = getattr(pyM, "op_" + abbrvName)
         capVar = getattr(pyM, "cap_" + abbrvName)
         constrSetRamp = getattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName)
 
@@ -1065,15 +1063,23 @@ class ConversionModel(ComponentModel):
         else:
             numberOfTimeSteps = len(esM.segmentsPerPeriod)
 
-        def ramping_inter_period(pyM, loc, compName, ip, p,t):
+        def ramping_inter_period(pyM, loc, compName, ip, p, t):
             rampRateMax = getattr(compDict[compName], rampingType)
             timeStepLength = (
-    esM.timeStepsPerPeriod[ip].to_dict()[p, t]
-    if pyM.hasSegmentation and hasattr(esM.timeStepsPerPeriod[ip], "to_dict")
-    else esM.hoursPerTimeStep
-)
+                esM.timeStepsPerPeriod[ip].to_dict()[p, t]
+                if pyM.hasSegmentation
+                and hasattr(esM.timeStepsPerPeriod[ip], "to_dict")
+                else esM.hoursPerTimeStep
+            )
             if p != 0 and t == 0:
-                return (factor * (opVar[loc, compName, ip, p-1, numberOfTimeSteps -1 ] - opVar[loc, compName, ip, p, t] ) <= rampRateMax *timeStepLength * capVar[loc, compName, ip])
+                return (
+                    factor
+                    * (
+                        opVar[loc, compName, ip, p - 1, numberOfTimeSteps - 1]
+                        - opVar[loc, compName, ip, p, t]
+                    )
+                    <= rampRateMax * timeStepLength * capVar[loc, compName, ip]
+                )
             return pyomo.Constraint.Skip
 
         setattr(
