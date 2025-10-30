@@ -61,6 +61,7 @@ develop = [
     "pytest-xdist<=3.6.1",
     "nbval<=0.11.0",
     "ruff<0.7.0",
+    "highspy >=1.12.0",
 ]
 
 #Configureation options

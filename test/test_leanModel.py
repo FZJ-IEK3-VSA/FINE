@@ -221,4 +221,4 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
         rescaleClusterPeriods=True,
     )
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")

@@ -11,7 +11,7 @@ from pathlib import Path
 
 def test_perfectForesight_excel(perfectForesight_test_esM):
     # optimize perfect foresight model
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     # create empty directory to save results
     parent__directory = Path(__file__).parent.absolute()
@@ -99,7 +99,7 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
         )
     )
 
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
     expected_obj = perfectForesight_test_esM.pyM.Obj().copy()
 
     # DICT-IO
@@ -107,7 +107,7 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
     esm_dict, comp_dict = fn.dictIO.exportToDict(perfectForesight_test_esM)
     output_esM_dict = fn.dictIO.importFromDict(esm_dict, comp_dict)
     # run with the reloaded esM
-    output_esM_dict.optimize(timeSeriesAggregation=False, solver="glpk")
+    output_esM_dict.optimize(timeSeriesAggregation=False, solver="appsi_highs")
     output_obj_dict = output_esM_dict.pyM.Obj()
     # test if objective values are the same
     (
@@ -133,7 +133,7 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
             assert_frame_equal(expected_OptSum, output_OptSum, check_dtype=False)
 
     # 2.check result for reloaded esM from netcdf
-    output_esM_xarray.optimize(timeSeriesAggregation=False, solver="glpk")
+    output_esM_xarray.optimize(timeSeriesAggregation=False, solver="appsi_highs")
     output_obj_xarray = output_esM_xarray.pyM.Obj()
     # test if objective values are the same
     (
@@ -167,7 +167,7 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
         )
     )
 
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
     expected_obj = perfectForesight_test_esM.pyM.Obj()
 
     # DICT-IO
@@ -175,7 +175,7 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
     esm_dict, comp_dict = fn.dictIO.exportToDict(perfectForesight_test_esM)
     output_esM_dict = fn.dictIO.importFromDict(esm_dict, comp_dict)
     # run with the reloaded esM
-    output_esM_dict.optimize(timeSeriesAggregation=False, solver="glpk")
+    output_esM_dict.optimize(timeSeriesAggregation=False, solver="appsi_highs")
     output_obj_dict = output_esM_dict.pyM.Obj()
     # test if objective values are the same
     (
@@ -201,7 +201,7 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
             assert_frame_equal(expected_OptSum, output_OptSum, check_dtype=False)
 
     # 2.check result for reloaded esM from netcdf
-    output_esM_xarray.optimize(timeSeriesAggregation=False, solver="glpk")
+    output_esM_xarray.optimize(timeSeriesAggregation=False, solver="appsi_highs")
     output_obj_xarray = output_esM_xarray.pyM.Obj()
     # test if objective values are the same
     (

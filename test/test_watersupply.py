@@ -229,7 +229,7 @@ def test_watersupply():
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
 
     # Selected results output
     esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)

@@ -202,7 +202,7 @@ def test_minimumPartLoad():
             operationRateFix=data_demand_df,
         )
     )
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     print("restricted dispatch:\n")
     print(

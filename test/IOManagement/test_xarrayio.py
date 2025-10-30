@@ -314,7 +314,7 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
     optSum = esM.getOptimizationSummary("TransmissionModel").loc[

@@ -76,4 +76,4 @@ def test_conversion_factors_as_series():
         )
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")

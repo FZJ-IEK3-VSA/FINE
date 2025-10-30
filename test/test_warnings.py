@@ -16,7 +16,7 @@ def test_userWarnings_esm(minimal_test_esM):
     """Tests if the warnings are supressed only when intended and shown otherwise in energySystemModel.py."""
     with warnings.catch_warnings(record=True) as w:
         timeSeriesAggregation = False
-        solver = "glpk"
+        solver = "appsi_highs"
 
         minimal_test_esM.optimize(
             timeSeriesAggregation=timeSeriesAggregation, solver=solver

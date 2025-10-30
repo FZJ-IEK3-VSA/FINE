@@ -187,7 +187,7 @@ def test_perform_parameter_based_grouping(
         n_groups=2,
         aggregation_method=aggregation_method,
         weights=weights,
-        solver="glpk",
+        solver="appsi_highs",
     )
 
     # ASSERTION

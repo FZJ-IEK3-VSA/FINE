@@ -27,7 +27,7 @@ def test_operationRateMin(minimal_test_esM):
             operationRateMin=operationRateMin,
         )
     )
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     ts = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.loc[
         "Electrolyzers"

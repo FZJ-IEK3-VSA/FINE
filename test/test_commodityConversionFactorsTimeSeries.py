@@ -83,7 +83,7 @@ def test_variable_conversion_simple_no_tsa():
     esM = create_simple_esm()
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     df = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
 
@@ -121,7 +121,7 @@ def test_variable_conversion_simple_with_tsa():
         rescaleClusterPeriods=True,
     )
     # Optimization
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
 
     df = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
 
@@ -150,7 +150,7 @@ def test_basecase(minimal_test_esM):
     esM = copy.deepcopy(minimal_test_esM)
 
     # Optimize without TSA
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     # Get the optimal electrolyzer operation
     op_test = []
@@ -209,7 +209,7 @@ def test_variable_conversion_factor_no_tsa(minimal_test_esM):
     )
 
     # Optimize the esM without TSA.
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     # Get optimal electrolyzer operations
     op_test_const = []
@@ -285,7 +285,7 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
         rescaleClusterPeriods=True,
     )
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
 
     # Get optimal electrolyzer operations
     op_test_const = []

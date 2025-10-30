@@ -1988,7 +1988,7 @@ class EnergySystemModel:
 
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
-        solverList = ["gurobi", "glpk", "cbc"]
+        solverList = ["gurobi", "glpk", "cbc", "appsi_highs"]
 
         if solver != "None":
             try:

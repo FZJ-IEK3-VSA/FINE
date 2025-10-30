@@ -37,7 +37,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
         aggregatedResultsPath=PATH_TO_SAVE,
         aggregated_xr_filename=netcdf_file_name,
         aggregated_shp_name=shp_file_name,
-        solver="glpk",
+        solver="appsi_highs",
     )
 
     if use_saved_file:
@@ -91,7 +91,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
 
     # additionally, check if clustering and optimization run through
     aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=4)
-    aggregated_esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    aggregated_esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
 
     # if there are no problems, delete the saved files
     os.remove(  # noqa: PTH107
@@ -123,13 +123,13 @@ def test_error_in_reading_shp(test_esM_for_spagat):
         )
 
         _ = test_esM_for_spagat.aggregateSpatially(
-            shapefile=SHAPEFILE_PATH, n_groups=2, solver="glpk"
+            shapefile=SHAPEFILE_PATH, n_groups=2, solver="appsi_highs"
         )
 
     ## Case 2: invalid shapefile type
     with pytest.raises(TypeError):
         _ = test_esM_for_spagat.aggregateSpatially(
-            shapefile=test_esM_for_spagat, n_groups=2, solver="glpk"
+            shapefile=test_esM_for_spagat, n_groups=2, solver="appsi_highs"
         )
 
     ## Case 3: invalid nRegionsForRepresentation for the shapefile
@@ -141,7 +141,7 @@ def test_error_in_reading_shp(test_esM_for_spagat):
         )
 
         _ = test_esM_for_spagat.aggregateSpatially(
-            shapefile=SHAPEFILE_PATH, n_groups=5, solver="glpk"
+            shapefile=SHAPEFILE_PATH, n_groups=5, solver="appsi_highs"
         )
 
 
@@ -242,7 +242,7 @@ def test_spatial_aggregation_parameter_based(
         aggregatedResultsPath=None,
         aggregation_function_dict=aggregation_function_dict,
         var_weights={"1d_vars": 10},
-        solver="glpk",
+        solver="appsi_highs",
     )
 
     # ASSERTION

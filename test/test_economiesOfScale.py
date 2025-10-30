@@ -49,7 +49,7 @@ def test_eos_NPV():
 
     esM.declareOptimizationProblem()
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     commissioning = [
         esM.getOptimizationSummary("SourceSinkModel", ip=0).loc[

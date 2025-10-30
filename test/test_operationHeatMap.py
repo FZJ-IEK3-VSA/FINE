@@ -5,7 +5,7 @@ def test_fullloadhours_above(minimal_test_esM):
     """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000."""
     esM = minimal_test_esM
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     # Plot the operational heat map
     fig, ax = fn.plotOperationColorMap(

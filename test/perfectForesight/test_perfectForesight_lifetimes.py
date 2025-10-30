@@ -279,7 +279,7 @@ def test_TAC_netPresentValueContributions():
     esM = create_test_esM(technicalLifetime, economicLifetime, floorTechnicalLifetime)
     esM.optimize()
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value

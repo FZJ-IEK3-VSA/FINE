@@ -440,7 +440,7 @@ def test_conversionPartLoad():
     ### Optimization ###
     # Input parameters
     timeSeriesAggregation = False
-    solver = "glpk"
+    solver = "appsi_highs"
     # Code
     esM.optimize(timeSeriesAggregation=timeSeriesAggregation, solver=solver)
 

@@ -25,3 +25,4 @@ dependencies:
   - psutil >=5.8.0,<=7.1.0
   - gurobi-logtools >=3.0.0,<=3.2.0
   - ipykernel <=6.29.5
+  - highspy >=1.12.0

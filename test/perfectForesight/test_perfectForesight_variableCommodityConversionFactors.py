@@ -346,7 +346,7 @@ def test_perfectForesight_variableConversions_timeindependent(
             rescaleClusterPeriods=True,
         )
 
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
     assert (
         round(
             esM.pyM.op_commis_conv.get_values()[
@@ -517,7 +517,7 @@ def test_perfectForesight_variableConversions_timedepending(
             rescaleClusterPeriods=True,
         )
 
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
 
         # check that aggregation is correct
         assert np.array_equal(
@@ -633,7 +633,7 @@ def test_perfectForesight_variableConversions_operationRateMax(
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
 
     # test the sum of the operation
     processedOperation = (
@@ -765,7 +765,7 @@ def test_perfectForesight_variableConversions_operationRateFix(
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
         timeStepList = [0]
 
     # test the sum of the operation
@@ -893,7 +893,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMax(
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
         timeStepList = [0]
         factor = 2
 
@@ -1025,7 +1025,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
         timeStepList = [0]
         factor = 2
 

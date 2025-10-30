@@ -29,7 +29,7 @@ def test_linkedQuantityID(minimal_test_esM):
     electrolyzer.processedOpexPerCapacity[0] = pd.Series(1, index=esM.locations)
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     assert (
         esM.getOptimizationSummary("ConversionModel")

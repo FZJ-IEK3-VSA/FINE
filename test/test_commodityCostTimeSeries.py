@@ -77,7 +77,7 @@ def test_miniSystem():
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
     np.testing.assert_almost_equal(
@@ -102,7 +102,7 @@ def test_miniSystem():
         rescaleClusterPeriods=True,
     )
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(timeSeriesAggregation=True, solver="appsi_highs")
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
     np.testing.assert_almost_equal(

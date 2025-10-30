@@ -78,7 +78,7 @@ def test_capacityCommissioningMinMaxFix():
 
     assert esM.getComponent("electricity cheap").processedCapacityMax[0] is None
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     ops = {
         ip: esM.getOptimizationSummary("SourceSinkModel", ip=ip)
@@ -164,7 +164,7 @@ def test_fullLoadHoursMinMax():
             )
         )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     ops_srcSnk = {
         ip: esM.getOptimizationSummary("SourceSinkModel", ip=ip)
@@ -223,7 +223,7 @@ def test_storageAndBalanceLimit():
             interestRate=0,
         )
     )
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     assert (
         esM.pyM.chargeOp_stor.get_values()[("loc1", "storage", 0, 0, 0)] == 438000 / 2

@@ -299,7 +299,7 @@ def test_CO2ReductionTargets():
         saveResults=False,
         trackESMs=True,
         numberOfTypicalPeriods=3,
-        solver="glpk",
+        solver="appsi_highs",
     )
 
     assert (
@@ -468,7 +468,7 @@ def test_exceededLifetime():
         endYear=2030,
         nbOfRepresentedYears=5,
         timeSeriesAggregation=False,
-        solver="glpk",
+        solver="appsi_highs",
         saveResults=False,
         trackESMs=True,
     )

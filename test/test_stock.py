@@ -465,7 +465,7 @@ def test_stock():
     )
 
     # check optimization output and pym model -> check commissioning and stock
-    esM.optimize(solver="glpk")
+    esM.optimize(solver="appsi_highs")
 
     # pipelines
     np.testing.assert_allclose(

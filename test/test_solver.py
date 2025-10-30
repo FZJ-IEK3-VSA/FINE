@@ -4,5 +4,5 @@ def test_solver_not_specified(minimal_test_esM):
 
     """
     esM = minimal_test_esM
-    esM.optimize()
+    esM.optimize(solver="appsi_highs")
     assert esM.solverSpecs["terminationCondition"] == "optimal"

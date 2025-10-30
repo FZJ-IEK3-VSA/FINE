@@ -2,7 +2,7 @@ import numpy as np
 
 
 def test_Mini_netPresentValue(minimal_test_esM):
-    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value
     npv_sum_optSummary = 0

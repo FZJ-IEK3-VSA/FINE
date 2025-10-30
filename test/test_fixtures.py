@@ -3,7 +3,7 @@ def test_minimal_test_esM(minimal_test_esM):
         numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1
     )
 
-    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
 
 def test_multi_node_test_esM_init(multi_node_test_esM_init):
@@ -15,4 +15,4 @@ def test_multi_node_test_esM_init(multi_node_test_esM_init):
         rescaleClusterPeriods=True,
     )
 
-    multi_node_test_esM_init.optimize(timeSeriesAggregation=True, solver="glpk")
+    multi_node_test_esM_init.optimize(timeSeriesAggregation=True, solver="appsi_highs")

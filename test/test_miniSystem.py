@@ -25,7 +25,7 @@ import pandas as pd
 
 
 def test_miniSystem(minimal_test_esM):
-    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="appsi_highs")
 
     # test if solve fits to the original results
     testresults = minimal_test_esM.componentModelingDict[
