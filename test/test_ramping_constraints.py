@@ -110,10 +110,10 @@ def test_real_esm_tsa_interperiod_ramp_enforcement():
     timestep = abs(cap_coefficient) / 0.2  # rampUpMax = 0.2
     expected_limit = 0.2 * timestep * capacity
     assert np.isclose(capacity, 10.0)
-    assert (
-        jump_unconstrained > 9.9
-    ), "Without constraints, jump should be ~full capacity"
+    assert jump_unconstrained > 9.9, (
+        "Without constraints, jump should be ~full capacity"
+    )
     assert jump_constrained < jump_unconstrained, "Constraint must reduce the jump"
-    assert np.isclose(
-        jump_constrained, expected_limit, atol=1e-6
-    ), f"Jump {jump_constrained:.3f} should match limit {expected_limit:.3f}"
+    assert np.isclose(jump_constrained, expected_limit, atol=1e-6), (
+        f"Jump {jump_constrained:.3f} should match limit {expected_limit:.3f}"
+    )
