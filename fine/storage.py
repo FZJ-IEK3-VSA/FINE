@@ -1100,32 +1100,6 @@ class StorageModel(ComponentModel):
             pyomo.Constraint(opVarSet, esM.periods, rule=connectInterSOC),
         )
 
-    def intraSOCstart(self, pyM, esM):
-        """Declare the constraint that the (virtual) state of charge at the beginning of a typical period is zero.
-
-        .. math::
-
-            SoC^{comp}_{loc,ip,p,0} = 0
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-        """
-        abbrvName = self.abbrvName
-        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
-        SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
-
-        def intraSOCstart(pyM, loc, compName, ip, p):
-            return SOC[loc, compName, ip, p, 0] == 0
-
-        setattr(
-            pyM,
-            "ConstrSOCPeriodStart_" + abbrvName,
-            pyomo.Constraint(opVarSet, esM.typicalPeriods, rule=intraSOCstart),
-        )
-
     def equalInterSOC(self, pyM, esM):
         """Declare the constraint that, if periodic storage is selected, the states of charge between periods
         have the same value.
