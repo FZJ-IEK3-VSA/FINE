@@ -74,11 +74,6 @@ def test_real_esm_tsa_interperiod_ramp_enforcement():
     op_after_A = pyo.value(model_A.op_conv[key_after])
     jump_unconstrained = op_after_A - op_before_A
 
-    print("\n--- UNCONSTRAINED ---")
-    print(f"Capacity: {capacity:.4f} GW")
-    print(f"op_before: {op_before_A:.6f}")
-    print(f"op_after:  {op_after_A:.6f}")
-    print(f"Jump (unconstrained): {jump_unconstrained:.6f}")
 
 
     system_B = build_test_system(rampUp=0.2, rampDown=0.2)
@@ -87,15 +82,7 @@ def test_real_esm_tsa_interperiod_ramp_enforcement():
     op_before_B = pyo.value(model_B.op_conv[key_before])
     op_after_B = pyo.value(model_B.op_conv[key_after])
     jump_constrained = op_after_B - op_before_B
-
-    print("\n--- CONSTRAINED ---")
-    print(f"op_before: {op_before_B:.6f}")
-    print(f"op_after:  {op_after_B:.6f}")
-    print(f"Jump (constrained): {jump_constrained:.6f}")
-
-
     constraint_key = ("test", "Electrolyzer", 0, 1, 0)
-    print("DEBUG: num periods =", getattr(system_B, "numberOfTypicalPeriods", "MISSING"))
 
 
     constraint = model_B.ConstrInterPeriod_rampUpMax_conv[constraint_key]
@@ -109,16 +96,6 @@ def test_real_esm_tsa_interperiod_ramp_enforcement():
 
     timestep = abs(cap_coefficient) / 0.2  # rampUpMax = 0.2
     expected_limit = 0.2 * timestep * capacity
-
-    print("\n--- CONSTRAINT ANALYSIS ---")
-    print(f"Constraint expression: {constraint.body}")
-    print(f"Coefficient on capacity: {cap_coefficient}")
-    print(f"Derived timestep: {timestep}")
-    print(f"Expected ramp limit: {expected_limit:.6f}")
-    print(f"Actual jump: {jump_constrained:.6f}")
-    print(f"Difference: {abs(jump_constrained - expected_limit):.6e}")
-
-
     assert np.isclose(capacity, 10.0)
     assert jump_unconstrained > 9.9, "Without constraints, jump should be ~full capacity"
     assert jump_constrained < jump_unconstrained, "Constraint must reduce the jump"

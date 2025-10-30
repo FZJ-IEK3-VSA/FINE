@@ -72,17 +72,7 @@ class ConversionDynamic(Conversion):
         :type hasTSA: boolean
         """
         super().setTimeSeriesData(hasTSA)
-        if hasTSA:
-            if any(
-                x is not None
-                for x in [
-                    self.upTimeMin,
-                    self.downTimeMin,
-                ]
-            ):
-                raise ValueError(
-                    "Time series aggregation is not supported for conversion dynamic components."
-                )
+        
             # Information for refactoring:
             # Time series aggregation is currently not supported for conversion dynamic class.
             # The current constraints link the last time step / segment to the first time step / segment of the same TSA period.

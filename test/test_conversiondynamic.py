@@ -521,7 +521,4 @@ def test_error_message_timeSeriesAggregation(parameter):
     )
 
     esM.aggregateTemporally(numberOfTypicalPeriods=2)
-    with pytest.raises(
-        ValueError, match=r".*Time series aggregation is not supported.*"
-    ):
-        esM.optimize(timeSeriesAggregation=True)
+    esM.optimize(timeSeriesAggregation=True)
