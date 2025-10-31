@@ -354,25 +354,12 @@ class EnergySystemModel:
         # optimization.
         # The commodityUnitsDict parameter is a dictionary which assigns each considered commodity (string) a
         # unit (string) which can be used by results output functions.
-        self.commodities = commodities if commodities is not None else []
-        self.commodityUnitsDict = (
-            commodityUnitsDict if commodityUnitsDict is not None else {}
-        )
+        self.commodities = commodities
+        self.commodityUnitsDict = commodityUnitsDict
 
-        # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
-        self.balanceLimit = balanceLimit
-        self.pathwayBalanceLimit = pathwayBalanceLimit
-        self.processedBalanceLimit = utils.checkAndSetBalanceLimit(
-            self, balanceLimit, locations
-        )
-        self.processedPathwayBalanceLimit = utils.checkAndSetPathwayBalanceLimit(
-            self, pathwayBalanceLimit, locations
-        )
         # Integrate materials into the model by treating them as commodities
-        self.materials = materials if materials is not None else []
-        self.materialUnitsDict = (
-            materialUnitsDict if materialUnitsDict is not None else {}
-        )
+        self.materials = materials
+        self.materialUnitsDict = materialUnitsDict
 
         if materials is None:
             self.materials = set()
@@ -385,6 +372,16 @@ class EnergySystemModel:
 
         self.commodityUnitsDict.update(
             {m: self.materialUnitsDict[m] for m in sorted(self.materials)}
+        )
+
+        # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
+        self.balanceLimit = balanceLimit
+        self.pathwayBalanceLimit = pathwayBalanceLimit
+        self.processedBalanceLimit = utils.checkAndSetBalanceLimit(
+            self, balanceLimit, locations
+        )
+        self.processedPathwayBalanceLimit = utils.checkAndSetPathwayBalanceLimit(
+            self, pathwayBalanceLimit, locations
         )
 
         ################################################################################################################

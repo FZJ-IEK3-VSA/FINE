@@ -24,8 +24,6 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "balanceLimit",
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
-                "materials",
-                "materialUnitsDict",
             ),
             (
                 minimal_test_esM.locations,
@@ -43,8 +41,6 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.balanceLimit,
                 minimal_test_esM.pathwayBalanceLimit,
                 minimal_test_esM.annuityPerpetuity,
-                minimal_test_esM.materials,
-                minimal_test_esM.materialUnitsDict,
             ),
         )
     )
@@ -148,8 +144,6 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "balanceLimit",
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
-                "materials",
-                "materialUnitsDict",
             ),
             (
                 single_node_test_esM.locations,
@@ -167,8 +161,6 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.balanceLimit,
                 single_node_test_esM.pathwayBalanceLimit,
                 single_node_test_esM.annuityPerpetuity,
-                single_node_test_esM.materials,
-                single_node_test_esM.materialUnitsDict,
             ),
         )
     )
@@ -229,8 +221,6 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "balanceLimit",
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
-                "materials",
-                "materialUnitsDict",
             ),
             (
                 multi_node_test_esM_init.locations,
@@ -248,8 +238,6 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.balanceLimit,
                 multi_node_test_esM_init.pathwayBalanceLimit,
                 multi_node_test_esM_init.annuityPerpetuity,
-                multi_node_test_esM_init.materials,
-                multi_node_test_esM_init.materialUnitsDict,
             ),
         )
     )
