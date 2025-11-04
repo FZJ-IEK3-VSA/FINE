@@ -28,8 +28,10 @@ def test_material_recovery_constraint():
             hasCapacityVariable=True,
             economicLifetime=10,
             capacityMax=100,
-            operationRateMax={2020: pd.DataFrame(index=[0], columns=["A"], data=[[0.5]]),
-                              2025: pd.DataFrame(index=[0], columns=["A"], data=[[0.4]])},
+            operationRateMax={
+                2020: pd.DataFrame(index=[0], columns=["A"], data=[[0.5]]),
+                2025: pd.DataFrame(index=[0], columns=["A"], data=[[0.4]]),
+            },
             stockCommissioning={2015: 10},
             materialIntensity={
                 "A": {

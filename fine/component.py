@@ -746,10 +746,8 @@ class Component(metaclass=ABCMeta):
                     scrap_name = f"{self.name}_{mat}_scrap"
                     self.scrapCommodities[scrap_name] = esM.materialUnitsDict.get(mat)
 
-        # Add scrap materials to commodity list
         esM.commodities.update(self.scrapCommodities.keys())
         esM.commodityUnitsDict.update(self.scrapCommodities)
-
 
     def addToEnergySystemModel(self, esM):
         """Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -3093,14 +3091,14 @@ class ComponentModel(metaclass=ABCMeta):
 
         return sum(
             commisVar[loc, compName, ip]
-            * compDict[compName].processedMaterialIntensity[loc][mat][ip]
+            * compDict[compName].processedMaterialIntensity[ip][mat][loc]
             for (loc2, compName, ip2) in commisVar
             if loc2 == loc
             and ip2 == ip
             and compName in compDict
             and hasattr(compDict[compName], "processedMaterialIntensity")
-            and ip
-            in compDict[compName].processedMaterialIntensity.get(loc, {}).get(mat, {})
+            and loc
+            in compDict[compName].processedMaterialIntensity.get(ip, {}).get(mat, {})
         )
 
     def getMaterialRecoveryContribution(self, pyM, mat, loc, ip, scrap_source_name):
@@ -3135,10 +3133,10 @@ class ComponentModel(metaclass=ABCMeta):
             )
 
             intensity = (
-                comp.processedMaterialIntensity.get(loc, {}).get(mat, {}).get(offset, 0)
+                comp.processedMaterialIntensity.get(offset, {}).get(mat, {}).get(loc, 0)
             )
             recovery = (
-                comp.processedMaterialCollection.get(loc, {}).get(mat, {}).get(ip, 0)
+                comp.processedMaterialCollection.get(ip, {}).get(mat, {}).get(loc, 0)
             )
 
             rhs += decommisVar[loc, compName, ip] * intensity * recovery

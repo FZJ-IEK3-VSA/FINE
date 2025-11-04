@@ -1493,66 +1493,58 @@ def checkAndSetMaterialIntensity(esM, materialIntensity, locations, investmentPe
 
     processedMaterialIntensity = {}
 
-    for location in locations:
-        if location not in materialIntensity:
-            raise KeyError(f"Location '{location}' is missing in material intensity.")
+    for year, mat_dict in materialIntensity.items():
+        if (year - esM.startYear) % esM.investmentPeriodInterval != 0:
+            raise ValueError(
+                f"Year {year} is not aligned with investment period interval "
+                f"(start year: {esM.startYear}, interval: {esM.investmentPeriodInterval})."
+            )
 
-        processedMaterialIntensity[location] = {}
+        ip = (year - esM.startYear) // esM.investmentPeriodInterval
 
-        for mat, series in materialIntensity[location].items():
+        processedMaterialIntensity[ip] = {}
+
+        for mat, series in mat_dict.items():
             if not isinstance(series, pd.Series):
                 raise TypeError(
-                    f"Material '{mat}' in '{location}' should be a pandas Series."
+                    f"Material intensity for '{mat}' in year {year} should be a pandas Series."
                 )
 
-            ip_map = {}
-            for year in series.index:
-                if isinstance(year, str):
-                    year = int(year)
-
-                if (year - esM.startYear) % esM.investmentPeriodInterval != 0:
-                    raise ValueError(
-                        f"Year {year} in '{location}' / '{mat}' is not aligned with investment period interval "
-                        f"(start year: {esM.startYear}, interval: {esM.investmentPeriodInterval})."
+            for loc in series.index:
+                if loc not in locations:
+                    raise KeyError(
+                        f"Location '{loc}' not in provided locations {locations}."
                     )
 
-                ip = int((year - esM.startYear) / esM.investmentPeriodInterval)
-                ip_map[year] = ip
-
-            present_ips = [ip_map[y] for y in series.index if ip_map[y] >= 0]
-            missing_ips = [ip for ip in investmentPeriods if ip not in present_ips]
-            if missing_ips:
-                missing_years = [
-                    esM.startYear + ip * esM.investmentPeriodInterval
-                    for ip in missing_ips
-                ]
-                expected_years = [
-                    esM.startYear + ip * esM.investmentPeriodInterval
-                    for ip in investmentPeriods
-                ]
-                raise ValueError(
-                    f"Missing material intensity entries for '{location}' / '{mat}' in years: {missing_years}. "
-                    f"Expected years: {expected_years}."
-                )
-
-            for year, value in series.items():
+                value = series[loc]
                 if value < 0:
                     raise ValueError(
-                        f"Material intensity must be positive: {location} / {mat} / {year} : {value}"
+                        f"Material intensity must be positive: {year} / {mat} / {loc} : {value}"
                     )
 
-                ip = ip_map[year]
+                if mat not in processedMaterialIntensity[ip]:
+                    processedMaterialIntensity[ip][mat] = {}
 
-                if mat not in processedMaterialIntensity[location]:
-                    processedMaterialIntensity[location][mat] = {}
+                processedMaterialIntensity[ip][mat][loc] = value
 
-                processedMaterialIntensity[location][mat][ip] = value
-
-        # Convert all material entries for this location to Series
-        for mat in processedMaterialIntensity[location]:
-            processedMaterialIntensity[location][mat] = pd.Series(
-                processedMaterialIntensity[location][mat]
+            processedMaterialIntensity[ip][mat] = pd.Series(
+                processedMaterialIntensity[ip][mat]
             ).sort_index()
+
+    present_ips = [ip for ip in processedMaterialIntensity if ip >= 0]
+    missing_ips = [ip for ip in investmentPeriods if ip not in present_ips]
+    if missing_ips:
+        missing_years = [
+            esM.startYear + ip * esM.investmentPeriodInterval for ip in missing_ips
+        ]
+        expected_years = [
+            esM.startYear + ip * esM.investmentPeriodInterval
+            for ip in investmentPeriods
+        ]
+        raise ValueError(
+            f"Missing material intensity entries for IPs: {missing_ips} (years {missing_years}). "
+            f"Expected years: {expected_years}."
+        )
 
     return processedMaterialIntensity
 
@@ -1565,75 +1557,69 @@ def checkAndSetMaterialCollection(
 
     processedMaterialCollection = {}
 
-    for location in locations:
-        if location not in materialCollection:
-            raise KeyError(f"Location '{location}' is missing in material recovery.")
+    for year, mat_dict in materialCollection.items():
+        if year < esM.startYear:
+            raise ValueError(
+                f"Year {year} is before start year {esM.startYear} and not allowed."
+            )
 
-        processedMaterialCollection[location] = {}
+        if (year - esM.startYear) % esM.investmentPeriodInterval != 0:
+            raise ValueError(
+                f"Year {year} is not aligned with investment period interval "
+                f"(start year: {esM.startYear}, interval: {esM.investmentPeriodInterval})."
+            )
 
-        for mat, series in materialCollection[location].items():
+        ip = (year - esM.startYear) // esM.investmentPeriodInterval
+
+        processedMaterialCollection[ip] = {}
+
+        for mat, series in mat_dict.items():
             if not isinstance(series, pd.Series):
                 raise TypeError(
-                    f"Material '{mat}' in '{location}' should be a pandas Series."
+                    f"Material '{mat}' in year {year} should be a pandas Series."
                 )
 
-            ip_map = {}
-            for year in series.index:
-                if isinstance(year, str):
-                    year = int(year)
-
-                if year < esM.startYear:
-                    raise ValueError(
-                        f"Year {year} in '{location}' / '{mat}' is before start year {esM.startYear} and not allowed."
+            for loc in series.index:
+                if loc not in locations:
+                    raise KeyError(
+                        f"Location '{loc}' not in provided locations {locations}."
                     )
 
-                ip = int((year - esM.startYear) / esM.investmentPeriodInterval)
-                if esM.startYear + ip * esM.investmentPeriodInterval != year:
-                    raise ValueError(
-                        f"Year {year} in '{location}' / '{mat}' is not aligned with investment period interval "
-                        f"(start year: {esM.startYear}, interval: {esM.investmentPeriodInterval})."
-                    )
-                ip_map[year] = ip
-
-            present_ips = [ip_map[y] for y in series.index]
-            missing_ips = [ip for ip in investmentPeriods if ip not in present_ips]
-            if missing_ips:
-                missing_years = [
-                    esM.startYear + ip * esM.investmentPeriodInterval
-                    for ip in missing_ips
-                ]
-                expected_years = [
-                    esM.startYear + ip * esM.investmentPeriodInterval
-                    for ip in investmentPeriods
-                ]
-                raise ValueError(
-                    f"Missing material recovery entries for '{location}' / '{mat}' in years: {missing_years}. "
-                    f"Expected years: {expected_years}."
-                )
-
-            for year, value in series.items():
+                value = series[loc]
                 if not (0 <= value <= 1):
                     raise ValueError(
-                        f"Material recovery must be between 0 and 1: {location} / {mat} / {year} = {value}"
+                        f"Material recovery must be between 0 and 1: {year} / {mat} / {loc} = {value}"
                     )
 
-                ip = ip_map[year]
                 if ip not in investmentPeriods:
                     raise ValueError(
                         f"Invalid investment period {ip} derived from year {year} "
-                        f"for '{location}' / '{mat}'. Allowed: {investmentPeriods}"
+                        f"for '{mat}' / '{loc}'. Allowed: {investmentPeriods}"
                     )
 
-                if mat not in processedMaterialCollection[location]:
-                    processedMaterialCollection[location][mat] = {}
+                if mat not in processedMaterialCollection[ip]:
+                    processedMaterialCollection[ip][mat] = {}
 
-                processedMaterialCollection[location][mat][ip] = value
+                processedMaterialCollection[ip][mat][loc] = value
 
-        # Convert all material entries for this location to Series
-        for mat in processedMaterialCollection[location]:
-            processedMaterialCollection[location][mat] = pd.Series(
-                processedMaterialCollection[location][mat]
+            processedMaterialCollection[ip][mat] = pd.Series(
+                processedMaterialCollection[ip][mat]
             ).sort_index()
+
+    present_ips = [ip for ip in processedMaterialCollection if ip >= 0]
+    missing_ips = [ip for ip in investmentPeriods if ip not in present_ips]
+    if missing_ips:
+        missing_years = [
+            esM.startYear + ip * esM.investmentPeriodInterval for ip in missing_ips
+        ]
+        expected_years = [
+            esM.startYear + ip * esM.investmentPeriodInterval
+            for ip in investmentPeriods
+        ]
+        raise ValueError(
+            f"Missing material recovery entries for IPs: {missing_ips} (years {missing_years}). "
+            f"Expected years: {expected_years}."
+        )
 
     return processedMaterialCollection
 

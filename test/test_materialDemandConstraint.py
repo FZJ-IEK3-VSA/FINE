@@ -23,7 +23,7 @@ def test_material_demand_constraint():
             commodity="electricity",
             hasCapacityVariable=True,
             materialIntensity={
-                "A": {"steel": pd.Series({0: 3.1}), "copper": pd.Series({0: 5.3})}
+                0: {"steel": pd.Series({"A": 3.1}), "copper": pd.Series({"A": 5.3})}
             },
         )
     )

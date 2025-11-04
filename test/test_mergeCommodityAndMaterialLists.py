@@ -34,9 +34,6 @@ def test_commodity_and_material_merging():
     assert esM.commodityUnitsDict == expected_units
 
 
-
-
-
 def test_automatic_generation_scrap_materials():
     # Define minimal Energy System Model
     esM = fn.EnergySystemModel(
@@ -62,16 +59,12 @@ def test_automatic_generation_scrap_materials():
             hasCapacityVariable=True,
             economicLifetime=5,
             materialIntensity={
-                "A": {
-                    "steel": pd.Series(
-                        {0: 5.1}, dtype="float64"
-                    ),
-                    "copper": pd.Series(
-                        {0: 5.1}, dtype="float64"
-                    ),
+                0: {
+                    "steel": pd.Series({"A": 5.1}, dtype="float64"),
+                    "copper": pd.Series({"A": 5.1}, dtype="float64"),
                 },
             },
-            )
+        )
     )
 
     esM.add(
@@ -92,17 +85,24 @@ def test_automatic_generation_scrap_materials():
             hasCapacityVariable=True,
             economicLifetime=5,
             materialIntensity={
-                "A": {
-                    "lithium": pd.Series(
-                        {0: 5.1}, dtype="float64"
-                    ),
+                0: {
+                    "lithium": pd.Series({"A": 5.1}, dtype="float64"),
                 },
             },
         )
     )
 
     # Expected merged commodity list
-    expected_commodities = {"electricity", "hydrogen", "copper", "lithium", "steel", "Batteries_lithium_scrap", "Wind_copper_scrap", "Wind_steel_scrap"}
+    expected_commodities = {
+        "electricity",
+        "hydrogen",
+        "copper",
+        "lithium",
+        "steel",
+        "Batteries_lithium_scrap",
+        "Wind_copper_scrap",
+        "Wind_steel_scrap",
+    }
 
     # Expected merged commodityUnitsDict list
     expected_units = {
@@ -113,7 +113,7 @@ def test_automatic_generation_scrap_materials():
         "steel": r"tons",
         "Batteries_lithium_scrap": r"tons",
         "Wind_copper_scrap": r"tons",
-        "Wind_steel_scrap": r"tons"
+        "Wind_steel_scrap": r"tons",
     }
 
     # Check whether the expected list matches the automatically generated list

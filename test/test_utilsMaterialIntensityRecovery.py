@@ -24,7 +24,7 @@ def test_valid_material_intensity_inputs():
         commodity="electricity",
         hasCapacityVariable=True,
         materialIntensity={
-            "A": {"steel": pd.Series({0: 2.0}), "copper": pd.Series({0: 1.0})}
+            0: {"steel": pd.Series({"A": 2.0}), "copper": pd.Series({"A": 1.0})}
         },
     )
     esM.add(comp)
@@ -33,8 +33,8 @@ def test_valid_material_intensity_inputs():
         esM, comp.materialIntensity, esM.locations, esM.investmentPeriods
     )
 
-    assert processedMaterialIntensity["A"]["steel"].equals(pd.Series({0: 2.0}))
-    assert processedMaterialIntensity["A"]["copper"].equals(pd.Series({0: 1.0}))
+    assert processedMaterialIntensity[0]["steel"].equals(pd.Series({"A": 2.0}))
+    assert processedMaterialIntensity[0]["copper"].equals(pd.Series({"A": 1.0}))
 
     # invalid location
     with pytest.raises(KeyError):
@@ -45,26 +45,9 @@ def test_valid_material_intensity_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialIntensity={
-                    "B": {
-                        "steel": pd.Series({0: 1.0}),
-                        "copper": pd.Series({0: 1.0}),
-                    }
-                },
-            )
-        )
-
-    # misaligned year
-    with pytest.raises(ValueError):
-        esM.add(
-            fn.Source(
-                esM=esM,
-                name="Wind (onshore)",
-                commodity="electricity",
-                hasCapacityVariable=True,
-                materialIntensity={
-                    "A": {
-                        "steel": pd.Series({1: 1.0}),
-                        "copper": pd.Series({0: 1.0}),
+                    0: {
+                        "steel": pd.Series({"B": 1.0}),
+                        "copper": pd.Series({"B": 1.0}),
                     }
                 },
             )
@@ -79,9 +62,9 @@ def test_valid_material_intensity_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialIntensity={
-                    "A": {
-                        "steel": pd.Series({2: 1.0}),
-                        "copper": pd.Series({2: 1.0}),
+                    2: {
+                        "steel": pd.Series({"A": 1.0}),
+                        "copper": pd.Series({"A": 1.0}),
                     }
                 },
             )
@@ -96,9 +79,9 @@ def test_valid_material_intensity_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialIntensity={
-                    "A": {
-                        "steel": pd.Series({0: -1.0}),
-                        "copper": pd.Series({0: 0.5}),
+                    0: {
+                        "steel": pd.Series({"A": -1.0}),
+                        "copper": pd.Series({"A": 0.5}),
                     }
                 },
             )
@@ -113,9 +96,9 @@ def test_valid_material_intensity_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialIntensity={
-                    "A": {
-                        "steel": {0: 1.0},
-                        "copper": {0: 0.5},
+                    0: {
+                        "steel": {"A": 1.0},
+                        "copper": {"A": 0.5},
                     }
                 },
             )
@@ -142,7 +125,7 @@ def test_valid_material_recovery_inputs():
         commodity="electricity",
         hasCapacityVariable=True,
         materialCollection={
-            "A": {"steel": pd.Series({0: 0.7}), "copper": pd.Series({0: 0.8})}
+            0: {"steel": pd.Series({"A": 0.7}), "copper": pd.Series({"A": 0.8})}
         },
     )
     esM.add(comp)
@@ -151,8 +134,8 @@ def test_valid_material_recovery_inputs():
         esM, comp.materialCollection, esM.locations, esM.investmentPeriods
     )
 
-    assert processedMaterialCollection["A"]["steel"].equals(pd.Series({0: 0.7}))
-    assert processedMaterialCollection["A"]["copper"].equals(pd.Series({0: 0.8}))
+    assert processedMaterialCollection[0]["steel"].equals(pd.Series({"A": 0.7}))
+    assert processedMaterialCollection[0]["copper"].equals(pd.Series({"A": 0.8}))
 
     # invalid location
     with pytest.raises(KeyError):
@@ -163,9 +146,9 @@ def test_valid_material_recovery_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialCollection={
-                    "B": {
-                        "steel": pd.Series({0: 0.7}),
-                        "copper": pd.Series({0: 0.8}),
+                    0: {
+                        "steel": pd.Series({"B": 0.7}),
+                        "copper": pd.Series({"B": 0.8}),
                     }
                 },
             )
@@ -180,10 +163,12 @@ def test_valid_material_recovery_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialCollection={
-                    "A": {
-                        "steel": pd.Series({-1: 0.7}),
-                        "copper": pd.Series({0: 0.8}),
-                    }
+                    -1: {
+                        "steel": pd.Series({"A": 0.7}),
+                    },
+                    0: {
+                        "copper": pd.Series({"A": 0.8}),
+                    },
                 },
             )
         )
@@ -197,9 +182,9 @@ def test_valid_material_recovery_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialCollection={
-                    "A": {
-                        "steel": pd.Series({2: 0.7}),
-                        "copper": pd.Series({2: 0.8}),
+                    2: {
+                        "steel": pd.Series({"A": 0.7}),
+                        "copper": pd.Series({"A": 0.8}),
                     }
                 },
             )
@@ -214,9 +199,9 @@ def test_valid_material_recovery_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialCollection={
-                    "A": {
-                        "steel": pd.Series({0: 1.8}),
-                        "copper": pd.Series({0: 0.5}),
+                    0: {
+                        "steel": pd.Series({"A": 1.8}),
+                        "copper": pd.Series({"A": 0.5}),
                     }
                 },
             )
@@ -231,9 +216,9 @@ def test_valid_material_recovery_inputs():
                 commodity="electricity",
                 hasCapacityVariable=True,
                 materialCollection={
-                    "A": {
-                        "steel": {0: 1.0},
-                        "copper": {0: 0.5},
+                    0: {
+                        "steel": {"A": 1.0},
+                        "copper": {"A": 0.5},
                     }
                 },
             )

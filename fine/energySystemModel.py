@@ -357,22 +357,28 @@ class EnergySystemModel:
         self.commodities = commodities
         self.commodityUnitsDict = commodityUnitsDict
 
-        # Integrate materials into the model by treating them as commodities
-        self.materials = materials
-        self.materialUnitsDict = materialUnitsDict
-
-        if materials is None:
-            self.materials = set()
-        elif isinstance(materials, str):
+        # Ensure that materials is always a set
+        if isinstance(materials, str):
             self.materials = {materials}
         else:
-            self.materials = set(materials)
+            self.materials = set(materials) if materials else set()
 
-        self.commodities = set(self.commodities).union(self.materials)
+        # Ensure that materialUnitsDict is always a dictionary
+        if isinstance(materialUnitsDict, str):
+            try:
+                k, v = materialUnitsDict.split(" : ")
+                self.materialUnitsDict = {k.strip(): v.strip()}
+            except ValueError:
+                self.materialUnitsDict = {}
+        else:
+            self.materialUnitsDict = (
+                dict(materialUnitsDict) if materialUnitsDict else {}
+            )
 
-        self.commodityUnitsDict.update(
-            {m: self.materialUnitsDict[m] for m in sorted(self.materials)}
-        )
+        # Integrate materials Set and materialUnitsDict into the commodities Set and commodityUnitsDict
+        if self.materials:
+            self.commodities = set(self.commodities).union(self.materials)
+            self.commodityUnitsDict.update(self.materialUnitsDict)
 
         # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
         self.balanceLimit = balanceLimit
