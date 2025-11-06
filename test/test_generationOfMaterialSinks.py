@@ -1,5 +1,5 @@
 import fine as fn
-
+import pandas as pd
 # Test if automatic generation of material sinks works correctly
 
 
@@ -44,3 +44,69 @@ def test_generation_material_sinks():
     )
     assert copper_sink.commodity == "copper"
     assert copper_sink.material is True
+
+
+# Test if automatic generation of secondary material sources works correctly
+
+
+def test_generation_material_sources():
+    # Define the Energy System Model
+    esM = fn.EnergySystemModel(
+        locations={"A"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"GW$_{el}$"},
+        materials={"steel", "copper", "aluminum"},
+        materialUnitsDict={"steel": r"tons", "copper": r"tons", "aluminum": r"tons"},
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Wind",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            materialIntensity={
+                0: {
+                    "steel": pd.Series({"A": 3.1}),
+                    "copper": pd.Series({"A": 5.3}),
+                    "aluminum": pd.Series({"A": 2.3}),
+                }
+            },
+        )
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Wind_aluminum_scrap",
+            commodity="Wind_aluminum_scrap",
+            hasCapacityVariable=False,
+            material=True,
+        )
+    )
+
+    # Generate missing material sinks automatically
+    esM.generationSecondaryMaterialSources()
+
+    # Collect all source component names in the SourceSinkModel
+    scrap_sources = [
+        comp.name
+        for comp in esM.componentModelingDict["SourceSinkModel"].componentsDict.values()
+        if comp.__class__.__name__ == "Source" and comp.commodity.endswith("_scrap")
+    ]
+
+    # Test that both scrap sources were generated
+    assert "Wind_steel_scrap" in scrap_sources
+    assert "Wind_copper_scrap" in scrap_sources
+    assert "Wind_aluminum_scrap" in scrap_sources
+
+    # Inspect the copper scrap source to confirm correct properties
+    copper_scrap_source = next(
+        comp
+        for comp in esM.componentModelingDict["SourceSinkModel"].componentsDict.values()
+        if comp.name == "Wind_copper_scrap"
+    )
+
+    assert copper_scrap_source.commodity == "Wind_copper_scrap"
+    assert copper_scrap_source.hasCapacityVariable is False
+    assert copper_scrap_source.material is True

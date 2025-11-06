@@ -656,31 +656,37 @@ class EnergySystemModel:
                 print(f"New sink added: {newSink.name}")
 
     def generationSecondaryMaterialSources(self):
-        """Generate automatic secondary material sources."""
+        """Generate automatic secondary material sources only for scrap commodities."""
         sourceModel = self.componentModelingDict.get("SourceSinkModel", None)
-        if sourceModel is not None:
-            existingMaterialCommodities = {
-                comp.commodity
-                for comp in sourceModel.componentsDict.values()
-                if getattr(comp, "material", False)
-                and comp.__class__.__name__ == "Source"
-            }
-            print(f"Existing material sources: {existingMaterialCommodities}")
+        if sourceModel is None:
+            return
 
-            missingMaterials = set(self.materials) - existingMaterialCommodities
-            print(f"Missing materials sources: {missingMaterials}")
+        scrapCommodities = {c for c in self.commodities if c.endswith("_scrap")}
+        print(f"Scrap commodities : {scrapCommodities}")
 
-            for mat in missingMaterials:
-                sourceName = f"{mat.capitalize()} recovery"
-                newSource = Source(
-                    esM=self,
-                    name=sourceName,
-                    commodity=mat,
-                    hasCapacityVariable=False,
-                    material=True,
-                )
-                self.add(newSource)
-                print(f"New source added: {newSource.name}")
+        existingScrapSources = {
+            comp.commodity
+            for comp in sourceModel.componentsDict.values()
+            if comp.__class__.__name__ == "Source" and comp.commodity.endswith("_scrap")
+        }
+        print(f"Existing secondary material sources: {existingScrapSources}")
+
+        missingScraps = scrapCommodities - existingScrapSources
+        print(f"Missing secondary material sources: {missingScraps}")
+
+        for scrap in missingScraps:
+            sourceName = f"{scrap}"
+
+            newScrapSource = Source(
+                esM=self,
+                name=sourceName,
+                commodity=scrap,
+                hasCapacityVariable=False,
+                material=True,
+            )
+
+            self.add(newScrapSource)
+            print(f"New scrap source added: {newScrapSource.name}")
 
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
         """Return the optimization summary (design variables, aggregated operation variables, and objective contributions) of a modeling class.
