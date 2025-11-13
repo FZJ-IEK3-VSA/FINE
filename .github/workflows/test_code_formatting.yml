@@ -17,8 +17,6 @@ jobs:
           args: "--version"
           version: "0.13.1"
       - name: Check Linter
-        run: ruff check --output-format=github --config=pyproject.toml fine
-      # Needs to be activated to resolve issue https://github.com/FZJ-IEK3-VSA/FINE/issues/100
+        run: ruff check --output-format=github --config=pyproject.toml
       - name: Check Format
-
-        run: ruff format --diff --config pyproject.toml
+        run: ruff format --diff --config=pyproject.toml
