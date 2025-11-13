@@ -1,7 +1,8 @@
 <!-- markdownlint-disable line-length no-inline-html -->
 # ETHOS.FINE - Framework for Integrated Energy System Assessment
+<a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/Logo_FZ_Juelich_412x120_rgb_jpg.jpg?raw=true" alt="Forschungszentrum Juelich Logo" width="300px"></a>
 
-[![Build Status](https://travis-ci.com/FZJ-IEK3-VSA/FINE.svg?branch=master)](https://travis-ci.com/FZJ-IEK3-VSA/FINE)
+[![.github/workflows/test_push.yml](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml/badge.svg)](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml)
 [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/fine.svg)](https://anaconda.org/conda-forge/fine)
 [![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/)
@@ -9,7 +10,7 @@
 [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06274/status.svg)](https://doi.org/10.21105/joss.06274)
 
-<a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/JSA-Header.svg?raw=True" alt="Forschungszentrum Juelich Logo" width="300px"></a>
+
 
 The ETHOS.FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities, time steps and investment periods can be modeled. Target of the optimization is the minimization of the systems net present value (NPV) while considering technical and environmental constraints. If only one investment period is considered, the net present value is equal to the total annual costs (TAC). Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.4.2"
+version = "2.5.0"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
@@ -30,25 +30,25 @@ classifiers = [
 ]
 keywords = ["energy assesment", "energy system", "optimization"]
 dependencies = [
-    "geopandas<=0.14.4",
+    "geopandas>=0.12.0,<=0.14.4,!=0.13.0",
     "openpyxl<=3.1.5",
     "matplotlib<=3.9.2",
-    "xlrd<=2.0.1",
-    "pyomo<=6.9.4",
-    "numpy<=2.3.3",
-    "pandas<=2.2.3",
-    "scipy<=1.15.2",
+    "xlrd>=1.2.0,<=2.0.2",
+    "pyomo>=6.8,<=6.9.4",
+    "numpy>=1.22,<=2.3.3",
+    "pandas>=1.4,<=2.2.3",
+    "scipy>=1.7.2,<=1.16.2",
     "scikit-learn>=1.2,<=1.7.2",
-    "xarray<=2025.9",
-    "rasterio<=1.4.3",
-    "netcdf4<=1.7.2",
-    "tsam",
-    "pwlf<=2.2.1",
-    "psutil<=7.1.0",
-    "gurobi-logtools<=3.1.0",
+    "xarray>=2022.3.0,<=2025.10.1,!=2024.10.0,!=2024.11.0,!=2025.1.*,!=2025.3.*,!=2025.9.*",
+    "rasterio>=1.3.0,<=1.4.3,!=1.3.0.post1",
+    "netcdf4>1.5.8,<=1.7.3",
+    "tsam>=2.0.1,<=2.3.9",
+    "pwlf>=2.0.4,<=2.5.1",
+    "psutil>=5.8.0,<=7.1.0",
+    "gurobi-logtools>=3.0.0,<=3.2.0",
     "ipykernel<=6.29.5",
 ]
-
+# <=3.13 translates to <=3.13.0, why the <3.14 is used
 requires-python = ">=3.10,<3.14"
 
 [project.optional-dependencies]
@@ -85,9 +85,15 @@ documentation = "https://vsa-fine.readthedocs.io/en/master/"
 extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
-select = ["F", "PL", "R", "ARG", "RET", "E", "W", "UP", "ICN", "TID"]
+select = ["F", "PL", "R", "ARG", "RET", "E", "W", "UP", "ICN", "TID", "D", "PTH"]
 # See https://docs.astral.sh/ruff/rules for explanations
 ignore = [
+    "D200",    # One-line docstring should fit on one line
+    "D205",    # 1 blank line required between summary line and description
+    "D100",    # Missing docstring in public module (beginning of a py file)
+    "D104",    # Missing docstring in public package (within the __init__.py files)
+    "D105",    # Missing docstring in magic method
+    "D107",    # Missing docstring in `__init__`
     "F403",    # ‘from module import *’ used; unable to detect undefined names
     "PLR0913", # Too many arguments in function definition ( > 5) 
     "PLR0912", # Too many branches ( > 12) (if, else statements)
@@ -95,5 +101,10 @@ ignore = [
     "PLR2004", # Magic value used in comparison, consider replacing `2` with a constant variable
     "ARG001",
     "ARG002",
-    "E501",    # Lines to long 
+    "E501", # Lines to long 
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"test/**/*.py" = [
+    "D103",
+] # missing docstrings rule in test/ is temporarily(?) excluded

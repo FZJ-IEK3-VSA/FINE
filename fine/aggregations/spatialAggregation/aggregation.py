@@ -1,5 +1,4 @@
-"""
-Functions to aggregate region data for a reduced set
+"""Functions to aggregate region data for a reduced set
 of regions obtained as a result of spatial grouping of regions.
 """
 
@@ -16,8 +15,7 @@ logger_representation = logging.getLogger("spatial_representation")
 
 
 def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
-    """
-    For each region group, aggregates their geometries to form one super geometry.
+    r"""For each region group, aggregates their geometries to form one super geometry.
 
     :param xr_data_array_in: subset of the xarray dataset data that corresponds to geometry variable
     :type xr_data_array_in: xr.DataArray
@@ -37,7 +35,6 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
-
     space = list(sub_to_sup_region_id_dict.keys())
 
     shape_list = []
@@ -65,8 +62,7 @@ def aggregate_time_series_spatially(
     mode="mean",
     xr_weight_array=None,
 ):
-    """
-    For each region group, aggregates the given time series variable.
+    r"""For each region group, aggregates the given time series variable.
 
     :param xr_data_array_in: subset of the xarray dataset data that corresponds to a time series variable
     :type xr_data_array_in: xr.DataArray
@@ -158,8 +154,7 @@ def aggregate_time_series_spatially(
 def aggregate_values_spatially(
     xr_data_array_in, sub_to_sup_region_id_dict, mode="mean"
 ):
-    """
-    For each region group, aggregates the given 1d variable.
+    r"""For each region group, aggregates the given 1d variable.
 
     :param xr_data_array_in: subset of the xarray dataset data that corresponds to a 1d variable
     :type xr_data_array_in: xr.DataArray
@@ -185,7 +180,6 @@ def aggregate_values_spatially(
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
-
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
     aggregated_coords = {
@@ -228,8 +222,7 @@ def aggregate_values_spatially(
 
 
 def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="bool"):
-    """
-    For each region group, aggregates the given 2d variable.
+    r"""For each region group, aggregates the given 2d variable.
 
     :param xr_data_array_in: subset of the xarray dataset that corresponds to a 2d variable
     :type xr_data_array_in: xr.DataArray
@@ -255,7 +248,6 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
-
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
     aggregated_coords = {
@@ -315,8 +307,7 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
 def aggregate_esm_parameters_spatially(
     param_df_in, old_locations, sub_to_sup_region_id_dict, mode="mean"
 ):
-    """
-    For each region group, aggregates the given esm init parameter data.
+    r"""For each region group, aggregates the given esm init parameter data.
 
     :param param_df_in: the dataframe with parameter data
     :type param_df_in: pd.DataFrame
@@ -341,7 +332,6 @@ def aggregate_esm_parameters_spatially(
         * Contains aggregated data
     :rtype: pd.DataFrame
     """
-
     new_col_names = list(sub_to_sup_region_id_dict.keys())
 
     new_col_names.extend([x for x in param_df_in.columns if x not in old_locations])
@@ -360,8 +350,7 @@ def aggregate_esm_parameters_spatially(
 def aggregate_based_on_sub_to_sup_region_id_dict(
     xarray_datasets, sub_to_sup_region_id_dict, aggregation_function_dict
 ):
-    """
-    After spatial grouping, for each region group, spatially aggregates the data.
+    r"""After spatial grouping, for each region group, spatially aggregates the data.
 
     :param xarray_datasets: The dictionary of xarray datasets holding esM's info
     :type xarray_datasets: Dict[str, xr.Dataset]

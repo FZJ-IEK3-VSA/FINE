@@ -1,7 +1,6 @@
 import inspect
 import os
 from pathlib import Path
-
 import pandas as pd
 
 import fine as fn
@@ -10,12 +9,10 @@ from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
 
 def test_compareResults_longClassNames():
-    """
-    Tests long, non-conventional class names which can lead to an error when writing the excel file (at most 31 characters allowed)
+    """Tests long, non-conventional class names which can lead to an error when writing the excel file (at most 31 characters allowed).
 
-    Tests all possible subclasses (and subclasses of subclasses) of the component class
+    Tests all possible subclasses (and subclasses of subclasses) of the component class.
     """
-
     # recursively get all subclasses which inherit from "component":
 
     def recursive_check_inherits_from_component(obj):
@@ -106,9 +103,9 @@ def test_compareResults_longClassNames():
     # save to excel:
 
     module_directory = Path(__file__).parent.absolute()
-    dataPath = os.path.join(module_directory, "..", "data")
+    dataPath = os.path.join(module_directory, "..", "data")  # noqa: PTH118
     # create new result excel files
-    savePath = os.path.join(dataPath, "excelOutputLongClassNames")
+    savePath = os.path.join(dataPath, "excelOutputLongClassNames")  # noqa: PTH118
 
     writeOptimizationOutputToExcel(
         esM, outputFileName=savePath, optSumOutputLevel=2, optValOutputLevel=2
@@ -117,11 +114,15 @@ def test_compareResults_longClassNames():
 
 def test_compareResults_miniSystem(minimal_test_esM):
     module_directory = Path(__file__).parent.absolute()
-    dataPath = os.path.join(module_directory, "..", "data")
+    dataPath = os.path.join(  # noqa: PTH118
+        module_directory, "..", "data"
+    )
 
     # create new result excel files
-    pathWithoutSegmentation_output = os.path.join(dataPath, "output_result_minisystem")
-    pathWithSegmentation_output = os.path.join(
+    pathWithoutSegmentation_output = os.path.join(  # noqa: PTH118
+        dataPath, "output_result_minisystem"
+    )
+    pathWithSegmentation_output = os.path.join(  # noqa: PTH118
         dataPath, "output_result_minisystem_segmentation"
     )
     saveExcelResultsWithSegmentation(
@@ -131,10 +132,10 @@ def test_compareResults_miniSystem(minimal_test_esM):
     # compare to correct result excel files
     pathWithoutSegmentation_output = pathWithoutSegmentation_output + ".xlsx"
     pathWithSegmentation_output = pathWithSegmentation_output + ".xlsx"
-    pathWithoutSegmentation_expected = os.path.join(
+    pathWithoutSegmentation_expected = os.path.join(  # noqa: PTH118
         dataPath, "expected_result_minisystem.xlsx"
     )
-    pathWithSegmentation_expected = os.path.join(
+    pathWithSegmentation_expected = os.path.join(  # noqa: PTH118
         dataPath, "expected_result_minisystem_segmentation.xlsx"
     )
 
@@ -146,10 +147,10 @@ def test_compareResults_miniSystem(minimal_test_esM):
 
 # def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
 #     module_directory = Path(__file__).parent.absolute()
-#     dataPath = os.path.join(module_directory, "..", "data")
+#     dataPath = os.path.join(module_directory, "..", "data") # noqa: PTH118
 
 #     # create new result excel files
-#     pathMultiNode_output = os.path.join(dataPath, "output_result_multinode")
+#     pathMultiNode_output = os.path.join(dataPath, "output_result_multinode") # noqa: PTH118
 #     saveExcelResults(
 #         multi_node_test_esM_init,
 #         pathMultiNode_output,
@@ -164,10 +165,10 @@ def test_compareResults_miniSystem(minimal_test_esM):
 #     # 2.X: 282042.9
 #     # -- KK
 #     pathMultiNodeExcel_output = pathMultiNode_output + ".xlsx"
-#     pathMultiNodeExcel_expected = os.path.join(
+#     pathMultiNodeExcel_expected = os.path.join( # noqa: PTH118
 #         dataPath, "expected_result_multinode.xlsx"
 #     )
-#     pathMultiNodeExcel_expected_pandas1 = os.path.join(
+#     pathMultiNodeExcel_expected_pandas1 = os.path.join( # noqa: PTH118
 #         dataPath, "expected_result_multinode_pandas1.xlsx"
 #     )  # An adaptation of the expected output was necessary due to the changes in MR 368 / Issue 367 which affected the storage (if there is self-discharge and no precise TSA)
 

@@ -27,14 +27,6 @@ def isString(string):
         raise TypeError("The input argument has to be a string")
 
 
-def equalStrings(ref, test):
-    """Check if two strings are equal to each other."""
-    if ref != test:
-        print("Reference string: " + str(ref))
-        print("String: " + str(test))
-        raise ValueError("Strings do not match")
-
-
 def isStrictlyPositiveInt(value):
     """Check if the input argument is a strictly positive integer."""
     if not type(value) == int:
@@ -122,14 +114,6 @@ def checkEnergySystemModelInput(
 
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
-
-
-def checkTimeUnit(timeUnit):
-    """
-    Check if the timeUnit input argument is equal to 'h'.
-    """
-    if not timeUnit == "h":
-        raise ValueError("The timeUnit input argument has to be 'h'")
 
 
 def checkTimeSeriesIndex(esM, data):
@@ -813,26 +797,6 @@ def checkAndSetInterestRate(esM, name, interestRate, dimension, elig):
                     "An interest rate of 0 cannot be set if also using annuityPerpetuity"
                 )
     return processedInterestRate
-
-
-def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPeriods):
-    # If the commodity conversion is depending on commissioning year and investment period,
-    # the input shall be a dict with keys of commissioning year and ip and then another dict
-    # for commodity conversions
-    if any(
-        isinstance(commodityConversion[x], dict) for x in commodityConversion.keys()
-    ):
-        if len(commodityConversion.keys()) != len(investmentPeriods):
-            raise ValueError(
-                "CommodityConversion is initialized as dict but does not "
-                + "contain values for each investment-period"
-            )
-        if sorted(commodityConversion.keys()) != sorted(investmentPeriods):
-            raise ValueError(
-                f"CommodityConversion has different ip-names "
-                + f"('{commodityConversion.keys()}') than the investment "
-                + f"periods of the esM ('{investmentPeriods}')",
-            )
 
 
 def checkRampRates(
@@ -1760,15 +1724,6 @@ def checkOptimizeInput(
         raise ValueError("The warmstart parameter has to be a boolean.")
 
 
-def setFormattedTimeSeries(timeSeries):
-    if timeSeries is None:
-        return timeSeries
-    else:
-        data = timeSeries.copy()
-        data["Period"], data["TimeStep"] = 0, data.index
-        return data.set_index(["Period", "TimeStep"])
-
-
 def buildFullTimeSeries(df, periodsOrder, ip, axis=1, esM=None, divide=True):
     # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
     # time steps first
@@ -2431,15 +2386,6 @@ def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
         ]
     )
     return simultaneousChargeDischarge
-
-
-def checkParamInput(param):
-    if isinstance(param, dict):
-        for key, value in param.items():
-            if value is None:
-                raise ValueError(
-                    f"Currently a dict containing None values cannot be passed for '{param}'"
-                )
 
 
 def addEmptyRegions(esM, data):

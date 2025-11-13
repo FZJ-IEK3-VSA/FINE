@@ -7,9 +7,7 @@ import fine as fn
 
 # %%
 def test_eos_NPV():
-    """
-    Test case for basic npv calculation with eos module.
-    """
+    """Test case for basic npv calculation with eos module."""
     # %%
     esM = fn.EnergySystemModel(
         locations={"loc1"},
@@ -53,8 +51,6 @@ def test_eos_NPV():
 
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
-    # %%
-    # correct comissioning/capacity:
     commissioning = [
         esM.getOptimizationSummary("SourceSinkModel", ip=0).loc[
             "PV", "commissioning", "[kW$_{el}$]"
@@ -95,7 +91,3 @@ def test_eos_NPV():
         "PV", "NPVcontribution_EOS", "[1 Euro]"
     ]["loc1"]
     np.testing.assert_almost_equal(actual=npv, desired=npvEOS)
-
-
-if __name__ == "__main__":
-    test_eos_NPV()

@@ -1,5 +1,4 @@
-"""
-Aim: To check if passing "lean data" is possible i.e., pass spatially resolved data only for
+"""Aim: To check if passing "lean data" is possible i.e., pass spatially resolved data only for
 eligible locations
 Tests:
     #For each component class:
@@ -10,7 +9,7 @@ Tests:
 """
 
 import sys
-import os
+from pathlib import Path
 import pytest
 import pandas as pd
 
@@ -18,11 +17,11 @@ import pandas as pd
 import fine as fn
 
 sys.path.append(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "examples",
-        "Multi-regional_Energy_System_Workflow",
+    str(
+        Path(__file__).parent
+        / ".."
+        / "examples"
+        / "Multi-regional_Energy_System_Workflow"
     )
 )
 from getData import getData
@@ -47,10 +46,9 @@ from getData import getData
     ],
 )
 def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibility):
-    """
-    Case 1: subset of locations provided but no locationalEligibility
+    """Case 1: subset of locations provided but no locationalEligibility
     Case 2: subset of locations provided with locationalEligibility,
-            but they don't match
+            but they don't match.
     """
     data = getData()
 
@@ -79,9 +77,7 @@ def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibil
 
 
 def test_leanModel_with_matching_locationalEligibility(esM_init):
-    """
-    Case: subset of locations provided with matching locationalEligibility
-    """
+    """Case: subset of locations provided with matching locationalEligibility."""
     data = getData()
 
     esM = esM_init

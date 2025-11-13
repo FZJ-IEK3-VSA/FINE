@@ -1,18 +1,15 @@
-"""
-Functions to assist technology aggregation algorithm.
-"""
+"""Functions to assist technology aggregation algorithm."""
 
-import os
 import numpy as np
 from affine import Affine
 import xarray as xr
 from rasterio import features
 import geopandas as gpd
+from pathlib import Path
 
 
 def rasterize_geometry(geometry, coords, latitude="y", longitude="x"):
-    """
-    Given a geometry and geolocations, it masks the geolocations
+    """Given a geometry and geolocations, it masks the geolocations
     such that all the geolocations within the geometry are indicated
     by a 1 and rest are NAs.
 
@@ -37,7 +34,6 @@ def rasterize_geometry(geometry, coords, latitude="y", longitude="x"):
         the value at this point in the matrix is 1, otherwise NA
     :rtype: np.ndarray
     """
-
     # STEP 1. Get the affine transformation
     lat = np.asarray(coords[latitude])
     lon = np.asarray(coords[longitude])
@@ -63,8 +59,7 @@ def rasterize_xr_ds(
     longitude="x",
     latitude="y",
 ):
-    """
-    For each geometry in the specified `shp_file`, a binary mask
+    """For each geometry in the specified `shp_file`, a binary mask
     is added to the `gridded_RE_ds`, so that subsetting the data
     for each region is possible.
 
@@ -106,7 +101,6 @@ def rasterize_xr_ds(
 
     :rtype: xr.Dataset
     """
-
     # STEP 1. Read in the files
     ## gridded_RE_ds
     if isinstance(gridded_RE_ds, str):
@@ -122,7 +116,7 @@ def rasterize_xr_ds(
 
     ## shp_file
     if isinstance(shp_file, str):
-        if not os.path.isfile(shp_file):
+        if not Path.is_file(shp_file):
             raise FileNotFoundError("The shp_file path specified is not valid")
         shp_file = gpd.read_file(shp_file)
 
