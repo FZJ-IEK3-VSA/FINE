@@ -1,5 +1,6 @@
 from copy import deepcopy
 from pathlib import Path
+import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
@@ -239,12 +240,15 @@ def test_transmission_dims(minimal_test_esM):
     )
 
     # update Pipeline component
-    esM.updateComponent(
-        componentName="Pipelines",
-        updateAttrs={"capacityMin": capacityMin},
-    )
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        esM.updateComponent(
+            componentName="Pipelines",
+            updateAttrs={"capacityMin": capacityMin},
+        )
 
-    time_index = pd.date_range(start="2020-01-01", periods=4, freq="H")
+    time_index = pd.date_range(start="2020-01-01", periods=4, freq="h")
     _locs = pd.MultiIndex.from_product([["ElectrolyzerLocation"], ["IndustryLocation"]])
     columns = [f"{idx0}_{idx1}" for idx0, idx1 in _locs]
     column2 = [f"{idx1}_{idx0}" for idx0, idx1 in _locs]
@@ -252,10 +256,13 @@ def test_transmission_dims(minimal_test_esM):
     operationRateMax = pd.DataFrame(1, index=time_index, columns=columns).reset_index(
         drop=True
     )
-    esM.updateComponent(
-        componentName="Pipelines",
-        updateAttrs={"operationRateMax": operationRateMax},
-    )
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        esM.updateComponent(
+            componentName="Pipelines",
+            updateAttrs={"operationRateMax": operationRateMax},
+        )
 
     esM.optimize()
     xr_dss = xrIO.convertOptimizationInputToDatasets(esM)

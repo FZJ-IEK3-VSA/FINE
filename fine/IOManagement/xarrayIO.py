@@ -132,7 +132,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df = df_o.iloc[0].copy()
                             df.name = variable
                             df.index.rename("space", inplace=True)
-                            df = pd.to_numeric(df, errors="ignore")
+                            df = pd.to_numeric(df, errors="coerce")
                             xr_da = df.to_xarray()
                             unit = df_o.iloc[0].name
                             # unit = variables_unit[variable]
@@ -146,7 +146,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df = df_o.iloc[1].copy()
                             df.name = f"{variable}_{1}"
                             df.index.rename("space", inplace=True)
-                            df = pd.to_numeric(df, errors="ignore")
+                            df = pd.to_numeric(df, errors="coerce")
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[1].name
@@ -155,7 +155,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df = df_o.iloc[-1]
                             df.name = variable
                             df.index.rename("space", inplace=True)
-                            df = pd.to_numeric(df, errors="ignore")
+                            df = pd.to_numeric(df, errors="coerce")
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[-1].name
@@ -185,7 +185,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df = df.stack()
                             df.name = variable
                             df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                            df = pd.to_numeric(df, errors="ignore")
+                            df = pd.to_numeric(df, errors="coerce")
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[
@@ -208,7 +208,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df = df.stack()
                             df.name = f"{variable}_{1}"
                             df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                            df = pd.to_numeric(df, errors="ignore")
+                            df = pd.to_numeric(df, errors="coerce")
                             xr_da = df.to_xarray()
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
                             unit = df_o.iloc[
@@ -226,7 +226,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df = df.stack()
                             df.name = variable
                             df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                            df = pd.to_numeric(df, errors="ignore")
+                            df = pd.to_numeric(df, errors="coerce")
                             xr_da = df.to_xarray()
 
                             # add variable [e.g. 'TAC'] and units to attributes of xarray
