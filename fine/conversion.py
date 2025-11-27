@@ -436,17 +436,7 @@ class Conversion(Component):
                         if hasTSA
                         else self.fullCommodityConversionFactors[timeInfo][commod]
                     )
-        # if hasTSA:
-        #     if any(
-        #         x is not None
-        #         for x in [
-        #             self.rampUpMax,
-        #             self.rampDownMax,
-        #         ]
-        #     ):
-        #         # raise ValueError(
-        #         #     "Time series aggregation is not supported for rampUpMax and rampDownMax."
-        #         # )
+
 
     def getDataForTimeSeriesAggregation(self, ip):
         """Get the required data if a time series aggregation is requested.
