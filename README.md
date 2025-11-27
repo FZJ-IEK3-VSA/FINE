@@ -144,7 +144,8 @@ We use [ruff](https://docs.astral.sh/ruff) to ensure good coding style. Make
 sure to use it before contributing to the code base with
 
 ```bash
-ruff check fine
+ruff check --config=pyproject.toml
+ruff format --diff --config=pyproject.toml
 ```
 
 ## License
