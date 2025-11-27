@@ -2012,6 +2012,14 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
             return data_
         elif isinstance(data, pd.Series):
             data_ = data.sort_index()
+            #Lines 2016 - 2022 was added to solve issue 334
+            index, data_ = [], []
+            for loc in data.index:
+                if data[loc] > 0:
+                    index.append(loc)
+                    data_.append(data[loc]) 
+            data_ = pd.Series(data_, index=index)
+            data_.sort_index(inplace=True)
             return data_
         else:
             return data
