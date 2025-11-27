@@ -2010,14 +2010,14 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
             data_ = data * locationalEligibility
             data_.sort_index(inplace=True)
             return data_
-        elif isinstance(data, pd.Series):
+        elif isinstance(data, pd.Series) and locationalEligibility is not None:
             data_ = data.sort_index()
-            #Lines 2016 - 2022 was added to solve issue 334
+            # Lines 2016 - 2022 was added to solve issue 334
             index, data_ = [], []
             for loc in data.index:
                 if data[loc] > 0:
                     index.append(loc)
-                    data_.append(data[loc]) 
+                    data_.append(data[loc])
             data_ = pd.Series(data_, index=index)
             data_.sort_index(inplace=True)
             return data_
