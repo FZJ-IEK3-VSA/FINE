@@ -3,7 +3,7 @@ import numpy as np
 import pyomo.environ as pyo
 from pyomo.repn import generate_standard_repn
 import fine as fn
-import sys
+
 
 def build_test_system(rampUp=None, rampDown=None):
     """Create a simple electrolyzer system for testing ramp constraints."""
@@ -57,11 +57,9 @@ def build_test_system(rampUp=None, rampDown=None):
     )
     return esM
 
-def maximize_period_boundary_jump_up(esM):
-    """
-    Force optimization to push the inter-period ramp constraint to its limit.
-    """
 
+def maximize_period_boundary_jump_up(esM):
+    """Force optimization to push the inter-period ramp constraint to its limit."""
     esM.aggregateTemporally(numberOfTypicalPeriods=2)
 
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
@@ -81,11 +79,9 @@ def maximize_period_boundary_jump_up(esM):
     pyo.SolverFactory("glpk").solve(pyM)
     return pyM, key_before, key_after
 
+
 def maximize_period_boundary_jump_down(esM):
-    """
-    Build TSA model and choose an objective that maximizes the 
-    downward jump at the period boundary: op_before - op_after.
-    """
+    """Build TSA model and choose an objective that maximizes the downward jump at the period boundary: op_before - op_after."""
     esM.aggregateTemporally(numberOfTypicalPeriods=2)
     esM.optimize(timeSeriesAggregation=True, solver="glpk")  # or your equivalent
     pyM = esM.pyM
@@ -101,16 +97,16 @@ def maximize_period_boundary_jump_down(esM):
 
     # Maximize the drop: op_before - op_after
     pyM.obj = pyo.Objective(
-        expr=pyM.op_conv[key_before] - pyM.op_conv[key_after], sense=pyo.maximize,
+        expr=pyM.op_conv[key_before] - pyM.op_conv[key_after],
+        sense=pyo.maximize,
     )
 
     pyo.SolverFactory("glpk").solve(pyM)
     return pyM, key_before, key_after
 
-def test_real_esm_tsa_interperiod_rampup_enforcement():
-    """Verify that inter-period ramping limits the operation jump correctly, 
-    with debugging prints to inspect intermediate values."""
 
+def test_real_esm_tsa_interperiod_rampup_enforcement():
+    """Verify that inter-period ramping limits the operation jump correctly, with debugging prints to inspect intermediate values."""
     # --- Unconstrained case (no ramping limits) ---
     system_A = build_test_system(rampUp=None, rampDown=None)
     model_A, key_before, key_after = maximize_period_boundary_jump_up(system_A)
@@ -151,7 +147,9 @@ def test_real_esm_tsa_interperiod_rampup_enforcement():
 
     # --- Assertions ---
     assert np.isclose(capacity_A, 10.0)
-    assert jump_unconstrained > 9.9, "Without constraints, jump should be ~full capacity"
+    assert jump_unconstrained > 9.9, (
+        "Without constraints, jump should be ~full capacity"
+    )
     assert jump_constrained < jump_unconstrained, "Constraint must reduce the jump"
     assert np.isclose(jump_constrained, expected_limit, atol=1e-6), (
         f"Jump {jump_constrained:.6f} should match limit {expected_limit:.6f}"
@@ -159,12 +157,10 @@ def test_real_esm_tsa_interperiod_rampup_enforcement():
 
 
 def test_real_esm_tsa_interperiod_rampdown_enforcement():
-    """
-    Mirror test for ramp-down:
+    """Mirror test for ramp-down:
     - Unconstrained: drop across period boundary should be ~full capacity.
     - Constrained: drop is reduced and matches rampDownMax * dt * cap.
     """
-
     # --- Unconstrained case (no ramp limits) ---
     system_A = build_test_system(rampUp=None, rampDown=None)
     model_A, key_before, key_after = maximize_period_boundary_jump_down(system_A)
@@ -214,16 +210,20 @@ def test_real_esm_tsa_interperiod_rampdown_enforcement():
 
     # Behaviour checks:
     # Unconstrained: optimizer should use ~full drop (cap → 0)
-    assert drop_unconstrained > 9.9, \
+    assert drop_unconstrained > 9.9, (
         "Without constraints, drop should be ~full capacity"
+    )
 
     # Constraint must reduce the drop
-    assert drop_constrained < drop_unconstrained, \
+    assert drop_constrained < drop_unconstrained, (
         "Ramp-down constraint must reduce the drop"
+    )
 
     # And the drop should match the theoretical limit
-    assert np.isclose(drop_constrained, expected_limit, atol=1e-6), \
+    assert np.isclose(drop_constrained, expected_limit, atol=1e-6), (
         f"Drop {drop_constrained:.3f} should match limit {expected_limit:.3f}"
+    )
+
 
 # test edge case: no ramp limits lead to no interperiod constraint
 def test_no_interperiod_constraint_if_no_ramp_limits():

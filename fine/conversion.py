@@ -437,7 +437,6 @@ class Conversion(Component):
                         else self.fullCommodityConversionFactors[timeInfo][commod]
                     )
 
-
     def getDataForTimeSeriesAggregation(self, ip):
         """Get the required data if a time series aggregation is requested.
 
@@ -1020,6 +1019,9 @@ class ConversionModel(ComponentModel):
         )
 
     def InterPeriodRamping(self, esM, pyM, rampingType):
+        """Add inter-period ramping constraints for operation variables.
+        This enforces a maximum allowed change in the dispatch between the last time step of period p–1 and the first time step of period p.
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
         if not hasattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName):
