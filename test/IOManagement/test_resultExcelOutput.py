@@ -52,6 +52,7 @@ def test_compareResults_longClassNames():
                     investPerCapacity=1,
                     hasCapacityVariable=True,
                     partLoadMin=0.2,
+                    hasIsBuiltBinaryVariable=True,
                     bigM=1000,
                     physicalUnit="TestUnit",
                     commodityConversionFactors={"TestCom": -1, "TargetCom": 0.6},
@@ -72,6 +73,7 @@ def test_compareResults_longClassNames():
                     physicalUnit="TestUnit",
                     commodityConversionFactors={"TestCom": -1, "TargetCom": 0.5},
                     partLoadMin=0.2,
+                    hasIsBuiltBinaryVariable=True,
                     bigM=1000,
                     commodityConversionFactorsPartLoad={
                         "TestCom": -1,

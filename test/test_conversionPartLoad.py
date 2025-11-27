@@ -375,6 +375,7 @@ def test_conversionPartLoad():
             },
             nSegments=nSegments,
             hasCapacityVariable=True,
+            hasIsBuiltBinaryVariable=True,
             bigM=99999,
             investPerCapacity=900,
             opexPerCapacity=900 * 0.01,
