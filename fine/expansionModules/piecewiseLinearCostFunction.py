@@ -1010,7 +1010,7 @@ class PiecewiseLinearCostFunctionModel:
                         )
                     ] = knowledgeStock
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.concat(
-                    [optSummaryPwlcf[esM.investmentPeriodNames[ip]], mdlOptSummaryPwlcf]
+                    [optSummaryPwlcf[esM.investmentPeriodNames[ip]], mdlOptSummaryPwlcf.loc[[moduleName]]]
                 )
 
         for model in esM.componentModelingDict.values():
