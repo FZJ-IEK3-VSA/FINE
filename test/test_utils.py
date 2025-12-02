@@ -154,9 +154,9 @@ def test_checkSimultaneousChargeDischarge():
         tsCharge, tsDischarge
     )
 
-    assert (
-        simultaneousChargeDischarge
-    ), "Check for simultaneous charge & discharge should have returned True"
+    assert simultaneousChargeDischarge, (
+        "Check for simultaneous charge & discharge should have returned True"
+    )
 
 
 def test_functionality_checkSimultaneousChargeDischarge():
@@ -170,9 +170,9 @@ def test_functionality_checkSimultaneousChargeDischarge():
         tsCharge, tsDischarge
     )
 
-    assert (
-        simultaneousChargeDischarge
-    ), "Check for simultaneous charge & discharge should have returned True"
+    assert simultaneousChargeDischarge, (
+        "Check for simultaneous charge & discharge should have returned True"
+    )
 
 
 def test_check_and_set_cost_parameter():
