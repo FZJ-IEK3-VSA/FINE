@@ -848,3 +848,602 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
         setInDict(component_dict[class_name][comp_name], key_list, var_value.item())
 
     return component_dict
+
+
+def createWasNoneMask(component_dict):
+    """
+    Creates a was_none_mask that tracks which parameters were originally None
+    for each component. This allows perfect reconstruction of None values from xarray.
+    Uses the comprehensive parameter_mask to ensure all parameters are considered.
+    
+    :param component_dict: dictionary containing information about the esM instance's components
+    :type component_dict: dict
+    
+    :param parameter_mask: comprehensive parameter mask containing all parameters
+    :type parameter_mask: dict
+    
+    :return: was_none_mask dictionary with structure {classname: {component: {parameter: bool}}}
+    :rtype: dict
+    """
+    was_none_mask = {}
+    
+    for classname in component_dict:
+        if classname not in was_none_mask:
+            was_none_mask[classname] = {}
+        for component in component_dict[classname]:
+            if component not in was_none_mask[classname]:
+                was_none_mask[classname][component] = {}
+            for parameter_name, parameter_value in component_dict[classname][component].items():
+                # Track if this parameter was originally None
+                if parameter_value is None:
+                    was_none_mask[classname][component][parameter_name] = True
+                else:
+                    was_none_mask[classname][component][parameter_name] = False
+    
+    return was_none_mask
+
+
+
+
+
+def replaceNoneValuesForXarray(component_dict):
+    """
+    Replaces None values in component_dict with np.nan to ensure xarray compatibility.
+    All None values are converted to np.nan regardless of their original type, and all 
+    variables from the parameter_mask are ensured to exist in the component dict.
+    
+    :param component_dict: dictionary containing information about the esM instance's components
+    :type component_dict: dict
+
+    
+    :return: modified component_dict with None values replaced by np.nan and all parameters included
+    :rtype: dict
+    """
+    import copy
+    import numpy as np
+    
+    # Create a deep copy to avoid modifying the original
+    modified_component_dict = copy.deepcopy(component_dict)
+    
+    # Process each component class
+    for classname in component_dict:
+        if classname not in modified_component_dict:
+            modified_component_dict[classname] = {}
+            
+        for component in component_dict[classname]:
+            if component not in modified_component_dict[classname]:
+                modified_component_dict[classname][component] = {}
+            
+            for parameter_name in component_dict[classname][component].keys():
+                # Convert None values to np.nan
+                parameter_value = component_dict[classname][component][parameter_name]
+                if parameter_value is None:
+                    modified_component_dict[classname][component][parameter_name] = np.nan
+    
+    
+    return modified_component_dict
+
+def convertToXarray(component_dict):
+    def _convert(data_dict):
+        data_vars = {}
+        # sort dict by keys to ensure consistent order
+        data_dict = dict(sorted(data_dict.items()))
+
+        for key, value in data_dict.items():
+            if isinstance(value, pd.Series):
+                # Handle pandas Series using xarray's built-in method
+                data_vars[key] = xr.DataArray.from_series(value)
+                
+            elif isinstance(value, (str, int, float, bool)):
+                # Handle all scalar values
+                data_vars[key] = xr.DataArray(value)
+            elif pd.isna(value):
+                # Handle NaN values explicitly
+                data_vars[key] = xr.DataArray(np.nan)
+            else:
+                print(f"Warning: Unexpected type for {key}: {type(value)}")
+                # Try to convert anyway
+                try:
+                    data_vars[key] = xr.DataArray(value)
+                except Exception as e:
+                    print(f"Could not convert {key}: {e}")
+
+        # Create and return the Dataset
+        return xr.Dataset(data_vars)
+
+    xr_dss = {}
+    # convert dicts to xarray datasets
+    for classname in component_dict:
+        if classname not in xr_dss:
+            xr_dss[classname] = {}
+        for component in component_dict[classname]:
+            if component not in xr_dss[classname]:
+                xr_dss[classname][component] = _convert(component_dict[classname][component])
+    return xr_dss
+            
+                
+                    
+    
+    
+
+def reconstructComponentDictFromXarray(xr_dss, was_none_mask):
+    """
+    Reconstructs the original component dictionary from xarray datasets,
+    restoring None values based on the was_none_mask.
+    
+    :param xr_dss: A dict of xarray datasets containing the component data
+    :type xr_dss: dict
+    
+    :param was_none_mask: dictionary tracking which parameters were originally None
+    :type was_none_mask: dict
+    
+    :return: reconstructed component dictionary with original None values
+    :rtype: dict
+    """
+    
+    # First, extract the basic component structure from xarray
+    # This would need to be implemented based on your specific xarray structure
+    # For now, this is a placeholder showing the concept
+    
+    reconstructed_dict = {}
+    
+    for classname in xr_dss:
+        reconstructed_dict[classname] = {}
+        for component in xr_dss[classname]:
+            reconstructed_dict[classname][component] = {}
+            
+            # Extract data from xarray datasets
+            # This would involve converting xarray DataArrays back to pandas objects
+            # and extracting scalar values
+            
+            # Apply the was_none_mask to restore None values
+            if (classname in was_none_mask and 
+                component in was_none_mask[classname]):
+                
+                for parameter, is_none in was_none_mask[classname][component].items():
+                    if is_none:
+                        # Restore the None value
+                        reconstructed_dict[classname][component][parameter] = None
+                    # else: keep the reconstructed value from xarray
+    
+    return reconstructed_dict
+
+
+def extractWasNoneMaskFromXarray(xr_dss):
+    """
+    Extracts the was_none_mask from xarray datasets.
+    
+    :param xr_dss: A dict of xarray datasets containing the was_none_mask
+    :type xr_dss: dict
+    
+    :return: was_none_mask dictionary
+    :rtype: dict
+    """
+    was_none_mask = {}
+    
+    for classname in xr_dss:
+        was_none_mask[classname] = {}
+        for component in xr_dss[classname]:
+            if 'was_none_mask' in xr_dss[classname][component]:
+                # Convert xarray DataArray back to dictionary
+                mask_da = xr_dss[classname][component]['was_none_mask']
+                mask_dict = mask_da.to_series().to_dict()
+                was_none_mask[classname][component] = mask_dict
+            else:
+                was_none_mask[classname][component] = {}
+    
+    return was_none_mask
+
+
+def createDimensionMask(xr_dss):
+    """
+    Creates a dimension_mask that tracks the dimensionality of each parameter
+    for each component using integer codes. This replaces the prefix system (0d_, 1d_, ts_, 2d_).
+    
+    Dimension mapping:
+    - 0: Scalar (0D) - no dimensions, e.g., name, hasCapacityVariable
+    - 1: Spatial (1D) - (space,) e.g., capacityMax per location
+    - 2: Spatial Matrix (2D) - (space, space_2) e.g., transmission distances
+    - 3: Time-Space Series (2D) - (time, space) e.g., operationRateMax time series
+    - 4: Time-Space Matrix (3D) - (time, space, space_2) e.g., transmission time series
+    - -1: Unknown/unsupported dimension combination
+    
+    :param xr_dss: A dict of xarray datasets containing the component data
+    :type xr_dss: dict
+    
+    :return: dimension_mask dictionary with structure {classname: {component: {parameter: int}}}
+    :rtype: dict
+    """
+    dimension_mask = {}
+    
+    for classname in xr_dss:
+        dimension_mask[classname] = {}
+        for component in xr_dss[classname]:
+            dimension_mask[classname][component] = {}
+            
+            # Analyze each variable in the component's dataset
+            for var_name, data_array in xr_dss[classname][component].data_vars.items():
+                # Skip the was_none_mask itself
+                if var_name == 'was_none_mask':
+                    continue
+                    
+                # Extract the actual parameter name by removing the current prefix
+                if var_name.startswith('0d_'):
+                    param_name = var_name[3:]
+                    dimension_type = 0  # scalar/constant
+                elif var_name.startswith('1d_'):
+                    param_name = var_name[3:]
+                    dimension_type = 1  # 1-dimensional (space only)
+                elif var_name.startswith('2d_'):
+                    param_name = var_name[3:]
+                    dimension_type = 2  # 2-dimensional (space x space_2)
+                elif var_name.startswith('ts_'):
+                    param_name = var_name[3:]
+                    # Need to check actual dimensions to distinguish between type 3 and 4
+                    dims = data_array.dims
+                    if len(dims) == 2 and 'time' in dims and 'space' in dims:
+                        dimension_type = 3  # time-space series
+                    elif len(dims) == 3 and 'time' in dims and 'space' in dims and 'space_2' in dims:
+                        dimension_type = 4  # time-space matrix (transmission time series)
+                    else:
+                        dimension_type = 3  # default to time-space series
+                else:
+                    # Fallback: infer from actual dimensions
+                    param_name = var_name
+                    dims = data_array.dims
+                    if len(dims) == 0:
+                        dimension_type = 0  # scalar
+                    elif len(dims) == 1:
+                        if 'space' in dims:
+                            dimension_type = 1  # spatial
+                    elif len(dims) == 2:
+                        if 'space' in dims and 'space_2' in dims:
+                            dimension_type = 2  # spatial matrix
+                        elif 'time' in dims and 'space' in dims:
+                            dimension_type = 3  # time-space series
+                    elif len(dims) == 3:
+                        if 'time' in dims and 'space' in dims and 'space_2' in dims:
+                            dimension_type = 4  # time-space matrix
+                    else:
+                        dimension_type = -1  # unknown
+                
+                dimension_mask[classname][component][param_name] = dimension_type
+    
+    return dimension_mask
+
+
+def addDimensionMaskToXarray(xr_dss, dimension_mask):
+    """
+    Adds the dimension_mask to each component's xarray dataset.
+    
+    :param xr_dss: A dict of xarray datasets to which the dimension_mask should be added
+    :type xr_dss: dict
+    
+    :param dimension_mask: dictionary tracking parameter dimensions
+    :type dimension_mask: dict
+    
+    :return: xr_dss with dimension_mask added
+    :rtype: dict
+    """
+    for classname in xr_dss:
+        if classname in dimension_mask:
+            for component in xr_dss[classname]:
+                if component in dimension_mask[classname]:
+                    # Create dimension_mask for this component
+                    component_dims = dimension_mask[classname][component]
+                    if component_dims:  # Only add if there are parameters to track
+                        # Convert to pandas Series and then to xarray DataArray
+                        dims_series = pd.Series(component_dims, name='dimension_type')
+                        dims_series.index.name = 'parameter'
+                        dims_da = xr.DataArray.from_series(dims_series)
+                        
+                        # Add to the component's dataset
+                        xr_dss[classname][component]['dimension_mask'] = dims_da
+    
+    return xr_dss
+
+
+
+def extractDimensionMaskFromXarray(xr_dss):
+    """
+    Extracts the dimension_mask from xarray datasets.
+    
+    :param xr_dss: A dict of xarray datasets containing the dimension_mask
+    :type xr_dss: dict
+    
+    :return: dimension_mask dictionary
+    :rtype: dict
+    """
+    dimension_mask = {}
+    
+    for classname in xr_dss:
+        dimension_mask[classname] = {}
+        for component in xr_dss[classname]:
+            if 'dimension_mask' in xr_dss[classname][component]:
+                # Convert xarray DataArray back to dictionary
+                dims_da = xr_dss[classname][component]['dimension_mask']
+                dims_dict = dims_da.to_series().to_dict()
+                dimension_mask[classname][component] = dims_dict
+            else:
+                dimension_mask[classname][component] = {}
+    
+    return dimension_mask
+
+
+def getDimensionTypeMapping():
+    """
+    Returns the mapping between integer dimension types and their descriptions.
+    
+    :return: dictionary mapping integer dimension types to descriptions
+    :rtype: dict
+    """
+    return {
+        0: 'scalar',      # 0-dimensional (constant values)
+        1: 'spatial',     # 1-dimensional (space only)  
+        2: 'spatial_2d',  # 2-dimensional (space x space_2)
+        3: 'temporal',    # time series (time x space or time only)
+        -1: 'unknown'     # unknown dimension type
+    }
+
+
+def getDimensionTypeDescription(dimension_type):
+    """
+    Returns a human-readable description for the integer dimension type.
+    
+    :param dimension_type: Integer dimension type code
+    :type dimension_type: int
+    
+    :return: Human-readable description
+    :rtype: str
+    """
+    dimension_descriptions = {
+        0: "Scalar (0D)",
+        1: "Spatial (1D)",
+        2: "Spatial Matrix (2D)",
+        3: "Time-Space Series (2D)",
+        4: "Time-Space Matrix (3D)",
+        -1: "Unknown/Unsupported"
+    }
+    return dimension_descriptions.get(dimension_type, "Invalid dimension type")
+
+
+def getDimensionTypeFromOldPrefix(old_var_name):
+    """
+    Maps old prefix-based variable names to new integer dimension types.
+    
+    :param old_var_name: Variable name with old prefix (e.g., '0d_name', 'ts_operationRateMax')
+    :type old_var_name: str
+    
+    :return: Integer dimension type
+    :rtype: int
+    """
+    if old_var_name.startswith('0d_'):
+        return 0
+    elif old_var_name.startswith('1d_'):
+        return 1
+    elif old_var_name.startswith('2d_'):
+        return 2
+    elif old_var_name.startswith('ts_'):
+        return 3  # Note: 3D transmission time series (type 4) needs dimension analysis
+    else:
+        return -1
+
+
+def createParameterDimensionDict(component_dict):
+    """
+    Creates a comprehensive parameter_mask that tracks ALL parameters and their dimensions
+    for each component. This ensures that all variables in the component dict are included
+    as parameters in the xarray output, regardless of whether they are None or not.
+    
+    :param component_dict: dictionary containing information about the esM instance's components
+    :type component_dict: dict
+    
+    :return: parameter_mask dictionary with structure {classname: {component: {parameter: dimension_type}}}
+    :rtype: dict
+    """
+    import copy
+    parameter_mask = {}
+    
+    for classname in copy.deepcopy(component_dict):
+        parameter_mask[classname] = {}
+        for component in component_dict[classname]:
+            parameter_mask[classname][component] = {}
+            
+            # Analyze each parameter in the component
+            for parameter_name, parameter_value in component_dict[classname][component].items():
+                # Determine dimension type based on the parameter value
+                dimension_type = _inferParameterDimensionType(parameter_value, classname)
+                parameter_mask[classname][component][parameter_name] = dimension_type
+    
+    return parameter_mask
+
+def processComponentDict(component_dict, locations, _mapC_dict):
+    # add variable dimension names to pandas dataframes and series in component_dict
+    # for constants do not do anything
+    import copy
+    component_dict_mod = copy.deepcopy(component_dict)
+    for classname in component_dict:
+        for component in component_dict[classname]:
+            for parameter_name, parameter_value in component_dict[classname][component].items():
+                if parameter_value is None or np.isscalar(parameter_value) or isinstance(parameter_value, (str, bool)) or isinstance(parameter_value, (int, float)):
+                    # For scalar values, do not add dimension names
+                    component_dict_mod[classname][component][parameter_name] = parameter_value
+                elif isinstance(parameter_value, list):
+                    # For lists, convert to string with ":" as separator
+                    component_dict_mod[classname][component][parameter_name] = ":".join(map(str, parameter_value))
+                elif isinstance(parameter_value, dict):
+                        key_lists = getListsOfKeyPathsInNestedDict(
+                            {parameter_name:parameter_value},
+                            variable_name=parameter_name,
+                        )
+
+                        # iterate over all key-"paths" in nested dict
+                        for key_list in key_lists:
+                            _variable_description = ".".join(map(str, key_list))
+                            
+                            component_dict_mod[classname][component][_variable_description] = getFromDict(component_dict[classname][component], key_list)
+                        # remove original key from dict
+                        component_dict_mod[classname][component].pop(parameter_name, None)
+                        
+                    
+                elif isinstance(parameter_value, pd.DataFrame):
+                    
+                    if classname in ["Transmission", "LinearOptimalPowerFlow"]:
+                        mi_df = parameter_value.stack()
+                        if set(parameter_value.index.to_list()).issubset(set(locations)):            
+                            mi_df.index.set_names("space", level=0, inplace=True)
+                            mi_df.index.set_names("space_2", level=1, inplace=True)
+                        else:
+                            # split X_X into multiindex
+                            mi_df.index.set_names("time", level=0, inplace=True)
+                            mi_df.index.set_names("space", level=1, inplace=True)
+                            # use _mapC to split via location names 
+                            space_index = mi_df.index.get_level_values("space")
+                            time_index = mi_df.index.get_level_values("time")
+                            # reconstruct multiindex
+                            space_index_split = []
+                            for idx in space_index:
+                                loc1, loc2 = _mapC_dict[component][idx]
+                                space_index_split.append((loc1, loc2))
+                            mi_df.index = pd.MultiIndex.from_tuples(
+                                [(time_index[i], space_index_split[i][0], space_index_split[i][1]) for i in range(len(space_index_split))],
+                                names=["time", "space", "space_2"]
+                            )
+                    else:
+                        mi_df = parameter_value.stack()
+                        if "Period" in mi_df.index.names:
+                            mi_df.index.set_names("time", level=1, inplace=True)
+                            mi_df.index.set_names("space", level=2, inplace=True)
+                        else:
+                            mi_df.index.set_names("time", level=0, inplace=True)
+                            mi_df.index.set_names("space", level=1, inplace=True)
+                    
+                    component_dict_mod[classname][component][parameter_name] = mi_df
+                    
+                elif isinstance(parameter_value, pd.Series):
+                    if classname in ["Transmission", "LinearOptimalPowerFlow"]:
+                        df = transform1dSeriesto2dDataFrame(parameter_value, locations)
+                        mi_df = df.stack()
+                        mi_df.index.set_names(
+                            ["space", "space_2"], inplace=True
+                        )
+                        component_dict_mod[classname][component][parameter_name] = mi_df
+                    else:
+                        if set(parameter_value.index.values).issubset(set(locations)):
+                            component_dict_mod[classname][component][parameter_name] = parameter_value.rename_axis("space")
+                        else: # only time seires (unique to single node esM model)
+                            component_dict_mod[classname][component][parameter_name] = parameter_value.rename_axis("time")
+                    
+                else:
+                    raise TypeError(
+                        f"Parameter '{parameter_name}' in component '{component}' has unsupported type: {type(parameter_value)}."
+                    )
+    return component_dict_mod
+
+
+def _inferParameterDimensionType(parameter_value, classname):
+    """
+    Infers the dimension type of a parameter based on its value.
+    
+    Dimension mapping:
+    - 0: Scalar (0D) - no dimensions, e.g., name, hasCapacityVariable, None values
+    - 1: Temporal (1D) - pandas Series with time index (special for single node model)
+    - 2: Spatial (1D) - pandas Series with spatial index
+    - 3: Spatial Matrix (2D) - pandas DataFrame/Series with space x space_2 structure  
+    - 4: Time-Space Series (2D) - pandas DataFrame with time x space structure
+    - 5: Time-Space Matrix (3D) - pandas DataFrame with time x space x space_2 structure
+    - -1: Unknown/unsupported dimension combination
+    
+    :param parameter_value: The value of the parameter to analyze
+    :return: Integer dimension type code
+    :rtype: int
+    """
+    import pandas as pd
+    import numpy as np
+    mapper = {
+        frozenset({"time", "space", "space_2"}): 5,  # Time-Space Matrix (3D)
+        frozenset({"time", "space"}): 4,            # Time-Space Series (2D)
+        frozenset({"space", "space_2"}): 3,         # Spatial Matrix (2D)
+        frozenset({"space"}): 2,                    # Spatial (1D)
+        frozenset({"time"}): 1,                     # Temporal (1D)
+    }
+
+    def _get_category_from_index(index):
+        """
+        Helper function to get the category from index names.
+        """
+        if isinstance(index, pd.MultiIndex):
+            dims = frozenset(index.names)
+        else:
+            dims = frozenset(index.names) if hasattr(index, 'names') else frozenset([index.name])
+        
+        return mapper.get(dims, -1)
+
+
+
+    if parameter_value is None or np.isscalar(parameter_value) or isinstance(parameter_value, (str, bool)) or isinstance(parameter_value, (int, float)) or isinstance(parameter_value, dict):
+        return 0
+    elif isinstance(parameter_value, pd.DataFrame):
+        return _get_category_from_index(parameter_value.index)
+    elif isinstance(parameter_value, pd.Series):
+        return _get_category_from_index(parameter_value.index)
+
+    # Default for unknown types
+    return -1
+
+
+def addParameterDimensionsToXarray(xr_dss, dimension_mask, was_none_mask):
+    """
+    Adds comprehensive parameter information to each component's xarray dataset.
+    This includes both the parameter names (as dimension) and their dimension types.
+    
+    :param xr_dss: A dict of xarray datasets to which the parameter info should be added
+    :type xr_dss: dict
+    
+    :param parameter_mask: dictionary tracking all parameters and their dimensions
+    :type parameter_mask: dict
+    
+    :return: xr_dss with comprehensive parameter information added
+    :rtype: dict
+    """
+    import pandas as pd
+    import xarray as xr
+    import copy
+    
+    for classname in xr_dss:
+        if classname in dimension_mask:
+            for component in xr_dss[classname]:
+                if component in dimension_mask[classname]:
+                    # Get all parameters for this component
+                    dim_params = copy.deepcopy(dimension_mask[classname][component])
+                    none_params = copy.deepcopy(was_none_mask[classname][component])
+                    
+                    if dim_params:  # Only add if there are parameters
+                        # Create parameter coordinate. sort alphabetically, ignoring upper/lower case
+                        param_names = sorted(dim_params.keys())
+                        
+                        # Add parameter coordinate to the dataset if it doesn't exist
+                        if 'parameter' not in xr_dss[classname][component].coords:
+                            xr_dss[classname][component] = xr_dss[classname][component].assign_coords(
+                                parameter=param_names
+                            )                
+                        
+                        all_param_names = list(xr_dss[classname][component].coords['parameter'].values)
+                        dimension_values = [dim_params.get(param, -1) for param in all_param_names]
+                        none_values = [none_params.get(param, True) for param in all_param_names]  # Default True if missing
+                        
+
+                        dims_series = pd.Series(dimension_values, index=all_param_names, name='dimension_type')
+                        dims_series.index.name = 'parameter'
+                        dims_da = xr.DataArray.from_series(dims_series)
+                        
+                        mask_series = pd.Series(none_values, index=all_param_names, name='was_none')
+                        mask_series.index.name = 'parameter'
+                        mask_da = xr.DataArray.from_series(mask_series)
+                        
+                        # Add to the component's dataset
+                        xr_dss[classname][component]['dimension_mask'] = dims_da
+                        xr_dss[classname][component]['was_none_mask'] = mask_da
+
+    
+    return xr_dss

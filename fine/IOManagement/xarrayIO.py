@@ -75,7 +75,57 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     return {"Input": xr_dss, "Parameters": attributes_xr}
 
 
-def convertPerformanceSummaryToDatasets(esM):  # noqa D103
+def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
+    """
+    Takes esM instance input and converts it into xarray datasets.
+
+    :param esM: EnergySystemModel instance in which the model is held
+    :type esM: EnergySystemModel instance
+
+    **Default arguments:**
+
+        :param useProcessedValues: True if the raw values should be over-written by processed values, False otherwise.
+            A requirement for perfect-foresight and by extension for spatial and technology aggregations
+            |br| * the default value is False
+        :type useProcessedValues: bool
+
+    :return: xr_ds - esM instance data in xarray dataset format
+    :rtype: xarray.dataset
+    """
+
+    # STEP 1. Get the esm and component dicts
+    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
+    
+    # STEP 3.1 get _mapC for all transmission components
+    _mapC_dict = {}
+    for tech in component_dict["Transmission"].keys():
+        _mapC_dict[tech] = esM.getComponent(tech)._mapC
+    
+    component_dict_mod = utilsIO.processComponentDict(component_dict, list(esM.locations), _mapC_dict)
+
+    # STEP 1.1. Create comprehensive parameter mask for all parameters and their dimensions
+    dimension_mask = utilsIO.createParameterDimensionDict(component_dict_mod)
+
+    # STEP 1.2. Create was_none_mask for perfect reconstruction
+    was_none_mask = utilsIO.createWasNoneMask(component_dict_mod)
+    # STEP 1.3. Replace None values with appropriate defaults for xarray
+    component_dict = utilsIO.replaceNoneValuesForXarray(component_dict_mod)
+
+    # STEP 2. Convert esm_dict to xarray datasets
+    xr_dss = utilsIO.convertToXarray(component_dict_mod)
+    
+    # STEP 7. Add comprehensive parameter information (dimensions). And None tracker. Instead of 0d,1d,2d,ts prefix
+    xr_dss = utilsIO.addParameterDimensionsToXarray(xr_dss, dimension_mask, was_none_mask)
+
+    attributes_xr = xr.Dataset()
+    attributes_xr.attrs = esm_dict
+
+    xr_dss = {"Input": xr_dss, "Parameters": attributes_xr}
+
+    return xr_dss
+
+def convertPerformanceSummaryToDatasets(esM):
+    import pandas as pd
     df = esM.performanceSummary.squeeze()
     df = df.droplevel("Category")
     df = df.apply(lambda x: pd.to_numeric(x, errors="ignore"))
@@ -83,7 +133,9 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
     for idx, value in df.items():
         if isinstance(value, pd.Timestamp):
             print(value)
-            df.loc[idx] = value.strftime("%Y-%m-%d %H:%M:%S")
+            df.loc[idx] = value.strftime('%Y-%m-%d %H:%M:%S')
+        if isinstance(value, dict):
+            df.loc[idx] = str(value)
     summary_dict = df.to_dict()
     summary_xr = xr.Dataset()
     summary_xr.attrs = summary_dict
@@ -1594,7 +1646,9 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     xr_dss = readNetCDFToDatasets(filePath, groupPrefix)
 
     # xarray dataset to esm
-    return convertDatasetsToEnergySystemModel(xr_dss)
+    esM = convertDatasetsToEnergySystemModel(xr_dss)
+
+    return esM
 
 def _make_datasets_lazy(data_dict, chunks=None):
     """
