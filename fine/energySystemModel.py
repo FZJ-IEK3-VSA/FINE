@@ -87,6 +87,7 @@ class EnergySystemModel:
         componentLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
+        LP_savepath=None,
     ):
         r"""Create an EnergySystemModel class instance.
 
@@ -272,7 +273,7 @@ class EnergySystemModel:
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
-
+        self.LP_savepath = LP_savepath
         self.locations, self.lengthUnit = locations, lengthUnit
         self._locationsOrdered = sorted(locations)
 
@@ -1403,31 +1404,36 @@ class EnergySystemModel:
                                 type=type,
                             )               ]
                     elif (mdl_type == "TransmissionModel") and (type == "capacity"):
-                        if "total" in ID:
-                            _balanceList = [
-                                mdl.getComponentLimitContribution(
-                                    esM=self,
-                                    pyM=pyM,
-                                    timeSeriesAggregation=timeSeriesAggregation,
-                                    ip=ip,
-                                    loc=loc,
-                                    componentNames=componentNames,
-                                    type=type,
-                                )
-                                for loc in locs
-                            ]
+                        # skip if none of the components is of class TransmissionModel
+                        # check if intersection of mdl.componentsDict.keys() and componentNames is empty
+                        if not set(mdl.componentsDict.keys()).intersection(set(componentNames)):
+                            _balanceList = [None]
                         else:
-                            _balanceList = [
-                                mdl.getComponentLimitContribution(
-                                    esM=self,
-                                    pyM=pyM,
-                                    timeSeriesAggregation=timeSeriesAggregation,
-                                    ip=ip,
-                                    loc=locs,
-                                    componentNames=componentNames,
-                                    type=type,
-                                )
-                            ]
+                            if "total" in ID:
+                                _balanceList = [
+                                    mdl.getComponentLimitContribution(
+                                        esM=self,
+                                        pyM=pyM,
+                                        timeSeriesAggregation=timeSeriesAggregation,
+                                        ip=ip,
+                                        loc=loc,
+                                        componentNames=componentNames,
+                                        type=type,
+                                    )
+                                    for loc in locs
+                                ]
+                            else:
+                                _balanceList = [
+                                    mdl.getComponentLimitContribution(
+                                        esM=self,
+                                        pyM=pyM,
+                                        timeSeriesAggregation=timeSeriesAggregation,
+                                        ip=ip,
+                                        loc=locs,
+                                        componentNames=componentNames,
+                                        type=type,
+                                    )
+                                ]
                         
                     elif mdl_type == "ConversionModel":
                         _balanceList = [
@@ -2213,6 +2219,18 @@ class EnergySystemModel:
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
+        
+        # if self.LP_savepath is not None:
+        #     # save the LP file to the specified path
+        #     if not os.path.exists(self.LP_savepath):
+        #         os.makedirs(self.LP_savepath)
+        #     LP_file_path = os.path.join(self.LP_savepath, "model.lp")
+        #     utils.output(
+        #         "Saving LP file to: " + LP_file_path, self.verbose, 0
+        #     )
+        #     from pyomo.opt import ProblemFormat
+        #     self.pyM.write(LP_file_path, format=ProblemFormat.cpxlp)
+
 
         # Set which solver should solve the specified optimization problem
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
