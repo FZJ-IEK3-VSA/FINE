@@ -1,14 +1,11 @@
 from fine.component import Component, ComponentModel
 from fine import utils
 import pandas as pd
-import pyomo.environ as pyomo
 import warnings
 
 
 class Source(Component):
-    """
-    A Source component can transfer a commodity over the energy system boundary into the system.
-    """
+    """A Source component can transfer a commodity over the energy system boundary into the system."""
 
     def __init__(
         self,
@@ -24,8 +21,6 @@ class Source(Component):
         operationRateMax=None,
         operationRateFix=None,
         tsaWeight=1,
-        commodityLimitID=None,
-        yearlyLimit=None,
         locationalEligibility=None,
         capacityMin=None,
         capacityMax=None,
@@ -57,9 +52,9 @@ class Source(Component):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        pwlcfParameters=None,
     ):
-        """
-        Constructor for creating an Source class instance.
+        """Create a Source class instance.
         The Source component specific input arguments are described below. The general component
         input arguments are described in the Component class.
 
@@ -72,8 +67,8 @@ class Source(Component):
         :type commodity: string
 
         :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not.
-            Examples:
 
+        Examples:
             * A wind turbine has a capacity given in GW_electric -> hasCapacityVariable is True.
             * Emitting CO2 into the environment is not per se limited by a capacity ->
               hasCapacityVariable is False.
@@ -156,36 +151,6 @@ class Source(Component):
             |br| * the default value is 1
         :type tsaWeight: positive (>= 0) float
 
-        :param commodityLimitID: can be specified to limit an annual commodity import/export over the
-            energySystemModel's boundaries for one or multiple Source/Sink components. If the same ID
-            is used in multiple components, the sum of all imports and exports is considered. If a
-            commodityLimitID is specified, the yearlyLimit parameters has to be set as well.
-            |br| * the default value is None
-        :type commodityLimitID: string
-
-        :param yearlyLimit: if specified, indicates a yearly import/export commodity limit per investment period for all components with
-            the same commodityLimitID. If positive, the commodity flow leaving the energySystemModel is
-            limited. If negative, the commodity flow entering the energySystemModel is limited. If a
-            yearlyLimit is specified, the commodityLimitID parameters has to be set as well. The yearlyLimit can also be specified for
-            every investment period year individually.
-            Examples:
-
-            * CO2 can be emitted in power plants by burning natural gas or coal. The CO2 which goes into
-              the atmosphere over the energy system's boundaries is modelled as a Sink. CO2 can also be a
-              Source taken directly from the atmosphere (over the energy system's boundaries) for a
-              methanation process. The commodityUnit for CO2 is tonnes_CO2. Overall, +XY tonnes_CO2 are
-              allowed to be emitted during the year. All Sources/Sinks producing or consuming CO2 over the
-              energy system's boundaries have the same commodityLimitID and the same yearlyLimit of +XY.
-            * The maximum annual import of a certain chemical (commodityUnit tonnes_chem) is limited to
-              XY tonnes_chem. The Source component modeling this import has a commodityLimitID
-              "chemicalComponentLimitID" and a yearlyLimit of -XY.
-
-            |br| * the default value is None
-        :type yearlyLimit:
-
-            * float
-            * a dictionary with investment periods as keys and float as values
-
 
         :param opexPerOperation: describes the cost for one unit of the operation. The cost which is directly
             proportional to the operation of the component is obtained by multiplying the opexPerOperation parameter
@@ -208,8 +173,8 @@ class Source(Component):
             float or a Pandas Series with location specific values or a dictionary per investment period with one of the two previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
-            Example:
 
+        Example:
             * In a national energy system, natural gas could be purchased from another country with a
               certain cost.
 
@@ -228,8 +193,8 @@ class Source(Component):
             float or a Pandas Series with location specific values or a dictionary per investment period with one of the two previous options.
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
-            Example:
 
+        Example:
             * Modeling a PV electricity feed-in tariff for a household
 
             |br| * the default value is 0
@@ -250,8 +215,8 @@ class Source(Component):
         :param pathwayBalanceLimitID: similar to balanceLimitID just as restriction over the entire pathway.
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
-        """
 
+        """
         Component.__init__(
             self,
             esM,
@@ -285,6 +250,7 @@ class Source(Component):
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
+            pwlcfParameters=pwlcfParameters,
         )
 
         # Set general source/sink data: ID and yearly limit
@@ -294,16 +260,11 @@ class Source(Component):
             esM.commodityUnitsDict[commodity],
         )
         # TODO check value and type correctness
-        self.commodityLimitID = commodityLimitID
         self.balanceLimitID = balanceLimitID
         self.componentLimitID = componentLimitID
         self.pathwayBalanceLimitID = pathwayBalanceLimitID
         self.sign = 1
         self.modelingClass = SourceSinkModel
-
-        # yearlyLimit
-        self.yearlyLimit = yearlyLimit
-        self.processedYearlyLimit = utils.checkAndSetYearlyLimit(esM, yearlyLimit)
 
         # opexPerOperation
         self.opexPerOperation = opexPerOperation
@@ -340,8 +301,10 @@ class Source(Component):
 
         # commodityCostTimeSeries
         self.commodityCostTimeSeries = commodityCostTimeSeries
-        self.fullCommodityCostTimeSeries = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, commodityCostTimeSeries, locationalEligibility
+        self.fullCommodityCostTimeSeries = (
+            utils.checkAndSetInvestmentPeriodCostTimeSeries(
+                esM, name, commodityCostTimeSeries, locationalEligibility
+            )
         )
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
@@ -350,7 +313,7 @@ class Source(Component):
         self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
         self.fullCommodityRevenueTimeSeries = {}
         self.fullCommodityRevenueTimeSeries = (
-            utils.checkAndSetInvestmentPeriodTimeSeries(
+            utils.checkAndSetInvestmentPeriodCostTimeSeries(
                 esM, name, commodityRevenueTimeSeries, locationalEligibility
             )
         )
@@ -411,41 +374,21 @@ class Source(Component):
             esM,
             name,
             partLoadMin,
-            self.fullOperationRateMin,
             self.fullOperationRateMax,
             self.fullOperationRateFix,
             self.bigM,
             self.hasCapacityVariable,
+            self.fullOperationRateMin,
         )
 
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # set parameter to None if all years have None values
-        self.fullOperationRateFix = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateFix
-        )
-        self.fullOperationRateMin = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateMin
-        )
-        self.fullOperationRateMax = utils.setParamToNoneIfNoneForAllYears(
-            self.fullOperationRateMax
-        )
-        self.fullCommodityCostTimeSeries = utils.setParamToNoneIfNoneForAllYears(
-            self.fullCommodityCostTimeSeries
-        )
-        self.fullCommodityRevenueTimeSeries = utils.setParamToNoneIfNoneForAllYears(
-            self.fullCommodityRevenueTimeSeries
-        )
-        self.processedYearlyLimit = utils.setParamToNoneIfNoneForAllYears(
-            self.processedYearlyLimit
-        )
-
-        if self.fullOperationRateFix is not None:
+        if any(x is not None for x in self.fullOperationRateFix.values()):
             operationTimeSeries = self.fullOperationRateFix
-        elif self.fullOperationRateMin is not None:
+        elif any(x is not None for x in self.fullOperationRateMin.values()):
             operationTimeSeries = self.fullOperationRateMin
-        elif self.fullOperationRateMax is not None:
+        elif any(x is not None for x in self.fullOperationRateMax.values()):
             operationTimeSeries = self.fullOperationRateMax
         else:
             operationTimeSeries = None
@@ -461,9 +404,7 @@ class Source(Component):
         )
 
     def setTimeSeriesData(self, hasTSA):
-        """
-        Function for setting the maximum operation rate, fixed operation rate and cost or revenue time series depending
-        on whether a time series analysis is requested or not.
+        """Set the maximum operation rate, fixed operation rate, and cost or revenue time series depending on whether a time series analysis is requested or not.
 
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
@@ -493,12 +434,11 @@ class Source(Component):
         )
 
     def getDataForTimeSeriesAggregation(self, ip):
-        """Function for getting the required data if a time series aggregation is requested.
+        """Get the required data if a time series aggregation is requested.
 
         :param ip: investment period of transformation path analysis.
         :type ip: int
         """
-
         weightDict, data = {}, []
         if self.fullOperationRateFix:
             weightDict, data = self.prepareTSAInput(
@@ -546,8 +486,7 @@ class Source(Component):
         return (pd.concat(data, axis=1), weightDict) if data else (None, {})
 
     def setAggregatedTimeSeriesData(self, data, ip):
-        """
-        Function for determining the aggregated maximum rate and the aggregated fixed operation rate.
+        """Determine the aggregated maximum rate and the aggregated fixed operation rate.
 
         :param data: Pandas DataFrame with the clustered time series data of the source component
         :type data: Pandas DataFrame
@@ -556,7 +495,6 @@ class Source(Component):
         :type ip: int
 
         """
-
         self.aggregatedOperationRateFix[ip] = self.getTSAOutput(
             self.fullOperationRateFix, "_operationRateFix_", data, ip
         )
@@ -576,29 +514,9 @@ class Source(Component):
             ip,
         )
 
-    def checkProcessedDataSets(self):
-        """
-        Check processed time series data after applying time series aggregation. If all entries of dictionary are None
-        the parameter itself is set to None.
-        """
-        for parameter in [
-            "processedOperationRateFix",
-            "processedOperationRateMin",
-            "processedOperationRateMax",
-            "processedCommodityCostTimeSeries",
-            "processedCommodityRevenueTimeSeries",
-        ]:
-            setattr(
-                self,
-                parameter,
-                utils.setParamToNoneIfNoneForAllYears(getattr(self, parameter)),
-            )
-
 
 class Sink(Source):
-    """
-    A Sink component can transfer a commodity over the energy system boundary out of the system.
-    """
+    """A Sink component can transfer a commodity over the energy system boundary out of the system."""
 
     def __init__(
         self,
@@ -614,8 +532,6 @@ class Sink(Source):
         operationRateMax=None,
         operationRateFix=None,
         tsaWeight=1,
-        commodityLimitID=None,
-        yearlyLimit=None,
         locationalEligibility=None,
         capacityMin=None,
         capacityMax=None,
@@ -646,8 +562,7 @@ class Sink(Source):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
     ):
-        """
-        Constructor for creating a Sink class instance.
+        """Create a Sink class instance.
 
         The Sink class inherits from the Source class. They coincide with the input parameters
         (see Source class for the parameter description) and differ in the sign
@@ -667,8 +582,6 @@ class Sink(Source):
             operationRateMax=operationRateMax,
             operationRateFix=operationRateFix,
             tsaWeight=tsaWeight,
-            commodityLimitID=commodityLimitID,
-            yearlyLimit=yearlyLimit,
             locationalEligibility=locationalEligibility,
             capacityMin=capacityMin,
             capacityMax=capacityMax,
@@ -704,17 +617,14 @@ class Sink(Source):
 
 
 class SourceSinkModel(ComponentModel):
-    """
-    A SourceSinkModel class instance will be instantly created if a Source class instance or a Sink class instance is
+    """A SourceSinkModel class instance will be instantly created if a Source class instance or a Sink class instance is
     initialized. It is used for the declaration of the sets, variables and constraints which are valid for the
     Source/Sink class instance. These declarations are necessary for the modeling and optimization of the
     energy system model. The SourceSinkModel class inherits from the ComponentModel class.
     """
 
     def __init__(self):
-        """
-        Constructor for creating a SourceSinkModel class instance.
-        """
+        """Create a SourceSinkModel class instance."""
         super().__init__()
         self.abbrvName = "srcSnk"
         self.dimension = "1dim"
@@ -724,43 +634,8 @@ class SourceSinkModel(ComponentModel):
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
 
-    def declareYearlyCommodityLimitationDict(self, pyM, esM):
-        """
-        Declare source/sink components with linked commodity limits and check if the linked components have the same
-        yearly upper limit.
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-
-        yearlyCommodityLimitationDict = {}
-        for ip in esM.investmentPeriods:
-            for compName, comp in self.componentsDict.items():
-                if comp.commodityLimitID is not None:
-                    ID, limit = comp.commodityLimitID, comp.processedYearlyLimit[ip]
-                    if (
-                        ID,
-                        ip,
-                    ) in yearlyCommodityLimitationDict.keys() and limit != yearlyCommodityLimitationDict[
-                        (ID, ip)
-                    ][
-                        0
-                    ]:
-                        raise ValueError(
-                            "yearlyLimitationIDs with different upper limits detected."
-                        )
-                    yearlyCommodityLimitationDict.setdefault((ID, ip), (limit, []))[
-                        1
-                    ].append(compName)
-        setattr(
-            pyM,
-            "yearlyCommodityLimitationDict_" + self.abbrvName,
-            yearlyCommodityLimitationDict,
-        )
-
     def declareSets(self, esM, pyM):
-        """
-        Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
+        """Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
         linked commodity limitation dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -769,7 +644,6 @@ class SourceSinkModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
@@ -783,6 +657,7 @@ class SourceSinkModel(ComponentModel):
 
         # Declare operation variable set
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
 
         # Declare sets for case differentiation of operating modes
         self.declareOperationModeSets(
@@ -792,9 +667,6 @@ class SourceSinkModel(ComponentModel):
             "processedOperationRateFix",
             "processedOperationRateMin",
         )
-
-        # Declare commodity limitation dictionary
-        self.declareYearlyCommodityLimitationDict(pyM, esM)
 
         # Declare minimum yearly full load hour set
         self.declareYearlyFullLoadHoursMinSet(pyM)
@@ -807,8 +679,7 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
-        """
-        Declare design and operation variables.
+        """Declare design and operation variables.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -825,7 +696,6 @@ class SourceSinkModel(ComponentModel):
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
         """
-
         # Capacity variables [commodityUnit]
         self.declareCapacityVars(pyM)
         # (Continuous) numbers of installed components [-]
@@ -837,7 +707,7 @@ class SourceSinkModel(ComponentModel):
         # Operation of component [commodityUnit*hour]
         self.declareOperationVars(pyM, esM, "op", relevanceThreshold=relevanceThreshold)
         # Operation of component as binary [1/0]
-        # self.declareOperationBinaryVars(pyM, "op_bin")
+        self.declareOperationBinaryVars(pyM)
         # Capacity development variables [physicalUnit]
         self.declareCommissioningVars(pyM, esM)
         self.declareDecommissioningVars(pyM, esM)
@@ -846,50 +716,8 @@ class SourceSinkModel(ComponentModel):
     #                                          Declare component constraints                                           #
     ####################################################################################################################
 
-    def yearlyLimitationConstraint(self, pyM, esM):
-        """
-        Limit annual commodity imports/exports over the energySystemModel's boundaries for one or multiple
-        Source/Sink components.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        warnings.warn(
-            "The yearly limit is deprecated and moved to the balanceLimit",
-            DeprecationWarning,
-        )
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
-        limitDict = getattr(pyM, "yearlyCommodityLimitationDict_" + abbrvName)
-
-        def yearlyLimitationConstraint(pyM, key, ip):
-            sumEx = -sum(
-                opVar[loc, compName, ip, p, t]
-                * compDict[compName].sign
-                * esM.periodOccurrences[ip][p]
-                / esM.numberOfYears
-                for loc, compName, _ip, p, t in opVar
-                if (_ip == ip and compName in limitDict[(key, ip)][1])
-            )
-            sign = (
-                limitDict[(key, ip)][0] / abs(limitDict[(key, ip)][0])
-                if limitDict[(key, ip)][0] != 0
-                else 1
-            )
-            return sign * sumEx <= sign * limitDict[(key, ip)][0]
-
-        setattr(
-            pyM,
-            "ConstrYearlyLimitation_" + abbrvName,
-            pyomo.Constraint(limitDict.keys(), rule=yearlyLimitationConstraint),
-        )
-
     def declareComponentConstraints(self, esM, pyM):
-        """
-        Declare time independent and dependent constraints.
+        """Declare time independent and dependent constraints.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -897,7 +725,6 @@ class SourceSinkModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-
         ################################################################################################################
         #                                    Declare time independent constraints                                      #
         ################################################################################################################
@@ -910,8 +737,7 @@ class SourceSinkModel(ComponentModel):
         self.bigM(pyM)
         # Enforce the consideration of minimum capacities for components with design decision variables
         self.capacityMinDec(pyM)
-        # Set, if applicable, the installed capacities of a component
-        self.capacityFix(pyM, esM)
+
         # Set, if applicable, the binary design variables of a component
         self.designBinFix(pyM)
         # Set yearly full load hours minimum limit
@@ -948,20 +774,26 @@ class SourceSinkModel(ComponentModel):
         # Operation [commodityUnit*h] limited(min) by the installed capacity [commodityUnit] multiplied by operation time
         # series [-] and the hours per time step [h])
         self.operationMode4(pyM, esM, "ConstrOperation", "opConstrSet", "op")
+        # Couple binary operation variable to operation variable
+        self.binaryOperation(
+            pyM,
+            "ConstrOperation",
+            "opConstrSet",
+            "partLoadMin",
+            "op",
+            "op_bin",
+        )
         # Operation [physicalUnit*h] is limited by minimum part Load
-        # self.additionalMinPartLoad(
-        #     pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
-        # )
-
-        self.yearlyLimitationConstraint(pyM, esM)
+        self.additionalMinPartLoad(
+            pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
+        )
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if operation variables exist in the modeling class at a location which are connected to a commodity.
+        """Check if operation variables exist in the modeling class at a location which are connected to a commodity.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -1067,8 +899,8 @@ class SourceSinkModel(ComponentModel):
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, timeSeriesAggregation, loc, componentNames
     ):
-        """
-        Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+        """Get contribution to balanceLimitConstraint (Further read in EnergySystemModel).
+
         Sum of the operation time series of a SourceSink component is used as the balanceLimit contribution:
 
         - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
@@ -1137,7 +969,8 @@ class SourceSinkModel(ComponentModel):
         return balance
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """Get contribution to a commodity balance.
+        r"""Get contribution to a commodity balance.
+
                 .. math::
 
             \\text{C}^{comp,comm}_{loc,ip,p,t} = - op_{loc,ip,p,t}^{comp,op}  \\text{Sink}
@@ -1145,7 +978,6 @@ class SourceSinkModel(ComponentModel):
         .. math::
             \\text{C}^{comp,comm}_{loc,ip,p,t} = op_{loc,ip,p,t}^{comp,op} \\text{Source}
         """
-
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDict = (
             getattr(pyM, "op_" + abbrvName),
@@ -1158,15 +990,14 @@ class SourceSinkModel(ComponentModel):
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
-            :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-            :type esM: esM - EnergySystemModel class instance
+        """Get contribution to the objective function.
 
-            :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
-            :type pym: pyomo ConcreteModel
-        """
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
 
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+        """
         opexOp = self.getEconomicsOperation(
             pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
         )
@@ -1206,8 +1037,7 @@ class SourceSinkModel(ComponentModel):
     ####################################################################################################################
 
     def setOptimalValues(self, esM, pyM):
-        """
-        Set the optimal values of the components.
+        """Set the optimal values of the components.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -1404,9 +1234,7 @@ class SourceSinkModel(ComponentModel):
                         for ix in opSum.index
                     ],
                     opSum.columns,
-                ] = (
-                    opSum.values / esM.numberOfYears
-                )
+                ] = opSum.values / esM.numberOfYears
 
                 # costs
                 tac_ox = resultsTAC_opexOp[ip]
@@ -1529,8 +1357,7 @@ class SourceSinkModel(ComponentModel):
             self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
     def getOptimalValues(self, name="all", ip=0):
-        """
-        Return optimal values of the components.
+        """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 

@@ -1,38 +1,50 @@
 from copy import deepcopy
 from pathlib import Path
-from pandas import DataFrame, Series, MultiIndex, Index
+import pytest
+
+import pandas as pd
+from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
+
+import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
 from fine.IOManagement.dictIO import exportToDict
-import fine as fn
-import pandas as pd
+
 
 def compare_values(value_1, value_2):
     """Apply assert functions from pandas if values are pandas.DataFrame or
-    pandas.Series, else compare with `==` operator."""
+    pandas.Series, else compare with `==` operator.
+    """
     # Dataframes and Series need a special treatment.
     if isinstance(value_1, DataFrame) and isinstance(value_2, DataFrame):
         # Reset index names
-        if isinstance(value_1.index, Index):
-            value_1.index.name = None
-        elif isinstance(value_1.index, MultiIndex):
-            value_1.index.names = None
+        number_of_index_level_value_1 = value_1.index.nlevels
+        value_1.index.set_names(
+            names=[None] * number_of_index_level_value_1, inplace=True
+        )
+        # if isinstance(value_1.index, Index):
+        #     value_1.index.set_names(None,inplace=True)
+        # elif isinstance(value_1.index, MultiIndex):
+        #     value_1.index.set_names(None,inplace=True)
+        number_of_index_level_value_2 = value_2.index.nlevels
+        value_2.index.set_names(
+            names=[None] * number_of_index_level_value_2, inplace=True
+        )
+        # if isinstance(value_2.index, Index):
+        #     value_2.index.set_names(None,inplace=True)
+        # elif isinstance(value_2.index, MultiIndex):
+        #     value_2.index.set_names(None,inplace=True)
 
-        if isinstance(value_2.index, Index):
-            value_2.index.name = None
-        elif isinstance(value_2.index, MultiIndex):
-            value_2.index.names = None
-
-        value_1.columns.name = None
-        value_2.columns.name = None
+        value_1.columns.set_names(names=[None], inplace=True)
+        value_2.columns.set_names(names=[None], inplace=True)
 
         assert_frame_equal(
             value_1.sort_index(), value_2.sort_index(), check_dtype=False
         )
 
     elif isinstance(value_1, Series) and isinstance(value_2, Series):
-        value_1.index.name = None
-        value_2.index.name = None
+        value_1.index.set_names(names=[None], inplace=True)
+        value_2.index.set_names(names=[None], inplace=True)
 
         assert_series_equal(
             value_1.sort_index(), value_2.sort_index(), check_dtype=False
@@ -44,7 +56,8 @@ def compare_values(value_1, value_2):
 
 def compare_dicts(dict_1: dict, dict_2: dict):
     """Iterate over the dict key-value pairs and compare those with
-    `compare_values()."""
+    `compare_values().
+    """
     for (key_1, value_1), (key_2, value_2) in zip(dict_1.items(), dict_2.items()):
         if isinstance(value_1, dict):
             compare_dicts(value_1, value_2)
@@ -54,7 +67,7 @@ def compare_dicts(dict_1: dict, dict_2: dict):
 
 
 def compare_esm_inputs(esm_1: fn.EnergySystemModel, esm_2: fn.EnergySystemModel):
-    """A method to assert if two esM instances have equal input parameters. It
+    """Assert if two esM instances have equal input parameters. It
     uses exportToDict() and compares all attributes.
 
     :param esm1:
@@ -62,7 +75,6 @@ def compare_esm_inputs(esm_1: fn.EnergySystemModel, esm_2: fn.EnergySystemModel)
     :param esm2:
     :type esm2: FINE.EnergySystemModel
     """
-
     # Create (esm_dict, comp_dict) tuples
     esm_tuple_1 = exportToDict(esm_1)
     esm_tuple_2 = exportToDict(esm_2)
@@ -86,38 +98,12 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
         for model_key, model_results_1 in results_1.items():
             model_results_2 = results_2[model_key]
 
-            # Only total operation is saved in netCDF not the yearly value so we drop the
-            # opreation value. This needs to be fixed in future.
-            switch = False
-            labels = set()
-            for label in list(model_results_1.index.get_level_values(1).unique()):
-                if label.startswith("operation"):
-                    switch = True
-                    labels.add(label)
-            if switch:
-                for label in labels:
-                    model_results_1.drop(
-                        index=model_results_1.xs(
-                            label, axis=0, level=1, drop_level=False
-                        ).index.tolist(),
-                        inplace=True,
-                    )
-                    model_results_2.drop(
-                        index=model_results_2.xs(
-                            label, axis=0, level=1, drop_level=False
-                        ).index.tolist(),
-                        inplace=True,
-                    )
+            model_results_1_sorted = model_results_1.sort_index()
+            model_results_2_sorted = model_results_2.sort_index()
 
-            # Reading from netCDF creates a column name `space_1`. This needs to be
-            # fixed in future.
-            model_results_1.columns.name = None
-            model_results_2.columns.name = None
-
-            model_results_1 = model_results_1.sort_index()
-            model_results_2 = model_results_2.sort_index()
-
-            assert_frame_equal(model_results_1, model_results_2, check_dtype=False)
+            assert_frame_equal(
+                model_results_1_sorted, model_results_2_sorted, check_dtype=False
+            )
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
@@ -137,6 +123,12 @@ def test_esm_output_to_dataset_and_back(minimal_test_esM):
 
     compare_esm_inputs(esm_original, esm_from_datasets)
     compare_esm_outputs(esm_original, esm_from_datasets)
+
+    for mdl in esm_original.componentModelingDict.keys():
+        compare_dicts(
+            esm_original.componentModelingDict[mdl].getOptimalValues(),
+            esm_from_datasets.componentModelingDict[mdl].getOptimalValues(),
+        )
 
 def test_esm_output_to_netcdf_folder_and_back(minimal_test_esM):
     import os
@@ -162,9 +154,10 @@ def test_input_esm_to_netcdf_and_back(minimal_test_esM):
     """Write an esM to netCDF, then load the esM from this file. Compare if both
     esMs are identical.
     """
-
     esm_original = deepcopy(minimal_test_esM)
-    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc")
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original, outputFilePath="test_esM.nc", overwriteExisting=True
+    )
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
@@ -177,11 +170,11 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM):
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-
     esm_original = deepcopy(minimal_test_esM)
     esm_original.optimize()
-
-    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath="test_esM.nc")
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original, outputFilePath="test_esM.nc", overwriteExisting=True
+    )
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
@@ -195,7 +188,6 @@ def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_es
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-
     esm_original_pf = deepcopy(perfectForesight_test_esM)
     esm_original_pf.optimize()
 
@@ -211,8 +203,7 @@ def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_es
 
 
 def test_capacityFix_subset(multi_node_test_esM_init):
-    """
-    Optimize esM, set optimal capacity values for every component as capacity Fix.
+    """Optimize esM, set optimal capacity values for every component as capacity Fix.
     Then, save the esM to netCDF and read out the same netCDF to esM.
     Assert that capacityFix values do not have to be provided for every location when saving to NetCDF.
     Assert that capacityFix index can be a subset of locationalEligibility when reading in NetCDF.
@@ -260,35 +251,107 @@ def test_esm_to_datasets_with_processed_values(minimal_test_esM):
         == 0.177
     )
 
+
 def test_transmission_dims(minimal_test_esM):
-    
     esM = minimal_test_esM
-    capacityMin=pd.DataFrame([[0, 1], [1, 0]], index=list(esM.locations), columns=list(esM.locations))
+    capacityMin = pd.DataFrame(
+        [[0, 1], [1, 0]], index=list(esM.locations), columns=list(esM.locations)
+    )
 
     # update Pipeline component
-    esM.updateComponent(
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        esM.updateComponent(
             componentName="Pipelines",
             updateAttrs={"capacityMin": capacityMin},
         )
-    
-    time_index = pd.date_range(start="2020-01-01", periods=4, freq="H")
-    _locs = pd.MultiIndex.from_product([["ElectrolyzerLocation"],["IndustryLocation"]])
+
+    time_index = pd.date_range(start="2020-01-01", periods=4, freq="h")
+    _locs = pd.MultiIndex.from_product([["ElectrolyzerLocation"], ["IndustryLocation"]])
     columns = [f"{idx0}_{idx1}" for idx0, idx1 in _locs]
     column2 = [f"{idx1}_{idx0}" for idx0, idx1 in _locs]
     columns = columns + column2
-    operationRateMax = pd.DataFrame(1, index=time_index, columns=columns).reset_index(drop=True)
-    esM.updateComponent(
+    operationRateMax = pd.DataFrame(1, index=time_index, columns=columns).reset_index(
+        drop=True
+    )
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        esM.updateComponent(
             componentName="Pipelines",
             updateAttrs={"operationRateMax": operationRateMax},
-    )
-    
+        )
+
     esM.optimize()
     xr_dss = xrIO.convertOptimizationInputToDatasets(esM)
-    assert (esM.totalTimeSteps == list(xr_dss["Input"]["Transmission"]["Pipelines"].time.to_numpy()))
+    assert esM.totalTimeSteps == list(
+        xr_dss["Input"]["Transmission"]["Pipelines"].time.to_numpy()
+    )
 
     esM2 = xrIO.convertDatasetsToEnergySystemModel(xr_dss)
 
     operationRateMax = esM2.getComponentAttribute("Pipelines", "operationRateMax")
     assert operationRateMax.index.name == "time"
-    
+
     esM2.optimize()
+
+
+def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM):
+    """Optimize an esM, write it to  netCDF, then load the esM from this file.
+    Compare if both esMs are identical. Inputs are compared with exportToDict,
+    outputs are compared with optimizationSummary.
+    """
+    esm_original_pf = deepcopy(perfectForesight_test_esM)
+    esm_original_pf.aggregateTemporally(
+        numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=2
+    )
+    esm_original_pf.optimize()
+    path_to_output_file = Path(__file__).parent.joinpath("test_esM_pf.nc")
+    path_to_output_file_str = str(path_to_output_file)
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original_pf, outputFilePath=path_to_output_file_str
+    )
+    esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original_pf)
+    assert "ts_aggregatedOperationRateMax" in esm_datasets["Input"]["Source"]["PV"]
+
+    esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(
+        filePath=path_to_output_file_str
+    )
+
+    compare_esm_inputs(esm_original_pf, esm_pf_from_netcdf)
+
+    path_to_output_file.unlink()
+
+
+def test_operation_export_to_xarray(multi_node_test_esM_init):
+    """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
+    Check that the results of the transmission model are identical to the initial ones.
+
+    Info: This test will fail as soon the annual operation will not be part of the
+    optimization summary anymore. In that case convertOptimizationOutputToDatasets()
+    in xarrayIO.py needs to be adapted.
+    """
+    esM = multi_node_test_esM_init
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
+    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+
+    xrds = xrIO.writeEnergySystemModelToDatasets(esM)
+    optSum = esM.getOptimizationSummary("TransmissionModel").loc[
+        "DC cables", "operation", "[GW$_{el}$*h]"
+    ]
+    xrRes = (
+        xrds["Results"][0]["TransmissionModel"]["DC cables"]
+        .operation.to_series()
+        .unstack()
+        .dropna(how="all")
+    )
+    xrRes.columns.name = None
+
+    assert_frame_equal(optSum, xrRes, check_dtype=False)

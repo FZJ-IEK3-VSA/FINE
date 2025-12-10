@@ -1,5 +1,4 @@
-"""
-Last edited: February 2, 2022
+"""Last edited: February 2, 2022.
 
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """

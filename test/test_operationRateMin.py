@@ -1,7 +1,7 @@
 # %%
-import fine as fn
 import numpy as np
 import pandas as pd
+import pytest
 
 
 def test_operationRateMin(minimal_test_esM):
@@ -13,20 +13,15 @@ def test_operationRateMin(minimal_test_esM):
         np.ones((numberOfTimeSteps, 2)) * min_load_factor,
         columns=["ElectrolyzerLocation", "IndustryLocation"],
     )
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="Electrolyzers",
-            physicalUnit=r"kW$_{el}$",
-            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
-            hasCapacityVariable=True,
-            investPerCapacity=500,  # euro/kW
-            opexPerCapacity=500 * 0.025,
-            interestRate=0.08,
-            economicLifetime=10,
-            operationRateMin=operationRateMin,
+
+    with pytest.warns(
+        UserWarning, match="Component identifier Electrolyzers already exists"
+    ):
+        minimal_test_esM.updateComponent(
+            componentName="Electrolyzers",
+            updateAttrs={"operationRateMin": operationRateMin},
         )
-    )
+
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
     ts = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.loc[
