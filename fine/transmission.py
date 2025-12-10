@@ -994,6 +994,7 @@ class TransmissionModel(ComponentModel):
             raise ValueError(
                 "Invalid type in ComponentLimit Contraint. Please choose 'operation' or 'capacity'."
             )
+        return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """Get contribution to the objective function.
