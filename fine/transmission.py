@@ -877,7 +877,6 @@ class TransmissionModel(ComponentModel):
             for p in periods
             for t in timeSteps
         )
-        return aut
     
     def getComponentLimitContribution(
         self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type
