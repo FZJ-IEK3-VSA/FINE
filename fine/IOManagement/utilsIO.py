@@ -933,6 +933,9 @@ def convertToXarray(component_dict):
             if isinstance(value, pd.Series):
                 # Handle pandas Series using xarray's built-in method
                 data_vars[key] = xr.DataArray.from_series(value)
+            elif isinstance(value, pd.DataFrame):
+                # TODO: check why we have dataframes all of a sudden here!
+                data_vars[key] = xr.DataArray.from_series(value.rename_axis("space",axis=1).rename_axis("time",axis=0).stack())
                 
             elif isinstance(value, (str, int, float, bool)):
                 # Handle all scalar values

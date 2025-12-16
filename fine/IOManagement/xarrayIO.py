@@ -109,7 +109,7 @@ def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
     # STEP 1.2. Create was_none_mask for perfect reconstruction
     was_none_mask = utilsIO.createWasNoneMask(component_dict_mod)
     # STEP 1.3. Replace None values with appropriate defaults for xarray
-    component_dict = utilsIO.replaceNoneValuesForXarray(component_dict_mod)
+    component_dict_mod = utilsIO.replaceNoneValuesForXarray(component_dict_mod)
 
     # STEP 2. Convert esm_dict to xarray datasets
     xr_dss = utilsIO.convertToXarray(component_dict_mod)
@@ -124,54 +124,6 @@ def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
 
     return xr_dss
 
-def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
-    """
-    Takes esM instance input and converts it into xarray datasets.
-
-    :param esM: EnergySystemModel instance in which the model is held
-    :type esM: EnergySystemModel instance
-
-    **Default arguments:**
-
-        :param useProcessedValues: True if the raw values should be over-written by processed values, False otherwise.
-            A requirement for perfect-foresight and by extension for spatial and technology aggregations
-            |br| * the default value is False
-        :type useProcessedValues: bool
-
-    :return: xr_ds - esM instance data in xarray dataset format
-    :rtype: xarray.dataset
-    """
-
-    # STEP 1. Get the esm and component dicts
-    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
-    
-    # STEP 3.1 get _mapC for all transmission components
-    _mapC_dict = {}
-    for tech in component_dict["Transmission"].keys():
-        _mapC_dict[tech] = esM.getComponent(tech)._mapC
-    
-    component_dict_mod = utilsIO.processComponentDict(component_dict, list(esM.locations), _mapC_dict)
-
-    # STEP 1.1. Create comprehensive parameter mask for all parameters and their dimensions
-    dimension_mask = utilsIO.createParameterDimensionDict(component_dict_mod)
-
-    # STEP 1.2. Create was_none_mask for perfect reconstruction
-    was_none_mask = utilsIO.createWasNoneMask(component_dict_mod)
-    # STEP 1.3. Replace None values with appropriate defaults for xarray
-    component_dict = utilsIO.replaceNoneValuesForXarray(component_dict_mod)
-
-    # STEP 2. Convert esm_dict to xarray datasets
-    xr_dss = utilsIO.convertToXarray(component_dict_mod)
-    
-    # STEP 7. Add comprehensive parameter information (dimensions). And None tracker. Instead of 0d,1d,2d,ts prefix
-    xr_dss = utilsIO.addParameterDimensionsToXarray(xr_dss, dimension_mask, was_none_mask)
-
-    attributes_xr = xr.Dataset()
-    attributes_xr.attrs = esm_dict
-
-    xr_dss = {"Input": xr_dss, "Parameters": attributes_xr}
-
-    return xr_dss
 
 def convertPerformanceSummaryToDatasets(esM):
     import pandas as pd
@@ -190,55 +142,6 @@ def convertPerformanceSummaryToDatasets(esM):
     summary_xr.attrs = summary_dict
 
     return {"PerformanceSummary": summary_xr}
-
-def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
-    """
-    Takes esM instance input and converts it into xarray datasets.
-
-    :param esM: EnergySystemModel instance in which the model is held
-    :type esM: EnergySystemModel instance
-
-    **Default arguments:**
-
-        :param useProcessedValues: True if the raw values should be over-written by processed values, False otherwise.
-            A requirement for perfect-foresight and by extension for spatial and technology aggregations
-            |br| * the default value is False
-        :type useProcessedValues: bool
-
-    :return: xr_ds - esM instance data in xarray dataset format
-    :rtype: xarray.dataset
-    """
-
-    # STEP 1. Get the esm and component dicts
-    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
-    
-    # STEP 3.1 get _mapC for all transmission components
-    _mapC_dict = {}
-    for tech in component_dict["Transmission"].keys():
-        _mapC_dict[tech] = esM.getComponent(tech)._mapC
-    
-    component_dict_mod = utilsIO.processComponentDict(component_dict, list(esM.locations), _mapC_dict)
-
-    # STEP 1.1. Create comprehensive parameter mask for all parameters and their dimensions
-    dimension_mask = utilsIO.createParameterDimensionDict(component_dict_mod)
-
-    # STEP 1.2. Create was_none_mask for perfect reconstruction
-    was_none_mask = utilsIO.createWasNoneMask(component_dict_mod)
-    # STEP 1.3. Replace None values with appropriate defaults for xarray
-    component_dict = utilsIO.replaceNoneValuesForXarray(component_dict_mod)
-
-    # STEP 2. Convert esm_dict to xarray datasets
-    xr_dss = utilsIO.convertToXarray(component_dict_mod)
-    
-    # STEP 7. Add comprehensive parameter information (dimensions). And None tracker. Instead of 0d,1d,2d,ts prefix
-    xr_dss = utilsIO.addParameterDimensionsToXarray(xr_dss, dimension_mask, was_none_mask)
-
-    attributes_xr = xr.Dataset()
-    attributes_xr.attrs = esm_dict
-
-    return {"Input": xr_dss, "Parameters": attributes_xr}
-
-    return xr_dss
 
 
 def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
@@ -275,122 +178,54 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
             if esM.componentModelingDict[name].dimension == "1dim":
                 for component in optSum.index.get_level_values(0).unique():
+                    variables = optSum.loc[component].index.get_level_values(0)
+                    units = optSum.loc[component].index.get_level_values(1)
+                    variables_unit = dict(zip(variables, units))
+
                     for variable in (
                         optSum.loc[component].index.get_level_values(0).unique()
                     ):
-                        df_o = optSum.loc[(component, variable)]
-                        # differentiate if two entries per variable, i.e. operation: annual and normal, because nc4 can not save two entries with the same name
-                        if df_o.shape[0] == 2:
-                            # first half of df_o, as it is annual and normal operation
-                            df = df_o.iloc[0].copy()
-                            df.name = variable
-                            df.index.rename("space", inplace=True)
-                            df = pd.to_numeric(df, errors="coerce")
-                            xr_da = df.to_xarray()
-                            unit = df_o.iloc[0].name
-                            # unit = variables_unit[variable]
-                            xr_da.attrs[variable] = unit
-                            # merge to overall xr_dss
-                            xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da],
-                                combine_attrs="drop_conflicts",
-                            )
-                            # second half of df_o, as it is annual and normal operation
-                            df = df_o.iloc[1].copy()
-                            df.name = f"{variable}_{1}"
-                            df.index.rename("space", inplace=True)
-                            df = pd.to_numeric(df, errors="coerce")
-                            xr_da = df.to_xarray()
-                            # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            unit = df_o.iloc[1].name
-                            xr_da.attrs[df.name] = unit
-                        else:
-                            df = df_o.iloc[-1]
-                            df.name = variable
-                            df.index.rename("space", inplace=True)
-                            df = pd.to_numeric(df, errors="coerce")
-                            xr_da = df.to_xarray()
-                            # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            unit = df_o.iloc[-1].name
-                            xr_da.attrs[variable] = unit
+                        df = optSum.loc[(component, variable)]
+                        df = df.iloc[-1]
+                        df.name = variable
+                        df.index.rename("space", inplace=True)
+                        df = pd.to_numeric(df)
+                        xr_da = df.to_xarray()
 
-                        # merge to overall xr_ds
+                        # add variable [e.g. 'TAC'] and units to attributes of xarray
+                        unit = variables_unit[variable]
+                        xr_da.attrs[variable] = unit
+
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
                             combine_attrs="drop_conflicts",
                         )
             elif esM.componentModelingDict[name].dimension == "2dim":
                 for component in optSum.index.get_level_values(0).unique():
+                    variables = optSum.loc[component].index.get_level_values(0)
+                    units = optSum.loc[component].index.get_level_values(1)
+                    variables_unit = dict(zip(variables, units))
+
                     for variable in (
                         optSum.loc[component].index.get_level_values(0).unique()
                     ):
-                        df_o = optSum.loc[(component, variable)]
-                        # differentiate if two entries per variable, i.e. operation: annual and normal
-                        if "operation" in variable or variable == "operation":
-                            # first half of df_o, as it is annual and normal operation
-                            len_df_o = int(len(df_o))
-                            df = df_o.iloc[0 : int(len_df_o / 2), :].copy()
-                            if len(df.index.get_level_values(0).unique()) > 1:
-                                idx = df.index.get_level_values(0).unique()[-1]
-                                df = df.xs(idx, level=0)
-                            else:
-                                df.index = df.index.droplevel(0)
-                            df = df.stack()
-                            df.name = variable
-                            df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                            df = pd.to_numeric(df, errors="coerce")
-                            xr_da = df.to_xarray()
-                            # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            unit = df_o.iloc[
-                                0 : int(len_df_o / 2), :
-                            ].index.get_level_values(0)[0]
-                            xr_da.attrs[variable] = unit
-                            # merge to overall xr_ds
-                            xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da],
-                                combine_attrs="drop_conflicts",
-                            )
-
-                            # second half of df_o, as it is annual and normal operation
-                            df = df_o.iloc[int(len_df_o / 2) : len_df_o, :].copy()
-                            if len(df.index.get_level_values(0).unique()) > 1:
-                                idx = df.index.get_level_values(0).unique()[-1]
-                                df = df.xs(idx, level=0)
-                            else:
-                                df.index = df.index.droplevel(0)
-                            df = df.stack()
-                            df.name = f"{variable}_{1}"
-                            df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                            df = pd.to_numeric(df, errors="coerce")
-                            xr_da = df.to_xarray()
-                            # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            unit = df_o.iloc[
-                                int(len_df_o / 2) : len_df_o, :
-                            ].index.get_level_values(0)[0]
-                            xr_da.attrs[df.name] = unit
-
+                        df = optSum.loc[(component, variable)]
+                        if len(df.index.get_level_values(0).unique()) > 1:
+                            idx = df.index.get_level_values(0).unique()[-1]
+                            df = df.xs(idx, level=0)
                         else:
-                            df = df_o.copy()
-                            if len(df.index.get_level_values(0).unique()) > 1:
-                                idx = df.index.get_level_values(0).unique()[-1]
-                                df = df.xs(idx, level=0)
-                            else:
-                                df.index = df.index.droplevel(0)
-                            df = df.stack()
-                            df.name = variable
-                            df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                            df = pd.to_numeric(df, errors="coerce")
-                            xr_da = df.to_xarray()
+                            df.index = df.index.droplevel(0)
+                        # df = df.iloc[-1]
+                        df = df.stack()
+                        # df.name = (name, component, variable)
+                        df.name = variable
+                        df.index.rename(["space", "space_2"], inplace=True)
+                        df = pd.to_numeric(df)
+                        xr_da = df.to_xarray()
 
-                            # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            unit = df_o.index.get_level_values(0)[0]
-                            xr_da.attrs[variable] = unit
-
-                        # merge to overall xr_ds
-                        xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da],
-                            combine_attrs="drop_conflicts",
-                        )
+                        # add variable [e.g. 'TAC'] and units to attributes of xarray
+                        unit = variables_unit[variable]
+                        xr_da.attrs[variable] = unit
 
             # Write output from esM.esM.componentModelingDict[name].getOptimalValues() to datasets
             data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
