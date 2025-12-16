@@ -227,6 +227,11 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         unit = variables_unit[variable]
                         xr_da.attrs[variable] = unit
 
+                        xr_dss[ip][name][component] = xr.merge(
+                            [xr_dss[ip][name][component], xr_da],
+                            combine_attrs="drop_conflicts",
+                        )
+
             # Write output from esM.esM.componentModelingDict[name].getOptimalValues() to datasets
             data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
             dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
