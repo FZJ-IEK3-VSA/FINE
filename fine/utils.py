@@ -7,7 +7,19 @@ import pandas as pd
 import fine as fn
 
 # ruff: noqa
+def checkAndSetBalanceLimitID(balanceLimitID):
+    if balanceLimitID is None or isinstance(balanceLimitID, str):
+        return balanceLimitID
+    else:
+       raise ValueError("The input argument needs to be a string or None.") 
 
+def checkCapacityOrCommissioningTransmission(df):
+    if isinstance(df, (pd.DataFrame,pd.Series,int,float)):
+        return df
+    elif df == None:
+        return df
+    else:
+        raise ValueError("The input argument needs to be a dataframe.")
 
 def isInRange(value, lowerBound, upperBound):
     """Check if the input value is in the given range."""
@@ -894,7 +906,22 @@ def setLocationalEligibility(
     dimension="1dim",
 ):
     if locationalEligibility is not None:
-        # TODO implement checks for the locationalEligiblity, especially for transmission components
+        if isinstance(locationalEligibility, pd.Series):
+            esm_locations = set(esM.locations)
+            le_index = set(locationalEligibility.index)
+            if dimension=="1dim":
+                if esm_locations != le_index:
+                    raise ValueError(f"if locationalEligibility is specified, it needs to match the esM locations")
+            elif dimension=="2dim":
+                le_index_2dim = set(f"{a}_{b}" for a in sorted(esm_locations) for b in sorted(esm_locations) if a!=b)
+                if le_index_2dim != le_index:
+                    raise ValueError(f"if locationalEligibility is specified, it needs to match the esM locations")
+            else:
+                raise ValueError(f"dimensions needs to be either '1dim' or '2dim'")
+            if not locationalEligibility.isin([0,1,True,False]).all():
+                raise ValueError(f"all values in locationalEligibility must be either True or False or 1 or 0") 
+        else:
+            raise ValueError(f"locationalEligibility needs to be a Series after it has been preprocessed")
         return locationalEligibility
     else:
         # If the location eligibility is None set it based on other information available

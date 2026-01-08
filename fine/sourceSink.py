@@ -258,9 +258,8 @@ class Source(Component):
             commodity,
             esM.commodityUnitsDict[commodity],
         )
-        # TODO check value and type correctness
-        self.balanceLimitID = balanceLimitID
-        self.pathwayBalanceLimitID = pathwayBalanceLimitID
+        self.balanceLimitID = utils.checkAndSetBalanceLimitID(balanceLimitID)
+        self.pathwayBalanceLimitID = utils.checkAndSetBalanceLimitID(pathwayBalanceLimitID)
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
