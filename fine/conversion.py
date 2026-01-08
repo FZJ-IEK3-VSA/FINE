@@ -1634,12 +1634,13 @@ class ConversionModel(ComponentModel):
             )
             self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
 
-            props = ["operation", "opexOp", "NPV_opexOp"]
+            props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
-                props[1]: ["[" + esM.costUnit + "/a]"],
+                props[0]: ["[-*h]"],
+                props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
+                props[3]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1657,7 +1658,7 @@ class ConversionModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].physicalUnit),
                         )
-                        if x[1] == "operation"
+                        if x[1] == "operation" or "operation_annual"
                         else x
                     ),
                     tuples,
@@ -1680,18 +1681,19 @@ class ConversionModel(ComponentModel):
                 # operation
                 optSummary.loc[
                     [
-                        (ix, "operation", "[" + compDict[ix].physicalUnit + "*h/a]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-                optSummary.loc[
-                    [
                         (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")
                         for ix in opSum.index
                     ],
                     opSum.columns,
                 ] = opSum.values
+
+                optSummary.loc[
+                    [
+                        (ix, "operation_annual", "[" + compDict[ix].physicalUnit + "*h/a]")
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values / esM.numberOfYears
 
                 # operation cost - TAC
                 tac_ox = resultsTAC_opexOp[ip]

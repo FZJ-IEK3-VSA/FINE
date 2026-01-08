@@ -1084,8 +1084,8 @@ class SourceSinkModel(ComponentModel):
             self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
 
             props = [
-                "total_operation",
-                "annual_operation",
+                "operation",
+                "operation_annual",
                 "opexOp",
                 "commodCosts",
                 "commodRevenues",
@@ -1120,27 +1120,27 @@ class SourceSinkModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] == "total_operation" or "annual_operation"
+                        if x[1] == "operation" or "operation_annual"
                         else x
                     ),
                     tuples,
                 )
             )
-            print(tuples)
+            
             mIndex = pd.MultiIndex.from_tuples(
                 tuples, names=["Component", "Property", "Unit"]
             )
-            print("mIndex:", mIndex)
+            
             optSummary = pd.DataFrame(
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
-            print("opt summary:", optSummary)
+            
             if optVal is not None:
                 # operation
                 opSum = optVal.sum(axis=1).unstack(-1)
                 optSummary.loc[
                     [
-                        (ix, "total_operation", "[" + compDict[ix].commodityUnit + "*h]")
+                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
                         for ix in opSum.index
                     ],
                     opSum.columns,
@@ -1155,7 +1155,7 @@ class SourceSinkModel(ComponentModel):
 
                 optSummary.loc[
                     [
-                        (ix, "annual_operation", "[" + compDict[ix].commodityUnit + "*h/a]")
+                        (ix, "operation_annual", "[" + compDict[ix].commodityUnit + "*h/a]")
                         for ix in opSum.index
                     ],
                     opSum.columns,
