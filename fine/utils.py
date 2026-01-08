@@ -6,7 +6,6 @@ import pandas as pd
 
 import fine as fn
 
-# ruff: noqa
 
 
 def isInRange(value, lowerBound, upperBound):
@@ -2023,18 +2022,23 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
 
 
 def map2dimData(data, mapC):
+    """Missing.
+    """
     if data is not None and isinstance(data, pd.DataFrame):
         return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
-    else:
-        return data
+    return data
 
 
 def output(output, verbose, val):
+    """Missing.
+    """
     if verbose == val:
         print(output)
 
 
 def checkModelClassEquality(esM, file):
+    """Missing.
+    """
     mdlListFromModel = list(esM.componentModelingDict.keys())
     mdlListFromExcel = []
     for sheet in file.sheet_names:
@@ -2048,6 +2052,8 @@ def checkModelClassEquality(esM, file):
 
 
 def checkComponentsEquality(esM, file):
+    """Missing.
+    """
     compListFromExcel = []
     compListFromModel = list(esM.componentNames.keys())
     for mdl in esM.componentModelingDict.keys():
@@ -2061,24 +2067,23 @@ def checkComponentsEquality(esM, file):
 
 
 def checkNumberOfConversionFactors(commods):
+    """Missing.
+    """
     if len(commods) > 2:
         if all([isinstance(value, (int, float)) for value in commods.values()]):
             raise ValueError(
                 "Currently commodityConversionFactors are overwritten by commodityConversionFactorsPartLoad."
             )
-        else:
-            raise ValueError(
-                "Currently only two commodities are allowed in conversion processes that use commodityConversionFactorsPartLoad."
-            )
-    else:
-        return True
+        raise ValueError(
+            "Currently only two commodities are allowed in conversion processes that use commodityConversionFactorsPartLoad."
+        )
+    return True
 
 
 def checkAndSetTimeHorizon(
     startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None
 ):
-    """
-    Check if there are enough input parameters given for defining the time horizon for the myopic approach.
+    """Check if there are enough input parameters given for defining the time horizon for the myopic approach.
     Calculate the number of optimization steps and the number of represented years per each step if not given.
     """
     if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
@@ -2089,14 +2094,10 @@ def checkAndSetTimeHorizon(
             for i in [10, 5, 3, 2, 1]:
                 if diff % i == 0:
                     return i
+            return i
 
         nbOfRepresentedYears = biggestDivisor(diff)
         nbOfSteps = int(diff / nbOfRepresentedYears)
-    elif (
-        (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None)
-    ):
-        # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
-        nbOfSteps = nbOfSteps
     elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is None):
         # If number of steps is given but no endyear and no the number of represented years per optimization run,
         # nbOfRepresentedYears is set to 1 year.
@@ -2107,7 +2108,7 @@ def checkAndSetTimeHorizon(
             raise ValueError(
                 "Number of Steps does not fit for the given time horizon between start and end year."
             )
-        elif (diff % nbOfSteps == 0) & (nbOfRepresentedYears is not None):
+        if (diff % nbOfSteps == 0) & (nbOfRepresentedYears is not None):
             if diff / nbOfSteps != nbOfRepresentedYears:
                 raise ValueError(
                     "Number of represented years does not fit for the given time horizon and the number of steps."
@@ -2120,8 +2121,7 @@ def checkAndSetTimeHorizon(
             raise ValueError(
                 "Number of represented Years is not an integer divisor of the requested time horizon."
             )
-        else:
-            nbOfSteps = int(diff / nbOfRepresentedYears)
+        nbOfSteps = int(diff / nbOfRepresentedYears)
     else:
         nbOfSteps = 1
         nbOfRepresentedYears = 1
@@ -2132,10 +2132,12 @@ def checkAndSetTimeHorizon(
 def checkStockYears(
     stockCommissioning, startYear, investmentPeriodInterval, ipTechnicalLifetime
 ):
+    """Missing.
+    """
     if stockCommissioning is None:
         return [], []
     if not isinstance(stockCommissioning, dict):
-        raise ValueError(f"stockCommissioning must be None or a dict")
+        raise ValueError("stockCommissioning must be None or a dict")
 
     # check years
     for year, yearly_stock in stockCommissioning.items():
@@ -2162,6 +2164,8 @@ def checkStockYears(
 
 
 def checkAndSetStock(component, esM, stockCommissioning):
+    """Missing.
+    """
     if stockCommissioning is None:
         return stockCommissioning
 
@@ -2195,10 +2199,10 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 raise ValueError(
                     "esM has more than one location, so the location of the stock has to be set."
                 )
-            else:  # if there is only one region, convert into pd.series region:stock
-                isPositiveNumber(yearly_stock)
-                stockCommissioning[year] = pd.Series(
-                    data={list(esM.locations)[0]: yearly_stock}
+            # if there is only one region, convert into pd.series region:stock
+            isPositiveNumber(yearly_stock)
+            stockCommissioning[year] = pd.Series(
+                data={list(esM.locations)[0]: yearly_stock}
                 )
         elif isinstance(yearly_stock, pd.Series):
             # series must have all locations as index and float/int for values
@@ -2302,11 +2306,12 @@ def checkAndSetStock(component, esM, stockCommissioning):
         maxTechnicalLifetime = math.ceil(component.ipTechnicalLifetime.max())
     allStockYears = [x for x in range(-1, -maxTechnicalLifetime - 1, -1)]
     stock_df = stock_df.reindex(allStockYears).fillna(0)
-    processedStockCommissioning = stock_df.T.to_dict(orient="series")
-    return processedStockCommissioning
+    return stock_df.T.to_dict(orient="series")
 
 
 def setStockCapacityStartYear(component, esM, dimension):
+    """Missing.
+    """
     if dimension == "1dim":
         regions = esM.locations
     elif dimension == "2dim":
@@ -2318,23 +2323,22 @@ def setStockCapacityStartYear(component, esM, dimension):
         ]
     if component.processedStockCommissioning is None:
         return pd.Series(index=regions, data=0)
-    else:
-        stockCapacityStartYear = pd.Series()
-        for loc in regions:
-            _stock_location = 0
-            if component.floorTechnicalLifetime:
-                ipTechLifetime = math.floor(component.ipTechnicalLifetime[loc])
-            else:
-                ipTechLifetime = math.ceil(component.ipTechnicalLifetime[loc])
-            for year in range(-1, -ipTechLifetime - 1, -1):
-                _stock_location += component.processedStockCommissioning[year].loc[loc]
-            stockCapacityStartYear[loc] = _stock_location
-        return stockCapacityStartYear
+
+    stockCapacityStartYear = pd.Series()
+    for loc in regions:
+        _stock_location = 0
+        if component.floorTechnicalLifetime:
+            ipTechLifetime = math.floor(component.ipTechnicalLifetime[loc])
+        else:
+            ipTechLifetime = math.ceil(component.ipTechnicalLifetime[loc])
+        for year in range(-1, -ipTechLifetime - 1, -1):
+            _stock_location += component.processedStockCommissioning[year].loc[loc]
+        stockCapacityStartYear[loc] = _stock_location
+    return stockCapacityStartYear
 
 
 def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
-    """
-    Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
+    """Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
     """
     if CO2ReductionTargets is not None:
         if len(CO2ReductionTargets) != nbOfSteps + 1:
@@ -2345,31 +2349,26 @@ def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
 
 
 def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
-    """
-    Check if a sink component object called >CO2 to environment< exists.
+    """Check if a sink component object called >CO2 to environment< exists.
     This component is required if CO2 reduction targets are given.
     """
-
     if CO2ReductionTargets is not None:
         if "CO2 to environment" not in esM.componentNames:
             warnings.warn(
                 "CO2 emissions are not considered in the current esM. CO2ReductionTargets will be ignored."
             )
-            CO2ReductionTargets = None
-            return CO2ReductionTargets
-        else:
-            return CO2ReductionTargets
+            return None
+    return CO2ReductionTargets
 
 
 def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
-    """
-    Check if simultaneous charge and discharge occurs for StorageComponent.
+    """Check if simultaneous charge and discharge occurs for StorageComponent.
     :param tsCharge: Charge time series of component, which is checked. Can be retrieved from
         chargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
     :type tsCharge: pd.DataFrame
     :param tsDischarge: Discharge time series of component, which is checked. Can be retrieved from
         dischargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
-    :type tsDischarge: pd.DataFrame
+    :type tsDischarge: pd.DataFrame.
 
     :return: simultaneousChargeDischarge: Boolean with information if simultaneous charge & discharge happens
     :type simultaneousChargeDischarge: bool
@@ -2379,30 +2378,29 @@ def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
     # If no simultaneous charge and discharge occurs ts[region][ts[region] > 0] will only return nan values. After
     # dropping them the len() is 0 and the check returns False. This is done for all regions in the list comprehension.
     # If any() region returns True the check returns True.
-    simultaneousChargeDischarge = any(
+    return any(
         [
             len(ts[region][ts[region] > 0].dropna()) > 0
             for region in set(ts.columns.values)
         ]
     )
-    return simultaneousChargeDischarge
+
 
 
 def addEmptyRegions(esM, data):
-    """
+    """Check empty regions.
     If data for a region is missing, fill with 0s.
     """
-
     esM_locations = esM.locations
     data_locations = data.index
     missing_locations = [loc for loc in esM_locations if loc not in data_locations]
 
-    if type(data) == pd.Series:
+    if data is pd.Series:
         for loc in missing_locations:
             tst = pd.Series([0], index=[loc])
             data = pd.concat([data, tst], axis=0)
 
-    elif type(data) == pd.DataFrame:
+    elif data is pd.DataFrame:
         for loc in missing_locations:
             if loc not in data.columns:
                 data[loc] = 0
@@ -2411,17 +2409,20 @@ def addEmptyRegions(esM, data):
 
 
 def annuityPresentValueFactor(esM, compName, loc, years):
+    """Calculate annuity of present value factor.
+    """
     # DE:Rentenbarwertfaktor
     interestRate = esM.getComponent(compName).interestRate[loc]
     if interestRate == 0:
         return years
-    else:
-        return (((1 + interestRate) ** (years)) - 1) / (
+    return (((1 + interestRate) ** (years)) - 1) / (
             interestRate * (1 + interestRate) ** (years)
         )
 
 
 def discountFactor(esM, ip, compName, loc):
+    """Calculate discount factors.
+    """
     return (
         1
         / (1 + esM.getComponent(compName).interestRate[loc])
@@ -2431,11 +2432,10 @@ def discountFactor(esM, ip, compName, loc):
 
 
 def checkConversionFactorProperties(comp, esM, commisDependingCcf):
-    """
-    check commodity conversion factors (ccf) in order to determine if the conversion component is:
-        a) ipDepending (ccf changes with investment period it is operated (e.g. due to weather changes))
-        b) commisDepending (ccf changes based on year a component is commissioned (e.g. due to technological improvements)
-        c) flexibleConversion (component can decide which commodity to use (within a specified commodity group))
+    """Check commodity conversion factors (ccf) in order to determine if the conversion component is.
+    a) ipDepending (ccf changes with investment period it is operated (e.g. due to weather changes))
+    b) commisDepending (ccf changes based on year a component is commissioned (e.g. due to technological improvements)
+    c) flexibleConversion (component can decide which commodity to use (within a specified commodity group)).
     """
     isIpDepending = False
     isCommisDepending = False
@@ -2507,7 +2507,7 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
             for ccf in _commodConvFactorForIp:
                 for commod in ccf.keys():
                     # check for same datatype
-                    if type(ccf[commod]) != type(_baseCommodConvFactor[commod]):
+                    if type(ccf[commod]) is not type(_baseCommodConvFactor[commod]):
                         raise ValueError(
                             f"Unallowed data type variation for commodity {commod} for yearly dependency."
                         )
@@ -2515,8 +2515,7 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
                         if not ccf[commod].equals(_baseCommodConvFactor[commod]):
                             isDataVariating = True
                             break
-                    else:
-                        if not ccf[commod] == _baseCommodConvFactor[commod]:
+                    elif not ccf[commod] == _baseCommodConvFactor[commod]:
                             isDataVariating = True
                             break
         # if data is varying, set commis depending true
@@ -2534,22 +2533,23 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
 
 
 def checkNestedNanValues(obj):
+    """Missing.
+    """
     if isinstance(obj, dict):
         return any(checkNestedNanValues(v) for v in obj.values())
-    elif isinstance(obj, (list, tuple)):
+    if isinstance(obj, (list, tuple)):
         return any(checkNestedNanValues(v) for v in obj)
-    elif isinstance(obj, pd.Series):
+    if isinstance(obj, pd.Series):
         return obj.isnull().any()
-    elif isinstance(obj, pd.DataFrame):
+    if isinstance(obj, pd.DataFrame):
         return obj.isnull().values.any()
-    elif isinstance(obj, float):
+    if isinstance(obj, float):
         return math.isnan(obj)
     return False
 
 
 def checkAndSetCommodityConversionFactor(comp, esM):
-    """
-    Set up the full commodity conversion factor, if necessary depending on
+    """Set up the full commodity conversion factor, if necessary depending on
     commissioning year and investment period.
     """
     iterationList = esM.investmentPeriodNames
@@ -2616,7 +2616,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 if isinstance(value, float) and math.isnan(value):
                     raise ValueError(f"NaN found at key '{key}'")
 
-                elif isinstance(value, list):
+                if isinstance(value, list):
                     for i, v in enumerate(value):
                         if isinstance(v, float) and math.isnan(v):
                             raise ValueError(
@@ -2681,10 +2681,10 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                     ):
                         raise NotImplementedError(
                             "Flexible conversion components currently do not support "
-                            f"time series data for commodity conversion factors."
+                            "time series data for commodity conversion factors."
                         )
 
-                    elif isinstance(
+                    if isinstance(
                         _commodityConversionFactors[group][commod], (int, float)
                     ):
                         # fix values do not need a time-series aggregation and are written
@@ -2746,8 +2746,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
 
 
 def checkEmissionFactors(comp, esM):
-    """
-    Check emission factors for flexible conversion components.
+    """Check emission factors for flexible conversion components.
     """
 
     def is_nan(val):
@@ -2755,7 +2754,7 @@ def checkEmissionFactors(comp, esM):
 
     if comp.emissionFactors is None:
         return None
-    elif not comp.flexibleConversion:
+    if not comp.flexibleConversion:
         raise NotImplementedError(
             "Emission factors can only be defined for flexible conversion components. "
             "For non flexible conversion components emission factors must be introduced "
@@ -2770,7 +2769,7 @@ def checkEmissionFactors(comp, esM):
     for key, value in comp.emissionFactors.items():
         if isinstance(value, float) and is_nan(value):
             raise ValueError(f"NaN found in emission factor for key '{key}'")
-        elif isinstance(value, list):
+        if isinstance(value, list):
             for i, v in enumerate(value):
                 if isinstance(v, float) and is_nan(v):
                     raise ValueError(
@@ -2818,8 +2817,7 @@ def checkEmissionFactors(comp, esM):
 
 
 def checkAndSetFlowShares(comp, esM):
-    """
-    Check flow shares for flexible conversion components.
+    """Check flow shares for flexible conversion components.
     """
     if comp.flowShares is None:
         return None
@@ -2849,7 +2847,7 @@ def checkAndSetFlowShares(comp, esM):
             )
         for param in flowShares.keys():
             for commod, flowShare in flowShares[param].items():
-                if not commod in flex_commodities:
+                if commod not in flex_commodities:
                     raise ValueError(
                         "Flow shares commodities must be defined as flexible "
                         f"commodity. Please check {commod} in {comp.name}"
@@ -2888,6 +2886,8 @@ def checkAndSetFlowShares(comp, esM):
 
 
 def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
+    """Get parameters for uneven lifetimes.
+    """
     ipEconomicLifetime = getattr(esM.getComponent(compName), "ipEconomicLifetime")[loc]
     ipTechnicalLifetime = getattr(esM.getComponent(compName), "ipTechnicalLifetime")[
         loc
