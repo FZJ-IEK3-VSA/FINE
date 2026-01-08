@@ -1084,7 +1084,8 @@ class SourceSinkModel(ComponentModel):
             self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
 
             props = [
-                "operation",
+                "total_operation",
+                "annual_operation",
                 "opexOp",
                 "commodCosts",
                 "commodRevenues",
@@ -1094,13 +1095,14 @@ class SourceSinkModel(ComponentModel):
             ]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
-                props[1]: ["[" + esM.costUnit + "/a]"],
+                props[0]: ["[-*h]"],
+                props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
                 props[3]: ["[" + esM.costUnit + "/a]"],
                 props[4]: ["[" + esM.costUnit + "/a]"],
                 props[5]: ["[" + esM.costUnit + "/a]"],
                 props[6]: ["[" + esM.costUnit + "/a]"],
+                props[7]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1118,31 +1120,42 @@ class SourceSinkModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] == "operation"
+                        if x[1] == "total_operation" or "annual_operation"
                         else x
                     ),
                     tuples,
                 )
             )
+            print(tuples)
             mIndex = pd.MultiIndex.from_tuples(
                 tuples, names=["Component", "Property", "Unit"]
             )
+            print("mIndex:", mIndex)
             optSummary = pd.DataFrame(
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
+            print("opt summary:", optSummary)
             if optVal is not None:
                 # operation
                 opSum = optVal.sum(axis=1).unstack(-1)
                 optSummary.loc[
                     [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
+                        (ix, "total_operation", "[" + compDict[ix].commodityUnit + "*h]")
                         for ix in opSum.index
                     ],
                     opSum.columns,
                 ] = opSum.values
+                # optSummary.loc[
+                #     [
+                #         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
+                #         for ix in opSum.index
+                #     ],
+                #     opSum.columns,
+                # ] = opSum.values / esM.numberOfYear
+
                 optSummary.loc[
                     [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
+                        (ix, "annual_operation", "[" + compDict[ix].commodityUnit + "*h/a]")
                         for ix in opSum.index
                     ],
                     opSum.columns,
