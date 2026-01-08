@@ -446,7 +446,7 @@ class Component(metaclass=ABCMeta):
             * Pandas DataFrame with positive (>=0) values. The row and column indices of the DataFrame have
               to equal the in the energy system model specified locations.
 
-        :param yearlyFullLoadHoursMin: if specified, indicates the minimun yearly full load hours.
+        :param yearlyFullLoadHoursMin: if specified, indicates the minimum yearly full load hours.
             |br| * the default value is None
         :type yearlyFullLoadHoursMin:
 
