@@ -3,6 +3,7 @@
 import fine as fn
 import pandas as pd
 
+
 def test_LocationEligibility():
     """Currently, the locational eligibility is automatically set if not given as input parameter.
     Transmission capacity min/max/fix or operation min/max/fix can be submitted as Dataframes or
@@ -51,6 +52,7 @@ def test_LocationEligibility():
         )
     )
 
+
 def test_TransmissionWithoutCapacityRestrictions():
     """Tests if Transmission components are initialized without error if
     just limited operation rate values are provided without specifiying capacity
@@ -59,7 +61,7 @@ def test_TransmissionWithoutCapacityRestrictions():
     esm = fn.EnergySystemModel(
         locations={"DE", "AT", "CH"},
         commodities={"energy"},
-        commodityUnitsDict={"energy": "joule"}
+        commodityUnitsDict={"energy": "joule"},
     )
 
     operationRateMax = pd.DataFrame(index=range(8760))
@@ -75,5 +77,5 @@ def test_TransmissionWithoutCapacityRestrictions():
         esM=esm,
         name="transmission",
         commodity="energy",
-        operationRateMax=operationRateMax
+        operationRateMax=operationRateMax,
     )
