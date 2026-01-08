@@ -192,10 +192,6 @@ class EnergySystemModel:
             index, the corresponding regional scope as columns and the values as data. The regional scope can be set
             for a region with the matching region name as column name or "Total" as colum name for setting for the entire system.
 
-        Example:
-            - per region: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
-            - per region and per system: pd.DataFrame(columns=["Region1","Total"], index=["electricity"], data=[1000,2000])
-
             Temporal dependency:
             If the balanceLimit is passed as a dict with the described pd.DataFrames as values it is considered per investment period.
             Values are always given in the unit of the esM commodities unit.\n
@@ -217,6 +213,42 @@ class EnergySystemModel:
                 (Logically maximum limit for negative values, define negative value in balanceLimit).
                 Example: Define upper limit for Carbon Capture & Storage.\n
 
+            Examples:
+            - CO2 Limit as a source:
+                balanceLimit=pd.DataFrame(columns=["Total"],
+                                          index=["CO2 Limit"],
+                                          data=[1000]
+                                          )
+            - CO2 Limit as a sink:
+                balanceLimit=pd.DataFrame(columns=["Total"],
+                                          index=["CO2 Limit", "lowerBound"],
+                                          data=[-1000, True]
+                                          )
+            - CO2 Limit per region and per system as a source:
+                balanceLimit=pd.DataFrame(columns=["Region1", "Total"],
+                                          index=["CO2 Limit"],
+                                          data=[1000, 2000]
+                                          )
+            - CO2 Limit and minimum installed capacity for renewables:
+                balanceLimit=pd.DataFrame(columns=["Total", "lowerBound],
+                                            index=["CO2 limit", "Renewables"],
+                                            data=[[400, False], [1000, True]]
+                                            )
+            - Different CO2 Limits for each investement period and minimum installed capacity for renewables:
+                balanceLimit = {
+                    2020: pd.DataFrame(index=["CO2 limit", "Renewables"],
+                                       columns=["Total", "lowerBound"],
+                                       data=[[-366 * (1 - CO2_reductionTarget * 0.33), True],[430000, True]]
+                                       ),
+                    2025: pd.DataFrame(index=["CO2 limit", "Renewables"],
+                                       columns=["Region1", "Total", "lowerBound"],
+                                       data=[[-366 * (1 - CO2_reductionTarget * 0.67), True],[430000, True]]
+                                       ),
+                    2030: pd.DataFrame(index=["CO2 limit", "Renewables"],
+                                       columns=["Region1", "Total", "lowerBound"],
+                                       data=[[-366 * (1 - CO2_reductionTarget), True],[430000, True]]
+                                       )
+                                }
             .. note::
                 If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
                 defined as negative.
