@@ -213,11 +213,11 @@ def test_storageAndBalanceLimit():
             opexPerChargeOperation=0.01,
             opexPerDischargeOperation=0.01,
             chargeOpRateFix={
-                2020: pd.DataFrame(columns=["loc1"], data=[438000 / 2, 10]),
+                2020: pd.DataFrame(columns=["loc1"], data=[438000 / 2, 0]),
                 2030: None,
             },
             dischargeOpRateMax={
-                2020: pd.DataFrame(columns=["loc1"], data=[438000, 438000 / 2]),
+                2020: pd.DataFrame(columns=["loc1"], data=[0, 438000 / 2]),
                 2030: None,
             },
             interestRate=0,
@@ -228,8 +228,8 @@ def test_storageAndBalanceLimit():
     assert (
         esM.pyM.chargeOp_stor.get_values()[("loc1", "storage", 0, 0, 0)] == 438000 / 2
     )
-    assert esM.pyM.chargeOp_stor.get_values()[("loc1", "storage", 0, 0, 1)] == 10
-    assert esM.pyM.dischargeOp_stor.get_values()[("loc1", "storage", 0, 0, 0)] == 10
+    assert esM.pyM.chargeOp_stor.get_values()[("loc1", "storage", 0, 0, 1)] == 0
+    assert esM.pyM.dischargeOp_stor.get_values()[("loc1", "storage", 0, 0, 0)] == 0
     assert (
         esM.pyM.dischargeOp_stor.get_values()[("loc1", "storage", 0, 0, 1)]
         == 438000 / 2
