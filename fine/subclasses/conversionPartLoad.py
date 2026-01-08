@@ -732,9 +732,7 @@ class ConversionPartLoadModel(ConversionModel):
                 )
             return (
                 discretizationPointConVar[loc, compName, discretStep, ip, p, t]
-                <= discretizationSegmentConVar[
-                    loc, compName, discretStep - 1, ip, p, t
-                ]
+                <= discretizationSegmentConVar[loc, compName, discretStep - 1, ip, p, t]
                 + discretizationSegmentConVar[loc, compName, discretStep, ip, p, t]
             )
 
@@ -930,24 +928,24 @@ class ConversionPartLoadModel(ConversionModel):
         """
         # return super().getOptimalValues(name)
 
-        timeDependentMapping={
+        timeDependentMapping = {
             "capacityVariablesOptimum": False,
-            "isBuiltVariablesOptimum":False,
+            "isBuiltVariablesOptimum": False,
             "operationVariablesOptimum": True,
             "discretizationPointVariablesOptimum": True,
             "discretizationSegmentConVariablesOptimum": True,
             "discretizationSegmentBinVariablesOptimum": True,
-            }
+        }
 
         if name in timeDependentMapping:
             return {
-                "values": getattr(self,f"_{name}")[ip],
+                "values": getattr(self, f"_{name}")[ip],
                 "timeDependent": timeDependentMapping[name],
                 "dimension": self.dimension,
             }
         return {
-            valName:{
-                "values": getattr(self,f"_{valName}")[ip],
+            valName: {
+                "values": getattr(self, f"_{valName}")[ip],
                 "timeDependent": timeDependentMapping[valName],
                 "dimension": self.dimension,
             }

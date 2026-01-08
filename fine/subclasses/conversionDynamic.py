@@ -259,20 +259,18 @@ class ConversionDynamicModel(ConversionModel):
                         for t_down in range(fromTimeStep, toTimeStep)
                     )
                 return opVarBin[loc, compName, ip, p, t] <= 1 - pyomo.quicksum(
-                    opVarStopBin[loc, compName, ip, p, t_down]
-                    for t_down in range(0, t)
+                    opVarStopBin[loc, compName, ip, p, t_down] for t_down in range(0, t)
                 ) - pyomo.quicksum(
                     opVarStopBin[loc, compName, ip, p, t_down]
                     for t_down in range(fromTimeStepPrevious, toTimeStepPrevious)
                 )
-            if t >= timeMinTimeSteps: # upTimeMin
+            if t >= timeMinTimeSteps:  # upTimeMin
                 return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
                     opVarStartBin[loc, compName, ip, p, t_up]
                     for t_up in range(fromTimeStep, toTimeStep)
                 )
             return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
-                opVarStartBin[loc, compName, ip, p, t_up]
-                for t_up in range(0, t)
+                opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(0, t)
             ) + pyomo.quicksum(
                 opVarStartBin[loc, compName, ip, p, t_up]
                 for t_up in range(fromTimeStepPrevious, toTimeStepPrevious)

@@ -6,6 +6,7 @@ import pandas as pd
 
 import fine as fn
 
+
 def isInRange(value, lowerBound, upperBound):
     """Check if the input value is in the given range."""
     if not (isinstance(value, float) or isinstance(value, int)):
@@ -941,9 +942,7 @@ def setLocationalEligibility(
 
             data.loc[:] = 1
             return data
-        raise ValueError(
-            "The dimension parameter has to be either '1dim' or '2dim' "
-        )
+        raise ValueError("The dimension parameter has to be either '1dim' or '2dim' ")
     if (
         (not isCapacityMaxLocDepending)
         and (not isCapacityFixLocDepending)
@@ -1327,6 +1326,7 @@ def checkAndSetPartLoadMin(
     fullOperationMin=None,
 ):
     """MISSING."""
+
     # checking function
     def checkPartLoadMin(partLoadMin, bigM, hasCapacityVariable):
         # Check if values are floats and the intervall ]0,1].
@@ -1965,6 +1965,7 @@ def preprocess2dimInvestmentPeriodData(
 
 def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
     """Change format of 2-dimensional data (for transmission components)."""
+
     def preprocessDataPerIp(data):
         if data is not None and isinstance(data, pd.DataFrame):
             if mapC is None:
@@ -2022,23 +2023,20 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
 
 
 def map2dimData(data, mapC):
-    """Missing.
-    """
+    """Missing."""
     if data is not None and isinstance(data, pd.DataFrame):
         return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
     return data
 
 
 def output(output, verbose, val):
-    """Missing.
-    """
+    """Missing."""
     if verbose == val:
         print(output)
 
 
 def checkModelClassEquality(esM, file):
-    """Missing.
-    """
+    """Missing."""
     mdlListFromModel = list(esM.componentModelingDict.keys())
     mdlListFromExcel = []
     for sheet in file.sheet_names:
@@ -2052,8 +2050,7 @@ def checkModelClassEquality(esM, file):
 
 
 def checkComponentsEquality(esM, file):
-    """Missing.
-    """
+    """Missing."""
     compListFromExcel = []
     compListFromModel = list(esM.componentNames.keys())
     for mdl in esM.componentModelingDict.keys():
@@ -2067,8 +2064,7 @@ def checkComponentsEquality(esM, file):
 
 
 def checkNumberOfConversionFactors(commods):
-    """Missing.
-    """
+    """Missing."""
     if len(commods) > 2:
         if all([isinstance(value, (int, float)) for value in commods.values()]):
             raise ValueError(
@@ -2132,8 +2128,7 @@ def checkAndSetTimeHorizon(
 def checkStockYears(
     stockCommissioning, startYear, investmentPeriodInterval, ipTechnicalLifetime
 ):
-    """Missing.
-    """
+    """Missing."""
     if stockCommissioning is None:
         return [], []
     if not isinstance(stockCommissioning, dict):
@@ -2164,8 +2159,7 @@ def checkStockYears(
 
 
 def checkAndSetStock(component, esM, stockCommissioning):
-    """Missing.
-    """
+    """Missing."""
     if stockCommissioning is None:
         return stockCommissioning
 
@@ -2203,7 +2197,7 @@ def checkAndSetStock(component, esM, stockCommissioning):
             isPositiveNumber(yearly_stock)
             stockCommissioning[year] = pd.Series(
                 data={list(esM.locations)[0]: yearly_stock}
-                )
+            )
         elif isinstance(yearly_stock, pd.Series):
             # series must have all locations as index and float/int for values
 
@@ -2310,8 +2304,7 @@ def checkAndSetStock(component, esM, stockCommissioning):
 
 
 def setStockCapacityStartYear(component, esM, dimension):
-    """Missing.
-    """
+    """Missing."""
     if dimension == "1dim":
         regions = esM.locations
     elif dimension == "2dim":
@@ -2338,8 +2331,7 @@ def setStockCapacityStartYear(component, esM, dimension):
 
 
 def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
-    """Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
-    """
+    """Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps."""
     if CO2ReductionTargets is not None:
         if len(CO2ReductionTargets) != nbOfSteps + 1:
             raise ValueError(
@@ -2386,7 +2378,6 @@ def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
     )
 
 
-
 def addEmptyRegions(esM, data):
     """Check empty regions.
     If data for a region is missing, fill with 0s.
@@ -2409,20 +2400,18 @@ def addEmptyRegions(esM, data):
 
 
 def annuityPresentValueFactor(esM, compName, loc, years):
-    """Calculate annuity of present value factor.
-    """
+    """Calculate annuity of present value factor."""
     # DE:Rentenbarwertfaktor
     interestRate = esM.getComponent(compName).interestRate[loc]
     if interestRate == 0:
         return years
     return (((1 + interestRate) ** (years)) - 1) / (
-            interestRate * (1 + interestRate) ** (years)
-        )
+        interestRate * (1 + interestRate) ** (years)
+    )
 
 
 def discountFactor(esM, ip, compName, loc):
-    """Calculate discount factors.
-    """
+    """Calculate discount factors."""
     return (
         1
         / (1 + esM.getComponent(compName).interestRate[loc])
@@ -2516,8 +2505,8 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
                             isDataVariating = True
                             break
                     elif not ccf[commod] == _baseCommodConvFactor[commod]:
-                            isDataVariating = True
-                            break
+                        isDataVariating = True
+                        break
         # if data is varying, set commis depending true
         if isDataVariating:
             isCommisDepending = True
@@ -2533,8 +2522,7 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
 
 
 def checkNestedNanValues(obj):
-    """Missing.
-    """
+    """Missing."""
     if isinstance(obj, dict):
         return any(checkNestedNanValues(v) for v in obj.values())
     if isinstance(obj, (list, tuple)):
@@ -2746,8 +2734,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
 
 
 def checkEmissionFactors(comp, esM):
-    """Check emission factors for flexible conversion components.
-    """
+    """Check emission factors for flexible conversion components."""
 
     def is_nan(val):
         return isinstance(val, float) and math.isnan(val)
@@ -2817,8 +2804,7 @@ def checkEmissionFactors(comp, esM):
 
 
 def checkAndSetFlowShares(comp, esM):
-    """Check flow shares for flexible conversion components.
-    """
+    """Check flow shares for flexible conversion components."""
     if comp.flowShares is None:
         return None
     if not comp.flexibleConversion:
@@ -2886,8 +2872,7 @@ def checkAndSetFlowShares(comp, esM):
 
 
 def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
-    """Get parameters for uneven lifetimes.
-    """
+    """Get parameters for uneven lifetimes."""
     ipEconomicLifetime = getattr(esM.getComponent(compName), "ipEconomicLifetime")[loc]
     ipTechnicalLifetime = getattr(esM.getComponent(compName), "ipTechnicalLifetime")[
         loc

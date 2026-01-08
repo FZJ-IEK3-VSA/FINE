@@ -4282,23 +4282,23 @@ class ComponentModel(metaclass=ABCMeta):
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        timeDependentMapping={
+        timeDependentMapping = {
             "capacityVariablesOptimum": False,
-            "isBuiltVariablesOptimum":False,
+            "isBuiltVariablesOptimum": False,
             "operationVariablesOptimum": True,
             "commissioningVariablesOptimum": False,
             "decommissioningVariablesOptimum": False,
-            }
+        }
 
         if name in timeDependentMapping:
             return {
-                "values": getattr(self,f"_{name}")[ip],
+                "values": getattr(self, f"_{name}")[ip],
                 "timeDependent": timeDependentMapping[name],
                 "dimension": self.dimension,
             }
         return {
-            valName:{
-                "values": getattr(self,f"_{valName}")[ip],
+            valName: {
+                "values": getattr(self, f"_{valName}")[ip],
                 "timeDependent": timeDependentMapping[valName],
                 "dimension": self.dimension,
             }
