@@ -437,7 +437,7 @@ class Transmission(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # set processed location eligiblity # TODO implement check and set
+        # set processed location eligibility # TODO implement check and set
         self.processedLocationalEligibility = self.locationalEligibility
 
     def setTimeSeriesData(self, hasTSA):

@@ -21,17 +21,17 @@ ETHOS.FINE is used for the modelling of a diverse group of optimization problems
 If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://joss.theoj.org/papers/10.21105/joss.06274). The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
 
 ## Installation 
-There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge. In all of the following variants it is recommended to install your dependencies from conda-forge as the ecosystem is better tested and maintained. For more information on installation specifics and comparison between the different options, have a look at the [installation documentation](https://vsa-fine.readthedocs.io/en/latest/installationDoc.html). In the following first the [preqrequisites](#Preqrequisites) for the installation are presented. Then the recommended [installation](#Installation from conda-forge (Recomended)) is shown. If you want to work on the source code of FINE, see [Editable install from conda-forge](#editable-install-from-conda-forge).
+There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge. In all of the following variants it is recommended to install your dependencies from conda-forge as the ecosystem is better tested and maintained. For more information on installation specifics and comparison between the different options, have a look at the [installation documentation](https://vsa-fine.readthedocs.io/en/latest/installationDoc.html). In the following first the [prerequisites](#Prerequisites) for the installation are presented. Then the recommended [installation](#Installation from conda-forge (Recommended)) is shown. If you want to work on the source code of FINE, see [Editable install from conda-forge](#editable-install-from-conda-forge).
 
 
 
-### Preqrequisites
+### Prerequisites
 
-You either need a mamba or conda installation (recommended), but any Python installation will do. However, if you are unfamiliar with using environment manager (like mamba), you should [consider using one](https://realpython.com/python-virtual-environments-a-primer/). Fine has many dependencies and will likely interfere with other software projects on your machine in case you dont isolate them with an environment
+You either need a mamba or conda installation (recommended), but any Python installation will do. However, if you are unfamiliar with using environment manager (like mamba), you should [consider using one](https://realpython.com/python-virtual-environments-a-primer/). Fine has many dependencies and will likely interfere with other software projects on your machine in case you don't isolate them with an environment
 
 You need conda or mamba installer on your machine, which are mostly interchangeable. The code is tested for Linux, Windows and Macos. We recommend to use [mamba](https://mamba.readthedocs.io/en/latest/) and install it using the [miniforge installer](https://github.com/conda-forge/miniforge). Please be aware that having multiple conda and mamba installation (for example from the [miniforge installer](https://github.com/conda-forge/miniforge) and the [anaconda installer](https://www.anaconda.com/download)) can cause serious problems during the installation. Please remove the other installer and any old environment on your machine if you decide to switch. 
 
-### Installation from conda-forge (Recomended)
+### Installation from conda-forge (Recommended)
 
 ```bash
 mamba create --name fine_env --channel conda-forge fine

@@ -2447,7 +2447,7 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
     # 0. get a copy of the commodityConversionFactors
     commodityConversionFactors = comp.commodityConversionFactors.copy()
 
-    # 1. check if the commodity conversion variates
+    # 1. check if the commodity conversion varies
     # a) not at all over transformation pathway
     # b) per investment period -> weather dependency
     # c) per commissioning year and investment period

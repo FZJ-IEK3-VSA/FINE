@@ -899,7 +899,7 @@ class ComponentModel(metaclass=ABCMeta):
     ####################################################################################################################
 
     def declareCommissioningVarSet(self, pyM, esM):
-        """Declare set for commisioning variables in the pyomo object for a modeling class.
+        """Declare set for commissioning variables in the pyomo object for a modeling class.
 
         The commissioning variable must be set for past investment periods
         (stock commissioning) and future/optimized investment periods
@@ -1656,9 +1656,9 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
 
-        :param isOperationCommisYearDepending: defines weather the operation variable is depending on the year
+        :param isOperationCommisYearDepending: defines whether the operation variable is depending on the year
             of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency,
-            variates over the transformation pathway
+            varies over the transformation pathway
         :type isOperationCommisYearDepending: str
         """
         abbrvName, compDict = self.abbrvName, self.componentsDict
@@ -2796,7 +2796,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param opVarName: name of the operation variables
         :type opVarName: str
 
-        :param isOperationCommisYearDepending: defines weather the operation variable is depending on the year of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency, variates over the transformation pathway
+        :param isOperationCommisYearDepending: defines whether the operation variable is depending on the year of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency, varies over the transformation pathway
         :type isOperationCommisYearDepending: str
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
@@ -2871,7 +2871,7 @@ class ComponentModel(metaclass=ABCMeta):
         :param opVarName: name of the operation variables
         :type opVarName: str
 
-        :param isOperationCommisYearDepending: defines weather the operation variable is depending on the year of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency, variates over the transformation pathway
+        :param isOperationCommisYearDepending: defines whether the operation variable is depending on the year of commissioning of the component. E.g. relevant if the commodity conversion, for example the efficiency, varies over the transformation pathway
         :type isOperationCommisYearDepending: str
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
