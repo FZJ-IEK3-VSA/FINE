@@ -6,7 +6,8 @@ import pandas as pd
 esm = fn.EnergySystemModel(
     locations={"DE", "AT", "CH"},
     commodities={"energy"},
-    commodityUnitsDict={"energy": "joule"},)
+    commodityUnitsDict={"energy": "joule"},
+)
 
 operationRateMax = pd.DataFrame(index=range(8760))
 capacityMax = pd.Series()
@@ -30,7 +31,7 @@ esm.add(
         esM=esm,
         name="transmission",
         commodity="energy",
-        hasCapacityVariable = True,
+        hasCapacityVariable=True,
         capacityFix=capacityMax,
         # operationRateMax=operationRateMax,
     )
