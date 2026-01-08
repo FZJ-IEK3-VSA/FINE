@@ -5,19 +5,18 @@ import pandas as pd
 
 def test_LocationEligibility():
     """Currently, the locational eligibility is automatically set if not given as input parameter.
-    Transmission capacity min/max/fix or operation min/max/fix can be submitted as Dataframes or 
-    as Dataseries. These values are pre-processed in the preprocess2dimData function in Utils. 
-    During this pre-processing, if these values are in Dataframe format, only the locations which 
-    has a value > 0 are considered. But, if they are in Series format, all the values are considered 
-    including 0s. If locationEligibility is not set by the user in the beginning, it will be 
-    automatically set such that only the locations which has a value > 0 for capacity min/max/fix 
-    or operation min/max/fix are considered as eligible. Later, this locationEligibility is 
-    checked with the locations in the processed capacity min/max/fix or operation min/max/fix data 
-    and the process fails if they are not the same. This test make sure that whether capacity 
-    min/max/fix or operation min/max/fix are in Dataframe or Series format, the locationEligibility 
+    Transmission capacity min/max/fix or operation min/max/fix can be submitted as Dataframes or
+    as Dataseries. These values are pre-processed in the preprocess2dimData function in Utils.
+    During this pre-processing, if these values are in Dataframe format, only the locations which
+    has a value > 0 are considered. But, if they are in Series format, all the values are considered
+    including 0s. If locationEligibility is not set by the user in the beginning, it will be
+    automatically set such that only the locations which has a value > 0 for capacity min/max/fix
+    or operation min/max/fix are considered as eligible. Later, this locationEligibility is
+    checked with the locations in the processed capacity min/max/fix or operation min/max/fix data
+    and the process fails if they are not the same. This test make sure that whether capacity
+    min/max/fix or operation min/max/fix are in Dataframe or Series format, the locationEligibility
     is set correctly.
     """
-
     esm = fn.EnergySystemModel(
         locations={"DE", "AT", "CH"},
         commodities={"energy"},
@@ -68,6 +67,7 @@ def test_TransmissionWithoutCapacityRestrictions():
     operationRateMax["DE_CH"] = 0.5
     operationRateMax["AT_CH"] = 0.5
     operationRateMax["AT_DE"] = 0.5
+    operationRateMax["DE_AT"] = 0.5
     operationRateMax["CH_DE"] = 0.5
     operationRateMax["CH_AT"] = 0.5
 
