@@ -213,7 +213,7 @@ class EnergySystemModel:
                 (Logically maximum limit for negative values, define negative value in balanceLimit).
                 Example: Define upper limit for Carbon Capture & Storage.\n
 
-            Examples:
+        Examples:
             - CO2 Limit as a source:
                 balanceLimit=pd.DataFrame(columns=["Total"],
                                           index=["CO2 Limit"],
