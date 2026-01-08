@@ -1,4 +1,4 @@
-# function to be adjusted: utils.setLocationalEligibility()
+# function adjusted: utils.preprocess2dimData()
 
 import fine as fn
 import pandas as pd
