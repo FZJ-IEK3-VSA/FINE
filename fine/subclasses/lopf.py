@@ -350,49 +350,24 @@ class LOPFModel(TransmissionModel):
 
         :type name: string
         """
-        if name == "capacityVariablesOptimum":
-            return {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
+        timeDependentMapping={
+            "capacityVariablesOptimum": False,
+            "isBuiltVariablesOptimum":False,
+            "operationVariablesOptimum": True,
+            "phaseAngleVariablesOptimum": True
             }
-        if name == "isBuiltVariablesOptimum":
+
+        if name in timeDependentMapping:
             return {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
+                "values": getattr(self,f"_{name}")[ip],
+                "timeDependent": timeDependentMapping[name],
                 "dimension": self.dimension,
-            }
-        if name == "operationVariablesOptimum":
-            return {
-                "values": self._operationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-        if name == "phaseAngleVariablesOptimum":
-            return {
-                "values": self._phaseAngleVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": "1dim",
             }
         return {
-            "capacityVariablesOptimum": {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
+            valName:{
+                "values": getattr(self,f"_{valName}")[ip],
+                "timeDependent": timeDependentMapping[valName],
                 "dimension": self.dimension,
-            },
-            "isBuiltVariablesOptimum": {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "operationVariablesOptimum": {
-                "values": self._operationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            },
-            "phaseAngleVariablesOptimum": {
-                "values": self._phaseAngleVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": "1dim",
-            },
+            }
+            for valName in timeDependentMapping
         }
