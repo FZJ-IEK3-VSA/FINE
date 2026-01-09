@@ -1,7 +1,7 @@
 on:
   workflow_dispatch:
-  # push:
-  #   branches: ["485_test_dependency_range_new_release"]
+  push:
+    branches: ["update_ci_2026_01"]
   pull_request:
     branches: ["master"]
 
