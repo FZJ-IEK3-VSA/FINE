@@ -1,7 +1,7 @@
 on:
   workflow_dispatch:
-  push:
-    branches: ["update_ci_2026_01"]
+  # push:
+  #   branches: ["update_ci_2026_01"]
   pull_request:
     branches: ["master"]
 
@@ -13,19 +13,7 @@ jobs:
       matrix:
         # runner_tag: ["ubuntu-latest", "windows-latest"]
         runner_tag: ["self-hosted"]
-        netcdf4_version:
-          [
-            "1.5.8",
-            "1.6.0",
-            "1.6.1",
-            "1.6.2",
-            "1.6.3",
-            "1.6.4",
-            "1.6.5",
-            "1.7.1",
-            "1.7.2",
-            "1.7.3",
-          ]
+        netcdf4_version: ["1.6.4", "1.6.5", "1.7.1", "1.7.2", "1.7.3"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
     with:
       runner_tag: ${{ matrix.runner_tag }}

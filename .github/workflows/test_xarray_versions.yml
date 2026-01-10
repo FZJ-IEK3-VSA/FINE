@@ -1,7 +1,7 @@
 on:
   workflow_dispatch:
   push:
-    branches: ["update_ci_2026_01"]
+    # branches: ["update_ci_2026_01"]
   pull_request:
     branches: ["master"]
 

@@ -1,7 +1,7 @@
 on:
   workflow_dispatch:
-  push:
-    branches: ["update_ci_2026_01"]
+  # push:
+  #   branches: ["update_ci_2026_01"]
   pull_request:
     branches: ["master"]
 
@@ -15,12 +15,6 @@ jobs:
         runner_tag: ["self-hosted"]
         rasterio_version:
           [
-            "1.3.0",
-            "1.3.1",
-            "1.3.2",
-            "1.3.3",
-            "1.3.4",
-            "1.3.6",
             "1.3.7",
             "1.3.8",
             "1.3.9",
