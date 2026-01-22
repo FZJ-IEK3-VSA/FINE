@@ -190,7 +190,8 @@ class EnergySystemModel:
             Regional dependency:
             The balanceLimit is defined as a pd.DataFrame. Each row contains an individual balanceLimitID as
             index, the corresponding regional scope as columns and the values as data. The regional scope can be set
-            for a region with the matching region name as column name or "Total" as colum name for setting for the entire system.
+            for a region with the matching region name as column name or "Total" as column name for setting for the entire system.
+            If no balanceLimit is to be set for a given location, replace the corresponding entry with 'None' (not 'np.nan').
 
             Temporal dependency:
             If the balanceLimit is passed as a dict with the described pd.DataFrames as values it is considered per investment period.
@@ -214,27 +215,29 @@ class EnergySystemModel:
                 Example: Define upper limit for Carbon Capture & Storage.\n
 
         Examples:
-            - CO2 Limit as a source:
+            - balanceLimit for commodity flow into system/ location e.g. due to a source
+            [positive value; lowerBound=False] (e.g. natural gas field):
                 balanceLimit=pd.DataFrame(columns=["Total"],
-                                          index=["CO2 Limit"],
-                                          data=[1000]
+                                          index=["Gas production", "lowerBound"],
+                                          data=[1000, False]
                                           )
-            - CO2 Limit as a sink:
+            - balanceLimit for commodity flow out of system/ location e.g. due to a sink
+            [negative value; lowerBound=True] (e.g. CO2 sink):
                 balanceLimit=pd.DataFrame(columns=["Total"],
                                           index=["CO2 Limit", "lowerBound"],
                                           data=[-1000, True]
                                           )
-            - CO2 Limit per region and per system as a source:
+            - balanceLimit per region and per system (flow into system/ location):
                 balanceLimit=pd.DataFrame(columns=["Region1", "Total"],
                                           index=["CO2 Limit"],
                                           data=[1000, 2000]
                                           )
-            - CO2 Limit and minimum installed capacity for renewables:
-                balanceLimit=pd.DataFrame(columns=["Total", "lowerBound],
-                                            index=["CO2 limit", "Renewables"],
+            - multiple balanceLimits for different IDs:
+                balanceLimit=pd.DataFrame(columns=["Total", "lowerBound"],
+                                            index=["CO2 limit", "Gas production"],
                                             data=[[400, False], [1000, True]]
                                             )
-            - Different CO2 Limits for each investement period and minimum installed capacity for renewables:
+            - Different CO2 Limits for each investment period and minimum installed capacity for renewables:
                 balanceLimit = {
                     2020: pd.DataFrame(index=["CO2 limit", "Renewables"],
                                        columns=["Total", "lowerBound"],
