@@ -375,9 +375,9 @@ class ConversionPartLoadModel(ConversionModel):
         self.abbrvName = "partLoad"
         self.dimension = "1dim"
         self._operationVariablesOptimum = {}
-        self.discretizationPointVariablesOptimun = {}
-        self.discretizationSegmentConVariablesOptimun = {}
-        self.discretizationSegmentBinVariablesOptimun = {}
+        self._discretizationPointVariablesOptimun = {}
+        self._discretizationSegmentConVariablesOptimun = {}
+        self._discretizationSegmentBinVariablesOptimun = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -934,13 +934,13 @@ class ConversionPartLoadModel(ConversionModel):
                 esM=esM,
             )
 
-            self.discretizationPointVariablesOptimun[esM.investmentPeriodNames[ip]] = (
+            self._discretizationPointVariablesOptimun[esM.investmentPeriodNames[ip]] = (
                 discretizationPointVariablesOptVal_
             )
-            self.discretizationSegmentConVariablesOptimun[
+            self._discretizationSegmentConVariablesOptimun[
                 esM.investmentPeriodNames[ip]
             ] = discretizationSegmentConVariablesOptVal_
-            self.discretizationSegmentBinVariablesOptimun[
+            self._discretizationSegmentBinVariablesOptimun[
                 esM.investmentPeriodNames[ip]
             ] = discretizationSegmentBinVariablesOptVal_
 

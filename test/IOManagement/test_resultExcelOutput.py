@@ -59,7 +59,6 @@ def test_compareResults_longClassNames():
                 )
             )
         elif "ConversionPartLoad" in str(possibleClass):
-            continue  # conversionPartLoad has an "internal" problem not related to this test. Need to be fixed before this test works properly.
             Operation_level = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
             Efficiency = [0.1, 0.15, 0.5, 0.7, 0.7, 0.65, 0.63, 0.62, 0.61, 0.60]
             d = {"x": Operation_level, "y": Efficiency}
