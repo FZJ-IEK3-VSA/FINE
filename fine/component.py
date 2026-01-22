@@ -2664,15 +2664,15 @@ class ComponentModel(metaclass=ABCMeta):
 
                 def binOperation2(pyM, loc, compName, commis, ip, p, t):
                     return (
-                        opVar[loc, compName, commis, ip, p, t] * getBigM(compName)
-                        >= opVarBin[loc, compName, commis, ip, p, t]
+                        opVar[loc, compName, commis, ip, p, t]
+                        >= opVarBin[loc, compName, commis, ip, p, t] * 1e-4
                     )
             else:
 
                 def binOperation2(pyM, loc, compName, ip, p, t):
                     return (
-                        opVar[loc, compName, ip, p, t] * getBigM(compName)
-                        >= opVarBin[loc, compName, ip, p, t]
+                        opVar[loc, compName, ip, p, t]
+                        >= opVarBin[loc, compName, ip, p, t] * 1e-4
                     )
 
             setattr(
