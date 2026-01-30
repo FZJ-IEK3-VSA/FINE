@@ -690,22 +690,34 @@ def addTimeSeriesVariableToDict(
     elif drop_component:
         df = comp_var_xr.drop("component").to_dataframe().unstack(level=1)
     elif "space_2" in comp_var_xr.dims:
-        df = comp_var_xr.to_dataframe().squeeze()
-        # merge space and space_2 levels
-        space_index = df.index.get_level_values("space")
-        space_2_index = df.index.get_level_values("space_2")
-        new_space_index = [
-            f"{space_index[i]}_{space_2_index[i]}" for i in range(len(space_index))
-        ]
-        df.index = pd.MultiIndex.from_tuples(
-            [
-                (df.index.get_level_values("time")[i], new_space_index[i])
-                for i in range(len(new_space_index))
-            ],
-            names=["time", "space"],
+        _comp_var_xr = comp_var_xr.copy()
+        _comp_var_xr = _comp_var_xr.stack(
+            space_tmp=("space", "space_2")
         )
+
+        # 2. Build merged labels from the MultiIndex
+        space_idx = _comp_var_xr.coords["space_tmp"].to_index()
+
+        merged_space = space_idx.map(lambda x: f"{x[0]}_{x[1]}")
+
+        # 3. Assign merged labels back as a coordinate
+        _comp_var_xr = _comp_var_xr.assign_coords(
+            space_tmp=("space_tmp", merged_space)
+        )
+
+        # 4. Rename the stacked dimension
+        _comp_var_xr = _comp_var_xr.rename(
+            {"space_tmp": "space"}
+        )
+
+        # 5. Convert to pandas
+        df = _comp_var_xr.to_dataframe().squeeze()
+
+        # 6. Reshape
+        df = df.dropna(how="all")
         df = df.unstack()
         df = df.dropna(axis=1, how="all")
+
     else:
         df = comp_var_xr.to_dataframe().unstack(level=1)
 
