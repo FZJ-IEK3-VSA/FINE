@@ -937,31 +937,70 @@ class TransmissionModel(ComponentModel):
         if type == "operation":
             loc_list = loc
             aut_list = []
-            for loc in loc_list:
-                _aut = sum(
-                    opVar[loc_ + "_" + loc, compName, ip, p, t]
-                    * (
-                        1
-                        - compDict[compName].losses[loc_ + "_" + loc]
-                        * compDict[compName].distances[loc_ + "_" + loc]
+            if isinstance(ip, (list, tuple)):
+                start_ip, end_ip = ip
+                relevant_indices = [
+                    idx
+                    for idx, ip in enumerate(esM.investmentPeriods)
+                    if start_ip <= ip <= end_ip
+                ]
+                for loc in loc_list:
+                    _aut = sum(
+                        opVar[loc_ + "_" + loc, compName, i, p, t]
+                        * (
+                            1
+                            - compDict[compName].losses[loc_ + "_" + loc]
+                            * compDict[compName].distances[loc_ + "_" + loc]
+                        )
+                        * esM.periodOccurrences[i][p]
+                        for i in relevant_indices
+                        for loc_ in opVarDictIn[i][loc].keys()
+                        if loc_ not in loc_list
+                        for compName in opVarDictIn[i][loc][loc_]
+                        if compName in componentNames
+                        for p in periods
+                        for t in timeSteps
+                    ) - sum(
+                        opVar[loc + "_" + loc_, compName, i, p, t]
+                        * esM.periodOccurrences[i][p]
+                        for i in relevant_indices
+                        for loc_ in opVarDictOut[i][loc].keys()
+                        if loc_ not in loc_list
+                        for compName in opVarDictOut[i][loc][loc_]
+                        if compName in componentNames
+                        for p in periods
+                        for t in timeSteps
                     )
-                    * esM.periodOccurrences[ip][p]
-                    for loc_ in opVarDictIn[ip][loc].keys() if loc_ not in loc_list
-                    for compName in opVarDictIn[ip][loc][loc_]
-                    if compName in componentNames
-                    for p in periods
-                    for t in timeSteps
-                ) - sum(
-                    opVar[loc + "_" + loc_, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                    for loc_ in opVarDictOut[ip][loc].keys() if loc_ not in loc_list
-                    for compName in opVarDictOut[ip][loc][loc_]
-                    if compName in componentNames
-                    for p in periods
-                    for t in timeSteps
-                )
-                aut_list.append(_aut)
+                    aut_list.append(_aut)
+            else:
+                for loc in loc_list:
+                    _aut = sum(
+                        opVar[loc_ + "_" + loc, compName, ip, p, t]
+                        * (
+                            1
+                            - compDict[compName].losses[loc_ + "_" + loc]
+                            * compDict[compName].distances[loc_ + "_" + loc]
+                        )
+                        * esM.periodOccurrences[ip][p]
+                        for loc_ in opVarDictIn[ip][loc].keys()
+                        if loc_ not in loc_list
+                        for compName in opVarDictIn[ip][loc][loc_]
+                        if compName in componentNames
+                        for p in periods
+                        for t in timeSteps
+                    ) - sum(
+                        opVar[loc + "_" + loc_, compName, ip, p, t]
+                        * esM.periodOccurrences[ip][p]
+                        for loc_ in opVarDictOut[ip][loc].keys()
+                        if loc_ not in loc_list
+                        for compName in opVarDictOut[ip][loc][loc_]
+                        if compName in componentNames
+                        for p in periods
+                        for t in timeSteps
+                    )
+                    aut_list.append(_aut)
             aut = sum(aut_list)
-        elif type == "capacity": # for a set of region connections
+        elif type == "capacity":  # for a set of region connections
             if isinstance(loc[0], tuple):
                 aut_list = []
                 for loc0, loc1 in loc:
@@ -974,10 +1013,10 @@ class TransmissionModel(ComponentModel):
                         for compName in opVarDictIn[ip][loc0].get(loc1, {})
                         if compName in componentNames
                     )
-                    aut = aut/2
+                    aut = aut / 2
                     aut_list.append(aut)
                 aut = sum(aut_list)
-            else: # across all regions
+            else:  # across all regions
                 aut = sum(
                     capVar[loc_ + "_" + loc, compName, ip]
                     for loc_ in opVarDictIn[ip][loc].keys()
@@ -989,10 +1028,37 @@ class TransmissionModel(ComponentModel):
                     for compName in opVarDictOut[ip][loc][loc_]
                     if compName in componentNames
                 )
-                aut = aut/2
+                aut = aut / 2
+        elif type == "commissioning":
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            if isinstance(ip, (list, tuple)):
+                start_ip, end_ip = ip
+                relevant_indices = [
+                    idx
+                    for idx, ip in enumerate(esM.investmentPeriods)
+                    if start_ip <= ip <= end_ip
+                ]
+                balance = sum(
+                    commisVar[loc, compName, i]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                    for i in relevant_indices
+                )
+            else:
+                balance = sum(
+                    commisVar[loc, compName, ip]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                )
+            if isinstance(balance, int) or isinstance(balance, float):
+                return None
+            else:
+                return balance
         else:
             raise ValueError(
-                "Invalid type in ComponentLimit Contraint. Please choose 'operation' or 'capacity'."
+                "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
             )
         return aut
 

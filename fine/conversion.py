@@ -1505,24 +1505,57 @@ class ConversionModel(ComponentModel):
                 periods = esM.periods
                 timeSteps = esM.totalTimeSteps
 
-            balance = sum(
-                opVar[loc, compName, ip, p, t]
-                * (
-                    getFactor(  
-                        compDict[compName].processedCommodityConversionFactors[ip][commodity],
+            if isinstance(ip, (list, tuple)):
+                start_ip, end_ip = ip
+                relevant_indices = [
+                    idx
+                    for idx, ip in enumerate(esM.investmentPeriods)
+                    if start_ip <= ip <= end_ip
+                ]
+                balance = sum(
+                    opVar[loc, compName, i, p, t]
+                    * (
+                        getFactor(
+                            compDict[compName].processedCommodityConversionFactors[i][
+                                commodity
+                            ],
                             loc,
                             p,
                             t,
                         )
-                    if commodity not in ["None", None] else 1
+                        if commodity not in ["None", None]
+                        else 1
+                    )
+                    * esM.periodOccurrences[i][p]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                    for i in relevant_indices
+                    for p in periods
+                    for t in timeSteps
                 )
-                * esM.periodOccurrences[ip][p]
-                for compName in compDict.keys()
-                if compName in componentNames
-                and compDict[compName].processedLocationalEligibility[loc] == 1
-                for p in periods
-                for t in timeSteps
-            )
+            else:
+                balance = sum(
+                    opVar[loc, compName, ip, p, t]
+                    * (
+                        getFactor(
+                            compDict[compName].processedCommodityConversionFactors[ip][
+                                commodity
+                            ],
+                            loc,
+                            p,
+                            t,
+                        )
+                        if commodity not in ["None", None]
+                        else 1
+                    )
+                    * esM.periodOccurrences[ip][p]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                    for p in periods
+                    for t in timeSteps
+                )
             if isinstance(balance, int) or isinstance(balance, float):
                 return None
             else:
@@ -1539,9 +1572,36 @@ class ConversionModel(ComponentModel):
                 return None
             else:
                 return balance
+        elif type == "commissioning":
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            if isinstance(ip, (list, tuple)):
+                start_ip, end_ip = ip
+                relevant_indices = [
+                    idx
+                    for idx, ip in enumerate(esM.investmentPeriods)
+                    if start_ip <= ip <= end_ip
+                ]
+                balance = sum(
+                    commisVar[loc, compName, i]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                    for i in relevant_indices
+                )
+            else:
+                balance = sum(
+                    commisVar[loc, compName, ip]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                )
+            if isinstance(balance, int) or isinstance(balance, float):
+                return None
+            else:
+                return balance
         else:
             raise ValueError(
-                "Invalid type in ComponentLimit Contraint. Please choose 'operation' or 'capacity'."
+                "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
             )
 
 

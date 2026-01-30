@@ -1311,85 +1311,86 @@ class EnergySystemModel:
         if self.processedComponentLimit is not None:
             # get all componentLimits from the processedComponentLimit
             componentsOfComponentLimit = {}
-            for ip in self.investmentPeriods:
-                componentsOfComponentLimit[ip] = {}
-                if self.processedComponentLimit[ip] is not None:
-                    componentLimitIDs = self.processedComponentLimit[ip].index.unique()
-                    for componentLimitID in componentLimitIDs:
-                        # Get Components per balance limit
-                        componentsOfommodityLimit = {}
-                        for mdl_type, mdl in self.componentModelingDict.items():
-                            if mdl_type in ["SourceSinkModel", "StorageModel","TransmissionModel","ConversionModel"]:
-                                for compName, comp in mdl.componentsDict.items():
-                                    if comp.componentLimitID is not None:
-                                        if componentLimitID in comp.componentLimitID:
-                                            componentsOfommodityLimit.setdefault(
-                                                componentLimitID, []
-                                            ).append(compName)
-                        componentsOfComponentLimit[ip][
-                            componentLimitID
-                        ] = componentsOfommodityLimit
+            if self.processedComponentLimit is not None:
+                componentLimitIDs = self.processedComponentLimit.index.unique()
+                for componentLimitID in componentLimitIDs:
+                    # Get Components per balance limit
+                    componentsOfommodityLimit = {}
+                    for mdl_type, mdl in self.componentModelingDict.items():
+                        if mdl_type in ["SourceSinkModel", "StorageModel","TransmissionModel","ConversionModel"]:
+                            for compName, comp in mdl.componentsDict.items():
+                                if comp.componentLimitID is not None:
+                                    if componentLimitID in comp.componentLimitID:
+                                        componentsOfommodityLimit.setdefault(
+                                            componentLimitID, []
+                                        ).append(compName)
+                    componentsOfComponentLimit[
+                        componentLimitID
+                    ] = componentsOfommodityLimit
 
             yearlyComponentLimitDict = {}
 
             # iterate over commodity limit to define either minimal, maximal or fixed balance limits per balanceLimitID
-            for ip in self.investmentPeriods:
-                if self.processedComponentLimit[ip] is not None:
-                    for balanceLimitID, data in self.processedComponentLimit[
-                        ip
-                    ].iterrows():
-                        # check if balanceLimitID is in processedComponentLimitEligibility
-                        if balanceLimitID in self.processedComponentLimitEligibility[ip].columns:
-                            
-                            # check which region is affected
-                            _elig = self.processedComponentLimitEligibility[ip].loc[
-                                :, balanceLimitID
-                            ]
-                            locs = _elig[_elig == 1].index.tolist()
-                            # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format 
-                            if locs:
-                                yearlyComponentLimitDict.setdefault(
-                                    (
-                                        balanceLimitID,
-                                        ip,
-                                        data["bound"],
-                                        data["type"],
-                                        float(data["value"]),
-                                        data["commodity"],
-                                    ),
-                                    [componentsOfComponentLimit[ip][balanceLimitID], locs],
-                                )
-                        elif balanceLimitID in self.processedComponentLimitEligibility2dim[ip].columns:
-                            _elig = self.processedComponentLimitEligibility2dim[ip].loc[
-                                :, balanceLimitID
-                            ]        
-                            locs = _elig[_elig == 1].index.tolist()
-                            # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format
-                            if locs:
-                                yearlyComponentLimitDict.setdefault(
-                                    (
-                                        balanceLimitID,
-                                        ip,
-                                        data["bound"],
-                                        data["type"],
-                                        float(data["value"]),
-                                        data["commodity"],
-                                    ),
-                                    [componentsOfComponentLimit[ip][balanceLimitID], locs],
-                                )
-                    
+            if self.processedComponentLimit is not None:
+                for balanceLimitID, data in self.processedComponentLimit.iterrows():
+                    # check if balanceLimitID is in processedComponentLimitEligibility
+                    if balanceLimitID in self.processedComponentLimitEligibility.columns:
+                        
+                        # check which region is affected
+                        _elig = self.processedComponentLimitEligibility.loc[
+                            :, balanceLimitID
+                        ]
+                        locs = _elig[_elig == 1].index.tolist()
+                        # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format 
+                        if locs:                            
+                            yearlyComponentLimitDict.setdefault(
+                                (
+                                    balanceLimitID,
+                                    data["ip"],
+                                    data["ipEnd"],
+                                    data["bound"],
+                                    data["type"],
+                                    float(data["value"]),
+                                    data["commodity"],
+                                ),
+                                [componentsOfComponentLimit[balanceLimitID], locs],
+                            )
+                    elif balanceLimitID in self.processedComponentLimitEligibility2dim.columns:
+                        _elig = self.processedComponentLimitEligibility2dim.loc[
+                            :, balanceLimitID
+                        ]        
+                        locs = _elig[_elig == 1].index.tolist()
+                        # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format
+                        if locs:
+                            yearlyComponentLimitDict.setdefault(
+                                (
+                                    balanceLimitID,
+                                    data["ip"],
+                                    data["ipEnd"],
+                                    data["bound"],
+                                    data["type"],
+                                    float(data["value"]),
+                                    data["commodity"],
+                                ),
+                                [componentsOfComponentLimit[balanceLimitID], locs],
+                            )
+                
                         
             setattr(pyM, "yearlyComponentLimitDict", yearlyComponentLimitDict)
             from pprint import pprint
             pprint(yearlyComponentLimitDict)
 
-            def yearlyComponentLimitConstraint(pyM, ID, ip, bound, type, value, commodity):
+            def yearlyComponentLimitConstraint(pyM, ID, ip, ipEnd, bound, type, value, commodity):
                 # yearly restriction
-                locs = yearlyComponentLimitDict[(ID, ip, bound, type, value, commodity)][1]
-                componentNames = yearlyComponentLimitDict[(ID, ip, bound, type, value, commodity)][
+                locs = yearlyComponentLimitDict[(ID, ip, ipEnd, bound, type, value, commodity)][1]
+                componentNames = yearlyComponentLimitDict[(ID, ip, ipEnd, bound, type, value, commodity)][
                     0
                 ][ID]
                 balanceList = []
+                
+                if pd.notna(ipEnd):
+                    ip = (ip, ipEnd)
+                
                 for mdl_type, mdl in self.componentModelingDict.items():
                     if (mdl_type == "TransmissionModel") and (type == "operation"):
                         #TODO: fix when capacity is used. currently not working!

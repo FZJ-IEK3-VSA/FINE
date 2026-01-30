@@ -1566,9 +1566,9 @@ def checkAndSetComponentLimit(
         componentLimitEligibility,
         esM.investmentPeriodNames,
     )
-    processedComponentLimit = {}
-    processedComponentLimitEligibility = {}
-    processedComponentLimitEligibility2dim = {}
+    processedComponentLimit = None
+    processedComponentLimitEligibility = None
+    processedComponentLimitEligibility2dim = None
 
     # check if both componentLimit and componentLimitEligibility are either None or not None
     if (componentLimit is None and componentLimitEligibility is not None) or (
@@ -1577,76 +1577,94 @@ def checkAndSetComponentLimit(
         raise ValueError(
             "componentLimit and componentLimitEligibility have to be either both None or both not None"
         )
+    
+    _componentLimit = componentLimit
+    _componentLimitEligibility = componentLimitEligibility
+    _componentLimitEligibility2dim = componentLimitEligibility2dim
 
-    for ip in esM.investmentPeriods:
-        _ip = esM.investmentPeriodNames[ip]
 
-        if isinstance(componentLimit, dict):
-            _componentLimit = componentLimit[_ip]
-        else:
-            _componentLimit = componentLimit
+    if _componentLimit is not None:
+        if not type(_componentLimit) == pd.DataFrame:
+            raise TypeError(
+                "The componentLimit input argument has to be a pandas.DataFrame."
+            )
 
-        if isinstance(componentLimitEligibility, dict):
-            _componentLimitEligibility = componentLimitEligibility[_ip]
-        else:
-            _componentLimitEligibility = componentLimitEligibility
+        required_columns = ["value", "bound", "type", "commodity"]
+        if not all([col in _componentLimit.columns for col in required_columns]):
+            raise ValueError(
+                "componentLimit has to contain the columns 'value', 'bound', 'type', 'commodity'"
+            )
+        # raise warning if ip and ipEND are missing
+        if "ip" not in _componentLimit.columns:
+            warnings.warn(
+                "componentLimit 'ip' column is missing. Assuming first investment period."
+            )
+            _componentLimit["ip"] = esM.investmentPeriodNames[0]
+        if "ipEnd" not in _componentLimit.columns:
+            warnings.warn(
+                "componentLimit 'ipEnd' column is missing. Assuming first investment period."
+            )
+            _componentLimit["ipEnd"] = None
         
-        if isinstance(componentLimitEligibility2dim, dict):
-            _componentLimitEligibility2dim = componentLimitEligibility2dim[_ip]
-        else:
-            _componentLimitEligibility2dim = componentLimitEligibility2dim
-
-        if _componentLimit is not None:
-            if not type(_componentLimit) == pd.DataFrame:
-                raise TypeError(
-                    "The componentLimit input argument has to be a pandas.DataFrame."
-                )
-
-            required_columns = ["value", "bound", "type", "commodity"]
-            if not all([col in _componentLimit.columns for col in required_columns]):
-                raise ValueError(
-                    "componentLimit has to contain the columns 'value', 'bound', 'type' and 'commoidty'"
-                )
-
-        if _componentLimitEligibility is not None:
-            if not type(_componentLimitEligibility) == pd.DataFrame:
-                raise TypeError(
-                    "The componentLimitEligibility input argument has to be a pandas.DataFrame."
-                )
-            # check if componentLimitEligibility contains all regions
-            if not set(locations) == set(componentLimitEligibility.index):
-                raise ValueError(
-                    "componentLimitEligibility does not have the same locations as the model"
-                )
-            # ComponentLimitEligibility has to be a DataFrame with 0 and 1 as values
-            vals = _componentLimitEligibility.unstack().unique()
-            if len(vals) > 2 or not all([val in [0, 1] for val in vals]):
-                raise ValueError(
-                    "componentLimitEligibility has to contain only 0 and 1 as values"
-                )
-
-            processedComponentLimit[ip] = _componentLimit
-            processedComponentLimitEligibility[ip] = _componentLimitEligibility
-        else:
-            processedComponentLimit[ip] = None
-            processedComponentLimitEligibility[ip] = None
+        # translate ip and ipEnd to internal IPs using self.investmentPeriodNames, and self.investmentPeriods if not None
+        ip_map = {esM.investmentPeriodNames[ip]: ip for ip in esM.investmentPeriods}
+        ip_map[None] = None
         
-        if _componentLimitEligibility2dim is not None:
-            if not type(_componentLimitEligibility2dim) == pd.DataFrame:
-                raise TypeError(
-                    "The componentLimitEligibility2dim input argument has to be a pandas.DataFrame."
-                )
+        # check that ip and ipEnd values are valid investment period names
+        if not all((ip is None or ip in ip_map.keys()) for ip in _componentLimit["ip"]):
+            raise ValueError(
+                "componentLimit 'ip' column contains invalid investment period names"
+            )
 
-            # ComponentLimitEligibility has to be a DataFrame with 0 and 1 as values
-            vals = list(set(_componentLimitEligibility2dim.values.flatten()))
-            if len(vals) > 2 or not all([val in [0, 1] for val in vals]):
-                raise ValueError(
-                    "componentLimitEligibility2dim has to contain only 0 and 1 as values"
-                )
+        if not all((ip is None or ip in ip_map.keys()) for ip in _componentLimit["ipEnd"]):
+            raise ValueError(
+                "componentLimit 'ipEnd' column contains invalid investment period names"
+            )
+        
+        _componentLimit["ip"] = _componentLimit["ip"].map(ip_map)
+        _componentLimit["ipEnd"] = _componentLimit["ipEnd"].map(ip_map)
 
-            processedComponentLimitEligibility2dim[ip] = _componentLimitEligibility2dim
-        else:
-            processedComponentLimitEligibility2dim[ip] = None
+                
+
+    if _componentLimitEligibility is not None:
+        if not type(_componentLimitEligibility) == pd.DataFrame:
+            raise TypeError(
+                "The componentLimitEligibility input argument has to be a pandas.DataFrame."
+            )
+        # check if componentLimitEligibility contains all regions
+        if not set(locations) == set(componentLimitEligibility.index):
+            raise ValueError(
+                "componentLimitEligibility does not have the same locations as the model"
+            )
+        # ComponentLimitEligibility has to be a DataFrame with 0 and 1 as values
+        vals = _componentLimitEligibility.unstack().unique()
+        if len(vals) > 2 or not all([val in [0, 1] for val in vals]):
+            raise ValueError(
+                "componentLimitEligibility has to contain only 0 and 1 as values"
+            )
+
+        processedComponentLimit = _componentLimit
+        processedComponentLimitEligibility = _componentLimitEligibility
+    else:
+        processedComponentLimit= None
+        processedComponentLimitEligibility = None
+    
+    if _componentLimitEligibility2dim is not None:
+        if not type(_componentLimitEligibility2dim) == pd.DataFrame:
+            raise TypeError(
+                "The componentLimitEligibility2dim input argument has to be a pandas.DataFrame."
+            )
+
+        # ComponentLimitEligibility has to be a DataFrame with 0 and 1 as values
+        vals = list(set(_componentLimitEligibility2dim.values.flatten()))
+        if len(vals) > 2 or not all([val in [0, 1] for val in vals]):
+            raise ValueError(
+                "componentLimitEligibility2dim has to contain only 0 and 1 as values"
+            )
+
+        processedComponentLimitEligibility2dim = _componentLimitEligibility2dim
+    else:
+        processedComponentLimitEligibility2dim = None
 
     return processedComponentLimit, processedComponentLimitEligibility, processedComponentLimitEligibility2dim
 
