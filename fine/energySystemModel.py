@@ -688,6 +688,29 @@ class EnergySystemModel:
             self.add(newScrapSource)
             print(f"New scrap source added: {newScrapSource.name}")
 
+        existingScrapSinks = {
+            comp.commodity
+            for comp in sourceModel.componentsDict.values()
+            if comp.__class__.__name__ == "Sink" and comp.commodity.endswith("_scrap")
+        }
+        print(f"Existing secondary material sinks: {existingScrapSinks}")
+
+        missingScrapSinks = scrapCommodities - existingScrapSinks
+        print(f"Missing secondary material sinks: {missingScrapSinks}")
+
+        for scrap in missingScrapSinks:
+            sourceName = f"{scrap}"
+
+            newScrapSink = Sink(
+                esM=self,
+                name=f"{sourceName}_rec",
+                commodity=scrap,
+                hasCapacityVariable=False,
+            )
+
+            self.add(newScrapSink)
+            print(f"New scrap sink added: {newScrapSink.name}")
+
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
         """Return the optimization summary (design variables, aggregated operation variables, and objective contributions) of a modeling class.
 

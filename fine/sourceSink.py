@@ -871,7 +871,11 @@ class SourceSinkModel(ComponentModel):
         # Check if locational input is not set as Total in esM, if so additionally loop over all locations
         if loc == "Total":
             balance = sum(
-                opVar[_loc, compName, ip, p, t]
+                (
+                    opVar[_loc, compName, ip, p, t]
+                    if (_loc, compName, ip, p, t) in opVar
+                    else 0
+                )
                 * compDict[compName].sign
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()
@@ -883,7 +887,11 @@ class SourceSinkModel(ComponentModel):
         # Otherwise get the contribution for specific region
         else:
             balance = sum(
-                opVar[loc, compName, ip, p, t]
+                (
+                    opVar[loc, compName, ip, p, t]
+                    if (loc, compName, ip, p, t) in opVar
+                    else 0
+                )
                 * compDict[compName].sign
                 * esM.periodOccurrences[ip][p]
                 for compName in compDict.keys()

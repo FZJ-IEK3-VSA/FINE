@@ -46,7 +46,7 @@ def test_generation_material_sinks():
     assert copper_sink.material is True
 
 
-# Test if automatic generation of secondary material sources works correctly
+# Test if automatic generation of secondary material sources and sinks works correctly
 
 
 def test_generation_material_sources():
@@ -85,6 +85,15 @@ def test_generation_material_sources():
         )
     )
 
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Wind_aluminum_scrap_rec",
+            commodity="Wind_aluminum_scrap",
+            hasCapacityVariable=False,
+        )
+    )
+
     # Generate missing material sinks automatically
     esM.generationSecondaryMaterialSources()
 
@@ -93,6 +102,12 @@ def test_generation_material_sources():
         comp.name
         for comp in esM.componentModelingDict["SourceSinkModel"].componentsDict.values()
         if comp.__class__.__name__ == "Source" and comp.commodity.endswith("_scrap")
+    ]
+
+    scrap_sinks = [
+        comp.name
+        for comp in esM.componentModelingDict["SourceSinkModel"].componentsDict.values()
+        if comp.__class__.__name__ == "Sink" and comp.commodity.endswith("_scrap")
     ]
 
     # Test that both scrap sources were generated
@@ -110,3 +125,19 @@ def test_generation_material_sources():
     assert copper_scrap_source.commodity == "Wind_copper_scrap"
     assert copper_scrap_source.hasCapacityVariable is False
     assert copper_scrap_source.material is True
+
+    # Test that both scrap sources were generated
+    assert "Wind_steel_scrap_rec" in scrap_sinks
+    assert "Wind_copper_scrap_rec" in scrap_sinks
+    assert "Wind_aluminum_scrap_rec" in scrap_sinks
+
+    # Inspect the copper scrap source to confirm correct properties
+    copper_scrap_sink = next(
+        comp
+        for comp in esM.componentModelingDict["SourceSinkModel"].componentsDict.values()
+        if comp.name == "Wind_copper_scrap_rec"
+    )
+
+    assert copper_scrap_sink.commodity == "Wind_copper_scrap"
+    assert copper_scrap_sink.hasCapacityVariable is False
+    assert copper_scrap_sink.material is False
