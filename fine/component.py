@@ -2615,6 +2615,13 @@ class ComponentModel(metaclass=ABCMeta):
         Defines two constraints linking a continuous operation variable
         to its corresponding binary variable using the Big-M formulation.
         Handles both standard and commissioning year-dependent cases.
+
+        The binaryOperation1 constraint is used to force the binary variable
+        to one if the continuous variable is greater than zero.
+
+        The binaryOperation2 constraint ensures that the continuous
+        variable is greater than zero whenever the binary variable is one.
+        This is used for the upTimeMin and downTimeMin feature.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -2658,14 +2665,14 @@ class ComponentModel(metaclass=ABCMeta):
                 def binOperation2(pyM, loc, compName, commis, ip, p, t):
                     return (
                         opVar[loc, compName, commis, ip, p, t]
-                        >= opVarBin[loc, compName, commis, ip, p, t]
+                        >= opVarBin[loc, compName, commis, ip, p, t] * 1e-4
                     )
             else:
 
                 def binOperation2(pyM, loc, compName, ip, p, t):
                     return (
                         opVar[loc, compName, ip, p, t]
-                        >= opVarBin[loc, compName, ip, p, t]
+                        >= opVarBin[loc, compName, ip, p, t] * 1e-4
                     )
 
             setattr(
