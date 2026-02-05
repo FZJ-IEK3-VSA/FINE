@@ -237,7 +237,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
 
                         else:
                             df.index = df.index.droplevel(0)
-                        
+
                         # df = df.iloc[-1]
                         df = df.stack()
                         # df.name = (name, component, variables

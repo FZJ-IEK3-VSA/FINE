@@ -1126,15 +1126,15 @@ class SourceSinkModel(ComponentModel):
                     tuples,
                 )
             )
-            
+
             mIndex = pd.MultiIndex.from_tuples(
                 tuples, names=["Component", "Property", "Unit"]
             )
-            
+
             optSummary = pd.DataFrame(
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
-            
+
             if optVal is not None:
                 # operation
                 opSum = optVal.sum(axis=1).unstack(-1)
