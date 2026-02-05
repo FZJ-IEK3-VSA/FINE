@@ -1104,11 +1104,11 @@ def writeEnergySystemModelToNetCDF(
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
         |br| * the default value is None
     :type group_prefix: string
-    
+
     :param includeShadowPrices: Whether to include shadow prices in the output netCDF file.
         |br| * the default value is False
     :type includeShadowPrices: boolean
-    
+
     :param shadowPriceConstraintStr: The string to identify the constraints for which shadow prices should be included.
         |br| * the default value is "commodityBalanceConstraint"
     :type shadowPriceConstraintStr: string
@@ -1152,11 +1152,11 @@ def writeEnergySystemModelToDatasets(
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
-    
+
     :param includeShadowPrices: Whether to include shadow prices in the output xarray dataset.
         |br| * the default value is False
     :type includeShadowPrices: boolean
-    
+
     :param shadowPriceConstraintStr: The string to identify the constraints for which shadow prices should be included.
         |br| * the default value is "commodityBalanceConstraint"
     :type shadowPriceConstraintStr: string
