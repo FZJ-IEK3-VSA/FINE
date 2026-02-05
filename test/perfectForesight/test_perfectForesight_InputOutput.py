@@ -61,9 +61,9 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
         savedExcel = pd.read_excel(
             filePath, sheet_name="SourceSinkOptSummary_1dim", index_col=[0, 1, 2]
         )
-        output_PV_operation = savedExcel.loc["PV", "operation_annual", "[kW$_{el}$*h/a]"][
-            "ForesightLand"
-        ]
+        output_PV_operation = savedExcel.loc[
+            "PV", "operation_annual", "[kW$_{el}$*h/a]"
+        ]["ForesightLand"]
         output_PV_opexCap = savedExcel.loc["PV", "opexCap", "[1 Euro/a]"][
             "ForesightLand"
         ]

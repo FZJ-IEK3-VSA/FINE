@@ -1893,7 +1893,12 @@ class StorageModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] in ["operationCharge", "operationCharge_annual", "NPV_operationCharge"]
+                        if x[1]
+                        in [
+                            "operationCharge",
+                            "operationCharge_annual",
+                            "NPV_operationCharge",
+                        ]
                         else x
                     ),
                     tuples,
@@ -1907,7 +1912,12 @@ class StorageModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] in ["operationDischarge", "operationDischarge_annual", "NPV_operationDischarge"]
+                        if x[1]
+                        in [
+                            "operationDischarge",
+                            "operationDischarge_annual",
+                            "NPV_operationDischarge",
+                        ]
                         else x
                     ),
                     tuples,

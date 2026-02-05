@@ -245,21 +245,21 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df.index.rename(["LocationIn", "LocationOut"], inplace=True)
                         df = pd.to_numeric(df)
                         xr_da = df.to_xarray()
-                            # df = df_o.copy()
-                            # if len(df.index.get_level_values(0).unique()) > 1:
-                            #     idx = df.index.get_level_values(0).unique()[-1]
-                            #     df = df.xs(idx, level=0)
-                            # else:
-                            #     df.index = df.index.droplevel(0)
-                            # df = df.stack()
-                            # df.name = variable
-                            # df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                            # df = pd.to_numeric(df, errors="ignore")
-                            # xr_da = df.to_xarray()
+                        # df = df_o.copy()
+                        # if len(df.index.get_level_values(0).unique()) > 1:
+                        #     idx = df.index.get_level_values(0).unique()[-1]
+                        #     df = df.xs(idx, level=0)
+                        # else:
+                        #     df.index = df.index.droplevel(0)
+                        # df = df.stack()
+                        # df.name = variable
+                        # df.index.rename(["LocationIn", "LocationOut"], inplace=True)
+                        # df = pd.to_numeric(df, errors="ignore")
+                        # xr_da = df.to_xarray()
 
-                            # add variable [e.g. 'TAC'] and units to attributes of xarray
-                            # unit = df_o.index.get_level_values(0)[0]
-                            # xr_da.attrs[variable] = unit
+                        # add variable [e.g. 'TAC'] and units to attributes of xarray
+                        # unit = df_o.index.get_level_values(0)[0]
+                        # xr_da.attrs[variable] = unit
 
                         # add variable [e.g. 'TAC'] and units to attributes of xarray
                         unit = variables_unit[variable]

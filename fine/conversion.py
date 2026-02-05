@@ -1689,7 +1689,11 @@ class ConversionModel(ComponentModel):
 
                 optSummary.loc[
                     [
-                        (ix, "operation_annual", "[" + compDict[ix].physicalUnit + "*h/a]")
+                        (
+                            ix,
+                            "operation_annual",
+                            "[" + compDict[ix].physicalUnit + "*h/a]",
+                        )
                         for ix in opSum.index
                     ],
                     opSum.columns,
