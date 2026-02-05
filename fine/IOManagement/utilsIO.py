@@ -847,9 +847,8 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
 
 
 def getShadowPriceXarray(esM, constraint_str="commodityBalanceConstraint"):
-    """
-    Retrieves shadow prices (dual values) for a specified constraint from the energy system model
-    and returns them as an xarray DataArray.
+    """Retrieve shadow prices (dual values) for a specified constraint from the energy system model
+    and return them as an xarray DataArray.
 
     The function handles fetching dual values for each investment period, processing them
     (including expanding time series if aggregated), and combining them into a single
