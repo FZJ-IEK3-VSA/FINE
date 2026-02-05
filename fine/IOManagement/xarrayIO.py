@@ -137,41 +137,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         # add variable [e.g. 'TAC'] and units to attributes of xarray
                         unit = variables_unit[variable]
                         xr_da.attrs[variable] = unit
-                        # df_o = optSum.loc[(component, variable)]
-                        # # differentiate if two entries per variable, i.e. operation: annual and normal, because nc4 can not save two entries with the same name
-                        # if df_o.shape[0] == 2:
-                        #     # first half of df_o, as it is annual and normal operation
-                        #     df = df_o.iloc[0].copy()
-                        #     df.name = variable
-                        #     df.index.rename("space", inplace=True)
-                        #     df = pd.to_numeric(df, errors="ignore")
-                        #     xr_da = df.to_xarray()
-                        #     unit = df_o.iloc[0].name
-                        #     # unit = variables_unit[variable]
-                        #     xr_da.attrs[variable] = unit
-                        #     # merge to overall xr_dss
-                        #     xr_dss[ip][name][component] = xr.merge(
-                        #         [xr_dss[ip][name][component], xr_da],
-                        #         combine_attrs="drop_conflicts",
-                        #     )
-                        #     # second half of df_o, as it is annual and normal operation
-                        #     df = df_o.iloc[1].copy()
-                        #     df.name = f"{variable}_{1}"
-                        #     df.index.rename("space", inplace=True)
-                        #     df = pd.to_numeric(df, errors="ignore")
-                        #     xr_da = df.to_xarray()
-                        #     # add variable [e.g. 'TAC'] and units to attributes of xarray
-                        #     unit = df_o.iloc[1].name
-                        #     xr_da.attrs[df.name] = unit
-                        # else:
-                        #     df = df_o.iloc[-1]
-                        #     df.name = variable
-                        #     df.index.rename("space", inplace=True)
-                        #     df = pd.to_numeric(df, errors="ignore")
-                        #     xr_da = df.to_xarray()
-                        #     # add variable [e.g. 'TAC'] and units to attributes of xarray
-                        #     unit = df_o.iloc[-1].name
-                        #     xr_da.attrs[variable] = unit
 
                         # merge to overall xr_ds
                         xr_dss[ip][name][component] = xr.merge(
@@ -190,50 +155,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         if len(df.index.get_level_values(0).unique()) > 1:
                             idx = df.index.get_level_values(0).unique()[-1]
                             df = df.xs(idx, level=0)
-                        # df_o = optSum.loc[(component, variable)]
-                        # # differentiate if two entries per variable, i.e. operation: annual and normal
-                        # if "operation" in variable or variable == "operation":
-                        #     # first half of df_o, as it is annual and normal operation
-                        #     len_df_o = int(len(df_o))
-                        #     df = df_o.iloc[0 : int(len_df_o / 2), :].copy()
-                        #     if len(df.index.get_level_values(0).unique()) > 1:
-                        #         idx = df.index.get_level_values(0).unique()[-1]
-                        #         df = df.xs(idx, level=0)
-                        #     else:
-                        #         df.index = df.index.droplevel(0)
-                        #     df = df.stack()
-                        #     df.name = variable
-                        #     df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                        #     df = pd.to_numeric(df, errors="ignore")
-                        #     xr_da = df.to_xarray()
-                        #     # add variable [e.g. 'TAC'] and units to attributes of xarray
-                        #     unit = df_o.iloc[
-                        #         0 : int(len_df_o / 2), :
-                        #     ].index.get_level_values(0)[0]
-                        #     xr_da.attrs[variable] = unit
-                        #     # merge to overall xr_ds
-                        #     xr_dss[ip][name][component] = xr.merge(
-                        #         [xr_dss[ip][name][component], xr_da],
-                        #         combine_attrs="drop_conflicts",
-                        #     )
-
-                        #     # second half of df_o, as it is annual and normal operation
-                        #     df = df_o.iloc[int(len_df_o / 2) : len_df_o, :].copy()
-                        #     if len(df.index.get_level_values(0).unique()) > 1:
-                        #         idx = df.index.get_level_values(0).unique()[-1]
-                        #         df = df.xs(idx, level=0)
-                        #     else:
-                        #         df.index = df.index.droplevel(0)
-                        #     df = df.stack()
-                        #     df.name = f"{variable}_{1}"
-                        #     df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                        #     df = pd.to_numeric(df, errors="ignore")
-                        #     xr_da = df.to_xarray()
-                        #     # add variable [e.g. 'TAC'] and units to attributes of xarray
-                        #     unit = df_o.iloc[
-                        #         int(len_df_o / 2) : len_df_o, :
-                        #     ].index.get_level_values(0)[0]
-                        #     xr_da.attrs[df.name] = unit
 
                         else:
                             df.index = df.index.droplevel(0)
@@ -245,21 +166,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df.index.rename(["LocationIn", "LocationOut"], inplace=True)
                         df = pd.to_numeric(df)
                         xr_da = df.to_xarray()
-                        # df = df_o.copy()
-                        # if len(df.index.get_level_values(0).unique()) > 1:
-                        #     idx = df.index.get_level_values(0).unique()[-1]
-                        #     df = df.xs(idx, level=0)
-                        # else:
-                        #     df.index = df.index.droplevel(0)
-                        # df = df.stack()
-                        # df.name = variable
-                        # df.index.rename(["LocationIn", "LocationOut"], inplace=True)
-                        # df = pd.to_numeric(df, errors="ignore")
-                        # xr_da = df.to_xarray()
-
-                        # add variable [e.g. 'TAC'] and units to attributes of xarray
-                        # unit = df_o.index.get_level_values(0)[0]
-                        # xr_da.attrs[variable] = unit
 
                         # add variable [e.g. 'TAC'] and units to attributes of xarray
                         unit = variables_unit[variable]
