@@ -627,7 +627,7 @@ def checkInvestmentPeriodParameters(name, param, years):
             )
 
 
-def checkAndSetInvestmentPeriodParamters(name, param, esM):
+def checkAndSetInvestmentPeriodParameters(name, param, esM):
     checkInvestmentPeriodParameters(name, param, esM.investmentPeriodNames)
     processedParam = {}
     for ip in esM.investmentPeriods:
@@ -2339,7 +2339,7 @@ def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
     if CO2ReductionTargets is not None:
         if len(CO2ReductionTargets) != nbOfSteps + 1:
             raise ValueError(
-                "CO2ReductionTargets has to be None, or the lenght of the given list must equal the number \
+                "CO2ReductionTargets has to be None, or the length of the given list must equal the number \
  of optimization steps."
             )
 

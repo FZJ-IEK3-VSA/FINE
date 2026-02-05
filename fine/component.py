@@ -522,7 +522,7 @@ class Component(metaclass=ABCMeta):
         self.hasCapacityVariable = hasCapacityVariable
         self.capacityVariableDomain = capacityVariableDomain
         self.capacityPerPlantUnit = capacityPerPlantUnit
-        self.processedCapacityPerPlantUnit = utils.checkAndSetInvestmentPeriodParamters(
+        self.processedCapacityPerPlantUnit = utils.checkAndSetInvestmentPeriodParameters(
             "capacityPerPlantUnit",
             capacityPerPlantUnit,
             esM,

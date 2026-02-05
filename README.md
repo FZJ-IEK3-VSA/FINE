@@ -86,11 +86,11 @@ A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples
   - In this application, a small district is modeled and optimized. This example also includes binary decision variables.
 - [06_Water_Supply_System](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/06_Water_Supply_System)
   - The application cases of ETHOS.FINE are not limited. This application shows how to model the water supply system.
-- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/dmaster/examples/07_NetCDF_to_save_and_set_up_model_instance)
+- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/07_NetCDF_to_save_and_set_up_model_instance)
   - This example shows how to save the input and optimized results of an energy system Model instance to netCDF files to allow reproducibility.
 - [08_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/08_Spatial_and_technology_aggregation)
   - These two examples show how to reduce the model complexity. Model regions can be aggregated to reduce the number of regions (spatial aggregation). Input parameters are automatically adapted. Furthermore, technologies can be aggregated to reduce complexity, e.g. reducing the number of different PV components (technology aggregation). Input parameters are automatically adapted.
-- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/9_Stochastic_Optimizatio)
+- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/09_Stochastic_Optimization)
   - In this application, a stochastic optimization is performed. It is possible to perform the optimization of an energy system model with different input parameter sets to receive a more robust solution.
 - [10_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/10_PerfectForesight)
   - In this application, a transformation pathway of an energy system is modeled and optimized showing how to handle several investment periods with time-dependent assumptions for costs and operation.
@@ -116,7 +116,7 @@ python -m pip install --no-deps --editable .
 
 ### Editable install from pypi
 
-If you do not want to use conda-forge consider the steps in section [Installation from PyPI](#Installation-from-pipy) and install ETHOS.FINE as editable install and with developer dependencies with
+If you do not want to use conda-forge consider the steps in section [Installation from PyPI](#Installation-from-PyPI) and install ETHOS.FINE as editable install and with developer dependencies with
 
 ```bash
 python -m venv .venv
