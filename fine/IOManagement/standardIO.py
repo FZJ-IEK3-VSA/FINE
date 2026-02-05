@@ -135,7 +135,7 @@ def writeOptimizationOutputToExcel(
                         writer, sheet_name=abbreviatedName + "_TDoptVar_1dim"
                     )
             if dataTD2dim:
-                names = ["Variable", "Component", "LocationIn", "LocationOut"]
+                names = ["Variable", "Component", "locationIn", "locationOut"]
                 dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
                 if oL_ == 1:
                     dfTD2dim = dfTD2dim.loc[
