@@ -74,7 +74,6 @@ class ConversionDynamic(Conversion):
         super().setTimeSeriesData(hasTSA)
 
 
-
 class ConversionDynamicModel(ConversionModel):
     """
     A ConversionDynamicModel class instance will be instantly created if a ConversionDynamic class instance is initialized.

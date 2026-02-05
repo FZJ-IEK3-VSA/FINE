@@ -146,13 +146,13 @@ def test_real_esm_tsa_interperiod_rampup_enforcement():
 
     # --- Assertions ---
     assert np.isclose(capacity_A, 10.0)
-    assert jump_unconstrained > 9.9, (
-        "Without constraints, jump should be ~full capacity"
-    )
+    assert (
+        jump_unconstrained > 9.9
+    ), "Without constraints, jump should be ~full capacity"
     assert jump_constrained < jump_unconstrained, "Constraint must reduce the jump"
-    assert np.isclose(jump_constrained, expected_limit, atol=1e-6), (
-        f"Jump {jump_constrained:.6f} should match limit {expected_limit:.6f}"
-    )
+    assert np.isclose(
+        jump_constrained, expected_limit, atol=1e-6
+    ), f"Jump {jump_constrained:.6f} should match limit {expected_limit:.6f}"
 
 
 def test_real_esm_tsa_interperiod_rampdown_enforcement():
@@ -209,19 +209,19 @@ def test_real_esm_tsa_interperiod_rampdown_enforcement():
 
     # Behaviour checks:
     # Unconstrained: optimizer should use ~full drop (cap → 0)
-    assert drop_unconstrained > 9.9, (
-        "Without constraints, drop should be ~full capacity"
-    )
+    assert (
+        drop_unconstrained > 9.9
+    ), "Without constraints, drop should be ~full capacity"
 
     # Constraint must reduce the drop
-    assert drop_constrained < drop_unconstrained, (
-        "Ramp-down constraint must reduce the drop"
-    )
+    assert (
+        drop_constrained < drop_unconstrained
+    ), "Ramp-down constraint must reduce the drop"
 
     # And the drop should match the theoretical limit
-    assert np.isclose(drop_constrained, expected_limit, atol=1e-6), (
-        f"Drop {drop_constrained:.3f} should match limit {expected_limit:.3f}"
-    )
+    assert np.isclose(
+        drop_constrained, expected_limit, atol=1e-6
+    ), f"Drop {drop_constrained:.3f} should match limit {expected_limit:.3f}"
 
 
 # test edge case: no ramp limits lead to no interperiod constraint
