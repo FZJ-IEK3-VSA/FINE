@@ -1018,7 +1018,7 @@ class ConversionModel(ComponentModel):
             pyomo.Constraint(constrSetRamp, pyM.intraYearTimeSet, rule=ramping),
         )
 
-    def InterPeriodRamping(self, esM, pyM, rampingType):
+    def interPeriodRamping(self, esM, pyM, rampingType):
         """Add inter-period ramping constraints for operation variables.
         This enforces a maximum allowed change in the dispatch between the last time step of period p–1 and the first time step of period p.
         """
@@ -1247,8 +1247,8 @@ class ConversionModel(ComponentModel):
         self.declareRampingConstraints(pyM, esM, rampingType="rampUpMax")
         self.declareRampingConstraints(pyM, esM, rampingType="rampDownMax")
         if pyM.hasTSA:
-            self.InterPeriodRamping(esM, pyM, rampingType="rampUpMax")
-            self.InterPeriodRamping(esM, pyM, rampingType="rampDownMax")
+            self.interPeriodRamping(esM, pyM, rampingType="rampUpMax")
+            self.interPeriodRamping(esM, pyM, rampingType="rampDownMax")
 
         ################################################################################################################
         #                                    Declare pathway constraints                                               #

@@ -1,4 +1,3 @@
-# pytest: disable_capture=True
 import numpy as np
 import pyomo.environ as pyo
 from pyomo.repn import generate_standard_repn
