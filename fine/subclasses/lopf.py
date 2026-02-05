@@ -357,17 +357,24 @@ class LOPFModel(TransmissionModel):
             "phaseAngleVariablesOptimum": True,
         }
 
+        dimensionMapping = {
+            "capacityVariablesOptimum":self.dimension,
+            "isBuiltVariablesOptimum": self.dimension,
+            "operationVariablesOptimum": self.dimension,
+            "phaseAngleVariablesOptimum":"1dim",
+        }
+
         if name in timeDependentMapping:
             return {
                 "values": getattr(self, f"_{name}")[ip],
                 "timeDependent": timeDependentMapping[name],
-                "dimension": self.dimension,
+                "dimension": dimensionMapping[name],
             }
         return {
             valName: {
                 "values": getattr(self, f"_{valName}")[ip],
                 "timeDependent": timeDependentMapping[valName],
-                "dimension": self.dimension,
+                "dimension": dimensionMapping[valName],
             }
             for valName in timeDependentMapping
         }

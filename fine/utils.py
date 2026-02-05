@@ -26,7 +26,7 @@ def isString(string):
 
 def isStrictlyPositiveInt(value):
     """Check if the input argument is a strictly positive integer."""
-    if value is not int:
+    if not isinstance(value, int):
         raise TypeError("The input argument has to be an integer")
     if not value > 0:
         raise ValueError("The input argument has to be strictly positive")
@@ -50,9 +50,9 @@ def isPositiveNumber(value):
 
 def isSetOfStrings(setOfStrings):
     """Check if the input argument is a set of strings."""
-    if setOfStrings is not set:
+    if not isinstance(setOfStrings, set):
         raise TypeError("The input argument has to be a set")
-    if not any([r is str for r in setOfStrings]):
+    if not any([isinstance(currentString, str) for currentString in setOfStrings]):
         raise TypeError("The list entries in the input argument must be strings")
 
 
@@ -81,7 +81,7 @@ def checkEnergySystemModelInput(
 
     # The commodityUnitDict has to be a dictionary which keys equal the specified commodities and which values are
     # strings
-    if commodityUnitsDict is not dict:
+    if not isinstance(commodityUnitsDict, dict):
         raise TypeError("The commodityUnitsDict input argument has to be a dictionary.")
     if commodities != set(commodityUnitsDict.keys()):
         raise ValueError(
@@ -827,7 +827,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
 
     if downTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
-        if downTimeMin is not int:
+        if not isinstance(downTimeMin, int):
             raise TypeError(
                 "downTimeMin for "
                 + name
@@ -848,7 +848,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
 
     if upTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
-        if upTimeMin is not int:
+        if not isinstance(upTimeMin, int):
             raise TypeError(
                 "upTimeMin for "
                 + name
@@ -1330,7 +1330,7 @@ def checkAndSetPartLoadMin(
     # checking function
     def checkPartLoadMin(partLoadMin, bigM, hasCapacityVariable):
         # Check if values are floats and the intervall ]0,1].
-        if partLoadMin is not float:
+        if not isinstance(partLoadMin, float):
             raise TypeError(
                 "partLoadMin for "
                 + name
@@ -1579,7 +1579,7 @@ def checkAndSetBalanceLimit(esM, balanceLimit, locations):
             _balanceLimit = balanceLimit.copy()
 
         if _balanceLimit is not None:
-            if _balanceLimit is not pd.DataFrame:
+            if not isinstance(_balanceLimit, pd.DataFrame):
                 raise TypeError(
                     "The balanceLimit input argument has to be a pandas.DataFrame."
                 )
@@ -2386,12 +2386,12 @@ def addEmptyRegions(esM, data):
     data_locations = data.index
     missing_locations = [loc for loc in esM_locations if loc not in data_locations]
 
-    if data is pd.Series:
+    if isinstance(data, pd.Series):
         for loc in missing_locations:
             tst = pd.Series([0], index=[loc])
             data = pd.concat([data, tst], axis=0)
 
-    elif data is pd.DataFrame:
+    elif isinstance(data, pd.DataFrame):
         for loc in missing_locations:
             if loc not in data.columns:
                 data[loc] = 0

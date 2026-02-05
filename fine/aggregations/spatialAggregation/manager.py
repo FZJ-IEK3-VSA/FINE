@@ -212,7 +212,7 @@ def perform_spatial_aggregation(
     """
     # STEP 1. Read and check shapefile
     if isinstance(shapefile, str):
-        if not Path.is_file(shapefile):
+        if not Path(shapefile).is_file():
             raise FileNotFoundError("The shapefile path specified is not valid")
         shapefile = gpd.read_file(shapefile)
 

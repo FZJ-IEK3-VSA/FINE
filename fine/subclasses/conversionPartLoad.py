@@ -331,7 +331,7 @@ class ConversionPartLoad(Conversion):
         # TODO: Make compatible with conversion
         utils.checkNumberOfConversionFactors(commodityConversionFactors)
 
-        if commodityConversionFactorsPartLoad is dict:
+        if isinstance(commodityConversionFactorsPartLoad, dict):
             # TODO: Multiple conversionPartLoads
             utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad)
             utils.checkCommodities(esM, set(commodityConversionFactorsPartLoad.keys()))
@@ -343,7 +343,7 @@ class ConversionPartLoad(Conversion):
                 commodityConversionFactorsPartLoad, nSegments
             )
 
-        elif commodityConversionFactorsPartLoad is tuple:
+        elif isinstance(commodityConversionFactorsPartLoad, tuple):
             utils.checkNumberOfConversionFactors(
                 commodityConversionFactorsPartLoad[0].keys()
             )
