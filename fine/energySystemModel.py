@@ -1047,6 +1047,11 @@ class EnergySystemModel:
             timeSeriesData = timeSeriesData.reindex(
                 sorted(timeSeriesData.columns), axis=1
             )
+            # find data with only zeros
+            zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
+            # drop columns with only zeros
+            timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
+            weightDict = {k: v for k, v in weightDict.items() if k not in zero_data_cols}
             if segmentation:
                 clusterClass = TimeSeriesAggregation(
                     timeSeries=timeSeriesData,
@@ -1066,6 +1071,7 @@ class EnergySystemModel:
                 data = pd.DataFrame.from_dict(
                     clusterClass.clusterPeriodDict
                 ).reset_index(level=2, drop=True)
+                
                 # Get the length of each segment in each typical period with the first index as typical period number and
                 # the second index as segment number per typical period.
                 timeStepsPerSegment = pd.DataFrame.from_dict(
@@ -1086,6 +1092,9 @@ class EnergySystemModel:
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as time step number per typical period.
                 data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+
+            # add zeros data back to data
+            data[zero_data_cols] = 0.0
 
             # Store the respective clustered time series data in the associated components
             for mdlName, mdl in self.componentModelingDict.items():
