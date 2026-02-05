@@ -855,19 +855,6 @@ class EnergySystemModel:
         # STEP 3. Obtain aggregated esM
         return xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
-    def cluster(self, *args, **kwargs):
-        """Deprecated method, use `aggregateTemporally()` instead.
-
-        Calls `aggregateTemporally()` with the same arguments and issues
-        a deprecation warning.
-        """  # noqa D401
-        warnings.warn(
-            "EnergySystemModel.cluster() is deprecated and will be removed in a future release. \
-            use EnergySystemModel.aggregateTemporally() instead.",
-            DeprecationWarning,
-        )
-        self.aggregateTemporally(*args, **kwargs)
-
     def aggregateTemporally(
         self,
         numberOfTypicalPeriods=40,

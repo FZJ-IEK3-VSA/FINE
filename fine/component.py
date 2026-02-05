@@ -2785,7 +2785,6 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         isOperationCommisYearDepending=False,
     ):
-        # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
         """Limit the annual full load hours to a minimum value.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
