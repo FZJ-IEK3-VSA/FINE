@@ -1129,7 +1129,11 @@ def writeEnergySystemModelToNetCDF(
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
 
 
-def writeEnergySystemModelToDatasets(esM):
+def writeEnergySystemModelToDatasets(
+    esM,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
+):
     """Convert esM instance (input and output) into a xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
@@ -1142,21 +1146,23 @@ def writeEnergySystemModelToDatasets(esM):
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
         xr_dss_input = convertOptimizationInputToDatasets(esM)
+
+        xr_dss_results = {
+            "Results": xr_dss_output["Results"],
+            "Input": xr_dss_input["Input"],
+            "Parameters": xr_dss_input["Parameters"],
+        }
         if hasattr(esM, "performanceSummary"):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
+            xr_dss_results["PerformanceSummary"] = xr_dss_performance[
+                "PerformanceSummary"
+            ]
 
-            xr_dss_results = {
-                "Results": xr_dss_output["Results"],
-                "Input": xr_dss_input["Input"],
-                "Parameters": xr_dss_input["Parameters"],
-                "PerformanceSummary": xr_dss_performance["PerformanceSummary"],
-            }
-        else:
-            xr_dss_results = {
-                "Results": xr_dss_output["Results"],
-                "Input": xr_dss_input["Input"],
-                "Parameters": xr_dss_input["Parameters"],
-            }
+        if includeShadowPrices:
+            xr_dss_shadowPrices = utilsIO.getShadowPriceXarray(
+                esM, constraint_str=shadowPriceConstraintStr
+            )
+            xr_dss_results["ShadowPrices"] = xr_dss_shadowPrices
     else:
         xr_dss_input = convertOptimizationInputToDatasets(esM)
         xr_dss_results = {
