@@ -381,7 +381,7 @@ class Storage(Component):
                 and self.fullChargeOpRateFix[ip] is not None
             ):
                 self.fullChargeOpRateMax[ip] = None
-                if esM.verbose < 2:
+                if esM.verboseLogLevel < 2:
                     warnings.warn(
                         "If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n"
                         + "The chargeOpRateMax time series was set to None."
@@ -2002,7 +2002,7 @@ class StorageModel(ComponentModel):
                     ].loc[compName],
                 )
                 if simultaneousChargeDischarge:
-                    if esM.verbose < 2:
+                    if esM.verboseLogLevel < 2:
                         warnings.warn(
                             f"Charge and discharge at the same time for component {compName}",
                             UserWarning,

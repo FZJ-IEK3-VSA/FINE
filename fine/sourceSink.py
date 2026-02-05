@@ -259,7 +259,9 @@ class Source(Component):
             esM.commodityUnitsDict[commodity],
         )
         self.balanceLimitID = utils.checkAndSetBalanceLimitID(balanceLimitID)
-        self.pathwayBalanceLimitID = utils.checkAndSetBalanceLimitID(pathwayBalanceLimitID)
+        self.pathwayBalanceLimitID = utils.checkAndSetBalanceLimitID(
+            pathwayBalanceLimitID
+        )
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
@@ -348,7 +350,7 @@ class Source(Component):
                 and self.fullOperationRateMax[ip] is not None
             ):
                 self.fullOperationRateMax[ip] = None
-                if esM.verbose < 2:
+                if esM.verboseLogLevel < 2:
                     warnings.warn(
                         "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
                         + "The operationRateMax time series of investment period "
@@ -359,7 +361,7 @@ class Source(Component):
                 and self.fullOperationRateMin[ip] is not None
             ):
                 self.fullOperationRateMin[ip] = None
-                if esM.verbose < 2:
+                if esM.verboseLogLevel < 2:
                     warnings.warn(
                         "If operationRateFix is specified, the operationRateMin parameter is not required.\n"
                         + "The operationRateMin time series of investment period "

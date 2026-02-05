@@ -293,14 +293,14 @@ class Conversion(Component):
         # check for operationRateMax and operationRateFix
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
-            if esM.verbose < 2:
+            if esM.verboseLogLevel < 2:
                 warnings.warn(
                     "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
                     + "The operationRateMax time series was set to None."
                 )
         if operationRateMin is not None and operationRateFix is not None:
             operationRateMin = None
-            if esM.verbose < 2:
+            if esM.verboseLogLevel < 2:
                 warnings.warn(
                     "If operationRateFix is specified, the operationRateMin parameter is not required.\n"
                     + "The operationRateMin time series was set to None."

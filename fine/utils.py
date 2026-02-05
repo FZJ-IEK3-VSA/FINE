@@ -6,20 +6,25 @@ import pandas as pd
 
 import fine as fn
 
+
 # ruff: noqa
 def checkAndSetBalanceLimitID(balanceLimitID):
     if balanceLimitID is None or isinstance(balanceLimitID, str):
         return balanceLimitID
     else:
-       raise ValueError("The input argument needs to be a string or None.") 
+        raise ValueError("The input argument needs to be a string or None.")
+
 
 def checkCapacityOrCommissioningTransmission(df):
-    if isinstance(df, (pd.DataFrame,pd.Series,int,float)):
+    if isinstance(df, (pd.DataFrame, pd.Series, dict, float, int)):
         return df
     elif df == None:
         return df
     else:
-        raise ValueError("The input argument needs to be a dataframe.")
+        raise ValueError(
+            "The input argument needs to be a dataframe, series, dict, float or int."
+        )
+
 
 def isInRange(value, lowerBound, upperBound):
     """Check if the input value is in the given range."""
@@ -295,7 +300,7 @@ def checkAndSetDistances(distances, locationalEligibility, esM):
     if distances is None:
         output(
             "The distances of a component are set to a normalized value of 1.",
-            esM.verbose,
+            esM.verboseLogLevel,
             0,
         )
         distances = pd.Series(
@@ -522,7 +527,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 data = capacityMax[ip].copy()
                 data[data > 0] = 1
                 if (data > isBuiltFix).any():
-                    if esM.verbose < 2:
+                    if esM.verboseLogLevel < 2:
                         warnings.warn(
                             "The isBuiltFix and capacityMax parameters indicate different design options."
                         )
@@ -909,19 +914,34 @@ def setLocationalEligibility(
         if isinstance(locationalEligibility, pd.Series):
             esm_locations = set(esM.locations)
             le_index = set(locationalEligibility.index)
-            if dimension=="1dim":
+            if dimension == "1dim":
                 if esm_locations != le_index:
-                    raise ValueError(f"if locationalEligibility is specified, it needs to match the esM locations")
-            elif dimension=="2dim":
-                le_index_2dim = set(f"{a}_{b}" for a in sorted(esm_locations) for b in sorted(esm_locations) if a!=b)
-                if le_index_2dim != le_index:
-                    raise ValueError(f"if locationalEligibility is specified, it needs to match the esM locations")
+                    raise ValueError(
+                        f"if locationalEligibility (1dim) is specified, it needs to match the esM locations"
+                    )
+            elif dimension == "2dim":
+                le_index_2dim = set(
+                    f"{a}_{b}"
+                    for a in sorted(esm_locations)
+                    for b in sorted(esm_locations)
+                    if a != b
+                )
+                if (
+                    le_index > le_index_2dim
+                ):  # location eligibility can only be defined between existing esm locations
+                    raise ValueError(
+                        f"if locationalEligibility is specified, it can only be defined between existing esm locations"
+                    )
             else:
                 raise ValueError(f"dimensions needs to be either '1dim' or '2dim'")
-            if not locationalEligibility.isin([0,1,True,False]).all():
-                raise ValueError(f"all values in locationalEligibility must be either True or False or 1 or 0") 
+            if not locationalEligibility.isin([0, 1, True, False]).all():
+                raise ValueError(
+                    f"all values in locationalEligibility must be either True or False or 1 or 0"
+                )
         else:
-            raise ValueError(f"locationalEligibility needs to be a Series after it has been preprocessed")
+            raise ValueError(
+                f"locationalEligibility needs to be a Series after it has been preprocessed"
+            )
         return locationalEligibility
     else:
         # If the location eligibility is None set it based on other information available
@@ -1220,7 +1240,7 @@ def checkDesignVariableModelingParameters(
     if bigM is not None and hasIsBuiltBinaryVariable:
         isPositiveNumber(bigM)
     elif bigM is not None and not hasIsBuiltBinaryVariable:
-        if esM.verbose < 2:
+        if esM.verboseLogLevel < 2:
             warnings.warn(
                 "The declared bigM variable is not used in the problem formulation for hasIsBuiltBinaryVariable, since hasIsBuiltBinaryVariable is set to false. \n"
                 "Check if bigM is needed for other binary variables (like partLoadMin). Else it is ignored."

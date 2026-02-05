@@ -729,7 +729,7 @@ class Component(metaclass=ABCMeta):
         if self.name in esM.componentNames:
             if (
                 esM.componentNames[self.name] == self.modelingClass.__name__
-                and esM.verbose < 2
+                and esM.verboseLogLevel < 2
             ):
                 warnings.warn(
                     "Component identifier "
@@ -4002,7 +4002,7 @@ class ComponentModel(metaclass=ABCMeta):
                         comp.hasIsBuiltBinaryVariable
                         and (comp.processedCapacityMax is None)
                         and capOptVal.loc[compName].max() >= comp.bigM * 0.9
-                        and esM.verbose < 2
+                        and esM.verboseLogLevel < 2
                     ):
                         warnings.warn(
                             "the capacity of component "

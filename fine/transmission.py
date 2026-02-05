@@ -148,9 +148,15 @@ class Transmission(Component):
         self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
         self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
         self.capacityFix = utils.checkCapacityOrCommissioningTransmission(capacityFix)
-        self.commissioningMax = utils.checkCapacityOrCommissioningTransmission(commissioningMax)
-        self.commissioningMin = utils.checkCapacityOrCommissioningTransmission(commissioningMin)
-        self.commissioningFix = utils.checkCapacityOrCommissioningTransmission(commissioningFix)
+        self.commissioningMax = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMax
+        )
+        self.commissioningMin = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMin
+        )
+        self.commissioningFix = utils.checkCapacityOrCommissioningTransmission(
+            commissioningFix
+        )
 
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
@@ -436,7 +442,9 @@ class Transmission(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        self.processedLocationalEligibility = self.locationalEligibility #checks already during setting of locationalEligibility
+        self.processedLocationalEligibility = (
+            self.locationalEligibility
+        )  # checks already during setting of locationalEligibility
 
     def setTimeSeriesData(self, hasTSA):
         """Set the maximum operation rate and fixed operation rate depending on whether a time series analysis is requested or not.

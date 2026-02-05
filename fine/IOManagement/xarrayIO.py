@@ -116,7 +116,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
     for ip in esM.investmentPeriodNames:
         # Write output from esM.getOptimizationSummary to datasets
         for name in esM.componentModelingDict.keys():
-            utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
+            utils.output("\tProcessing " + name + " ...", esM.verboseLogLevel, 0)
             oL = optSumOutputLevel
             oL_ = oL[name] if isinstance(oL, dict) else oL
             optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
@@ -1111,7 +1111,7 @@ def writeEnergySystemModelToNetCDF(
         if Path(outputFilePath).is_file():
             Path(outputFilePath).unlink()
 
-    utils.output("\nWriting output to netCDF... ", esM.verbose, 0)
+    utils.output("\nWriting output to netCDF... ", esM.verboseLogLevel, 0)
     _t = time.time()
 
     xr_dss_input = convertOptimizationInputToDatasets(esM)
@@ -1126,7 +1126,7 @@ def writeEnergySystemModelToNetCDF(
             print(xr_dss_output.keys())
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
-    utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
+    utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0)
 
 
 def writeEnergySystemModelToDatasets(esM):
