@@ -19,14 +19,14 @@
 from pathlib import Path
 import sys
 
-sys.path.insert(0, Path.resolve("."))
+sys.path.insert(0, str(Path().resolve()))
 insertPaths = [
     str(p)
     for p in [Path("../..")] + list(Path("../..").glob("**/"))
     if not p.name.endswith("_")
 ]
 for path in insertPaths:
-    sys.path.insert(0, Path.resolve(path))
+    sys.path.insert(0, str(Path(path).resolve()))
 
 # -- General configuration ------------------------------------------------
 
