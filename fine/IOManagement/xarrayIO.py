@@ -1076,6 +1076,8 @@ def writeEnergySystemModelToNetCDF(
     overwriteExisting=False,
     optSumOutputLevel=0,
     groupPrefix=None,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
 ):
     """Write energySystemModel (input and if exists, output) to netCDF file.
 
@@ -1123,7 +1125,11 @@ def writeEnergySystemModelToNetCDF(
             xr_dss_output["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
             ]
-            print(xr_dss_output.keys())
+        if includeShadowPrices:
+            xr_dss_shadowPrices = utilsIO.getShadowPriceXarray(
+                esM, constraint_str=shadowPriceConstraintStr
+            )
+            xr_dss_output["ShadowPrices"] = xr_dss_shadowPrices
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
