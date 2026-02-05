@@ -135,7 +135,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df = pd.to_numeric(df, errors="coerce")
                             xr_da = df.to_xarray()
                             unit = df_o.iloc[0].name
-                            # unit = variables_unit[variable]
                             xr_da.attrs[variable] = unit
                             # merge to overall xr_dss
                             xr_dss[ip][name][component] = xr.merge(
@@ -257,16 +256,12 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             if dataTD1dim:
                 names = ["Variable", "Component", "Location"]
                 dfTD1dim = pd.concat(dataTD1dim, keys=indexTD1dim, names=names)
-                # dfTD1dim = dfTD1dim.loc[
-                #    ((dfTD1dim != 0) & (~dfTD1dim.isnull())).any(axis=1)
-                # ]
                 for variable in dfTD1dim.index.get_level_values(0).unique():
                     # for component in dfTD1dim.index.get_level_values(1).unique():
                     for component in (
                         dfTD1dim.loc[variable].index.get_level_values(0).unique()
                     ):
                         df = dfTD1dim.loc[(variable, component)].T.stack()
-                        # df.name = (name, component, variable)
                         df.name = variable
                         df.index.rename(["time", "space"], inplace=True)
                         xr_da = df.to_xarray()
@@ -277,16 +272,13 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             if dataTD2dim:
                 names = ["Variable", "Component", "LocationIn", "LocationOut"]
                 dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
-                # dfTD2dim = dfTD2dim.loc[
-                #    ((dfTD2dim != 0) & (~dfTD2dim.isnull())).any(axis=1)
-                # ]
                 for variable in dfTD2dim.index.get_level_values(0).unique():
                     # for component in dfTD2dim.index.get_level_values(1).unique():
                     for component in (
                         dfTD2dim.loc[variable].index.get_level_values(0).unique()
                     ):
                         df = dfTD2dim.loc[(variable, component)].stack()
-                        # df.name = (name, component, variable)
+
                         df.name = variable
                         df.index.rename(["space", "space_2", "time"], inplace=True)
                         df.index = df.index.reorder_levels([2, 0, 1])
@@ -300,14 +292,12 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 if esM.componentModelingDict[name].dimension == "1dim":
                     names = ["Variable type", "Component"]
                     dfTI = pd.concat(dataTI, keys=indexTI, names=names)
-                    # dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
                     for variable in dfTI.index.get_level_values(0).unique():
                         # for component in dfTI.index.get_level_values(1).unique():
                         for component in (
                             dfTI.loc[variable].index.get_level_values(0).unique()
                         ):
                             df = dfTI.loc[(variable, component)].T
-                            # df.name = (name, component, variable)
                             df.name = variable
                             df.index.rename("space", inplace=True)
                             xr_da = df.to_xarray()
@@ -318,14 +308,12 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 elif esM.componentModelingDict[name].dimension == "2dim":
                     names = ["Variable type", "Component", "Location"]
                     dfTI = pd.concat(dataTI, keys=indexTI, names=names)
-                    # dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
                     for variable in dfTI.index.get_level_values(0).unique():
                         # for component in dfTI.index.get_level_values(1).unique():
                         for component in (
                             dfTI.loc[variable].index.get_level_values(0).unique()
                         ):
                             df = dfTI.loc[(variable, component)].T.stack()
-                            # df.name = (name, component, variable)
                             df.name = variable
                             df.index.rename(["space", "space_2"], inplace=True)
                             xr_da = df.to_xarray()
@@ -1288,5 +1276,4 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     xr_dss = readNetCDFToDatasets(filePath, groupPrefix)
 
     # xarray dataset to esm
-    # return esm
     return convertDatasetsToEnergySystemModel(xr_dss)
