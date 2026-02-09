@@ -1038,24 +1038,43 @@ class TransmissionModel(ComponentModel):
                     for idx, ip in enumerate(esM.investmentPeriods)
                     if start_ip <= ip <= end_ip
                 ]
-                balance = sum(
-                    commisVar[loc, compName, i]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
+            else:
+                relevant_indices = [ip]
+                
+            if isinstance(loc[0], tuple):
+                # For a specific set of connections (loc0 <-> loc1)
+                aut_list = []
+                for loc0, loc1 in loc:
+                    _aut = sum(
+                        commisVar[loc1 + "_" + loc0, compName, i]
+                        for i in relevant_indices
+                        for compName in opVarDictIn[i][loc0].get(loc1, {})
+                        if compName in componentNames
+                    ) + sum(
+                        commisVar[loc0 + "_" + loc1, compName, i]
+                        for i in relevant_indices
+                        for compName in opVarDictIn[i][loc0].get(loc1, {})
+                        if compName in componentNames
+                    )
+                    _aut = _aut / 2
+                    aut_list.append(_aut)
+                aut = sum(aut_list)
+            else:
+                # For a specific region (sum of all incoming/outgoing)
+                aut = sum(
+                    commisVar[loc_ + "_" + loc, compName, i]
                     for i in relevant_indices
-                )
-            else:
-                balance = sum(
-                    commisVar[loc, compName, ip]
-                    for compName in compDict.keys()
+                    for loc_ in opVarDictIn[i][loc].keys()
+                    for compName in opVarDictIn[i][loc][loc_]
                     if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                ) + sum(
+                    commisVar[loc + "_" + loc_, compName, i]
+                    for i in relevant_indices
+                    for loc_ in opVarDictOut[i][loc].keys()
+                    for compName in opVarDictOut[i][loc][loc_]
+                    if compName in componentNames
                 )
-            if isinstance(balance, int) or isinstance(balance, float):
-                return None
-            else:
-                return balance
+                aut = aut / 2
         else:
             raise ValueError(
                 "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
