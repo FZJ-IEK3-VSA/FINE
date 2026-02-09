@@ -194,11 +194,8 @@ class EnergySystemModel:
             Regional dependency:
             The balanceLimit is defined as a pd.DataFrame. Each row contains an individual balanceLimitID as
             index, the corresponding regional scope as columns and the values as data. The regional scope can be set
-            for a region with the matching region name as column name or "Total" as colum name for setting for the entire system.
-
-        Example:
-            - per region: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
-            - per region and per system: pd.DataFrame(columns=["Region1","Total"], index=["electricity"], data=[1000,2000])
+            for a region with the matching region name as column name or "Total" as column name for setting for the entire system.
+            If no balanceLimit is to be set for a given location, replace the corresponding entry with 'None' (not 'np.nan').
 
             Temporal dependency:
             If the balanceLimit is passed as a dict with the described pd.DataFrames as values it is considered per investment period.
@@ -221,6 +218,44 @@ class EnergySystemModel:
                 (Logically maximum limit for negative values, define negative value in balanceLimit).
                 Example: Define upper limit for Carbon Capture & Storage.\n
 
+        Examples:
+            - balanceLimit for commodity flow into system/ location e.g. due to a source
+            [positive value; lowerBound=False] (e.g. natural gas field):
+                balanceLimit=pd.DataFrame(columns=["Total"],
+                                          index=["Gas production", "lowerBound"],
+                                          data=[1000, False]
+                                          )
+            - balanceLimit for commodity flow out of system/ location e.g. due to a sink
+            [negative value; lowerBound=True] (e.g. CO2 sink):
+                balanceLimit=pd.DataFrame(columns=["Total"],
+                                          index=["CO2 Limit", "lowerBound"],
+                                          data=[-1000, True]
+                                          )
+            - balanceLimit per region and per system (flow into system/ location):
+                balanceLimit=pd.DataFrame(columns=["Region1", "Total"],
+                                          index=["CO2 Limit"],
+                                          data=[1000, 2000]
+                                          )
+            - multiple balanceLimits for different IDs:
+                balanceLimit=pd.DataFrame(columns=["Total", "lowerBound"],
+                                            index=["CO2 limit", "Gas production"],
+                                            data=[[400, False], [1000, True]]
+                                            )
+            - Different CO2 Limits for each investment period and minimum installed capacity for renewables:
+                balanceLimit = {
+                    2020: pd.DataFrame(index=["CO2 limit", "Renewables"],
+                                       columns=["Total", "lowerBound"],
+                                       data=[[-366 * (1 - CO2_reductionTarget * 0.33), True],[430000, True]]
+                                       ),
+                    2025: pd.DataFrame(index=["CO2 limit", "Renewables"],
+                                       columns=["Region1", "Total", "lowerBound"],
+                                       data=[[-366 * (1 - CO2_reductionTarget * 0.67), True],[430000, True]]
+                                       ),
+                    2030: pd.DataFrame(index=["CO2 limit", "Renewables"],
+                                       columns=["Region1", "Total", "lowerBound"],
+                                       data=[[-366 * (1 - CO2_reductionTarget), True],[430000, True]]
+                                       )
+                                }
             .. note::
                 If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
                 defined as negative.
@@ -1026,6 +1061,13 @@ class EnergySystemModel:
             timeSeriesData = timeSeriesData.reindex(
                 sorted(timeSeriesData.columns), axis=1
             )
+            # find data with only zeros
+            zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
+            # drop columns with only zeros
+            timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
+            weightDict = {
+                k: v for k, v in weightDict.items() if k not in zero_data_cols
+            }
             if segmentation:
                 clusterClass = TimeSeriesAggregation(
                     timeSeries=timeSeriesData,
@@ -1045,6 +1087,7 @@ class EnergySystemModel:
                 data = pd.DataFrame.from_dict(
                     clusterClass.clusterPeriodDict
                 ).reset_index(level=2, drop=True)
+
                 # Get the length of each segment in each typical period with the first index as typical period number and
                 # the second index as segment number per typical period.
                 timeStepsPerSegment = pd.DataFrame.from_dict(
@@ -1065,6 +1108,9 @@ class EnergySystemModel:
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as time step number per typical period.
                 data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+
+            # add zeros data back to data
+            data[zero_data_cols] = 0.0
 
             # Store the respective clustered time series data in the associated components
             for mdlName, mdl in self.componentModelingDict.items():
