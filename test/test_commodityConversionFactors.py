@@ -75,9 +75,7 @@ def create_two_loc_esm():
             hasCapacityVariable=False,
         )
     )
-    demand = pd.DataFrame(
-        {"Loc1": [10.0], "Loc2": [20.0]}, index=esM.totalTimeSteps
-    )
+    demand = pd.DataFrame({"Loc1": [10.0], "Loc2": [20.0]}, index=esM.totalTimeSteps)
     esM.add(
         fn.Sink(
             esM=esM,
@@ -148,9 +146,8 @@ def test_location_specific_conversion_factors_series():
 
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
-    op = (
-        esM.componentModelingDict["ConversionModel"]
-        .operationVariablesOptimum.xs("Electrolyzers_LocCcf")
+    op = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs(
+        "Electrolyzers_LocCcf"
     )
     np.testing.assert_almost_equal(op.loc["Loc1", 0], 20.0, decimal=6)
     np.testing.assert_almost_equal(op.loc["Loc2", 0], 20.0, decimal=6)

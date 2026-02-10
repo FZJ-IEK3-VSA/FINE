@@ -2729,14 +2729,14 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 _factor = _commodityConversionFactors[commod]
                 if isinstance(_factor, pd.Series):
                     if isLocationSeries(_factor):
-                        processedCommodityConversionFactor[newKeyName][
-                            commod
-                        ] = checkRegionalIndex(
-                            esM, _factor.copy(), comp.locationalEligibility
+                        processedCommodityConversionFactor[newKeyName][commod] = (
+                            checkRegionalIndex(
+                                esM, _factor.copy(), comp.locationalEligibility
+                            )
                         )
-                        preprocessedCommodityConversionFactor[newKeyName][
-                            commod
-                        ] = processedCommodityConversionFactor[newKeyName][commod]
+                        preprocessedCommodityConversionFactor[newKeyName][commod] = (
+                            processedCommodityConversionFactor[newKeyName][commod]
+                        )
                     else:
                         fullCommodityConversionFactor[newKeyName][commod] = (
                             checkAndSetTimeSeriesConversionFactors(
