@@ -150,7 +150,7 @@ def test_location_specific_conversion_factors_series():
         "Electrolyzers_LocCcf"
     )
     # Hydrogen deamnd in both regions is 10 kWh.
-    # The conversion factor for Loc1 is 0.5, so to produce 10 kWh of hydrogen, we need to consume 20 kWh of electricity. 
+    # The conversion factor for Loc1 is 0.5, so to produce 10 kWh of hydrogen, we need to consume 20 kWh of electricity.
     # For Loc2 the conversion factor is 1.0, so to produce 10 kWh of hydrogen, we need to consume 10 kWh of electricity.
     np.testing.assert_almost_equal(op.loc["Loc1", 0], 20.0, decimal=6)
     np.testing.assert_almost_equal(op.loc["Loc2", 0], 10.0, decimal=6)
