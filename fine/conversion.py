@@ -115,10 +115,17 @@ class Conversion(Component):
                 When electricity is produced the conversion factor is 0.2 and for heat 0.5:
                 {'gas': -1, 'out': {electricity: 0.2, heat: 0.5}}
 
+            Location-dependent (time-invariant) conversion factors can be provided as pandas.Series
+            indexed by the energy system model locations.
+
+        Example:
+               {'electricity': -1,
+                'heat': pd.Series({'DE': 0.9, 'FR': 0.8})}
+
         :type commodityConversionFactors:
 
             * dictionary, assigns commodities (string) to a conversion factors
-              (float, pandas.Series or pandas.DataFrame)
+              (float/int, pandas.Series indexed by locations, or pandas.DataFrame time series)
             * dictionary with investment periods as key and one of the first option  as value
             * dictionary with tuple of (commissioning year, investment period) as key and one of the first option above as value
 
@@ -1622,6 +1629,8 @@ class ConversionModel(ComponentModel):
         def getFactor(commodCommodityConversionFactors, loc, p, t):
             if isinstance(commodCommodityConversionFactors, int | float):
                 return commodCommodityConversionFactors
+            if isinstance(commodCommodityConversionFactors, pd.Series):
+                return commodCommodityConversionFactors.loc[loc]
             return commodCommodityConversionFactors[loc][p, t]
 
         # 1.a get balance for components, which do not have commodity conversions varying with the commissioning year

@@ -2668,7 +2668,8 @@ def checkNestedNanValues(obj):
 def checkAndSetCommodityConversionFactor(comp, esM):
     """
     Set up the full commodity conversion factor, if necessary depending on
-    commissioning year and investment period.
+    commissioning year and investment period. Location-dependent constants
+    can be provided as pandas.Series indexed by locations.
     """
     iterationList = esM.investmentPeriodNames
     commodityConversionFactors = comp.commodityConversionFactors.copy()
@@ -2744,6 +2745,15 @@ def checkAndSetCommodityConversionFactor(comp, esM):
         checkCommodities(esM, set(commodities))
         return commodTypes
 
+    def isLocationSeries(series):
+        if not isinstance(series, pd.Series):
+            return False
+        try:
+            checkRegionalIndex(esM, series.copy(), comp.locationalEligibility)
+            return True
+        except ValueError:
+            return False
+
     if comp.isIpDepending or comp.isCommisDepending:
         commodTypesList = []
         for ccf in commodityConversionFactors.values():
@@ -2793,18 +2803,30 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 processedCommodityConversionFactor[newKeyName][group] = {}
                 preprocessedCommodityConversionFactor[newKeyName][group] = {}
                 for commod in value.keys():
-                    if isinstance(
-                        _commodityConversionFactors[group][commod],
-                        (pd.Series, pd.DataFrame),
-                    ):
+                    _factor = _commodityConversionFactors[group][commod]
+                    if isinstance(_factor, pd.Series):
+                        if isLocationSeries(_factor):
+                            processedCommodityConversionFactor[newKeyName][group][
+                                commod
+                            ] = checkRegionalIndex(
+                                esM, _factor.copy(), comp.locationalEligibility
+                            )
+                            preprocessedCommodityConversionFactor[newKeyName][group][
+                                commod
+                            ] = processedCommodityConversionFactor[newKeyName][group][
+                                commod
+                            ]
+                        else:
+                            raise NotImplementedError(
+                                "Flexible conversion components currently do not support "
+                                f"time series data for commodity conversion factors."
+                            )
+                    elif isinstance(_factor, pd.DataFrame):
                         raise NotImplementedError(
                             "Flexible conversion components currently do not support "
                             f"time series data for commodity conversion factors."
                         )
-
-                    elif isinstance(
-                        _commodityConversionFactors[group][commod], (int, float)
-                    ):
+                    elif isinstance(_factor, (int, float)):
                         # fix values do not need a time-series aggregation and are written
                         # directly to processedCommodityConversion
                         processedCommodityConversionFactor[newKeyName][group][
@@ -2822,21 +2844,36 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                         )
             else:
                 commod = key
-                if isinstance(
-                    _commodityConversionFactors[commod], (pd.Series, pd.DataFrame)
-                ):
+                _factor = _commodityConversionFactors[commod]
+                if isinstance(_factor, pd.Series):
+                    if isLocationSeries(_factor):
+                        processedCommodityConversionFactor[newKeyName][
+                            commod
+                        ] = checkRegionalIndex(
+                            esM, _factor.copy(), comp.locationalEligibility
+                        )
+                        preprocessedCommodityConversionFactor[newKeyName][
+                            commod
+                        ] = processedCommodityConversionFactor[newKeyName][commod]
+                    else:
+                        fullCommodityConversionFactor[newKeyName][commod] = (
+                            checkAndSetTimeSeriesConversionFactors(
+                                esM, _factor, comp.locationalEligibility
+                            )
+                        )
+                        preprocessedCommodityConversionFactor[newKeyName][commod] = (
+                            fullCommodityConversionFactor[newKeyName][commod]
+                        )
+                elif isinstance(_factor, pd.DataFrame):
                     fullCommodityConversionFactor[newKeyName][commod] = (
                         checkAndSetTimeSeriesConversionFactors(
-                            esM,
-                            _commodityConversionFactors[commod],
-                            comp.locationalEligibility,
+                            esM, _factor, comp.locationalEligibility
                         )
                     )
                     preprocessedCommodityConversionFactor[newKeyName][commod] = (
                         fullCommodityConversionFactor[newKeyName][commod]
                     )
-
-                elif isinstance(_commodityConversionFactors[commod], (int, float)):
+                elif isinstance(_factor, (int, float)):
                     # fix values do not need a time-series aggregation and are written
                     # directly to processedCommodityConversion
                     processedCommodityConversionFactor[newKeyName][commod] = (
