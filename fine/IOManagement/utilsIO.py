@@ -943,6 +943,8 @@ def convertToXarray(component_dict):
 
         for key, value in data_dict.items():
             if isinstance(value, pd.Series):
+                # remove any named index
+                value = value.rename_axis(None)
                 # Handle pandas Series using xarray's built-in method
                 data_vars[key] = xr.DataArray.from_series(value)
             elif isinstance(value, pd.DataFrame):
