@@ -1011,12 +1011,13 @@ class TransmissionModel(ComponentModel):
             )
             self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
 
-            props = ["operation", "opexOp", "NPV_opexOp"]
+            props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
-                props[1]: ["[" + esM.costUnit + "/a]"],
+                props[0]: ["[-*h]"],
+                props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
+                props[3]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1034,7 +1035,7 @@ class TransmissionModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] == "operation"
+                        if x[1] == "operation" or "operation_annual"
                         else x
                     ),
                     tuples,
@@ -1052,18 +1053,23 @@ class TransmissionModel(ComponentModel):
 
                 optSummary.loc[
                     [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-                optSummary.loc[
-                    [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
                         for ix in opSum.index
                     ],
                     opSum.columns,
                 ] = opSum.values
+
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "operation_annual",
+                            "[" + compDict[ix].commodityUnit + "*h/a]",
+                        )
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values / esM.numberOfYears
 
                 tac_ox = resultsTAC_opexOp[ip]
                 optSummary.loc[
