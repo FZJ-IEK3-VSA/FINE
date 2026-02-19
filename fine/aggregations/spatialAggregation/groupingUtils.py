@@ -244,7 +244,7 @@ def get_custom_distance(
     """
 
     # STEP 1. Check if weights are specified correctly
-    if weights != None:
+    if weights is not None:
         if "components" not in weights.keys():
             raise ValueError(
                 "weights dictionary must contain a 'components' dictionary within it"
@@ -275,7 +275,7 @@ def get_custom_distance(
 
         wgt = 1
 
-        if weights != None:
+        if weights is not None:
             [var_category, var] = var_name.split(
                 "_"
             )  # strip the category and take only var
@@ -284,9 +284,9 @@ def get_custom_distance(
             comp_weights = weights.get("components")
 
             if (var_weights == "all") or (var in var_weights):
-                if comp_weights.get("all") != None:
+                if comp_weights.get("all") is not None:
                     wgt = comp_weights.get("all")
-                elif comp_weights.get(comp_name) != None:
+                elif comp_weights.get(comp_name) is not None:
                     wgt = comp_weights.get(comp_name)
 
         return wgt
