@@ -154,3 +154,121 @@ def test_location_specific_conversion_factors_series():
     # For Loc2 the conversion factor is 1.0, so to produce 10 kWh of hydrogen, we need to consume 10 kWh of electricity.
     np.testing.assert_almost_equal(op.loc["Loc1", 0], 20.0, decimal=6)
     np.testing.assert_almost_equal(op.loc["Loc2", 0], 10.0, decimal=6)
+
+
+def test_location_specific_timeseries_conversion_factors_dataframe():
+    """Location-specific time series conversion factors via DataFrame (4 timesteps)."""
+
+    # --- Build ESM ---
+    numberOfTimeSteps = 4
+    hoursPerTimeStep = 1
+
+    esM = fn.EnergySystemModel(
+        locations={"Loc1", "Loc2"},
+        commodities={"electricity", "hydrogen"},
+        numberOfTimeSteps=numberOfTimeSteps,
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        hoursPerTimeStep=hoursPerTimeStep,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Electricity market",
+            commodity="electricity",
+            hasCapacityVariable=False,
+        )
+    )
+
+    # --- Hydrogen demand (10 each timestep, each location) ---
+    demand = pd.DataFrame(
+        {
+            "Loc1": [10.0, 10.0, 10.0, 10.0],
+            "Loc2": [10.0, 10.0, 10.0, 10.0],
+        },
+        index=esM.totalTimeSteps,
+    )
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Industry site",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+
+    # --- Time- & location-specific conversion factors ---
+    # Efficiency varies over time AND location
+    ccf_h2 = pd.DataFrame(
+        {
+            "Loc1": [0.5, 0.6, 0.7, 0.8],
+            "Loc2": [1.0, 0.9, 0.8, 0.7],
+        },
+        index=esM.totalTimeSteps,
+        dtype="float64",
+    )
+
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzers_LocTsCcf",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={
+                "electricity": -1,
+                "hydrogen": ccf_h2,
+            },
+            hasCapacityVariable=True,
+            investPerCapacity=0,
+            opexPerCapacity=0,
+            interestRate=0.08,
+            economicLifetime=10,
+        )
+    )
+
+    # --- Check processed structure ---
+    comp = esM.getComponent("Electrolyzers_LocTsCcf")
+    full = comp.fullCommodityConversionFactors[0]["hydrogen"]
+
+    assert isinstance(full, pd.DataFrame)
+
+    # Check a few entries
+    np.testing.assert_almost_equal(full.at[(0, 0), "Loc1"], 0.5)
+    np.testing.assert_almost_equal(full.at[(0, 3), "Loc1"], 0.8)
+    np.testing.assert_almost_equal(full.at[(0, 1), "Loc2"], 0.9)
+
+    # --- Optimize ---
+    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+
+    op = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs(
+        "Electrolyzers_LocTsCcf"
+    )
+
+    # --- Expected electricity consumption ---
+    # electricity = hydrogen_demand / efficiency
+
+    expected_loc1 = [
+        10 / 0.5,  # 20
+        10 / 0.6,  # 16.6667
+        10 / 0.7,  # 14.2857
+        10 / 0.8,  # 12.5
+    ]
+
+    expected_loc2 = [
+        10 / 1.0,  # 10
+        10 / 0.9,  # 11.1111
+        10 / 0.8,  # 12.5
+        10 / 0.7,  # 14.2857
+    ]
+
+    for t in range(4):
+        np.testing.assert_almost_equal(op.loc["Loc1", t], expected_loc1[t], decimal=5)
+        np.testing.assert_almost_equal(op.loc["Loc2", t], expected_loc2[t], decimal=5)
+

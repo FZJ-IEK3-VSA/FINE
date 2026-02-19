@@ -1462,10 +1462,13 @@ class ConversionModel(ComponentModel):
         opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
 
         def getFactor(commodCommodityConversionFactors, loc, p, t):
-            if isinstance(commodCommodityConversionFactors, int | float):
+            if isinstance(commodCommodityConversionFactors, (int, float)):
                 return commodCommodityConversionFactors
             if isinstance(commodCommodityConversionFactors, pd.Series):
                 return commodCommodityConversionFactors.loc[loc]
+            if isinstance(commodCommodityConversionFactors, pd.DataFrame):
+                # IMPORTANT: internal index is (Period, TimeStep)
+                return float(commodCommodityConversionFactors.at[(p, t), loc])
             return commodCommodityConversionFactors[loc][p, t]
 
         # 1.a get balance for components, which do not have commodity conversions varying with the commissioning year
