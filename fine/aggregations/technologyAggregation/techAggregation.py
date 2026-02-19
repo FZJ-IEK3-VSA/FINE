@@ -336,7 +336,6 @@ def aggregate_RE_technology(
             }
         )
 
-
     # STEP 2. Create resultant xarray dataset
     TS_ids = [f"TS_{i}" for i in range(n_timeSeries_perRegion)]
 

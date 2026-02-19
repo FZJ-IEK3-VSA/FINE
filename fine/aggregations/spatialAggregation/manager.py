@@ -239,9 +239,7 @@ def perform_spatial_aggregation(
         try:
             xr_datasets = xrIO.readNetCDFToDatasets(filePath=xr_datasets)
         except FileNotFoundError as e:
-            raise FileNotFoundError(
-                "The xr_dataset path specified is not valid"
-                ) from e
+            raise FileNotFoundError("The xr_dataset path specified is not valid") from e
 
     # STEP 3. Add geometries to xr_dataset
     geom_col_name = kwargs.get("geom_col_name", "geometry")
