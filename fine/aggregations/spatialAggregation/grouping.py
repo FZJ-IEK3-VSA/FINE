@@ -51,7 +51,7 @@ def perform_string_based_grouping(regions, separator=None, position=None):
     if isinstance(position, int):
         position = (0, position)
 
-    if separator != None and position == None:
+    if separator is not None and position is None:
         for region in regions:
             sup_region = region.split(separator)[1]
 
@@ -60,7 +60,7 @@ def perform_string_based_grouping(regions, separator=None, position=None):
             else:
                 sub_to_sup_region_id_dict[sup_region].append(region)
 
-    elif separator == None and position != None:
+    elif separator is None and position is not None:
         for region in regions:
             sup_region = region[position[0] : position[1]]
 

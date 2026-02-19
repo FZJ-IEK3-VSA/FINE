@@ -63,7 +63,6 @@ def test_flexibleConversion_init():
             investPerCapacity=0,
             interestRate=0,
             economicLifetime=10,
-            # flexibleConversion=True,
         )
     )
 
@@ -83,7 +82,6 @@ def test_flexibleConversion_init():
             investPerCapacity=0,
             interestRate=0,
             economicLifetime=10,
-            # flexibleConversion=True,
         )
     )
 
@@ -278,7 +276,6 @@ def test_flexibleConversion_groups():
             name="hydrogen_import",
             commodity="hydrogen",
             hasCapacityVariable=False,
-            # commodityCost=1,
         )
     )
 

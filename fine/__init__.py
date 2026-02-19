@@ -1,9 +1,3 @@
-"""
-Last edited: February 06, 2020
-
-|br| @author: FINE Developer Team (FZJ IEK-3)
-"""
-
 # ruff: noqa
 
 from .energySystemModel import EnergySystemModel

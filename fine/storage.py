@@ -381,7 +381,7 @@ class Storage(Component):
                 and self.fullChargeOpRateFix[ip] is not None
             ):
                 self.fullChargeOpRateMax[ip] = None
-                if esM.verbose < 2:
+                if esM.verboseLogLevel < 2:
                     warnings.warn(
                         "If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n"
                         + "The chargeOpRateMax time series was set to None."
@@ -960,7 +960,6 @@ class StorageModel(ComponentModel):
 
             # tests for testing the storage class with ip and TSAM
             def cyclicState(pyM, loc, compName, ip, p):
-                # tLast = esM.interPeriodTimeSteps[-1]
                 tLast = esM.numberOfInterPeriodTimeSteps
                 offsetUp_ = (
                     offsetUp[loc, compName, tLast]
@@ -1948,7 +1947,6 @@ class StorageModel(ComponentModel):
                 optVal_charge = optVal_charge.loc[
                     idx[:, :], :
                 ]  # perfect foresight: added ip and deleted again
-                # optVal_charge = optVal_charge.droplevel([1])
                 opSum = optVal_charge.sum(axis=1).unstack(-1)
 
                 # operation
@@ -2016,7 +2014,7 @@ class StorageModel(ComponentModel):
                     ].loc[compName],
                 )
                 if simultaneousChargeDischarge:
-                    if esM.verbose < 2:
+                    if esM.verboseLogLevel < 2:
                         warnings.warn(
                             f"Charge and discharge at the same time for component {compName}",
                             UserWarning,
@@ -2118,7 +2116,6 @@ class StorageModel(ComponentModel):
                             # Repeat each segment in each period as often as time steps are represented by the corresponding
                             # segment
                             repList = esM.timeStepsPerSegment[ip].loc[p, :].tolist()
-                            # repList = esM.timeStepsPerSegment.loc[p, :].tolist()
                             dataPeriod = pd.DataFrame(
                                 np.repeat(
                                     stateOfChargeIntra.loc[p]

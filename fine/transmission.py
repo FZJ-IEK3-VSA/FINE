@@ -145,13 +145,18 @@ class Transmission(Component):
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
         """
-        # TODO add unit checks
-        self.capacityMax = capacityMax
-        self.capacityMin = capacityMin
-        self.capacityFix = capacityFix
-        self.commissioningMax = commissioningMax
-        self.commissioningMin = commissioningMin
-        self.commissioningFix = commissioningFix
+        self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
+        self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
+        self.capacityFix = utils.checkCapacityOrCommissioningTransmission(capacityFix)
+        self.commissioningMax = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMax
+        )
+        self.commissioningMin = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMin
+        )
+        self.commissioningFix = utils.checkCapacityOrCommissioningTransmission(
+            commissioningFix
+        )
 
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
@@ -437,8 +442,9 @@ class Transmission(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # set processed location eligiblity # TODO implement check and set
-        self.processedLocationalEligibility = self.locationalEligibility
+        self.processedLocationalEligibility = (
+            self.locationalEligibility
+        )  # checks already during setting of locationalEligibility
 
     def setTimeSeriesData(self, hasTSA):
         """Set the maximum operation rate and fixed operation rate depending on whether a time series analysis is requested or not.
