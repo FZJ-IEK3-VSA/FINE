@@ -1857,7 +1857,9 @@ class StorageModel(ComponentModel):
             # Set optimal operation variables and append optimization summary
             props = [
                 "operationCharge",
+                "operationCharge_annual",
                 "operationDischarge",
+                "operationDischarge_annual",
                 "opexCharge",
                 "opexDischarge",
                 "NPV_opexCharge",
@@ -1865,12 +1867,14 @@ class StorageModel(ComponentModel):
             ]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
-                props[1]: ["[-*h]", "[-*h/a]"],
-                props[2]: ["[" + esM.costUnit + "/a]"],
-                props[3]: ["[" + esM.costUnit + "/a]"],
+                props[0]: ["[-*h]"],
+                props[1]: ["[-*h/a]"],
+                props[2]: ["[-*h]"],
+                props[3]: ["[-*h/a]"],
                 props[4]: ["[" + esM.costUnit + "/a]"],
                 props[5]: ["[" + esM.costUnit + "/a]"],
+                props[6]: ["[" + esM.costUnit + "/a]"],
+                props[7]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1888,7 +1892,12 @@ class StorageModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] in ["operationCharge", "NPV_operationCharge"]
+                        if x[1]
+                        in [
+                            "operationCharge",
+                            "operationCharge_annual",
+                            "NPV_operationCharge",
+                        ]
                         else x
                     ),
                     tuples,
@@ -1902,7 +1911,12 @@ class StorageModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] in ["operationDischarge", "NPV_operationDischarge"]
+                        if x[1]
+                        in [
+                            "operationDischarge",
+                            "operationDischarge_annual",
+                            "NPV_operationDischarge",
+                        ]
                         else x
                     ),
                     tuples,
@@ -1940,7 +1954,7 @@ class StorageModel(ComponentModel):
                     [
                         (
                             ix,
-                            "operationCharge",
+                            "operationCharge_annual",
                             "[" + compDict[ix].commodityUnit + "*h/a]",
                         )
                         for ix in opSum.index
@@ -2013,7 +2027,7 @@ class StorageModel(ComponentModel):
                     [
                         (
                             ix,
-                            "operationDischarge",
+                            "operationDischarge_annual",
                             "[" + compDict[ix].commodityUnit + "*h/a]",
                         )
                         for ix in opSum.index

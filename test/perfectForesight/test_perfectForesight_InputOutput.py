@@ -51,7 +51,7 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
         # check if results (which are different between the ips) are correctly saved
         expected_PV_operation = perfectForesight_test_esM.getOptimizationSummary(
             "SourceSinkModel", ip=ip
-        ).loc["PV", "operation", "[kW$_{el}$*h/a]"]["ForesightLand"]
+        ).loc["PV", "operation_annual", "[kW$_{el}$*h/a]"]["ForesightLand"]
         expected_PV_opexCap = perfectForesight_test_esM.getOptimizationSummary(
             "SourceSinkModel", ip=ip
         ).loc["PV", "opexCap", "[1 Euro/a]"]["ForesightLand"]
@@ -61,9 +61,9 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
         savedExcel = pd.read_excel(
             filePath, sheet_name="SourceSinkOptSummary_1dim", index_col=[0, 1, 2]
         )
-        output_PV_operation = savedExcel.loc["PV", "operation", "[kW$_{el}$*h/a]"][
-            "ForesightLand"
-        ]
+        output_PV_operation = savedExcel.loc[
+            "PV", "operation_annual", "[kW$_{el}$*h/a]"
+        ]["ForesightLand"]
         output_PV_opexCap = savedExcel.loc["PV", "opexCap", "[1 Euro/a]"][
             "ForesightLand"
         ]
