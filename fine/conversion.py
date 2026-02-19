@@ -1462,7 +1462,7 @@ class ConversionModel(ComponentModel):
         opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
 
         def getFactor(commodCommodityConversionFactors, loc, p, t):
-            if isinstance(commodCommodityConversionFactors, (int, float)):
+            if isinstance(commodCommodityConversionFactors, int | float):
                 return commodCommodityConversionFactors
             if isinstance(commodCommodityConversionFactors, pd.Series):
                 return commodCommodityConversionFactors.loc[loc]

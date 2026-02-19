@@ -158,7 +158,6 @@ def test_location_specific_conversion_factors_series():
 
 def test_location_specific_timeseries_conversion_factors_dataframe():
     """Location-specific time series conversion factors via DataFrame (4 timesteps)."""
-
     # --- Build ESM ---
     numberOfTimeSteps = 4
     hoursPerTimeStep = 1
@@ -271,4 +270,3 @@ def test_location_specific_timeseries_conversion_factors_dataframe():
     for t in range(4):
         np.testing.assert_almost_equal(op.loc["Loc1", t], expected_loc1[t], decimal=5)
         np.testing.assert_almost_equal(op.loc["Loc2", t], expected_loc2[t], decimal=5)
-

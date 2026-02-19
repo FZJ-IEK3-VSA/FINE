@@ -374,7 +374,6 @@ def test_variable_conversion_export_to_xarray():
 
 def test_location_specific_timeseries_conversion_factors_dataframe():
     """Location-specific time series conversion factors via DataFrame (4 timesteps)."""
-
     # --- Build ESM ---
     numberOfTimeSteps = 4
     hoursPerTimeStep = 1
@@ -534,8 +533,7 @@ def create_two_loc_esm_4ts_for_tsa():
 
 
 def test_location_specific_timeseries_conversion_factors_with_tsa():
-    """
-    Location-specific time series conversion factors (DataFrame t x loc)
+    """Location-specific time series conversion factors (DataFrame t x loc)
     must work with TSA (aggregation + optimize).
     We orient on existing TSA tests: aggregateTemporally + optimize(timeSeriesAggregation=True).
     """
@@ -603,15 +601,13 @@ def test_location_specific_timeseries_conversion_factors_with_tsa():
     assert np.isclose(unique_vals, 20.0, atol=1e-6).any()
 
 
-
 def test_location_specific_timeseries_conversion_factors_dataframe_pf():
     """Location- and time-specific conversion factors for multiple IPs (Perfect Foresight)."""
- 
     numberOfTimeSteps = 4
     hoursPerTimeStep = 4
     numberOfInvestmentPeriods = 5
     investmentPeriodInterval = 5
- 
+
     esM = fn.EnergySystemModel(
         locations={"ElectrolyzerLocation", "IndustryLocation"},
         commodities={"electricity", "hydrogen"},
@@ -629,7 +625,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
         verboseLogLevel=1,
         balanceLimit=None,
     )
-  
+
     esM.add(
         fn.Source(
             esM=esM,
@@ -638,7 +634,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
             hasCapacityVariable=False,
         )
     )
- 
+
     demand = pd.DataFrame(
         {
             "ElectrolyzerLocation": [10.0, 10.0, 10.0, 10.0],
@@ -646,7 +642,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
         },
         index=esM.totalTimeSteps,
     )
- 
+
     esM.add(
         fn.Sink(
             esM=esM,
@@ -656,13 +652,12 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
             operationRateFix=demand,
         )
     )
- 
- 
+
     # --- build per-IP DataFrames (time x location) ---
     df_2025 = pd.DataFrame(
         {
             "ElectrolyzerLocation": [0.5, 0.6, 0.7, 0.8],
-            "IndustryLocation":     [1.0, 0.9, 0.8, 0.7],
+            "IndustryLocation": [1.0, 0.9, 0.8, 0.7],
         },
         index=esM.totalTimeSteps,
         dtype="float64",
@@ -671,7 +666,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
     df_2030 = pd.DataFrame(
         {
             "ElectrolyzerLocation": [0.6, 0.7, 0.8, 0.9],
-            "IndustryLocation":     [0.9, 0.8, 0.7, 0.6],
+            "IndustryLocation": [0.9, 0.8, 0.7, 0.6],
         },
         index=esM.totalTimeSteps,
         dtype="float64",
@@ -680,7 +675,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
     df_2035 = pd.DataFrame(
         {
             "ElectrolyzerLocation": [0.7, 0.8, 0.9, 1.0],
-            "IndustryLocation":     [0.8, 0.7, 0.6, 0.5],
+            "IndustryLocation": [0.8, 0.7, 0.6, 0.5],
         },
         index=esM.totalTimeSteps,
         dtype="float64",
@@ -689,7 +684,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
     df_2040 = pd.DataFrame(
         {
             "ElectrolyzerLocation": [0.8, 0.9, 1.0, 1.1],
-            "IndustryLocation":     [0.7, 0.6, 0.5, 0.4],
+            "IndustryLocation": [0.7, 0.6, 0.5, 0.4],
         },
         index=esM.totalTimeSteps,
         dtype="float64",
@@ -698,7 +693,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
     df_2045 = pd.DataFrame(
         {
             "ElectrolyzerLocation": [0.9, 1.0, 1.1, 1.2],
-            "IndustryLocation":     [0.6, 0.5, 0.4, 0.3],
+            "IndustryLocation": [0.6, 0.5, 0.4, 0.3],
         },
         index=esM.totalTimeSteps,
         dtype="float64",
@@ -734,9 +729,9 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
     np.testing.assert_almost_equal(full_ip0.at[(0, 0), "ElectrolyzerLocation"], 0.5)
     np.testing.assert_almost_equal(full_ip0.at[(0, 3), "ElectrolyzerLocation"], 0.8)
     np.testing.assert_almost_equal(full_ip0.at[(0, 1), "IndustryLocation"], 0.9)
- 
+
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
- 
+
     op_dict = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum
 
     # pick the first IP (should be 2025 in your setup)
@@ -746,7 +741,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
 
     expected_electrolyzer = [10 / 0.5, 10 / 0.6, 10 / 0.7, 10 / 0.8]
     expected_industry = [10 / 1.0, 10 / 0.9, 10 / 0.8, 10 / 0.7]
- 
+
     for t in range(numberOfTimeSteps):
         np.testing.assert_almost_equal(
             op_ip0.loc["ElectrolyzerLocation", t], expected_electrolyzer[t], decimal=5
