@@ -610,13 +610,6 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 axis=0,
                             )
 
-                        # if (
-                        #     "operation" in variable and "_1" in variable
-                        # ):  # operation needed to be renamed in conversion
-                        #     optSum_df_comp = optSum_df_comp.rename(
-                        #         index={variable: variable.replace("_1", "")}
-                        #     )  # to dataset and xarray and now is renamed to operation again
-
                     if isinstance(optSum_df_comp, pd.Series):
                         optSum_df_comp = optSum_df_comp.to_frame().T
                     optSum_df = pd.concat(

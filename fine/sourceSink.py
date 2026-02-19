@@ -1145,14 +1145,6 @@ class SourceSinkModel(ComponentModel):
                     ],
                     opSum.columns,
                 ] = opSum.values
-                # optSummary.loc[
-                #     [
-                #         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
-                #         for ix in opSum.index
-                #     ],
-                #     opSum.columns,
-                # ] = opSum.values / esM.numberOfYear
-
                 optSummary.loc[
                     [
                         (
