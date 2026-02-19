@@ -4014,15 +4014,17 @@ class ComponentModel(metaclass=ABCMeta):
 
                 # Calculate the investment costs i (proportional to commissioning)
                 i = commisOptVal.apply(
-                    lambda commis: commis
-                    * compDict[commis.name].processedInvestPerCapacity[ip]
-                    * compDict[commis.name].QPcostDev[ip]
-                    + (
-                        compDict[commis.name].processedInvestPerCapacity[ip]
-                        * compDict[commis.name].processedQPcostScale[ip]
-                        / (compDict[commis.name].QPbound[ip])
-                        * commis
-                        * commis
+                    lambda commis: (
+                        commis
+                        * compDict[commis.name].processedInvestPerCapacity[ip]
+                        * compDict[commis.name].QPcostDev[ip]
+                        + (
+                            compDict[commis.name].processedInvestPerCapacity[ip]
+                            * compDict[commis.name].processedQPcostScale[ip]
+                            / (compDict[commis.name].QPbound[ip])
+                            * commis
+                            * commis
+                        )
                     ),
                     axis=1,
                 )

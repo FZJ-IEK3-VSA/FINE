@@ -486,9 +486,9 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
     """
 
     if (skip_regions is not None) & (enforced_group is None):
-        assert isinstance(
-            skip_regions, list
-        ), "A list containing the region ID's to be skipped should be provided."
+        assert isinstance(skip_regions, list), (
+            "A list containing the region ID's to be skipped should be provided."
+        )
 
         # get all regions
         regions_list = geom_xr["space"].values
@@ -500,9 +500,9 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
         skipped_dict = {reg: [reg] for reg in skip_regions}
 
     elif (skip_regions is None) & (enforced_group is not None):
-        assert isinstance(
-            enforced_group, list
-        ), "A dictionary containing the super-regions as keys and sub-regions values should be provided."
+        assert isinstance(enforced_group, list), (
+            "A dictionary containing the super-regions as keys and sub-regions values should be provided."
+        )
 
         # get subset of regions
         regions_list = np.array(list(enforced_group))
@@ -511,12 +511,12 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
         skipped_dict = {}
 
     elif (skip_regions is not None) & (enforced_group is not None):
-        assert isinstance(
-            skip_regions, list
-        ), "A list containing the region ID's to be skipped should be provided."
-        assert isinstance(
-            enforced_group, list
-        ), "A dictionary containing the super-regions as keys and sub-regions values should be provided."
+        assert isinstance(skip_regions, list), (
+            "A list containing the region ID's to be skipped should be provided."
+        )
+        assert isinstance(enforced_group, list), (
+            "A dictionary containing the super-regions as keys and sub-regions values should be provided."
+        )
 
         # get region subset based on enfored_group
         skip_regions, enforced_group = list(map(set, [skip_regions, enforced_group]))
