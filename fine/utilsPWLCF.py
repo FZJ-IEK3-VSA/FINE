@@ -33,26 +33,26 @@ def checkAndSetEosParameters(comp, eosParameters):
     eosParameters["interceptionTotalInvest"] = np.nan
     eosParameters["interceptionTotalOpex"] = np.nan
     for idx in range(len(eosParameters["capacity"]) - 1):
-        eosParameters["slopeTotalInvest"].iloc[idx] = (
+        eosParameters.loc[idx, "slopeTotalInvest"] = (
             eosParameters["totalInvest"].iloc[idx + 1]
             - eosParameters["totalInvest"].iloc[idx]
         ) / (
             eosParameters["capacity"].iloc[idx + 1]
             - eosParameters["capacity"].iloc[idx]
         )
-        eosParameters["slopeTotalOpex"].iloc[idx] = (
+        eosParameters.loc[idx, "slopeTotalOpex"] = (
             eosParameters["totalOpex"].iloc[idx + 1]
             - eosParameters["totalOpex"].iloc[idx]
         ) / (
             eosParameters["capacity"].iloc[idx + 1]
             - eosParameters["capacity"].iloc[idx]
         )
-        eosParameters["interceptionTotalInvest"].iloc[idx] = (
+        eosParameters.loc[idx, "interceptionTotalInvest"] = (
             eosParameters["totalInvest"].iloc[idx + 1]
             - eosParameters["slopeTotalInvest"].iloc[idx]
             * eosParameters["capacity"].iloc[idx + 1]
         )
-        eosParameters["interceptionTotalOpex"].iloc[idx] = (
+        eosParameters.loc[idx, "interceptionTotalOpex"] = (
             eosParameters["totalOpex"].iloc[idx + 1]
             - eosParameters["slopeTotalOpex"].iloc[idx]
             * eosParameters["capacity"].iloc[idx + 1]
