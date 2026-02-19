@@ -891,8 +891,7 @@ def setLocationalEligibility(
     dimension="1dim",
 ):
     """MISSING."""
-    # ruff: noqa: PLR0911
-
+    # ruff: noqa: PLR0911 # needed to avoid ruff saying "too many return statements"
     if locationalEligibility is not None:
         # TODO implement checks for the locationalEligiblity, especially for transmission components
         return locationalEligibility

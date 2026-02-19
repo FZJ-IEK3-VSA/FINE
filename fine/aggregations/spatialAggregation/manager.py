@@ -9,7 +9,6 @@ from fine.aggregations.spatialAggregation import managerUtils as manUtils
 from fine.IOManagement.standardIO import timer
 from fine.IOManagement import xarrayIO as xrIO
 
-# ruff: noqa: D301
 
 try:
     import geopandas as gpd
@@ -31,7 +30,7 @@ def perform_spatial_aggregation(
     aggregatedResultsPath=None,
     **kwargs,
 ):
-    """Perform spatial grouping of regions (by calling the functions in grouping.py)
+    r"""Perform spatial grouping of regions (by calling the functions in grouping.py)
     and then representation of the data within each region group (by calling functions
     in representation.py).
 
@@ -239,8 +238,10 @@ def perform_spatial_aggregation(
     if isinstance(xr_datasets, str):
         try:
             xr_datasets = xrIO.readNetCDFToDatasets(filePath=xr_datasets)
-        except Exception:
-            raise FileNotFoundError("The xr_dataset path specified is not valid")
+        except FileNotFoundError as e:
+            raise FileNotFoundError(
+                "The xr_dataset path specified is not valid"
+                ) from e
 
     # STEP 3. Add geometries to xr_dataset
     geom_col_name = kwargs.get("geom_col_name", "geometry")

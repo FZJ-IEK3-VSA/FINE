@@ -9,8 +9,6 @@ from fine.aggregations.technologyAggregation import techAggregationUtils
 
 logger_tech_agg = logging.getLogger("technology_representation")
 
-# ruff: noqa: RET504
-
 
 @timer
 def aggregate_RE_technology(
@@ -331,14 +329,13 @@ def aggregate_RE_technology(
             represented_timeSeries.loc[:, region] = capfac_total
 
         # STEP 4. Create resulting dataset
-        regional_represented_RE_ds = xr.Dataset(
+        return xr.Dataset(
             {
                 capacity_var_name: represented_capacities,
                 capfac_var_name: represented_timeSeries,
             }
         )
 
-        return regional_represented_RE_ds
 
     # STEP 2. Create resultant xarray dataset
     TS_ids = [f"TS_{i}" for i in range(n_timeSeries_perRegion)]
