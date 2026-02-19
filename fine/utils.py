@@ -6,7 +6,24 @@ import pandas as pd
 
 import fine as fn
 
+
 # ruff: noqa
+def checkAndSetBalanceLimitID(balanceLimitID):
+    if balanceLimitID is None or isinstance(balanceLimitID, str):
+        return balanceLimitID
+    else:
+        raise ValueError("The input argument needs to be a string or None.")
+
+
+def checkCapacityOrCommissioningTransmission(df):
+    if isinstance(df, (pd.DataFrame, pd.Series, dict, float, int)):
+        return df
+    elif df == None:
+        return df
+    else:
+        raise ValueError(
+            "The input argument needs to be a dataframe, series, dict, float or int."
+        )
 
 
 def isInRange(value, lowerBound, upperBound):
@@ -29,7 +46,7 @@ def isString(string):
 
 def isStrictlyPositiveInt(value):
     """Check if the input argument is a strictly positive integer."""
-    if not type(value) == int:
+    if not isinstance(value, int):
         raise TypeError("The input argument has to be an integer")
     if not value > 0:
         raise ValueError("The input argument has to be strictly positive")
@@ -53,7 +70,7 @@ def isPositiveNumber(value):
 
 def isSetOfStrings(setOfStrings):
     """Check if the input argument is a set of strings."""
-    if not type(setOfStrings) == set:
+    if not isinstance(setOfStrings, set):
         raise TypeError("The input argument has to be a set")
     if not any([type(r) == str for r in setOfStrings]):
         raise TypeError("The list entries in the input argument must be strings")
@@ -84,7 +101,7 @@ def checkEnergySystemModelInput(
 
     # The commodityUnitDict has to be a dictionary which keys equal the specified commodities and which values are
     # strings
-    if not type(commodityUnitsDict) == dict:
+    if not isinstance(commodityUnitsDict, dict):
         raise TypeError("The commodityUnitsDict input argument has to be a dictionary.")
     if commodities != set(commodityUnitsDict.keys()):
         raise ValueError(
@@ -283,7 +300,7 @@ def checkAndSetDistances(distances, locationalEligibility, esM):
     if distances is None:
         output(
             "The distances of a component are set to a normalized value of 1.",
-            esM.verbose,
+            esM.verboseLogLevel,
             0,
         )
         distances = pd.Series(
@@ -510,7 +527,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 data = capacityMax[ip].copy()
                 data[data > 0] = 1
                 if (data > isBuiltFix).any():
-                    if esM.verbose < 2:
+                    if esM.verboseLogLevel < 2:
                         warnings.warn(
                             "The isBuiltFix and capacityMax parameters indicate different design options."
                         )
@@ -830,7 +847,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
 
     if downTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
-        if type(downTimeMin) != int:
+        if not isinstance(downTimeMin, int):
             raise TypeError(
                 "downTimeMin for "
                 + name
@@ -851,7 +868,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
 
     if upTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
-        if type(upTimeMin) != int:
+        if not isinstance(upTimeMin, int):
             raise TypeError(
                 "upTimeMin for "
                 + name
@@ -894,7 +911,37 @@ def setLocationalEligibility(
     dimension="1dim",
 ):
     if locationalEligibility is not None:
-        # TODO implement checks for the locationalEligiblity, especially for transmission components
+        if isinstance(locationalEligibility, pd.Series):
+            esm_locations = set(esM.locations)
+            le_index = set(locationalEligibility.index)
+            if dimension == "1dim":
+                if esm_locations != le_index:
+                    raise ValueError(
+                        f"if locationalEligibility (1dim) is specified, it needs to match the esM locations"
+                    )
+            elif dimension == "2dim":
+                le_index_2dim = set(
+                    f"{a}_{b}"
+                    for a in sorted(esm_locations)
+                    for b in sorted(esm_locations)
+                    if a != b
+                )
+                if (
+                    le_index > le_index_2dim
+                ):  # location eligibility can only be defined between existing esm locations
+                    raise ValueError(
+                        f"if locationalEligibility is specified, it can only be defined between existing esm locations"
+                    )
+            else:
+                raise ValueError(f"dimensions needs to be either '1dim' or '2dim'")
+            if not locationalEligibility.isin([0, 1, True, False]).all():
+                raise ValueError(
+                    f"all values in locationalEligibility must be either True or False or 1 or 0"
+                )
+        else:
+            raise ValueError(
+                f"locationalEligibility needs to be a Series after it has been preprocessed"
+            )
         return locationalEligibility
     else:
         # If the location eligibility is None set it based on other information available
@@ -1193,7 +1240,7 @@ def checkDesignVariableModelingParameters(
     if bigM is not None and hasIsBuiltBinaryVariable:
         isPositiveNumber(bigM)
     elif bigM is not None and not hasIsBuiltBinaryVariable:
-        if esM.verbose < 2:
+        if esM.verboseLogLevel < 2:
             warnings.warn(
                 "The declared bigM variable is not used in the problem formulation for hasIsBuiltBinaryVariable, since hasIsBuiltBinaryVariable is set to false. \n"
                 "Check if bigM is needed for other binary variables (like partLoadMin). Else it is ignored."
@@ -1328,7 +1375,7 @@ def checkAndSetPartLoadMin(
     # checking function
     def checkPartLoadMin(partLoadMin, bigM, hasCapacityVariable):
         # Check if values are floats and the intervall ]0,1].
-        if type(partLoadMin) != float:
+        if not isinstance(partLoadMin, float):
             raise TypeError(
                 "partLoadMin for "
                 + name
@@ -1576,7 +1623,7 @@ def checkAndSetBalanceLimit(esM, balanceLimit, locations):
             _balanceLimit = balanceLimit.copy()
 
         if _balanceLimit is not None:
-            if not type(_balanceLimit) == pd.DataFrame:
+            if not isinstance(_balanceLimit, pd.DataFrame):
                 raise TypeError(
                     "The balanceLimit input argument has to be a pandas.DataFrame."
                 )
@@ -2397,12 +2444,12 @@ def addEmptyRegions(esM, data):
     data_locations = data.index
     missing_locations = [loc for loc in esM_locations if loc not in data_locations]
 
-    if type(data) == pd.Series:
+    if isinstance(data, pd.Series):
         for loc in missing_locations:
             tst = pd.Series([0], index=[loc])
             data = pd.concat([data, tst], axis=0)
 
-    elif type(data) == pd.DataFrame:
+    elif isinstance(data, pd.DataFrame):
         for loc in missing_locations:
             if loc not in data.columns:
                 data[loc] = 0

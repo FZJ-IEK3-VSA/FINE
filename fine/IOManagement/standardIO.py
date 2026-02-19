@@ -85,7 +85,7 @@ def writeOptimizationOutputToExcel(
             _outputFileName = outputFileName + f"_{ip}"
         else:
             _outputFileName = outputFileName
-        utils.output("\nWriting output to Excel... ", esM.verbose, 0)
+        utils.output("\nWriting output to Excel... ", esM.verboseLogLevel, 0)
         _t = time.time()
         writer = pd.ExcelWriter(_outputFileName + ".xlsx")
 
@@ -95,7 +95,7 @@ def writeOptimizationOutputToExcel(
             else:
                 abbreviatedName = name[:-5]  # last 5 letters are "Model" and cut off
 
-            utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
+            utils.output("\tProcessing " + name + " ...", esM.verboseLogLevel, 0)
             oL = optSumOutputLevel
             oL_ = oL[name] if isinstance(oL, dict) else oL
 
@@ -177,9 +177,11 @@ def writeOptimizationOutputToExcel(
 
             segmentDuration.index.set_names(names="segmentNumber", inplace=True)
             segmentDuration.to_excel(writer, sheet_name="Misc", startrow=3)
-        utils.output("\tSaving file...", esM.verbose, 0)
+        utils.output("\tSaving file...", esM.verboseLogLevel, 0)
         writer.close()
-        utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
+        utils.output(
+            "Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0
+        )
 
 
 def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpyxl"):

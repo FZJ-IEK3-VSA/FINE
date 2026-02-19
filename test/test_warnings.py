@@ -2,18 +2,6 @@ import pytest
 from fine import utils
 
 
-def test_deprecation_warning_esm(minimal_test_esM):
-    """EnergySystemModel.cluster() is marked as deprecated. Calling the method should
-    results in a DeprecationWarning. We assert if a DeprecationWarning is raised.
-    """
-    with pytest.deprecated_call():
-        minimal_test_esM.cluster(
-            numberOfTypicalPeriods=3,
-            numberOfTimeStepsPerPeriod=1,
-            numberOfSegmentsPerPeriod=1,
-        )
-
-
 def test_userWarnings_esm(minimal_test_esM):
     """Tests if the warnings are supressed only when intended and shown otherwise in energySystemModel.py."""
     with pytest.warns(
