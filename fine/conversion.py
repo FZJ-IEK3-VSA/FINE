@@ -984,9 +984,8 @@ class ConversionModel(ComponentModel):
             rampRateMax = getattr(compDict[compName], rampingType)
             isCyclic = getattr(compDict[compName], "useTemporalCyclicConstraints")
             timeStepLength = (
-                esM.timeStepsPerPeriod[ip].to_dict()[p, t]
+                esM.hoursPerSegment[ip][p, t]
                 if pyM.hasSegmentation
-                and hasattr(esM.timeStepsPerPeriod[ip], "to_dict")
                 else esM.hoursPerTimeStep
             )
 
@@ -1041,9 +1040,8 @@ class ConversionModel(ComponentModel):
         def ramping_inter_period(pyM, loc, compName, ip, p, t):
             rampRateMax = getattr(compDict[compName], rampingType)
             timeStepLength = (
-                esM.timeStepsPerPeriod[ip].to_dict()[p, t]
+                esM.hoursPerSegment[ip][p, t]
                 if pyM.hasSegmentation
-                and hasattr(esM.timeStepsPerPeriod[ip], "to_dict")
                 else esM.hoursPerTimeStep
             )
             if p != 0 and t == 0:

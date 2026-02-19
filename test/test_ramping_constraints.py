@@ -205,7 +205,6 @@ def test_real_esm_tsa_interperiod_rampdown_enforcement():
 
     # Sanity checks
     assert np.isclose(cap_B, 10.0)
-    assert np.isclose(timestep, system_B.hoursPerTimeStep)
 
     # Behaviour checks:
     # Unconstrained: optimizer should use ~full drop (cap → 0)
