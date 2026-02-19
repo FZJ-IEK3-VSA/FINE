@@ -313,7 +313,7 @@ def aggregate_RE_technology(
         # STEP 3. Aggregation in every region...
         for region in region_ids:
             # Preprocess regional data
-            if gridded_RE_ds != None:
+            if gridded_RE_ds is not None:
                 (
                     regional_capfac_da,
                     regional_capacity_da,
@@ -375,7 +375,7 @@ def aggregate_RE_technology(
         # STEP 3. Clustering in every region...
         for region in region_ids:
             # Preprocess regional data
-            if gridded_RE_ds != None:
+            if gridded_RE_ds is not None:
                 (
                     regional_capfac_da,
                     regional_capacity_da,
