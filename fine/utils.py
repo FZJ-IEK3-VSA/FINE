@@ -176,7 +176,7 @@ def checkRegionalIndex(esM, data, locationalEligibility):
                 + str(esM.locations)
                 + "If this was intentional, please provide locationalEligibility to cross-check."
             )
-            data = addEmptyRegions(esM, data)
+        data = addEmptyRegions(esM, data)
 
     # Sort data according to _locationsOrdered, if not already sorted
     if not np.array_equal(data.index, esM._locationsOrdered):

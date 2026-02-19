@@ -358,10 +358,10 @@ class LOPFModel(TransmissionModel):
         }
 
         dimensionMapping = {
-            "capacityVariablesOptimum":self.dimension,
+            "capacityVariablesOptimum": self.dimension,
             "isBuiltVariablesOptimum": self.dimension,
             "operationVariablesOptimum": self.dimension,
-            "phaseAngleVariablesOptimum":"1dim",
+            "phaseAngleVariablesOptimum": "1dim",
         }
 
         if name in timeDependentMapping:
