@@ -1820,12 +1820,14 @@ class EnergySystemModel:
                     continue  # skip if srcName not in componentsDict
 
                 # Look for manually created scrap sources (material=True and '_scrap' in name)
-                if comp.__class__.__name__ == "Source" and getattr(
-                    comp, "material", False
-                ):
+                if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
                     if "_scrap" in comp.commodity:
                         try:
-                            tech, mat = comp.commodity[:-6].rsplit("_", 1)
+                            if comp.commodity.startswith("SLbatteries"):
+                                base = comp.commodity[:-6]
+                                tech, mat = base.split("_", 1)
+                            else:
+                                tech, mat = comp.commodity[:-6].rsplit("_", 1)
                             yield (loc, srcName, tech, mat, ip)
                         except ValueError:
                             continue
@@ -1851,7 +1853,7 @@ class EnergySystemModel:
                 if hasattr(mdl, "getMaterialRecoveryContribution")
             )
             print("RHS_recovery", rhs)
-
+            print("Constraint:", scrap_source_name, "mat:", mat)
             return lhs == rhs
 
         pyM.materialScrapConstraint = pyomo.Constraint(
