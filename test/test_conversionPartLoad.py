@@ -511,7 +511,7 @@ def test_conversionPartLoad():
     )  # relative toerlance < 0.2%
     np.testing.assert_allclose(
         convPartloadSummary.loc[
-            ("PEMEC", "operation", "[kW$_{el}$*h/a]"), "GlassProductionSite"
+            ("PEMEC", "operation_annual", "[kW$_{el}$*h/a]"), "GlassProductionSite"
         ],
         8.82488e07,
         rtol=0.01,
