@@ -7,6 +7,24 @@ import pandas as pd
 import fine as fn
 
 
+def checkAndSetBalanceLimitID(balanceLimitID):
+    """Missing."""
+    if balanceLimitID is None or isinstance(balanceLimitID, str):
+        return balanceLimitID
+    raise ValueError("The input argument needs to be a string or None.")
+
+
+def checkCapacityOrCommissioningTransmission(df):
+    """MISSING."""
+    if isinstance(df, (pd.DataFrame, pd.Series, dict, float, int)):
+        return df
+    if df is None:
+        return df
+    raise ValueError(
+        "The input argument needs to be a dataframe, series, dict, float or int."
+    )
+
+
 def isInRange(value, lowerBound, upperBound):
     """Check if the input value is in the given range."""
     if not (isinstance(value, float) or isinstance(value, int)):
@@ -271,7 +289,7 @@ def checkAndSetDistances(distances, locationalEligibility, esM):
     if distances is None:
         output(
             "The distances of a component are set to a normalized value of 1.",
-            esM.verbose,
+            esM.verboseLogLevel,
             0,
         )
         distances = pd.Series(
@@ -498,7 +516,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 data = capacityMax[ip].copy()
                 data[data > 0] = 1
                 if (data > isBuiltFix).any():
-                    if esM.verbose < 2:
+                    if esM.verboseLogLevel < 2:
                         warnings.warn(
                             "The isBuiltFix and capacityMax parameters indicate different design options."
                         )
@@ -893,10 +911,40 @@ def setLocationalEligibility(
     """MISSING."""
     # ruff: noqa: PLR0911 # needed to avoid ruff saying "too many return statements"
     if locationalEligibility is not None:
-        # TODO implement checks for the locationalEligiblity, especially for transmission components
+        if isinstance(locationalEligibility, pd.Series):
+            esm_locations = set(esM.locations)
+            le_index = set(locationalEligibility.index)
+            if dimension == "1dim":
+                if esm_locations != le_index:
+                    raise ValueError(
+                        "if locationalEligibility (1dim) is specified, it needs to match the esM locations"
+                    )
+            elif dimension == "2dim":
+                le_index_2dim = set(
+                    f"{a}_{b}"
+                    for a in sorted(esm_locations)
+                    for b in sorted(esm_locations)
+                    if a != b
+                )
+                if (
+                    le_index > le_index_2dim
+                ):  # location eligibility can only be defined between existing esm locations
+                    raise ValueError(
+                        "if locationalEligibility is specified, it can only be defined between existing esm locations"
+                    )
+            else:
+                raise ValueError("dimensions needs to be either '1dim' or '2dim'")
+            if not locationalEligibility.isin([0, 1, True, False]).all():
+                raise ValueError(
+                    "all values in locationalEligibility must be either True or False or 1 or 0"
+                )
+        else:
+            raise ValueError(
+                "locationalEligibility needs to be a Series after it has been preprocessed"
+            )
         return locationalEligibility
-    # If the location eligibility is None set it based on other information available
 
+    # If the location eligibility is None set it based on other information available
     def defineLocDependencyCapacityBounds(name, capacityBound):
         if capacityBound is None:
             return False
@@ -1187,7 +1235,7 @@ def checkDesignVariableModelingParameters(
     if bigM is not None and hasIsBuiltBinaryVariable:
         isPositiveNumber(bigM)
     elif bigM is not None and not hasIsBuiltBinaryVariable:
-        if esM.verbose < 2:
+        if esM.verboseLogLevel < 2:
             warnings.warn(
                 "The declared bigM variable is not used in the problem formulation for hasIsBuiltBinaryVariable, since hasIsBuiltBinaryVariable is set to false. \n"
                 "Check if bigM is needed for other binary variables (like partLoadMin). Else it is ignored."
@@ -2075,6 +2123,7 @@ def checkNumberOfConversionFactors(commods):
     return True
 
 
+# ruff: noqa: PLW0127 # included technically unnecessary elif for readability
 def checkAndSetTimeHorizon(
     startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None
 ):
@@ -2093,6 +2142,11 @@ def checkAndSetTimeHorizon(
 
         nbOfRepresentedYears = biggestDivisor(diff)
         nbOfSteps = int(diff / nbOfRepresentedYears)
+    elif (
+        (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is not None)
+    ):
+        # Endyear will be calculated by nbOfSteps and nbOfRepresentedYears
+        nbOfSteps = nbOfSteps
     elif (endYear is None) & (nbOfSteps is not None) & (nbOfRepresentedYears is None):
         # If number of steps is given but no endyear and no the number of represented years per optimization run,
         # nbOfRepresentedYears is set to 1 year.
