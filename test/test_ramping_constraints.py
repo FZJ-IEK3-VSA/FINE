@@ -202,8 +202,12 @@ def test_real_esm_tsa_interperiod_rampdown_enforcement():
     # Coefficient should be -ramp_down * dt → dt = |coef| / ramp_down
     timestep = abs(cap_coefficient) / ramp_down
     expected_limit = ramp_down * timestep * cap_B
-    timeStepLengthESM = system_B.hoursPerSegment[0][1, 0] if system_B.pyM.hasSegmentation else system_B.hoursPerTimeStep
-    
+    timeStepLengthESM = (
+        system_B.hoursPerSegment[0][1, 0]
+        if system_B.pyM.hasSegmentation
+        else system_B.hoursPerTimeStep
+    )
+
     # Sanity checks
     assert np.isclose(cap_B, 10.0)
     assert np.isclose(timestep, timeStepLengthESM)
