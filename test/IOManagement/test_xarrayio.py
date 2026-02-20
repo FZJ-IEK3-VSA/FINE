@@ -2,6 +2,7 @@ from copy import deepcopy
 from pathlib import Path
 import pytest
 
+import os
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
@@ -135,15 +136,24 @@ def test_input_esm_to_netcdf_and_back(minimal_test_esM):
     """Write an esM to netCDF, then load the esM from this file. Compare if both
     esMs are identical.
     """
+    module_directory = Path(__file__).parent.absolute()
+    savePath = os.path.join(  # noqa: PTH118
+        module_directory, "..", "IOManagement"
+    )
+
+    test_esM = os.path.join(  # noqa: PTH118
+        savePath, "test_esM.nc"
+    )
+
     esm_original = deepcopy(minimal_test_esM)
     xrIO.writeEnergySystemModelToNetCDF(
-        esm_original, outputFilePath="test_esM.nc", overwriteExisting=True
+        esm_original, outputFilePath=test_esM, overwriteExisting=True
     )
-    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
 
-    Path("test_esM.nc").unlink()
+    Path(test_esM).unlink()
 
 
 def test_output_esm_to_netcdf_and_back(minimal_test_esM):
@@ -151,17 +161,26 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM):
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
+    module_directory = Path(__file__).parent.absolute()
+    savePath = os.path.join(  # noqa: PTH118
+        module_directory, "..", "IOManagement"
+    )
+
+    test_esM = os.path.join(  # noqa: PTH118
+        savePath, "test_esM.nc"
+    )
+
     esm_original = deepcopy(minimal_test_esM)
     esm_original.optimize()
     xrIO.writeEnergySystemModelToNetCDF(
-        esm_original, outputFilePath="test_esM.nc", overwriteExisting=True
+        esm_original, outputFilePath=test_esM, overwriteExisting=True
     )
-    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
     compare_esm_outputs(esm_original, esm_from_netcdf)
 
-    Path("test_esM.nc").unlink()
+    Path(test_esM).unlink()
 
 
 def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_esM):
@@ -169,18 +188,24 @@ def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_es
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
+    module_directory = Path(__file__).parent.absolute()
+    savePath = os.path.join(  # noqa: PTH118
+        module_directory, "..", "IOManagement"
+    )
+
+    test_esM = os.path.join(  # noqa: PTH118
+        savePath, "test_esM_pf.nc"
+    )
+
     esm_original_pf = deepcopy(perfectForesight_test_esM)
     esm_original_pf.optimize()
 
-    xrIO.writeEnergySystemModelToNetCDF(
-        esm_original_pf, outputFilePath="test_esM_pf.nc"
-    )
-    esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM_pf.nc")
-
+    xrIO.writeEnergySystemModelToNetCDF(esm_original_pf, outputFilePath=test_esM)
+    esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
     compare_esm_inputs(esm_original_pf, esm_pf_from_netcdf)
     compare_esm_outputs(esm_original_pf, esm_pf_from_netcdf)
 
-    Path("test_esM_pf.nc").unlink()
+    Path(test_esM).unlink()
 
 
 def test_capacityFix_subset(multi_node_test_esM_init):
@@ -211,11 +236,19 @@ def test_capacityFix_subset(multi_node_test_esM_init):
         )
     )
 
-    fileName = "test_cdf_error.nc"
-    xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=fileName)
-    _ = xrIO.readNetCDFtoEnergySystemModel(filePath=fileName)
+    module_directory = Path(__file__).parent.absolute()
+    savePath = os.path.join(  # noqa: PTH118
+        module_directory, "..", "IOManagement"
+    )
 
-    Path("test_cdf_error.nc").unlink()
+    test_esM = os.path.join(  # noqa: PTH118
+        savePath, "test_cdf_error.nc"
+    )
+
+    xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=test_esM)
+    _ = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
+
+    Path(test_esM).unlink()
 
 
 def test_esm_to_datasets_with_processed_values(minimal_test_esM):
@@ -336,3 +369,32 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     xrRes.columns.name = None
 
     assert_frame_equal(optSum, xrRes, check_dtype=False)
+
+
+def test_coordinates(multi_node_test_esM_init):
+    """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
+    Check that the coordinates of the results of the ESM model are as expected.
+    """
+    esM = multi_node_test_esM_init
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
+    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+
+    xrds = xrIO.writeEnergySystemModelToDatasets(esM)
+
+    required_coord_1dim = {"location", "time"}
+    xrRes = xrds["Results"][0]["SourceSinkModel"]["Wind (onshore)"]
+    assert set(xrRes.coords) == required_coord_1dim, (
+        f"Expected {required_coord_1dim}; got {set(xrRes.coords)}."
+    )
+
+    required_coord_2dim = {"locationIn", "locationOut", "time"}
+    xrRes = xrds["Results"][0]["TransmissionModel"]["Pipelines (biogas)"]
+    assert set(xrRes.coords) == required_coord_2dim, (
+        f"Expected {required_coord_2dim}; got {set(xrRes.coords)}"
+    )
