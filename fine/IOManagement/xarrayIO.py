@@ -131,7 +131,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df = optSum.loc[(component, variable)]
                         df = df.iloc[-1]
                         df.name = variable
-                        df.index.rename("space", inplace=True)
+                        df.index.rename("location", inplace=True)
                         df = pd.to_numeric(df)
                         xr_da = df.to_xarray()
                         # add variable [e.g. 'TAC'] and units to attributes of xarray
@@ -163,7 +163,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df = df.stack()
                         # df.name = (name, component, variables
                         df.name = variable
-                        df.index.rename(["LocationIn", "LocationOut"], inplace=True)
+                        df.index.rename(["locationIn", "locationOut"], inplace=True)
                         df = pd.to_numeric(df)
                         xr_da = df.to_xarray()
 
@@ -201,14 +201,14 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                     ):
                         df = dfTD1dim.loc[(variable, component)].T.stack()
                         df.name = variable
-                        df.index.rename(["time", "space"], inplace=True)
+                        df.index.rename(["time", "location"], inplace=True)
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da]
                         )
             # Two dimensional time dependent data
             if dataTD2dim:
-                names = ["Variable", "Component", "LocationIn", "LocationOut"]
+                names = ["Variable", "Component", "locationIn", "locationOut"]
                 dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
                 for variable in dfTD2dim.index.get_level_values(0).unique():
                     # for component in dfTD2dim.index.get_level_values(1).unique():
@@ -218,7 +218,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df = dfTD2dim.loc[(variable, component)].stack()
 
                         df.name = variable
-                        df.index.rename(["space", "space_2", "time"], inplace=True)
+                        df.index.rename(
+                            ["locationIn", "locationOut", "time"], inplace=True
+                        )
                         df.index = df.index.reorder_levels([2, 0, 1])
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
@@ -237,7 +239,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         ):
                             df = dfTI.loc[(variable, component)].T
                             df.name = variable
-                            df.index.rename("space", inplace=True)
+                            df.index.rename("location", inplace=True)
                             xr_da = df.to_xarray()
                             xr_dss[ip][name][component] = xr.merge(
                                 [xr_dss[ip][name][component], xr_da]
@@ -253,7 +255,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         ):
                             df = dfTI.loc[(variable, component)].T.stack()
                             df.name = variable
-                            df.index.rename(["space", "space_2"], inplace=True)
+                            df.index.rename(["locationIn", "locationOut"], inplace=True)
                             xr_da = df.to_xarray()
                             xr_dss[ip][name][component] = xr.merge(
                                 [xr_dss[ip][name][component], xr_da]
@@ -264,15 +266,18 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 if list(xr_dss[ip][name][component].data_vars) == []:
                     # Delete components that have not been built.
                     del xr_dss[ip][name][component]
-                else:
-                    # Cast space coordinats to str. If this is not done then dtype will be object.
-                    xr_dss[ip][name][component].coords["space"] = (
-                        xr_dss[ip][name][component].coords["space"].astype(str)
+                elif esM.componentModelingDict[name].dimension == "2dim":
+                    xr_dss[ip][name][component].coords["locationOut"] = (
+                        xr_dss[ip][name][component].coords["locationOut"].astype(str)
                     )
-                    if esM.componentModelingDict[name].dimension == "2dim":
-                        xr_dss[ip][name][component].coords["space_2"] = (
-                            xr_dss[ip][name][component].coords["space_2"].astype(str)
-                        )
+
+                    xr_dss[ip][name][component].coords["locationIn"] = (
+                        xr_dss[ip][name][component].coords["locationIn"].astype(str)
+                    )
+                else:
+                    xr_dss[ip][name][component].coords["location"] = (
+                        xr_dss[ip][name][component].coords["location"].astype(str)
+                    )
 
     return {"Results": xr_dss}
 
@@ -537,7 +542,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                     for variable in datasets["Results"][ip][model][component]:
                         if "Optimum" in variable:
                             continue
-                        if "space_2" in list(
+                        if "locationOut" in list(
                             datasets["Results"][ip][model][component].coords
                         ):
                             _optSum_df = (
@@ -555,7 +560,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 [iterables[0] + [location]][0]
                                 for location in datasets["Results"][ip][model][
                                     component
-                                ][variable]["LocationIn"].values
+                                ][variable]["locationIn"].values
                             ]
                             idx = pd.MultiIndex.from_tuples(tuple(iterables2))
                             _optSum_df.index = idx
@@ -564,7 +569,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     "Component",
                                     "Property",
                                     "Unit",
-                                    "LocationIn",
+                                    "locationIn",
                                 ],
                                 inplace=True,
                             )
@@ -642,7 +647,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                             continue
 
                         if opt_variable == "operationVariablesOptimum":
-                            if "space_2" in list(xr_opt.coords):
+                            if "locationOut" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
                                     .unstack(level=0)
@@ -680,7 +685,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 ).rename_axis(len(idx.names) * [None], axis=0)
 
                         if opt_variable == "capacityVariablesOptimum":
-                            if "space_2" in list(xr_opt.coords):
+                            if "locationOut" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
                                     .unstack(level=0)
@@ -712,7 +717,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 _isBuiltVariablesOptimum_df.set_index(idx)
                             ).rename_axis(None, axis=1)
                         if opt_variable == "commissioningVariablesOptimum":
-                            if "space_2" in list(xr_opt.coords):
+                            if "locationOut" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
                                     .unstack(level=0)
@@ -735,7 +740,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     )
                                 ).rename_axis(None, axis=1)
                         if opt_variable == "decommissioningVariablesOptimum":
-                            if "space_2" in list(xr_opt.coords):
+                            if "locationOut" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
                                     .unstack(level=0)

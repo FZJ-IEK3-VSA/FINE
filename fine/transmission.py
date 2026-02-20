@@ -1130,7 +1130,7 @@ class TransmissionModel(ComponentModel):
             optSummary.index = pd.MultiIndex.from_tuples(indexNew)
             optSummary = optSummary.unstack(level=-1)
             names = list(optSummaryBasic[esM.investmentPeriodNames[ip]].index.names)
-            names.append("LocationIn")
+            names.append("locationIn")
             optSummary.index.set_names(names, inplace=True)
             self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
