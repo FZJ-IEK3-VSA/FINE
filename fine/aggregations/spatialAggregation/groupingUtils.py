@@ -5,8 +5,6 @@ import numpy as np
 from scipy.cluster import hierarchy
 from fine.IOManagement.utilsIO import PowerDict
 
-# ruff: noqa
-
 try:
     import geopandas as gpd
 except ImportError:
@@ -16,8 +14,7 @@ except ImportError:
 
 
 def get_normalized_array(array):
-    """
-    Normalizes the given matrix to [0,1].
+    """Normalize the given matrix to [0,1].
 
     :param matrix: Matrix to be normalized
     :type matrix: np.ndarray
@@ -25,7 +22,6 @@ def get_normalized_array(array):
     :returns: Normalized matrix
     :rtype: np.ndarray
     """
-
     norm_min, norm_max = 0, 1
 
     if np.max(array) == np.min(array):
@@ -37,8 +33,7 @@ def get_normalized_array(array):
 
 
 def preprocess_time_series(vars_dict):
-    """
-    Preprocesses time series variables.
+    """Preprocess time series variables.
 
     :param vars_dict: For each key (variable name), the corresponding value is a dictionary. This dictionary
                     consists of each component name and the corresponding xr.DataArray.
@@ -50,7 +45,6 @@ def preprocess_time_series(vars_dict):
             - Size of each matrix: n_timesteps * n_regions
     :rtype: Dict[str, Dict[str, np.ndarray]]
     """
-
     processed_ts_dict = {}
 
     for var_name, var_dict in vars_dict.items():
@@ -66,8 +60,7 @@ def preprocess_time_series(vars_dict):
 
 
 def preprocess_1d_variables(vars_dict):
-    """
-    Preprocesses 1-dimensional variables.
+    """Preprocess 1-dimensional variables.
 
     :param vars_dict: For each key (variable name), the corresponding value is a dictionary. This dictionary
         consists of each component name and the corresponding xr.DataArray.
@@ -79,7 +72,6 @@ def preprocess_1d_variables(vars_dict):
         - Size of each array: n_regions
     :rtype: Dict[str, Dict[str, np.ndarray]]
     """
-
     processed_1d_dict = {}
 
     for var_name, var_dict in vars_dict.items():
@@ -95,8 +87,7 @@ def preprocess_1d_variables(vars_dict):
 
 
 def preprocess_2d_variables(vars_dict):
-    """
-    Preprocesses 2-dimensional variables.
+    """Preprocess 2-dimensional variables.
 
     :param vars_dict: For each key (variable name), the corresponding value is a dictionary. This dictionary consists of
         each component name and the corresponding xr.DataArray.
@@ -118,7 +109,6 @@ def preprocess_2d_variables(vars_dict):
                         [0.2 1.  0. ]]                            as the other is always redundant in a dist matrix )
         - Translate the matrix from connectivity (similarity) to distance (dissimilarity) : (1- connectivity vector)
     """
-
     processed_2d_dict = {}
 
     for var_name, var_dict in vars_dict.items():
@@ -144,8 +134,7 @@ def preprocess_2d_variables(vars_dict):
 
 
 def preprocess_dataset(xarray_dataset):
-    """
-    Preprocesses xarray dataset.
+    """Preprocess xarray dataset.
 
     :param xarray_dataset: the xarray dataset that needs to be preprocessed
     :type xarray_dataset: xr.Dataset
@@ -156,7 +145,6 @@ def preprocess_dataset(xarray_dataset):
             and preprocess_2d_variables(), respectively
     :rtype: Dict
     """
-
     # STEP 0. Traverse all variables in the dataset, and put them in separate categories
     # NOTE: vars_ts, vars_1d, vars_2d -> dicts of variables and their corresponding dataArrays
     vars_ts = PowerDict()
@@ -199,26 +187,21 @@ def get_custom_distance(
     region_index_y,
     weights=None,
 ):
-    """
-    Calculates and returns a customized distance between two regions.
+    """Calculate and return a customized distance between two regions.
     This distance is based on residual sum of squares, and is defined for
     two regions 'm' and 'n' as:
         D(m, n) = D_ts(m, n) + D_1d(m, n) + D_2d(m, n)
-
         where,
             D_ts(m, n) is cumulative distance of all time series variables:
                 Sum of square of the difference between the values
                     - summed over all time stpes
                     - summed over all time series variables
-
             D_1d(m, n) is cumulative distance of all 1d variables:
                 Sum of square of the difference between the values
                     - summed over all 1d variables
-
             D_2d(m, n) is cumulative distance of all 2d variables:
                 Sum of square of (1 - value)
                     - summed over all 2d variables
-
                 (2d values define how strong the connection is between
                 two regions. They are converted to distance meaning by
                 subtracting in from 1).
@@ -242,7 +225,6 @@ def get_custom_distance(
     :returns: Custom distance value
     :rtype: float
     """
-
     # STEP 1. Check if weights are specified correctly
     if weights is not None:
         if "components" not in weights.keys():
@@ -271,8 +253,7 @@ def get_custom_distance(
             weights.update({"variables": "all"})
 
     def _get_var_comp_weight(var_name, comp_name):
-        """Private function to get weight corresponding to a variable-component pair"""
-
+        """Private function to get weight corresponding to a variable-component pair."""
         wgt = 1
 
         if weights is not None:
@@ -356,8 +337,7 @@ def get_custom_distance(
 def get_custom_distance_matrix(
     processed_ts_dict, processed_1d_dict, processed_2d_dict, n_regions, weights=None
 ):
-    """
-    For every region combination, calculates the custom distance by calling get_custom_distance().
+    """For every region combination, calculate the custom distance by calling get_custom_distance().
 
     :param processed_ts_dict, processed_1d_dict, processed_2d_dict: Dictionaries obtained as a result of preprocess_dataset()
     :type processed_ts_dict, processed_1d_dict, processed_2d_dict: Dict
@@ -374,7 +354,6 @@ def get_custom_distance_matrix(
     :returns: distMatrix - A n_regions by n_regions hollow, symmetric distance matrix
     :rtype: np.ndarray
     """
-
     distMatrix = np.zeros((n_regions, n_regions))
 
     # STEP 1. For every region pair, calculate the distance
@@ -397,8 +376,7 @@ def get_custom_distance_matrix(
 
 
 def get_connectivity_matrix(xarray_datasets):
-    """
-    Generates connectiviy matrix for the given `xarray_datasets`.
+    """Generate connectiviy matrix for the given `xarray_datasets`.
 
     :param xarray_datasets: The dictionary of xarray datasets for which connectiviy matrix needs
         to be generated
@@ -415,7 +393,6 @@ def get_connectivity_matrix(xarray_datasets):
             - In case of islands, its nearest mainland region, or
             - If the regions are connected via a transmission line or pipeline
     """
-
     geom_xr = xarray_datasets.get("Geometry")
     input_xr = xarray_datasets.get("Input")
 
@@ -462,8 +439,7 @@ def get_connectivity_matrix(xarray_datasets):
 
 
 def get_region_list(geom_xr, skip_regions, enforced_group):
-    """
-    Generates a modified region list that is to be used during region grouping.
+    """Generate a modified region list that is to be used during region grouping.
 
     :param geom_xr: The xarray dataset holding the geom info
     :type geom_xr: xr.Dataset
@@ -484,7 +460,6 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
     :returns: connectivity_matrix - A n_regions by n_regions symmetric matrix
     :rtype: np.ndarray
     """
-
     if (skip_regions is not None) & (enforced_group is None):
         assert isinstance(skip_regions, list), (
             "A list containing the region ID's to be skipped should be provided."

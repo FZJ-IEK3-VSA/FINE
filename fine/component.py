@@ -4288,60 +4288,25 @@ class ComponentModel(metaclass=ABCMeta):
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        if name == "capacityVariablesOptimum":
+        timeDependentMapping = {
+            "capacityVariablesOptimum": False,
+            "isBuiltVariablesOptimum": False,
+            "operationVariablesOptimum": True,
+            "commissioningVariablesOptimum": False,
+            "decommissioningVariablesOptimum": False,
+        }
+
+        if name in timeDependentMapping:
             return {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "isBuiltVariablesOptimum":
-            return {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "operationVariablesOptimum":
-            return {
-                "values": self._operationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-        if name == "commissioningVariablesOptimum":
-            return {
-                "values": self._commissioningVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "decommissioningVariablesOptimum":
-            return {
-                "values": self._decommissioningVariablesOptimum[ip],
-                "timeDependent": False,
+                "values": getattr(self, f"_{name}")[ip],
+                "timeDependent": timeDependentMapping[name],
                 "dimension": self.dimension,
             }
         return {
-            "capacityVariablesOptimum": {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
+            valName: {
+                "values": getattr(self, f"_{valName}")[ip],
+                "timeDependent": timeDependentMapping[valName],
                 "dimension": self.dimension,
-            },
-            "commissioningVariablesOptimum": {
-                "values": self._commissioningVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "decommissioningVariablesOptimum": {
-                "values": self._decommissioningVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "isBuiltVariablesOptimum": {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "operationVariablesOptimum": {
-                "values": self._operationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            },
+            }
+            for valName in timeDependentMapping
         }

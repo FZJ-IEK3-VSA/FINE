@@ -1,8 +1,4 @@
-"""
-Aggregation of RE technologies in every region.
-"""
-
-# ruff: noqa
+"""Aggregation of RE technologies in every region."""
 
 import logging
 import numpy as np
@@ -32,8 +28,7 @@ def aggregate_RE_technology(
     shp_geometry_col="geometry",
     linkage="average",
 ):
-    """
-    Reduces the number of a particular RE technology (e.g. onshore wind turbine)
+    """Reduce the number of a particular RE technology (e.g. onshore wind turbine)
     to a desired number, within each region.
 
     .. note::
@@ -162,9 +157,7 @@ def aggregate_RE_technology(
     """
 
     def _preprocess_regional_xr_ds_gridded(region):
-        """
-        Private function to preprocess regional gridded data
-        """
+        """Private function to preprocess regional gridded data."""
         # Get regional data
         regional_ds = rasterized_RE_ds.sel(region_ids=region)
 
@@ -203,9 +196,7 @@ def aggregate_RE_technology(
         return regional_capfac_da, regional_capacity_da, regional_power_da
 
     def _preprocess_regional_xr_ds_non_gridded(region):
-        """
-        Private function to preprocess regional non gridded data
-        """
+        """Private function to preprocess regional non gridded data."""
         # Get regional data
         regional_ds = non_gridded_RE_ds.where(
             non_gridded_RE_ds[region_var_name] == region
@@ -256,7 +247,7 @@ def aggregate_RE_technology(
             raise ValueError(
                 "You have passed gridded_RE_ds. It requires setting CRS_attr"
             )
-        elif shp_file is None:
+        if shp_file is None:
             raise ValueError(
                 "You have passed gridded_RE_ds. It requires a shapefile (shp_file) too"
             )
@@ -284,7 +275,7 @@ def aggregate_RE_technology(
         if isinstance(non_gridded_RE_ds, str):
             try:
                 non_gridded_RE_ds = xr.open_dataset(non_gridded_RE_ds)
-            except:
+            except Exception:
                 raise FileNotFoundError("The gridded_RE_ds path specified is not valid")
 
         elif not isinstance(non_gridded_RE_ds, xr.Dataset):
@@ -338,92 +329,87 @@ def aggregate_RE_technology(
             represented_timeSeries.loc[:, region] = capfac_total
 
         # STEP 4. Create resulting dataset
-        regional_represented_RE_ds = xr.Dataset(
+        return xr.Dataset(
             {
                 capacity_var_name: represented_capacities,
                 capfac_var_name: represented_timeSeries,
             }
         )
 
-        return regional_represented_RE_ds
+    # STEP 2. Create resultant xarray dataset
+    TS_ids = [f"TS_{i}" for i in range(n_timeSeries_perRegion)]
 
-    else:
-        # STEP 2. Create resultant xarray dataset
-        TS_ids = [f"TS_{i}" for i in range(n_timeSeries_perRegion)]
+    ## time series
+    data = np.zeros((n_timeSteps, n_regions, n_timeSeries_perRegion))
 
-        ## time series
-        data = np.zeros((n_timeSteps, n_regions, n_timeSeries_perRegion))
+    aggregated_timeSeries = xr.DataArray(
+        data,
+        [
+            (time_dim_name, time_steps),
+            ("region_ids", region_ids),
+            ("TS_ids", TS_ids),
+        ],
+    )
 
-        aggregated_timeSeries = xr.DataArray(
-            data,
-            [
-                (time_dim_name, time_steps),
-                ("region_ids", region_ids),
-                ("TS_ids", TS_ids),
-            ],
+    ## capacities
+    data = np.zeros((n_regions, n_timeSeries_perRegion))
+    aggregated_capacities = xr.DataArray(
+        data, [("region_ids", region_ids), ("TS_ids", TS_ids)]
+    )
+
+    # ## ts groups
+    cluster_labels = {}
+
+    # STEP 3. Clustering in every region...
+    for region in region_ids:
+        # Preprocess regional data
+        if gridded_RE_ds is not None:
+            (
+                regional_capfac_da,
+                regional_capacity_da,
+                regional_power_da,
+            ) = _preprocess_regional_xr_ds_gridded(region)
+        else:
+            (
+                regional_capfac_da,
+                regional_capacity_da,
+                regional_power_da,
+            ) = _preprocess_regional_xr_ds_non_gridded(region)
+
+        # Clustering
+        agg_cluster = AgglomerativeClustering(
+            n_clusters=n_timeSeries_perRegion, metric="euclidean", linkage=linkage
         )
+        agglomerative_model = agg_cluster.fit(regional_capfac_da)
 
-        ## capacities
-        data = np.zeros((n_regions, n_timeSeries_perRegion))
-        aggregated_capacities = xr.DataArray(
-            data, [("region_ids", region_ids), ("TS_ids", TS_ids)]
-        )
+        # Aggregation
+        for i in range(np.unique(agglomerative_model.labels_).shape[0]):
+            ## Aggregate capacities
+            cluster_capacity = regional_capacity_da[agglomerative_model.labels_ == i]
+            cluster_capacity_total = cluster_capacity.sum(dim="x_y").values
 
-        # ## ts groups
-        cluster_labels = {}
+            aggregated_capacities.loc[region, TS_ids[i]] = cluster_capacity_total
 
-        # STEP 3. Clustering in every region...
-        for region in region_ids:
-            # Preprocess regional data
-            if gridded_RE_ds is not None:
-                (
-                    regional_capfac_da,
-                    regional_capacity_da,
-                    regional_power_da,
-                ) = _preprocess_regional_xr_ds_gridded(region)
-            else:
-                (
-                    regional_capfac_da,
-                    regional_capacity_da,
-                    regional_power_da,
-                ) = _preprocess_regional_xr_ds_non_gridded(region)
+            # aggregate capacity factor
+            cluster_power = regional_power_da[agglomerative_model.labels_ == i]
+            cluster_power_total = cluster_power.sum(dim="x_y").values
+            cluster_capfac_total = cluster_power_total / cluster_capacity_total
 
-            # Clustering
-            agg_cluster = AgglomerativeClustering(
-                n_clusters=n_timeSeries_perRegion, metric="euclidean", linkage=linkage
+            aggregated_timeSeries.loc[:, region, TS_ids[i]] = cluster_capfac_total
+
+            ## lables
+            cluster_labels[f"{region}.{TS_ids[i]}"] = list(
+                regional_capacity_da["x_y"].values[agglomerative_model.labels_ == i]
             )
-            agglomerative_model = agg_cluster.fit(regional_capfac_da)
 
-            # Aggregation
-            for i in range(np.unique(agglomerative_model.labels_).shape[0]):
-                ## Aggregate capacities
-                cluster_capacity = regional_capacity_da[
-                    agglomerative_model.labels_ == i
-                ]
-                cluster_capacity_total = cluster_capacity.sum(dim="x_y").values
+    # STEP 4. Create resulting dataset
+    regional_aggregated_RE_ds = xr.Dataset(
+        {
+            capacity_var_name: aggregated_capacities,
+            capfac_var_name: aggregated_timeSeries,
+        }
+    )
 
-                aggregated_capacities.loc[region, TS_ids[i]] = cluster_capacity_total
+    regional_aggregated_RE_ds.attrs = cluster_labels
 
-                # aggregate capacity factor
-                cluster_power = regional_power_da[agglomerative_model.labels_ == i]
-                cluster_power_total = cluster_power.sum(dim="x_y").values
-                cluster_capfac_total = cluster_power_total / cluster_capacity_total
-
-                aggregated_timeSeries.loc[:, region, TS_ids[i]] = cluster_capfac_total
-
-                ## lables
-                cluster_labels[f"{region}.{TS_ids[i]}"] = list(
-                    regional_capacity_da["x_y"].values[agglomerative_model.labels_ == i]
-                )
-
-        # STEP 4. Create resulting dataset
-        regional_aggregated_RE_ds = xr.Dataset(
-            {
-                capacity_var_name: aggregated_capacities,
-                capfac_var_name: aggregated_timeSeries,
-            }
-        )
-
-        regional_aggregated_RE_ds.attrs = cluster_labels
-
-        return regional_aggregated_RE_ds
+    return regional_aggregated_RE_ds

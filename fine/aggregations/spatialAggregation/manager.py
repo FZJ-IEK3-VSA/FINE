@@ -3,15 +3,12 @@
 from pathlib import Path
 import logging
 import warnings
-import difflib
-import os
 from fine.aggregations.spatialAggregation import grouping
 from fine.aggregations.spatialAggregation import aggregation
 from fine.aggregations.spatialAggregation import managerUtils as manUtils
 from fine.IOManagement.standardIO import timer
-from fine.IOManagement import xarrayIO as xrIO, utilsIO
+from fine.IOManagement import xarrayIO as xrIO
 
-# ruff: noqa
 
 try:
     import geopandas as gpd
@@ -33,8 +30,7 @@ def perform_spatial_aggregation(
     aggregatedResultsPath=None,
     **kwargs,
 ):
-    """
-    Performs spatial grouping of regions (by calling the functions in grouping.py)
+    r"""Perform spatial grouping of regions (by calling the functions in grouping.py)
     and then representation of the data within each region group (by calling functions
     in representation.py).
 
@@ -168,7 +164,7 @@ def perform_spatial_aggregation(
 
         .. note::
             A default dictionary is considered with the following corresponding modes. If `aggregation_function_dict` is
-            passed, this default dictionary is updated. The default dicitionary:
+            passed, this default dictionary is updated. The default dictionary:
 
             {\n
             "operationRateMax": ("weighted mean", "capacityMax"),\n
@@ -213,13 +209,11 @@ def perform_spatial_aggregation(
     :returns: aggregated_xr_dataset - The xarray datasets holding aggregated data
     :rtype: Dict[str, xr.Dataset]
     """
-
     # STEP 1. Read and check shapefile
     if isinstance(shapefile, str):
-        if not os.path.isfile(shapefile):
+        if not Path(shapefile).is_file():
             raise FileNotFoundError("The shapefile path specified is not valid")
-        else:
-            shapefile = gpd.read_file(shapefile)
+        shapefile = gpd.read_file(shapefile)
 
     elif not isinstance(shapefile, gpd.geodataframe.GeoDataFrame):
         raise TypeError(
@@ -244,8 +238,8 @@ def perform_spatial_aggregation(
     if isinstance(xr_datasets, str):
         try:
             xr_datasets = xrIO.readNetCDFToDatasets(filePath=xr_datasets)
-        except:
-            raise FileNotFoundError("The xr_dataset path specified is not valid")
+        except FileNotFoundError as e:
+            raise FileNotFoundError("The xr_dataset path specified is not valid") from e
 
     # STEP 3. Add geometries to xr_dataset
     geom_col_name = kwargs.get("geom_col_name", "geometry")
@@ -279,7 +273,7 @@ def perform_spatial_aggregation(
         skip_regions = kwargs.get("skip_regions", None)
         enforced_groups = kwargs.get("enforced_groups", None)
 
-        logger_spagat.info(f"Performing distance-based grouping on the regions")
+        logger_spagat.info("Performing distance-based grouping on the regions")
 
         aggregation_dict = grouping.perform_distance_based_grouping(
             geom_xr, n_groups, skip_regions, enforced_groups, distance_threshold
@@ -290,7 +284,7 @@ def perform_spatial_aggregation(
         aggregation_method = kwargs.get("aggregation_method", "kmedoids_contiguity")
         solver = kwargs.get("solver", "gurobi")
 
-        logger_spagat.info(f"Performing parameter-based grouping on the regions.")
+        logger_spagat.info("Performing parameter-based grouping on the regions.")
 
         aggregation_dict = grouping.perform_parameter_based_grouping(
             xr_datasets,
@@ -364,9 +358,7 @@ def perform_spatial_aggregation(
         aggregated_xr_dataset.pop("Geometry")
 
         # save aggregated xarray dataset
-        file_name_with_path = os.path.join(
-            aggregatedResultsPath, aggregated_xr_filename
-        )
+        file_name_with_path = Path(aggregatedResultsPath) / aggregated_xr_filename
         xrIO.writeDatasetsToNetCDF(
             aggregated_xr_dataset, file_name_with_path, removeExisting=True
         )
