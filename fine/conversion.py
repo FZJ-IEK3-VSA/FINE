@@ -436,17 +436,6 @@ class Conversion(Component):
                         if hasTSA
                         else self.fullCommodityConversionFactors[timeInfo][commod]
                     )
-        if hasTSA:
-            if any(
-                x is not None
-                for x in [
-                    self.rampUpMax,
-                    self.rampDownMax,
-                ]
-            ):
-                raise ValueError(
-                    "Time series aggregation is not supported for rampUpMax and rampDownMax."
-                )
 
     def getDataForTimeSeriesAggregation(self, ip):
         """Get the required data if a time series aggregation is requested.
@@ -995,7 +984,7 @@ class ConversionModel(ComponentModel):
             rampRateMax = getattr(compDict[compName], rampingType)
             isCyclic = getattr(compDict[compName], "useTemporalCyclicConstraints")
             timeStepLength = (
-                esM.timeStepsPerPeriod[ip].to_dict()[p, t]
+                esM.hoursPerSegment[ip][p, t]
                 if pyM.hasSegmentation
                 else esM.hoursPerTimeStep
             )
@@ -1026,6 +1015,52 @@ class ConversionModel(ComponentModel):
             pyM,
             f"Constr{rampingType}_{abbrvName}",
             pyomo.Constraint(constrSetRamp, pyM.intraYearTimeSet, rule=ramping),
+        )
+
+    def interPeriodRamping(self, esM, pyM, rampingType):
+        """Add inter-period ramping constraints for operation variables.
+        This enforces a maximum allowed change in the dispatch between the last time step of period p–1 and the first time step of period p.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+
+        if not hasattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName):
+            return
+
+        opVar = getattr(pyM, "op_" + abbrvName)
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        constrSetRamp = getattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName)
+
+        factor = 1 if rampingType == "rampDownMax" else -1
+
+        if not pyM.hasSegmentation:
+            numberOfTimeSteps = len(esM.timeStepsPerPeriod)
+        else:
+            numberOfTimeSteps = len(esM.segmentsPerPeriod)
+
+        def ramping_inter_period(pyM, loc, compName, ip, p, t):
+            rampRateMax = getattr(compDict[compName], rampingType)
+            timeStepLength = (
+                esM.hoursPerSegment[ip][p, t]
+                if pyM.hasSegmentation
+                else esM.hoursPerTimeStep
+            )
+            if p != 0 and t == 0:
+                return (
+                    factor
+                    * (
+                        opVar[loc, compName, ip, p - 1, numberOfTimeSteps - 1]
+                        - opVar[loc, compName, ip, p, t]
+                    )
+                    <= rampRateMax * timeStepLength * capVar[loc, compName, ip]
+                )
+            return pyomo.Constraint.Skip
+
+        setattr(
+            pyM,
+            f"ConstrInterPeriod_{rampingType}_{abbrvName}",
+            pyomo.Constraint(
+                constrSetRamp, pyM.intraYearTimeSet, rule=ramping_inter_period
+            ),
         )
 
     def declareSets(self, esM, pyM):
@@ -1209,6 +1244,9 @@ class ConversionModel(ComponentModel):
 
         self.declareRampingConstraints(pyM, esM, rampingType="rampUpMax")
         self.declareRampingConstraints(pyM, esM, rampingType="rampDownMax")
+        if pyM.hasTSA:
+            self.interPeriodRamping(esM, pyM, rampingType="rampUpMax")
+            self.interPeriodRamping(esM, pyM, rampingType="rampDownMax")
 
         ################################################################################################################
         #                                    Declare pathway constraints                                               #
