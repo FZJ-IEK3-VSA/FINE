@@ -2267,16 +2267,16 @@ class EnergySystemModel:
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
         
-        # if self.LP_savepath is not None:
-        #     # save the LP file to the specified path
-        #     if not os.path.exists(self.LP_savepath):
-        #         os.makedirs(self.LP_savepath)
-        #     LP_file_path = os.path.join(self.LP_savepath, "model.lp")
-        #     utils.output(
-        #         "Saving LP file to: " + LP_file_path, self.verbose, 0
-        #     )
-        #     from pyomo.opt import ProblemFormat
-        #     self.pyM.write(LP_file_path, format=ProblemFormat.cpxlp)
+        if self.LP_savepath is not None:
+            # save the LP file to the specified path
+            if not os.path.exists(self.LP_savepath):
+                os.makedirs(self.LP_savepath)
+            LP_file_path = os.path.join(self.LP_savepath, "model.lp")
+            utils.output(
+                "Saving LP file to: " + LP_file_path, self.verbose, 0
+            )
+            from pyomo.opt import ProblemFormat
+            self.pyM.write(LP_file_path, format=ProblemFormat.cpxlp)
 
 
         # Set which solver should solve the specified optimization problem
