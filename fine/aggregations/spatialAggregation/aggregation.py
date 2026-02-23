@@ -435,8 +435,20 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
 
         return aggregation_mode, aggregation_weight
 
-    # Make a copy of xarray_dataset
-    aggregated_xr_dataset = deepcopy(xarray_datasets)
+    # Build output dict explicitly to avoid deepcopy of Shapely object-dtype arrays
+    # (which causes RecursionError in newer xarray versions).
+    # Only "Parameters".attrs needs a real deep copy — it contains mutable Python
+    # objects (set, pd.DataFrame) that are modified in-place below.
+    # "Geometry" and "Input" are fully replaced further down, so no copy is needed.
+    parameters_copy = xarray_datasets.get("Parameters").copy()
+    parameters_copy.attrs = deepcopy(xarray_datasets.get("Parameters").attrs)
+    aggregated_xr_dataset = {
+        "Parameters": parameters_copy,
+        "Input": {
+            comp_class: dict(comp_dict)
+            for comp_class, comp_dict in xarray_datasets.get("Input").items()
+        },
+    }
 
     # update esM Parameters
     parameters_dict = aggregated_xr_dataset.get("Parameters").attrs
