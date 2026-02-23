@@ -7,7 +7,11 @@
         "after 10pm on tuesday",
         "before 6am on wednesday"
     ],
-    "rangeStrategy": "bump",
+    "rangeStrategy": "widen",
+    "vulnerabilityAlerts": {
+        "enabled": false
+    },
+    "osvVulnerabilityAlerts": false,
     "enabledManagers": [
         "pep621",
         "regex"
