@@ -20,6 +20,11 @@ on:
         required: true
         type: string
         default: "self-hosted"
+      ref:
+        description: "Branch to check out and use for workflows"
+        required: false
+        type: string
+        default: "develop"
 
 jobs:
   # Resolve the line position of the library inside requirements_dev.yml so
