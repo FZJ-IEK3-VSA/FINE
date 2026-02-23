@@ -9,6 +9,7 @@ jobs:
         with:
             libraries: "geopandas,glpk,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
             version_type: both
+            env_file: requirements_dev.yml
 
     TestDependencyVersions:
         name: Test ${{ matrix.dependencies.library_name }} ${{ matrix.dependencies.version }} (${{ matrix.dependencies.version_type }})

@@ -51,6 +51,7 @@ jobs:
     with:
       libraries: "geopandas,glpk,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
       version_type: min
+      env_file: requirements_dev.yml
 
   TestMinDependencies:
     needs: extract-min-versions

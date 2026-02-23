@@ -18,6 +18,7 @@ jobs:
     with:
       libraries: ${{ needs.detect-changes.outputs.libraries }}
       version_type: max
+      env_file: requirements_dev.yml
 
   TestRenovateMaxVersions:
     name: Test ${{ matrix.dependencies.library_name }} ${{ matrix.dependencies.version }} (max)
