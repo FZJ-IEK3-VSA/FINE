@@ -28,6 +28,7 @@ jobs:
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_extract_env_versions.yml@main
     with:
       library_name: ${{ inputs.library }}
+      env_file: requirements_dev.yml
 
   # Query conda-forge for all versions of the library within the given bounds
   # and produce a matrix ready for _run_single_conda_forge_test.yml.
