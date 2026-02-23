@@ -1,0 +1,62 @@
+on:
+  workflow_dispatch:
+    inputs:
+      library:
+        description: "Dependency library name to test (e.g. numpy)"
+        required: true
+        type: string
+      min_version:
+        description: "Minimum (lower-bound) version to test (optional)"
+        required: false
+        type: string
+        default: ""
+      max_version:
+        description: "Maximum (upper-bound) version to test (optional)"
+        required: false
+        type: string
+        default: ""
+      runner_tag:
+        description: "Runner to execute the tests on (e.g. self-hosted, ubuntu-latest)"
+        required: true
+        type: string
+        default: "self-hosted"
+
+jobs:
+  # Resolve the line position of the library inside requirements_dev.yml so
+  # the test workflow knows which entry to override.
+  extract-position:
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/_extract_env_versions.yml@main
+    with:
+      library_name: ${{ inputs.library }}
+      env_file: requirements_dev.yml
+
+  # Query conda-forge for all versions of the library within the given bounds
+  # and produce a matrix ready for _run_single_conda_forge_test.yml.
+  query-versions:
+    needs: extract-position
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/_query_conda_forge_versions.yml@main
+    with:
+      package_name: ${{ inputs.library }}
+      min_version: ${{ inputs.min_version }}
+      max_version: ${{ inputs.max_version }}
+      dependency_position_env_file: ${{ needs.extract-position.outputs.dependency_position }}
+      requirements_file_name: requirements_dev.yml
+
+  TestManualVersions:
+    name: "Test ${{ matrix.library_name }} ${{ matrix.library_version }}"
+    needs: query-versions
+    if: needs.query-versions.outputs.matrix_json != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.query-versions.outputs.matrix_json) }}
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    with:
+      runner_tag: ${{ inputs.runner_tag }}
+      requirements_file_name: ${{ matrix.requirements_file_name }}
+      ipynb_example_folder: "examples"
+      library_name: ${{ matrix.library_name }}
+      library_version: ${{ matrix.library_version }}
+      dependency_position_env_file: ${{ matrix.dependency_position_env_file }}
+      multiprocessing_pytest_string: "-n auto"
+      multiprocessing_example_string: "-n auto"
