@@ -1,7 +1,7 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
-        "config:base"
+        "config:recommended"
     ],
     "schedule": [
         "after 10pm on tuesday",
@@ -10,18 +10,27 @@
     "rangeStrategy": "bump",
     "enabledManagers": [
         "pep621",
-        "conda"
+        "regex"
     ],
     "pep621": {
-        "fileMatch": [
-            "(^|/)pyproject\\.toml$"
+        "managerFilePatterns": [
+            "/(^|/)pyproject\\.toml$/"
         ]
     },
-    "conda": {
-        "fileMatch": [
-            "(^|/)requirements_dev\\.yml$"
-        ]
-    },
+    "customManagers": [
+        {
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/(^|/)requirements_dev\\.yml$/"
+            ],
+            "matchStrings": [
+                "- (?<depName>[a-zA-Z0-9_.-]+) (?<currentValue>[><=!][^\\n]*)"
+            ],
+            "packageNameTemplate": "conda-forge/{{{depName}}}",
+            "datasourceTemplate": "conda",
+            "versioningTemplate": "pep440"
+        }
+    ],
     "ignoreDeps": [
         "sphinx",
         "sphinx_rtd_theme",
