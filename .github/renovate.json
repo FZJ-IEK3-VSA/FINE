@@ -21,5 +21,17 @@
         "fileMatch": [
             "(^|/)requirements_dev\\.yml$"
         ]
-    }
+    },
+    "ignoreDeps": [
+        "sphinx",
+        "sphinx_rtd_theme",
+        "myst-parser",
+        "ruff",
+        "nbval",
+        "pytest-xdist",
+        "pytest-cov",
+        "pytest",
+        "ipykernel",
+        "gurobi-logtools"
+    ]
 }
