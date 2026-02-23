@@ -5,7 +5,7 @@ on:
 jobs:
   detect-changes:
     name: Detect changed dependencies
-    if: github.actor == 'renovate[bot]'
+    if: startsWith(github.head_ref, 'renovate/')
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_detect_renovate_changed_libraries.yml@main
     with:
       files: "requirements_dev.yml pyproject.toml"
