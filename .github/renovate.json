@@ -42,5 +42,14 @@
         "pytest",
         "ipykernel",
         "gurobi-logtools"
+    ],
+    "packageRules": [
+        {
+            "matchManagers": [
+                "pep621",
+                "regex"
+            ],
+            "groupName": "{{depName}}"
+        }
     ]
 }
