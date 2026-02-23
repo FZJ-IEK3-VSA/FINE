@@ -1,0 +1,25 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:base"
+    ],
+    "schedule": [
+        "after 10pm on tuesday",
+        "before 6am on wednesday"
+    ],
+    "rangeStrategy": "bump",
+    "enabledManagers": [
+        "pep621",
+        "conda"
+    ],
+    "pep621": {
+        "fileMatch": [
+            "(^|/)pyproject\\.toml$"
+        ]
+    },
+    "conda": {
+        "fileMatch": [
+            "(^|/)requirements_dev\\.yml$"
+        ]
+    }
+}

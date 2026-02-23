@@ -1,4 +1,4 @@
-name: fine_dev
+name: fine_dev_env
 
 channels:
   - conda-forge
@@ -24,13 +24,16 @@ dependencies:
   - pwlf >=2.0.4,<=2.5.1
   - psutil >=5.8.0,<=7.1.0
   - gurobi-logtools >=3.0.0,<=3.2.0
+  # Examples
   - ipykernel <=6.29.5
   # develop
-  - sphinx <=7.4.7
-  - sphinx_rtd_theme <=2.0.0
-  - myst-parser <=2.0.0
   - pytest <=8.3.3
   - pytest-cov <=4.1.0
   - pytest-xdist <=3.6.1
   - nbval <=0.11.0
   - ruff <=0.13.1
+  # Docuementation
+  - sphinx <=7.4.7
+  - sphinx_rtd_theme <=2.0.0
+  - myst-parser <=2.0.0
+
