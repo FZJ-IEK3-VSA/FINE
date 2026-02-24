@@ -6,6 +6,7 @@ from netCDF4 import Dataset
 
 from fine import utils
 from fine.IOManagement import dictIO, utilsIO
+from fine.IOManagement.utilsIO import merge_with_geometry
 
 
 def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
@@ -139,8 +140,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         xr_da.attrs[variable] = unit
 
                         # merge to overall xr_ds
-                        xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da],
+                        xr_dss[ip][name][component] = merge_with_geometry(
+                            xr_dss[ip][name][component],
+                            xr_da,
                             combine_attrs="drop_conflicts",
                         )
             elif esM.componentModelingDict[name].dimension == "2dim":
@@ -171,8 +173,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         unit = variables_unit[variable]
                         xr_da.attrs[variable] = unit
                         # merge to overall xr_ds
-                        xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da],
+                        xr_dss[ip][name][component] = merge_with_geometry(
+                            xr_dss[ip][name][component],
+                            xr_da,
                             combine_attrs="drop_conflicts",
                         )
 
@@ -203,8 +206,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df.name = variable
                         df.index.rename(["time", "location"], inplace=True)
                         xr_da = df.to_xarray()
-                        xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da]
+                        xr_dss[ip][name][component] = merge_with_geometry(
+                            xr_dss[ip][name][component], xr_da
                         )
             # Two dimensional time dependent data
             if dataTD2dim:
@@ -223,8 +226,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         )
                         df.index = df.index.reorder_levels([2, 0, 1])
                         xr_da = df.to_xarray()
-                        xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da]
+                        xr_dss[ip][name][component] = merge_with_geometry(
+                            xr_dss[ip][name][component], xr_da
                         )
             # Time independent data
             if dataTI:
@@ -241,8 +244,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df.name = variable
                             df.index.rename("location", inplace=True)
                             xr_da = df.to_xarray()
-                            xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da]
+                            xr_dss[ip][name][component] = merge_with_geometry(
+                                xr_dss[ip][name][component], xr_da
                             )
                 # Two dimensional
                 elif esM.componentModelingDict[name].dimension == "2dim":
@@ -257,8 +260,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df.name = variable
                             df.index.rename(["locationIn", "locationOut"], inplace=True)
                             xr_da = df.to_xarray()
-                            xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da]
+                            xr_dss[ip][name][component] = merge_with_geometry(
+                                xr_dss[ip][name][component], xr_da
                             )
 
         for name in esM.componentModelingDict.keys():

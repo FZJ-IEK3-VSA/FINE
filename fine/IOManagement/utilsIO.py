@@ -5,6 +5,26 @@ from functools import reduce  # forward compatibility for Python 3
 import operator
 
 
+def merge_with_geometry(ds1, ds2, **merge_kwargs):
+    """Merge two xarray Datasets, handling object-dtype (geometry) variables separately
+    to avoid NotImplementedError in newer xarray versions."""
+    obj_vars = {}
+    for ds in [ds1, ds2]:
+        for var in ds.data_vars:
+            if ds[var].dtype == object:
+                obj_vars[var] = ds[var]
+
+    ds1_clean = ds1.drop_vars([v for v in obj_vars if v in ds1.data_vars])
+    ds2_clean = ds2.drop_vars([v for v in obj_vars if v in ds2.data_vars])
+
+    merged = xr.merge([ds1_clean, ds2_clean], **merge_kwargs)
+
+    for var, da in obj_vars.items():
+        merged[var] = da
+
+    return merged
+
+
 def getFromDict(dataDict, mapList):
     """Get value from a dict by a list, which contains the dict keys.
 
@@ -316,8 +336,8 @@ def addDFVariablesToXarray(
                 )
 
                 try:
-                    xr_ds[this_class][this_comp] = xr.merge(
-                        [xr_ds[this_class][this_comp], this_ds_component]
+                    xr_ds[this_class][this_comp] = merge_with_geometry(
+                        xr_ds[this_class][this_comp], this_ds_component
                     )
                 except Exception:
                     pass
@@ -417,8 +437,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 )
 
                 try:
-                    xr_ds[this_class][this_comp] = xr.merge(
-                        [xr_ds[this_class][this_comp], this_ds_component]
+                    xr_ds[this_class][this_comp] = merge_with_geometry(
+                        xr_ds[this_class][this_comp], this_ds_component
                     )
                 except Exception:
                     pass
@@ -441,8 +461,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 )
 
                 try:
-                    xr_ds[this_class][this_comp] = xr.merge(
-                        [xr_ds[this_class][this_comp], this_ds_component]
+                    xr_ds[this_class][this_comp] = merge_with_geometry(
+                        xr_ds[this_class][this_comp], this_ds_component
                     )
                 except Exception:
                     pass
@@ -465,8 +485,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 )
 
                 try:
-                    xr_ds[this_class][this_comp] = xr.merge(
-                        [xr_ds[this_class][this_comp], this_ds_component]
+                    xr_ds[this_class][this_comp] = merge_with_geometry(
+                        xr_ds[this_class][this_comp], this_ds_component
                     )
                 except Exception:
                     pass
@@ -528,8 +548,8 @@ def addConstantsToXarray(
             )
 
             try:
-                xr_ds[this_class][this_comp] = xr.merge(
-                    [xr_ds[this_class][this_comp], this_ds_component]
+                xr_ds[this_class][this_comp] = merge_with_geometry(
+                    xr_ds[this_class][this_comp], this_ds_component
                 )
             except Exception:
                 pass
