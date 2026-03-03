@@ -14,7 +14,7 @@
     "osvVulnerabilityAlerts": false,
     "enabledManagers": [
         "pep621",
-        "regex"
+        "custom.regex"
     ],
     "pep621": {
         "managerFilePatterns": [
@@ -28,7 +28,7 @@
                 "/(^|/)requirements_dev\\.yml$/"
             ],
             "matchStrings": [
-                "- (?<depName>[a-zA-Z0-9_.-]+) (?<currentValue>[><=!][^\\n]*)"
+                "- (?<depName>[a-zA-Z0-9_.-]+)[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
             ],
             "packageNameTemplate": "conda-forge/{{{depName}}}",
             "datasourceTemplate": "conda",
@@ -39,19 +39,14 @@
         "sphinx",
         "sphinx_rtd_theme",
         "myst-parser",
+        "sphinx-rtd-theme",
         "ruff",
-        "nbval",
-        "pytest-xdist",
-        "pytest-cov",
-        "pytest",
-        "ipykernel",
-        "gurobi-logtools"
     ],
     "packageRules": [
         {
             "matchManagers": [
                 "pep621",
-                "regex"
+                "custom.regex"
             ],
             "groupName": "{{depName}}"
         }

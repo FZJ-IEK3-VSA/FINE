@@ -38,13 +38,15 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["ubuntu-latest"]
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test_uv_miniforge.yml@main
     with:
       runner_tag: ${{ matrix.runner_tag }}
       ipynb_example_folder: "examples"
       python_version: ${{ needs.extract-python-versions.outputs.max_version }}
       optional_dependency_PyPI_tag: "[develop]"
       additional_conda_forge_dependencies: "glpk"
+      multiprocessing_pytest_string: "-n auto"
+      multiprocessing_example_string: "-n auto"
 
   extract-min-versions:
     if: github.actor != 'renovate[bot]'
