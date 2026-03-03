@@ -27,7 +27,7 @@ dependencies:
   # Examples
   - ipykernel <=6.29.5
   # develop
-  - pytest <=8.3.3
+  - pytest <=8.4.2
   - pytest-cov <=4.1.0
   - pytest-xdist <=3.6.1
   - nbval <=0.11.0
