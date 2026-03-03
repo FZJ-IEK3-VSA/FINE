@@ -15,6 +15,8 @@ jobs:
       runner_tag: ${{ matrix.runner_tag }}
       requirements_file_name: requirements_dev.yml
       ipynb_example_folder: "examples"
+      multiprocessing_pytest_string: "-n auto"
+      multiprocessing_example_string: "-n auto"
 
   TestPushPyPIDev:
     name: Test PyPi development version on ${{ matrix.runner_tag }}
@@ -29,3 +31,5 @@ jobs:
       python_version: "3.13"
       optional_dependency_PyPI_tag: "[develop]"
       additional_conda_forge_dependencies: "glpk"
+      multiprocessing_pytest_string: "-n auto"
+      multiprocessing_example_string: "-n auto"
