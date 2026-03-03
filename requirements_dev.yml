@@ -25,7 +25,7 @@ dependencies:
   - psutil >=5.8.0,<=7.2.2
   - gurobi-logtools >=3.0.0,<=3.2.0
   # Examples
-  - ipykernel <=6.29.5
+  - ipykernel <=7.2.0
   # develop
   - pytest <=8.4.2
   - pytest-cov <=4.1.0
