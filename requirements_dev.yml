@@ -22,7 +22,7 @@ dependencies:
   - netcdf4 >1.6.4,<=1.7.3
   - tsam >=2.0.1,<=2.3.9
   - pwlf >=2.0.4,<=2.5.1
-  - psutil >=7.2.2,<=7.2.2
+  - psutil >=5.8.0,<=7.2.2
   - gurobi-logtools >=3.0.0,<=3.2.0
   # Examples
   - ipykernel <=6.29.5
