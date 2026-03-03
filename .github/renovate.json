@@ -39,13 +39,9 @@
         "sphinx",
         "sphinx_rtd_theme",
         "myst-parser",
+        "sphinx-rtd-theme",
         "ruff",
-        "nbval",
-        "pytest-xdist",
-        "pytest-cov",
-        "pytest",
-        "ipykernel",
-        "gurobi-logtools"
+
     ],
     "packageRules": [
         {
