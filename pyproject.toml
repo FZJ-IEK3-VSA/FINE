@@ -58,7 +58,7 @@ develop = [
     "myst-parser<=2.0.0",
     "pytest<=8.4.2",
     "pytest-cov<=4.1.0",
-    "pytest-xdist<=3.6.1",
+    "pytest-xdist<=3.8.0",
     "nbval<=0.11.0",
     "ruff<0.7.0",
 ]
