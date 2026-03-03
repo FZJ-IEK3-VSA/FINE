@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test_uv_miniforge.yml@main
     with:
       runner_tag: ${{ matrix.runner_tag }}
       ipynb_example_folder: "examples"
