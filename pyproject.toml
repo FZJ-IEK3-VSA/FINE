@@ -49,7 +49,7 @@ dependencies = [
     "ipykernel<=7.2.0",
 ]
 # <=3.13 translates to <=3.13.0, why the <3.14 is used
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.10,<3.14"
 
 [project.optional-dependencies]
 develop = [

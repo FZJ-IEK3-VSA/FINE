@@ -13,7 +13,7 @@ jobs:
   extract-versions:
     name: Extract max versions of changed libraries
     needs: detect-changes
-    if: needs.detect-changes.outputs.libraries != ''
+    if: startsWith(github.head_ref, 'renovate/') && needs.detect-changes.outputs.libraries != ''
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_extract_env_versions_matrix.yml@main
     with:
       libraries: ${{ needs.detect-changes.outputs.libraries }}
@@ -23,6 +23,7 @@ jobs:
   TestRenovateMaxVersions:
     name: Test ${{ matrix.dependencies.library_name }} ${{ matrix.dependencies.version }} (max)
     needs: extract-versions
+    if: startsWith(github.head_ref, 'renovate/')
     strategy:
       fail-fast: false
       matrix:
