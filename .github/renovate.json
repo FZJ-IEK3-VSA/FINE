@@ -14,7 +14,7 @@
     "osvVulnerabilityAlerts": false,
     "enabledManagers": [
         "pep621",
-        "regex"
+        "custom.regex"
     ],
     "pep621": {
         "managerFilePatterns": [
@@ -51,7 +51,7 @@
         {
             "matchManagers": [
                 "pep621",
-                "regex"
+                "custom.regex"
             ],
             "groupName": "{{depName}}"
         }
