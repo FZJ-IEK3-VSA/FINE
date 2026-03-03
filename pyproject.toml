@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-keywords = ["energy assesment", "energy system", "optimization"]
+keywords = ["energy assessment", "energy system", "optimization"]
 dependencies = [
     "geopandas>=1.0.0,<=1.1.2",
     "openpyxl<=3.1.5",
@@ -38,13 +38,13 @@ dependencies = [
     "numpy>=1.22,<=2.4.2",
     "pandas>=1.4,<=2.3.3",
     "scipy>=1.7.2,<=1.16.2",
-    "scikit-learn>=1.2,<=1.7.2",
-    "xarray>=2022.3.0,<=2025.10.1,!=2024.10.0,!=2024.11.0,!=2025.1.*,!=2025.3.*,!=2025.9.*",
+    "scikit-learn>=1.2,<=1.8.0",
+    "xarray>=2022.3.0,<=2026.2.0,!=2024.10.0,!=2024.11.0,!=2025.1.*,!=2025.3.*,!=2025.9.*",
     "rasterio>=1.3.0,<=1.4.3,!=1.3.0.post1",
-    "netcdf4>1.5.8,<=1.7.3",
+    "netcdf4>1.5.8,<=1.7.4",
     "tsam>=2.0.1,<=2.3.9",
     "pwlf>=2.0.4,<=2.5.1",
-    "psutil>=5.8.0,<=7.1.0",
+    "psutil>=5.8.0,<=7.2.2",
     "gurobi-logtools>=3.0.0,<=3.2.0",
     "ipykernel<=6.29.5",
 ]
@@ -63,7 +63,7 @@ develop = [
     "ruff<0.7.0",
 ]
 
-#Configureation options
+# Configuration options
 # https://docs.pytest.org/en/7.1.x/reference/reference.html#configuration-options
 [tool.pytest.ini_options]
 testpaths = ["test"]
@@ -71,7 +71,7 @@ console_output_style = "progress"
 # How to configure Filterwarning:
 # https://docs.python.org/3/library/warnings.html#warning-filter
 # action:message:category:module:line
-# Omit a field by add ing ":" for each omitted field
+# Omit a field by adding ":" for each omitted field
 # Actions are: "default"
 # "error", "ignore", "always", "module", "once"
 filterwarnings = []
