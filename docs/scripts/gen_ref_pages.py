@@ -12,7 +12,13 @@ import mkdocs_gen_files
 nav = mkdocs_gen_files.Nav()
 
 # Directories to skip
-SKIP_DIRS = {"__pycache__", "aggregations", "expansionModules", "IOManagement", "subclasses"}
+SKIP_DIRS = {
+    "__pycache__",
+    "aggregations",
+    "expansionModules",
+    "IOManagement",
+    "subclasses",
+}
 
 # Modules already documented in the User Guide > Python Package Description section
 SKIP_MODULES = {
