@@ -95,7 +95,7 @@ the python package [tsam](https://github.com/FZJ-IEK3-VSA/tsam) into the code.
 Therefore, additional sets and parameters are introduced:
 The parameter $\text{T}^\text{per period}\in\mathbb{Z}^{+}$ specifies the number of time steps per period.
 Thereby, $\text{T}^\text{total}$ must be a multiple of $\text{T}^\text{per period}$,
-i.e. $\text{T}^\text{total} \pmod{\text{T}^\text{per\, period}} = 0$. If the energy system is investigated
+i.e. $\text{T}^\text{total} \pmod{\text{T}^\text{per period}} = 0$. If the energy system is investigated
 with its full temporal resolution, $\text{T}^\text{per period}$ is set equal to $\text{T}^\text{total}$,
 i.e. the energy system is investigated with only one period. If the energy system is modeled with typical
 periods, $\text{T}^\text{per period}$ is set smaller or equal to $\text{T}^\text{total}$. The corresponding
@@ -116,7 +116,9 @@ $$
 \end{aligned}
 $$
 
-gives these momentary points in time. The total number of periods $\text{P}^\text{total}$ results from the
+gives these momentary points in time. Here, index 0 corresponds to the beginning of time step 0 and the index
+$\text{T}^\text{per period}$ corresponds to the end of time step $\text{T}^\text{per period}-1$ within that
+period, respectively. The total number of periods $\text{P}^\text{total}$ results from the
 total number of time steps and the time steps per period by
 
 $$
@@ -130,6 +132,17 @@ The corresponding set that encompasses all of these periods is
 $$
 \begin{aligned}
     \mathcal{P}^\text{total} &~=~& \left\{0,\dots,\text{P}^\text{total}-1\right\}.
+\end{aligned}
+$$
+
+Thus, $\vert\mathcal{P}^\text{total}\vert=1$ if the energy system is modeled with the full temporal resolution
+and $\vert\mathcal{P}^\text{total}\vert\geq1$ if typical periods are considered.
+In analogy to the set $\mathcal{T}^\text{per period}_{\text{inter}}$, the momentary points at the beginning
+and at the end of a period are encompassed in the set
+
+$$
+\begin{aligned}
+    \mathcal{P}^\text{total}_\text{inter} &~=~& \left\{0,\dots,\text{P}^\text{total}\right\}.
 \end{aligned}
 $$
 
@@ -151,9 +164,82 @@ $$
 \end{aligned}
 $$
 
-## Investment Period Sets
+The frequency *f* with which each period occurs during the total investigated time is defined as
 
-ETHOS.FINE supports the modeling of multiple investment periods in a transformation pathway.
-The set of all investment periods $\mathcal{IP}$ is given by the user. The default value is a single
-investment period (single-year optimization). Multiple investment periods are used for perfect foresight or
-stochastic optimization.
+$$
+\begin{aligned}
+    f:
+    \begin{cases}
+        \left\{0\right\} \rightarrow \left\{1\right\} &\text{, with full temporal resolution, or}\\
+        \mathcal{P}^\text{typical}\rightarrow\mathbb{Z}^{+} &\text{, with time series aggregation.}
+    \end{cases}
+\end{aligned}
+$$
+
+In the following, all basic operation variables are declared for all periods or typical periods, depending on
+whether time series aggregation is considered, and all time steps within these periods. The cross-product of
+these sets is given by
+
+$$
+\begin{aligned}
+\mathcal{P}\times\mathcal{T} =
+\begin{cases}
+    \mathcal{P}^\text{total}\hspace{0.25cm}\times\mathcal{T}^\text{per period} &\text{, for a full temporal resolution, or}\\
+    \mathcal{P}^\text{typical}\times\mathcal{T}^\text{per period} &\text{, with time series aggregation.}
+\end{cases}
+\end{aligned}
+$$
+
+Similarly, the cross-product for keeping track of storage inventories is defined by
+
+$$
+\begin{aligned}
+\mathcal{P}\times\mathcal{T}_\text{inter} =
+\begin{cases}
+    \mathcal{P}^\text{total}\hspace{0.25cm}\times\mathcal{T}^\text{per period}_\text{inter} &\text{, for a full temporal resolution, and}\\
+    \mathcal{P}^\text{typical}\times\mathcal{T}^\text{per period}_\text{inter} &\text{, with time series aggregation.}
+\end{cases}
+\end{aligned}
+$$
+
+## General Parameters
+
+The general parameters are summarized in the following table:
+
+| **Parameter** | **Domain** | **Description** |
+|---|---|---|
+| $\text{T}^\text{total}$ | $\mathbb{N}$ | total number of time steps |
+| $\text{T}^\text{hours}$ | $\mathbb{R}^{+}$ | number of hours per time step |
+| $\text{T}^\text{per period}$ | $\mathbb{Z}^{+}$ | number of time steps per period |
+
+Other parameters, e.g., eligibilities of components, are described in [Basic Component Model](basic_component.md).
+
+## Compound Index Sets
+
+As several variables and parameters depend on a temporal and operational level, two more compound index sets
+are added. To describe the temporal position, the compound index set $\Theta$ is introduced:
+
+$$
+\begin{aligned}
+\Theta = \left\{(p,t) ~\vert~ p \in \mathcal{P}, t \in \mathcal{T} \right\}
+\end{aligned}
+$$
+
+The operation of the different modeled components can be described by several modes of operation.
+Those are summarized in the set $\mathcal{M}$. All eligible modes for component $c$ are described by
+$M_\text{c}=1$. For each component the set of modes of operation is described by
+
+$$
+\begin{aligned}
+\mathcal{M}_\text{c}&~=~&\left\{ \text{m} ~\vert~ \forall~\text{m}\in\mathcal{M}: \text{M}_\text{c}=1 \right\}.
+\end{aligned}
+$$
+
+The compound index set $\Omega$ which describes the modes of operation of a certain component is given by:
+
+$$
+\begin{aligned}
+\Omega = \left\{(c,m) ~\vert~ c \in \mathcal{C}, m \in \mathcal{M}_\text{c} \right\}
+\end{aligned}
+$$
+
