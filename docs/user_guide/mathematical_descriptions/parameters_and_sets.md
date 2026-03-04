@@ -34,7 +34,7 @@ If component $c \in\mathcal{C}^\text{node}$, the set of locations at which the c
 
 $$
 \begin{aligned}
-    \mathcal{L}_\text{c} = \left\{ \text{\small l} ~\vert~ \forall~\text{\small l}\in\mathcal{L}: \text{\small E}_\text{c,l}=1 \right\}.
+    \mathcal{L}_\text{c} = \left\{ \text{l} ~\vert~ \forall~\text{l}\in\mathcal{L}: \text{E}_\text{c,l}=1 \right\}.
 \end{aligned}
 $$
 
@@ -55,7 +55,7 @@ If component $c \in\mathcal{C}^\text{edge}$, the set of arcs at which the compon
 
 $$
 \begin{aligned}
-    \mathcal{A}_\text{c} = \big\{ \text{a} ~\vert~ \forall~\text{a}\in\mathcal{A}: \text{\small E}_\text{c,a}=1 \big\}.
+    \mathcal{A}_\text{c} = \big\{ \text{a} ~\vert~ \forall~\text{a}\in\mathcal{A}: \text{E}_\text{c,a}=1 \big\}.
 \end{aligned}
 $$
 
@@ -73,7 +73,7 @@ that encompasses all of these time steps is
 
 $$
 \begin{aligned}
-    \mathcal{T}&~=~&\left\{0,\dots,\text{\small T}^\text{total}-1\right\}.
+    \mathcal{T}&~=~&\left\{0,\dots,\text{T}^\text{total}-1\right\}.
 \end{aligned}
 $$
 
@@ -82,7 +82,7 @@ The number of years $\text{T}^\text{years}$ which the energy system covers is de
 
 $$
 \begin{aligned}
-    \text{T}^\text{years}&~=~&\frac{\text{\small T}^\text{total} \cdot \text{\small T}^\text{hours}}{8760~\text{\small h}}~\text{\small a}.
+    \text{T}^\text{years}&~=~&\frac{\text{T}^\text{total} \cdot \text{T}^\text{hours}}{8760~\text{h}}~\text{a}.
 \end{aligned}
 $$
 
@@ -103,7 +103,7 @@ set that contains all time steps within one period is given by
 
 $$
 \begin{aligned}
-    \mathcal{T}^\text{per period}&~=~&\left\{0,\dots,\text{\small T}^\text{per period}-1\right\}.
+    \mathcal{T}^\text{per period}&~=~&\left\{0,\dots,\text{T}^\text{per period}-1\right\}.
 \end{aligned}
 $$
 
@@ -112,7 +112,7 @@ at the beginning and at the end of the regular time steps. The set
 
 $$
 \begin{aligned}
-    \mathcal{T}^\text{per period}_\text{inter}&~=~&\left\{0,\dots,\text{\small T}^\text{per period}\right\}
+    \mathcal{T}^\text{per period}_\text{inter}&~=~&\left\{0,\dots,\text{T}^\text{per period}\right\}
 \end{aligned}
 $$
 
@@ -121,7 +121,7 @@ total number of time steps and the time steps per period by
 
 $$
 \begin{aligned}
-    \text{\small P}^\text{total} &~=~& \text{\small T}^\text{total}~/~\text{\small T}^\text{per period}.
+    \text{P}^\text{total} &~=~& \text{T}^\text{total}~/~\text{T}^\text{per period}.
 \end{aligned}
 $$
 
@@ -129,7 +129,7 @@ The corresponding set that encompasses all of these periods is
 
 $$
 \begin{aligned}
-    \mathcal{P}^\text{total} &~=~& \left\{0,\dots,\text{\small P}^\text{total}-1\right\}.
+    \mathcal{P}^\text{total} &~=~& \left\{0,\dots,\text{P}^\text{total}-1\right\}.
 \end{aligned}
 $$
 

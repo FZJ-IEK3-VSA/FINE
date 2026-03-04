@@ -22,7 +22,7 @@ for all $\text{l}\in\mathcal{L}^\text{c}$ and for all $\theta \in \Theta$ as
 
 $$
 \begin{aligned}
-    &C_{\text{c,g,l,}\theta} ~=~ \text{\small cf}_\text{c,g} \cdot o_{\omega\text{,l,}\theta}.
+    &C_{\text{c,g,l,}\theta} ~=~ \text{cf}_\text{c,g} \cdot o_{\omega\text{,l,}\theta}.
 \end{aligned}
 $$
 
@@ -37,6 +37,6 @@ $\text{c}\in\mathcal{C}^\text{conv}$ given as
 
 $$
 \begin{aligned}
-    &~~\text{\small F}^\text{O}_{\omega \text{,l}} ~=~ \hat{X}^{\text{opex}_\text{O}}_{\omega\text{,l}}~.
+    &~~\text{F}^\text{O}_{\omega \text{,l}} ~=~ \hat{X}^{\text{opex}_\text{O}}_{\omega\text{,l}}~.
 \end{aligned}
 $$

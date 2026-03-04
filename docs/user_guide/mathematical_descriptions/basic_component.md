@@ -14,8 +14,8 @@ $$
 \begin{aligned}
     K_\text{c}=
     \begin{cases}
-        1 &\text{\small , if the component is modeled with a physical capacity, or}\\
-        0 &\text{\small , if the component is modeled without a physical capacity.}\\
+        1 &\text{, if the component is modeled with a physical capacity, or}\\
+        0 &\text{, if the component is modeled without a physical capacity.}\\
     \end{cases}
 \end{aligned}
 $$
@@ -64,7 +64,7 @@ capacity is modeled either as a continuous or discrete value by
 $$
 \begin{aligned}
 k_\text{c,l} =
-    \text{\small K}^\text{unit}_\text{c,l} \cdot n_\text{c,l}
+    \text{K}^\text{unit}_\text{c,l} \cdot n_\text{c,l}
 \end{aligned}
 $$
 
@@ -77,7 +77,7 @@ The consideration of the binary decision variables is enforced in the model for 
 
 $$
 \begin{aligned}
- \text{\small M}_\text{c} \cdot b_\text{c,l} ~\geq~ k_\text{c,l}~,
+ \text{M}_\text{c} \cdot b_\text{c,l} ~\geq~ k_\text{c,l}~,
 \end{aligned}
 $$
 
@@ -90,8 +90,8 @@ $$
 \begin{aligned}
 &&&k_\text{c,l} \geq
 \begin{cases}
-    K^\text{min}_\text{c,l}\cdot b_\text{c,l} &,~\text{\small if}~ B_\text{c}=1,\\
-    K^\text{min}_\text{c,l} &,~\text{\small if}~ B_\text{c}=0.
+    K^\text{min}_\text{c,l}\cdot b_\text{c,l} &,~\text{if}~ B_\text{c}=1,\\
+    K^\text{min}_\text{c,l} &,~\text{if}~ B_\text{c}=0.
 \end{cases}
 \end{aligned}
 $$
@@ -109,7 +109,7 @@ Fixed values can be individually specified for the capacity and binary decision 
 
 $$
 \begin{aligned}
-k_\text{c,l}  &~=~~ && K^\text{fix}_\text{c,l}~~\text{\small and} \\
+k_\text{c,l}  &~=~~ && K^\text{fix}_\text{c,l}~~\text{and} \\
 k^\text{bin}_\text{c,l}  &~=~~ && K^\text{bin,fix}_\text{c,l}~~.
 \end{aligned}
 $$
@@ -127,7 +127,7 @@ one of four ways:
 
 $$
 \begin{aligned}
-    o_{\omega \text{, l,} \theta}  ~\leq~ \text{\small T}^\text{hours} \cdot \text{\small a}_{\omega} \cdot k_\text{c,l}
+    o_{\omega \text{, l,} \theta}  ~\leq~ \text{T}^\text{hours} \cdot \text{a}_{\omega} \cdot k_\text{c,l}
 \end{aligned}
 $$
 
@@ -135,7 +135,7 @@ $$
 
 $$
 \begin{aligned}
-    o_{\omega \text{,l,} \theta}  ~=~ \text{\small T}^\text{hours} \cdot \text{\small R}^\text{fix}_{\text{c,l,} \theta} \cdot k_\text{c,l}
+    o_{\omega \text{,l,} \theta}  ~=~ \text{T}^\text{hours} \cdot \text{R}^\text{fix}_{\text{c,l,} \theta} \cdot k_\text{c,l}
 \end{aligned}
 $$
 
@@ -143,7 +143,7 @@ $$
 
 $$
 \begin{aligned}
-    o_{\omega \text{,l,} \theta}  ~\leq~ \text{\small T}^\text{hours} \cdot \text{\small R}^\text{max}_{\text{c,l,} \theta} \cdot k_\text{c,l}
+    o_{\omega \text{,l,} \theta}  ~\leq~ \text{T}^\text{hours} \cdot \text{R}^\text{max}_{\text{c,l,} \theta} \cdot k_\text{c,l}
 \end{aligned}
 $$
 
@@ -151,7 +151,7 @@ $$
 
 $$
 \begin{aligned}
-    o_{\omega \text{,l,} \theta}  ~\geq~ \text{\small T}^\text{hours} \cdot \text{\small R}^\text{min}_{\text{c,l,} \theta} \cdot k_\text{c,l}
+    o_{\omega \text{,l,} \theta}  ~\geq~ \text{T}^\text{hours} \cdot \text{R}^\text{min}_{\text{c,l,} \theta} \cdot k_\text{c,l}
 \end{aligned}
 $$
 
@@ -164,7 +164,7 @@ to be defined for each component which is added to the model.
 Moreover, two or more components can compete for a limited capacity potential in an energy system. Components
 which share a potential in FINE are provided with an identifier. The share of a component on the maximum
 potential at all locations $\text{l} \in\mathcal{L}^\text{c}$ is defined by
-$k_\text{c,l}/\text{\small k}^\text{max}_\text{c,l}$.
+$k_\text{c,l}/\text{k}^\text{max}_\text{c,l}$.
 
 ## Basic Objective Function Contribution
 
@@ -183,7 +183,7 @@ The capacity related total annual cost contributions are determined by
 
 $$
 \begin{aligned}
-    &NPV^\text{K}_\text{c,l} = \text{\small F}^\text{K}_\text{c,l} \cdot \left(\frac{\hat{X}^{\text{capex}_\text{K}}_\text{c,l}}{\text{\small CCF}_\text{c,l}} + \hat{X}^{\text{opex}_\text{K}}_\text{c,l}\right) \cdot k_\text{c,l}
+    &NPV^\text{K}_\text{c,l} = \text{F}^\text{K}_\text{c,l} \cdot \left(\frac{\hat{X}^{\text{capex}_\text{K}}_\text{c,l}}{\text{CCF}_\text{c,l}} + \hat{X}^{\text{opex}_\text{K}}_\text{c,l}\right) \cdot k_\text{c,l}
 \end{aligned}
 $$
 
@@ -191,7 +191,7 @@ The total annual cost contributions related to the binary decision variables are
 
 $$
 \begin{aligned}
-    &NPV^\text{B}_\text{c,l} = \text{\small F}^\text{B}_\text{c,l} \cdot \left(\frac{\hat{X}^{\text{capex}_\text{B}}_\text{c,l}}{\text{\small CCF}_\text{c,l}} + \hat{X}^{\text{opex}_\text{B}}_\text{c,l}\right) \cdot b_\text{c,l}
+    &NPV^\text{B}_\text{c,l} = \text{F}^\text{B}_\text{c,l} \cdot \left(\frac{\hat{X}^{\text{capex}_\text{B}}_\text{c,l}}{\text{CCF}_\text{c,l}} + \hat{X}^{\text{opex}_\text{B}}_\text{c,l}\right) \cdot b_\text{c,l}
 \end{aligned}
 $$
 

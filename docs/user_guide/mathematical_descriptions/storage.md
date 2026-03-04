@@ -45,14 +45,14 @@ charge at the beginning of time step t and the charge and discharge rate during 
 
 $$
 \begin{aligned}
-    & s_\text{c,l,p,t+1} &~=~& s_\text{c,l,p,t} \cdot \left(1-\text{\small Q}^{\circ}_\text{c}\right)^{\text{\small T}^\text{hours}} \nonumber \\
-    & && + o^\text{+}_\text{c,l,p,t}\cdot\text{\small Q}^{+}_\text{c} ~-~ o^\text{-}_\text{c,l,p,t}/\text{\small Q}^{-}_\text{c}
+    & s_\text{c,l,p,t+1} &~=~& s_\text{c,l,p,t} \cdot \left(1-\text{Q}^{\circ}_\text{c}\right)^{\text{T}^\text{hours}} \nonumber \\
+    & && + o^\text{+}_\text{c,l,p,t}\cdot\text{Q}^{+}_\text{c} ~-~ o^\text{-}_\text{c,l,p,t}/\text{Q}^{-}_\text{c}
 \end{aligned}
 $$
 
 for all $\text{c}\in\mathcal{C}^\text{stor}$, for all $\text{l}\in\mathcal{L}^\text{c}$ and for all
 $(\text{p, t})\in\mathcal{P}\times\mathcal{T}$. The parameters
-$\text{\small Q}^{\circ}_\text{c},\text{\small Q}^{+}_\text{c},\text{\small Q}^{-}_\text{c}\in(0,1]$
+$\text{Q}^{\circ}_\text{c},\text{Q}^{+}_\text{c},\text{Q}^{-}_\text{c}\in(0,1]$
 describe the self-discharge during one hour and the charging and discharging efficiency respectively.
 
 The *Storage* component model imposes a constraint which sets the state of charge at the beginning and the
@@ -61,8 +61,8 @@ self-repetitive:
 
 $$
 \begin{aligned}
-    & s_\text{c,l,0,0} &=& s_\text{c,l,0,T$^\text{total}$}~,~&&\text{\small with full temporal resolution}, ~\text{\small or} \nonumber \\
-    & s^\text{inter}_\text{c,l,0} &=& s^\text{inter}_\text{c,l,P$^\text{total}$}~,~&&\text{\small with time series aggregation,}
+    & s_\text{c,l,0,0} &=& s_\text{c,l,0,T$^\text{total}$}~,~&&\text{with full temporal resolution}, ~\text{or} \nonumber \\
+    & s^\text{inter}_\text{c,l,0} &=& s^\text{inter}_\text{c,l,P$^\text{total}$}~,~&&\text{with time series aggregation,}
 \end{aligned}
 $$
 
@@ -86,21 +86,21 @@ When typical periods are considered and the *Storage* component is modeled with 
 
 $$
 \begin{aligned}
-    & \text{S}^\text{min}_\text{c} \cdot k_\text{c,l} \leq s^\text{sup}_\text{c,l,p,t} \leq \text{S}^\text{max}_\text{c} \cdot k_\text{c,l},~~\text{\small with} \nonumber \\
-    & s^\text{sup}_\text{c,l,p,t}=s^\text{inter}_\text{c,l,p} \cdot \big(1-\text{\small Q}^{\circ}_\text{c}\big)^{\text{t}~\cdot~\text{T}^\text{hours}} + s_\text{c,l,$map(\text{p})$,t}~,
+    & \text{S}^\text{min}_\text{c} \cdot k_\text{c,l} \leq s^\text{sup}_\text{c,l,p,t} \leq \text{S}^\text{max}_\text{c} \cdot k_\text{c,l},~~\text{with} \nonumber \\
+    & s^\text{sup}_\text{c,l,p,t}=s^\text{inter}_\text{c,l,p} \cdot \big(1-\text{Q}^{\circ}_\text{c}\big)^{\text{t}~\cdot~\text{T}^\text{hours}} + s_\text{c,l,$map(\text{p})$,t}~,
 \end{aligned}
 $$
 
 ## Additional Constraints
 
-A cyclic lifetime $\text{\small T}^\text{CL}_\text{c}\in\mathbb{Z}^{>0}$ can be considered for a storage
+A cyclic lifetime $\text{T}^\text{CL}_\text{c}\in\mathbb{Z}^{>0}$ can be considered for a storage
 component $\text{c}\in\mathcal{C}^\text{stor}$. The cyclic lifetime limits the number of full cycle
 equivalents for all $\text{l}\in\mathcal{L}^\text{c}$ by
 
 $$
 \begin{aligned}
     & o^\text{+}_\text{c,l,annual} \leq
-    \left(\text{\small S}^\text{max}_\text{c}-\text{\small S}^\text{min}_\text{c}\right) \cdot k_\text{c,l} \cdot \frac{\text{\small T}^\text{CL}_\text{c}}{\text{\small T}^\text{EL}_\text{c,l}},
+    \left(\text{S}^\text{max}_\text{c}-\text{S}^\text{min}_\text{c}\right) \cdot k_\text{c,l} \cdot \frac{\text{T}^\text{CL}_\text{c}}{\text{T}^\text{EL}_\text{c,l}},
 \end{aligned}
 $$
 
@@ -125,7 +125,7 @@ $\text{c}\in\mathcal{C}^\text{stor}$ given as
 
 $$
 \begin{aligned}
-    &~~\text{\small F}^\text{O}_\text{c,+,l} &&~=~ \hat{X}^{\text{opex}_\text{O}}_\text{c,+,l} \nonumber \\
-    &~~\text{\small F}^\text{O}_\text{c,-,l} &&~=~ \hat{X}^{\text{opex}_\text{O}}_\text{c,-,l}~.
+    &~~\text{F}^\text{O}_\text{c,+,l} &&~=~ \hat{X}^{\text{opex}_\text{O}}_\text{c,+,l} \nonumber \\
+    &~~\text{F}^\text{O}_\text{c,-,l} &&~=~ \hat{X}^{\text{opex}_\text{O}}_\text{c,-,l}~.
 \end{aligned}
 $$

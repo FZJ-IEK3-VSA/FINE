@@ -15,9 +15,9 @@ The commodity appears at a location when the set
 
 $$
 \begin{aligned}
-    &\mathcal{C}_\text{g,l} ~=~ \big\{ &&\text{\small c} ~\vert~ \forall~ \text{\small c}\in\mathcal{C}:
-     \text{\small g}\in\mathcal{G}^\text{c}~\wedge~ \big(\text{\small l}\in\mathcal{L}_\text{c}~\lor \nonumber \\
-    & &&(\exists~\text{\small l\text{*}}\in\mathcal{L}: (\text{\small l},\text{\small l*})\in\mathcal{L}_\text{c}~\lor~(\text{\small l*},\text{\small l})\in\mathcal{L}_\text{c})\big)\big\}
+    &\mathcal{C}_\text{g,l} ~=~ \big\{ &&\text{c} ~\vert~ \forall~ \text{c}\in\mathcal{C}:
+     \text{g}\in\mathcal{G}^\text{c}~\wedge~ \big(\text{l}\in\mathcal{L}_\text{c}~\lor \nonumber \\
+    & &&(\exists~\text{l\text{*}}\in\mathcal{L}: (\text{l},\text{l*})\in\mathcal{L}_\text{c}~\lor~(\text{l*},\text{l})\in\mathcal{L}_\text{c})\big)\big\}
 \end{aligned}
 $$
 
@@ -47,8 +47,8 @@ $\text{l}\in\mathcal{L}^\text{ID}$ by
 $$
 \begin{aligned}
     &\sum\limits_{\text{c}~\in~\mathcal{C}^\text{i}}
-    k_\text{c,l}/\text{\small K}^\text{max}_\text{c,l} ~\leq~ 1,\nonumber \\
-    &\text{with}~~\mathcal{C}^\text{i} = \left\{ \text{\small c} ~\vert~ \forall~ \text{\small c}\in\mathcal{C}:
-     \text{\small sharedPotentialID}_\text{c}=\text{\small i} \right\}~.
+    k_\text{c,l}/\text{K}^\text{max}_\text{c,l} ~\leq~ 1,\nonumber \\
+    &\text{with}~~\mathcal{C}^\text{i} = \left\{ \text{c} ~\vert~ \forall~ \text{c}\in\mathcal{C}:
+     \text{sharedPotentialID}_\text{c}=\text{i} \right\}~.
 \end{aligned}
 $$

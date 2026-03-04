@@ -10,7 +10,7 @@ components is labeled $\mathcal{C}^\text{srcSnk}\subseteq\mathcal{C}^\text{node}
 
 A *Source*/*Sink* component $\text{c}\in\mathcal{C}^\text{srcSnk}$ only has one type of basic operation
 variables $\mathcal{O}^\text{c}=\{\text{op}\}$. It is associated with one commodity
-$\mathcal{G}^\text{c}=\{\text{\small g}\}$, $\text{g}\in\mathcal{G}$, which is the commodity that the
+$\mathcal{G}^\text{c}=\{\text{g}\}$, $\text{g}\in\mathcal{G}$, which is the commodity that the
 component generates or consumes. If a capacity is defined for this component, it is related to this commodity.
 For example, the capacity of a wind turbine is related to the electric power which it generates at full load,
 e.g. in MW$_\text{el}$.
@@ -23,11 +23,11 @@ $\text{l}\in\mathcal{L}_\text{c}$ and for all $\theta\in\Theta$ as
 
 $$
 \begin{aligned}
-    &C_{\text{c,g,l,}\theta} ~=~ \text{\small sign}_\text{c} \cdot o_{\omega\text{,l,}\theta}, ~~\text{\small where}\nonumber \\
-    &\text{\small sign}^\text{c} =
+    &C_{\text{c,g,l,}\theta} ~=~ \text{sign}_\text{c} \cdot o_{\omega\text{,l,}\theta}, ~~\text{where}\nonumber \\
+    &\text{sign}^\text{c} =
     \begin{cases}
-        +1 &,~\text{\small if c is a \emph{Source} component, and} \\
-        -1 &,~\text{\small if c is a \emph{Sink} component}~.
+        +1 &,~\text{if c is a \textit{Source} component, and} \\
+        -1 &,~\text{if c is a \textit{Sink} component}~.
     \end{cases}
 \end{aligned}
 $$
@@ -45,7 +45,7 @@ $\text{c}\in\mathcal{C}^\text{srcSnk}$ given as
 
 $$
 \begin{aligned}
-    &~~\text{\small F}^\text{O}_{\omega \text{,l}} = \big(\hat{X}^{\text{opex}_\text{O}}_{\omega\text{,l}} +
+    &~~\text{F}^\text{O}_{\omega \text{,l}} = \big(\hat{X}^{\text{opex}_\text{O}}_{\omega\text{,l}} +
     \hat{X}^{\text{g}}_{\omega\text{,l}} + \hat{V}^{\text{g}}_{\omega\text{,l}} ~\big)~.
 \end{aligned}
 $$

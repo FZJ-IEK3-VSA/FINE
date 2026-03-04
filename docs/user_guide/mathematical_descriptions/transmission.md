@@ -33,7 +33,7 @@ Furthermore:
 
 $$
 \begin{aligned}
-    o_{\omega\text{,a,}\theta}+o_{\omega\text{,$\hat{\text{a}}$,}\theta} \leq \text{\small T}^\text{hours} \cdot k_\text{c,a}
+    o_{\omega\text{,a,}\theta}+o_{\omega\text{,$\hat{\text{a}}$,}\theta} \leq \text{T}^\text{hours} \cdot k_\text{c,a}
 \end{aligned}
 $$
 
@@ -50,7 +50,7 @@ $$
 \begin{aligned}
     C_\text{c,g,l,$\theta$} ~=~
     \sum\limits_{\substack{\text{a}^\text{in}~\in~\mathcal{A}^\text{c}}}
-    (1-\eta_{\text{a}^\text{in}} \cdot \text{\small d}_{\text{a}^\text{in}}) \cdot o_{\omega \text{,a}^\text{in} \text{,} \theta} - \sum\limits_{\substack{\text{a}^\text{out} ~\in~\mathcal{A}^\text{c}}} o_{\omega \text{,a}^\text{out} \text{,} \theta}~.
+    (1-\eta_{\text{a}^\text{in}} \cdot \text{d}_{\text{a}^\text{in}}) \cdot o_{\omega \text{,a}^\text{in} \text{,} \theta} - \sum\limits_{\substack{\text{a}^\text{out} ~\in~\mathcal{A}^\text{c}}} o_{\omega \text{,a}^\text{out} \text{,} \theta}~.
 \end{aligned}
 $$
 
@@ -60,7 +60,7 @@ $\text{d}_\text{a}^\text{in}$ is the length between the two connected locations.
 ## Specification of Objective Function Contributions
 
 The parameters $\text{F}^\text{K}_\text{c,a}$ and $\text{F}^\text{B}_\text{c,a}$ in equations for the
-objective function contribution are set equal to $1/2 \cdot \text{\small d}_\text{a}$ for *Transmission*
+objective function contribution are set equal to $1/2 \cdot \text{d}_\text{a}$ for *Transmission*
 components. The factor $1/2$ compensates that each connection is taken into account twice in the objective
 function.
 
@@ -68,6 +68,6 @@ The cost factor $\text{F}^\text{O}_\text{$\omega$,a}$ is given as
 
 $$
 \begin{aligned}
-    &~~\text{\small F}^\text{O}_\text{$\omega$,a} ~=~ \hat{X}^{\text{opex}_\text{O}}_{\omega\text{,l}}~.
+    &~~\text{F}^\text{O}_\text{$\omega$,a} ~=~ \hat{X}^{\text{opex}_\text{O}}_{\omega\text{,l}}~.
 \end{aligned}
 $$
