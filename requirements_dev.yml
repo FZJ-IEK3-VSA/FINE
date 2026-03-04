@@ -33,7 +33,13 @@ dependencies:
   - nbval <=0.11.0
   - ruff <=0.13.1
   # Documentation
-  - sphinx <=7.4.7
-  - sphinx_rtd_theme <=2.0.0
-  - myst-parser <=2.0.0
+  - mkdocs >=1.6,<=1.6.1
+  - mkdocs-material >=9.5,<=9.7.3
+  - mkdocstrings >=0.25,<=1.0.3
+  - mkdocstrings-python >=1.10,<=2.0.2
+  - mkdocs-jupyter >=0.25,<=0.25.1
+  - mkdocs-gen-files >=0.5,<=0.6.0
+  - mkdocs-literate-nav >=0.6,<=0.6.2
+  - mkdocs-section-index >=0.3,<=0.3.10
+  - griffe >=0.45,<=2.0.0
 
