@@ -16,8 +16,8 @@ The commodity appears at a location when the set
 $$
 \begin{aligned}
     &\mathcal{C}_\text{g,l} ~=~ \big\{ &&\text{c} ~\vert~ \forall~ \text{c}\in\mathcal{C}:
-     \text{g}\in\mathcal{G}^\text{c}~\wedge~ \big(\text{l}\in\mathcal{L}_\text{c}~\lor \nonumber \\
-    & &&(\exists~\text{l\text{*}}\in\mathcal{L}: (\text{l},\text{l*})\in\mathcal{L}_\text{c}~\lor~(\text{l*},\text{l})\in\mathcal{L}_\text{c})\big)\big\}
+     \text{g}\in\mathcal{G}^\text{c}~\wedge~ \big(\text{l}\in\mathcal{L}_\text{c}~\lor \\
+    & &&(\exists~\text{l}^*\in\mathcal{L}: (\text{l},\text{l}^*)\in\mathcal{L}_\text{c}~\lor~(\text{l}^*,\text{l})\in\mathcal{L}_\text{c})\big)\big\}
 \end{aligned}
 $$
 

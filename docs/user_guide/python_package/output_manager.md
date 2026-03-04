@@ -1,4 +1,4 @@
-# Output Manager
+# Input Output Manager
 
 FINE provides additional functionalities for input/output management. These include plotting functions,
 saving results in Excel files, storing input and output data in netCDF files, and the exploitation of the

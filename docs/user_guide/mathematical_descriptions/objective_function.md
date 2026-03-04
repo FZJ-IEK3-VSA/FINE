@@ -25,10 +25,10 @@ design^\text{comp}_\text{loc,ip} =
 \cdot  \text{APVF}^\text{comp}_\text{loc} \cdot \text{discFactor}^\text{comp}_\text{loc,ip}
 $$
 
-The binary design variables $design^\text{comp}_\text{bin\ loc,ip}$ contribute to the objective function with
+The binary design variables $design^\text{comp}_{\text{bin, loc,ip}}$ contribute to the objective function with
 
 $$
-design^\text{comp}_\text{bin, \ loc,ip} =
+design^\text{comp}_{\text{bin, loc,ip}} =
 \sum\limits_{year=ip-\text{ipEconomicLifetime}}^{ip}
 \text{F}^\text{comp,bin}_\text{loc,year} \cdot \left( \frac{\text{investIfBuilt}^\text{comp}_\text{loc,year}} {\text{CCF}^\text{comp}_\text{loc,year}}
 + \text{opexIfBuilt}^\text{comp}_\text{loc,year} \right)  \cdot  \text{bin}^\text{comp}_\text{loc,year}
@@ -39,8 +39,8 @@ The operation variables $op^\text{comp}_\text{loc,ip}$ contribute to the objecti
 
 $$
 op^\text{comp}_\text{loc,ip} =
-\underset{(p,t) \in \mathcal{P} \times \mathcal{T}}{\sum} \ \underset{\text{opType} \in \mathcal{O}^{comp}}{\sum}
-\text{factorPerOp}^{comp,opType}_{loc,ip} \cdot op^\text{comp,opType}_\text{loc,ip,p,t} \cdot  \frac{\text{freq(p)}}{\tau^{years}}
+\underset{(p,t) \in \mathcal{P} \times \mathcal{T}}{\sum} \ \underset{\text{opType} \in \mathcal{O}^{\text{comp}}}{\sum}
+\text{factorPerOp}^{\text{comp,opType}}_{\text{loc,ip}} \cdot op^\text{comp,opType}_\text{loc,ip,p,t} \cdot  \frac{\text{freq(p)}}{\tau^{\text{years}}}
 \cdot  \text{APVF}^{comp}_{loc} \cdot \text{discFactor}^\text{comp}_\text{loc,ip}
 $$
 
