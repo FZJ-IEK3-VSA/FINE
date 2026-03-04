@@ -20,7 +20,3 @@ build:
         - conda run --name $READTHEDOCS_VERSION mkdocs build --site-dir $READTHEDOCS_OUTPUT/html
 conda:
   environment: requirements_dev.yml
-
-# Build documentation in the docs/ directory with Sphinx
-sphinx:
-  configuration: docs/source/conf.py
