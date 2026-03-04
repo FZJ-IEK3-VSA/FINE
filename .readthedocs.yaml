@@ -11,10 +11,9 @@ build:
   tools:
     python: mambaforge-22.9
   jobs:
-    pre_build:
+    post_install:
       - conda run --name $READTHEDOCS_VERSION pip install -e . --no-deps
       - conda list -n $READTHEDOCS_VERSION
-
     build:
       html:
         - conda run --name $READTHEDOCS_VERSION mkdocs build --site-dir $READTHEDOCS_OUTPUT/html
