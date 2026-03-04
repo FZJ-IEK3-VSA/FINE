@@ -23,23 +23,23 @@ $\text{l}_\text{1}$, which is described as arc $\hat{\text{a}}$. To enforce this
 
 $$
 \begin{aligned}
-    k_\text{c,a} = k_\text{c,$\hat{\text{a}}$}
+    k_\text{c,a} = k_{\text{c,}\hat{\text{a}}}
 \end{aligned}
 $$
 
 is stated for all $\text{c}\in\mathcal{C}^\text{trans}$ and all
-$\text{a,$\hat{\text{a}}$}\in\mathcal{A}_\text{c}$.
+$\text{a,}\hat{\text{a}}\in\mathcal{A}_\text{c}$.
 Furthermore, the equation of the maximum operation of a component is supplemented with the equation
 
 $$
 \begin{aligned}
-    o_{\omega\text{,a,}\theta}+o_{\omega\text{,$\hat{\text{a}}$,}\theta} \leq \text{T}^\text{hours} \cdot k_\text{c,a}
+    o_{\omega\text{,a,}\theta}+o_{\omega\text{,}\hat{\text{a}}\text{,}\theta} \leq \text{T}^\text{hours} \cdot k_\text{c,a}
 \end{aligned}
 $$
 
 for all $\text{c}\in\mathcal{C}^\text{trans}$ and all $\text{a,} \hat{\text{a}} \in \mathcal{A}_\text{c}$.
 This set of equations increases the tendency that, for basic optimization solutions, one of the commodity
-flows $o_{\omega\text{,a,}\theta}$ or $o_{\omega\text{,$\hat{\text{a}}$,}\theta}$ is set to zero.
+flows $o_{\omega\text{,a,}\theta}$ or $o_{\omega\text{,}\hat{\text{a}}\text{,}\theta}$ is set to zero.
 
 ## Specification of Commodity Balance Contributions
 
@@ -54,7 +54,7 @@ and includes all eligible connections for commodity flows from location l to con
 
 $$
 \begin{aligned}
-    C_\text{c,g,l,$\theta$} ~=~
+    C_{\text{c,g,l,}\theta} ~=~
     \sum\limits_{\substack{\text{a}^\text{in}~\in~\mathcal{A}^\text{c}}}
     (1-\eta_{\text{a}^\text{in}} \cdot \text{d}_{\text{a}^\text{in}}) \cdot o_{\omega \text{,a}^\text{in} \text{,} \theta} - \sum\limits_{\substack{\text{a}^\text{out} ~\in~\mathcal{A}^\text{c}}} o_{\omega \text{,a}^\text{out} \text{,} \theta}~.
 \end{aligned}

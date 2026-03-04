@@ -25,11 +25,11 @@ is not empty. In this case the commodity balance equation is given for all as
 
 $$
 \begin{aligned}
-    &\sum\limits_{\text{c}~\in~\mathcal{C}_\text{g,l}} &&C_\text{c,g,l,\theta} ~=~ 0~.
+    &\sum\limits_{\text{c}~\in~\mathcal{C}_\text{g,l}} &&C_{\text{c,g,l,}\theta} ~=~ 0~.
 \end{aligned}
 $$
 
-The definition of $C_\text{c,g,l,\theta}$ is given in the component model extensions.
+The definition of $C_{\text{c,g,l,}\theta}$ is given in the component model extensions.
 
 ## Shared Potential Constraints
 
