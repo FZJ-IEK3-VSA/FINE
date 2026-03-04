@@ -70,10 +70,16 @@ $$
 
 with $n_\text{c,l} \in \mathbb{R}_0^+$ if the capacity is modeled as a continuous value, and with
 $n_\text{c,l} \in \mathbb{N}_0^+$ if the capacity is modeled as discrete value.
+The variable $n_\text{c,l}$ describes the number of installed plant units for each component and location,
+and the parameter $K^\text{unit}_\text{c}$ describes the capacity per plant unit.
 
 Furthermore, the component can be modeled together with a binary design decision variable
-$b_\text{c,l}\in\left\{0,1\right\}$ if its boolean parameter $B_\text{c}$ is set to true (=1).
-The consideration of the binary decision variables is enforced in the model for all $b_\text{c,l}$ by the constraint
+$b_\text{c,l}\in\left\{0,1\right\}$, for all locations $\text{l}\in\mathcal{L}_\text{c}$, if its boolean
+parameter $B_\text{c}$ is set to true (=1). This modeling approach is based on the work of
+[Bemporad and Morari (1999)](https://doi.org/10.1016/S0005-1098(98)00178-2) who give a general description
+and discussion of this approach in the context of linear integer programming. The optimal value of
+$b_\text{c,l}$ states whether a component is built (=1) or not built (=0). The consideration of the
+binary decision variables is enforced in the model for all $b_\text{c,l}$ by the constraint
 
 $$
 \begin{aligned}
@@ -82,9 +88,12 @@ $$
 $$
 
 where $\text{M}_\text{c}\in\mathbb{R}_0^{+}$. The constraint enforces that $b_\text{c,l} = 1$ if
-$k_\text{c,l} > 1$.
+$k_\text{c,l} > 1$. The parameter $\text{M}_\text{c}$ has to be chosen large enough such that it does not
+function as an upper limit on the capacity.
 
-Lower and upper boundaries can be specified for the capacity variables. Lower bounds are enforced by
+Lower and upper boundaries can be specified for the capacity variables of the component. Lower bounds are
+enforced, if $\text{K}^\text{min}_\text{c,l} \in\mathbb{R}^{\geq0}$ is defined for all
+$\text{l} \in\mathcal{L}_\text{c}$ of this component, by
 
 $$
 \begin{aligned}
@@ -96,7 +105,8 @@ $$
 \end{aligned}
 $$
 
-Upper bounds are enforced by
+Upper bounds are enforced, if $\text{K}^\text{max}_\text{c,l}\in\mathbb{R}^{\geq0}$ is defined for all
+$\text{l} \in\mathcal{L}_\text{c}$, by
 
 $$
 \begin{aligned}
@@ -105,25 +115,32 @@ k_\text{c,l}  ~\leq~
 \end{aligned}
 $$
 
-Fixed values can be individually specified for the capacity and binary decision variables by
+Moreover, for both the capacity and the binary decision variables, fixed values can be individually specified
+for a component by
 
 $$
 \begin{aligned}
 k_\text{c,l}  &~=~~ && K^\text{fix}_\text{c,l}~~\text{and} \\
-k^\text{bin}_\text{c,l}  &~=~~ && K^\text{bin,fix}_\text{c,l}~~.
+k^\text{bin}_\text{c,l}  &~=~~ && K^\text{bin,fix}_\text{c,l}~~,
 \end{aligned}
 $$
+
+if $K^\text{fix}_\text{c,l} \in\mathbb{R}^{\geq0},~K^\text{bin,fix}_\text{c,l} \in \left\{0,1\right\}$
+are defined for all $\text{l}\in\mathcal{L}_\text{c}$, respectively.
 
 ## Basic Time-Dependent Variables and Constraints
 
 Operational variables $o_{\omega \text{,l,} \theta}\in\mathbb{R}^{\geq0}$ are declared for all operation
 types of a component $\omega \in \Omega$, for all locations $\text{l}\in\mathcal{L}^\text{c}$ and for all
-periods and time steps $\theta \in \Theta$.
+periods and time steps $\theta \in \Theta$. The compound index set $\Omega$ is individually defined in the
+respective component extension and describes which modes $m \in \mathcal{M}$ need to be considered for
+component $c \in \mathcal{C}$. The compound index sets are described in
+[Compound Index Sets](parameters_and_sets.md#compound-index-sets).
 
-Each operation variable of a component modeled with a physical capacity ($K_\text{c} = 1$) is limited in
-one of four ways:
+Each operation variable of a component that is modeled with a physical capacity ($K_\text{c} = 1$) is
+limited in one of four ways.
 
-1. Limited by capacity and a time-independent factor $\text{a}_{\omega}\in\mathbb{R}^{\geq0}$ (default: 1):
+First, the operation variable is limited by
 
 $$
 \begin{aligned}
@@ -131,7 +148,10 @@ $$
 \end{aligned}
 $$
 
-2. Fixed to a relative operation rate $\text{R}^\text{fix}_{\text{c,l,} \theta}$:
+if the operation of the component is merely limited by its capacity and a time-independent factor
+$\text{a}_{\omega}\in\mathbb{R}^{\geq0}$ (default: 1) with $\omega \in \Omega$.
+
+Second, the operation variable is fixed to
 
 $$
 \begin{aligned}
@@ -139,7 +159,10 @@ $$
 \end{aligned}
 $$
 
-3. Limited by a maximum relative operation rate $\text{R}^\text{max}_{\text{c,l,} \theta}$:
+if a fixed, relative operation rate $\text{R}^\text{fix}_{\text{c,l,} \theta}$ is specified for all
+locations $\text{l}\in\mathcal{L}_\text{c}$ and for all periods and time steps $\theta \in \Theta$.
+
+Third, the operation rate is limited by
 
 $$
 \begin{aligned}
@@ -147,13 +170,55 @@ $$
 \end{aligned}
 $$
 
-4. Bounded below by a minimum relative operation rate $\text{R}^\text{min}_{\text{c,l,} \theta}$:
+if a maximum, relative operation rate $\text{R}^\text{max}_{\text{c,l,} \theta}$ is specified for all
+locations $\text{l}\in\mathcal{L}_\text{c}$ and for all periods and time steps $\theta \in \Theta$.
+
+Lastly, the operation rate is bounded below by
 
 $$
 \begin{aligned}
     o_{\omega \text{,l,} \theta}  ~\geq~ \text{T}^\text{hours} \cdot \text{R}^\text{min}_{\text{c,l,} \theta} \cdot k_\text{c,l}
 \end{aligned}
 $$
+
+if a minimum, relative operation rate $\text{R}^\text{min}_{\text{c,l,} \theta}$ is specified for all
+locations $\text{l}\in\mathcal{L}_\text{c}$ and for all periods and time steps $\theta \in \Theta$.
+
+Each operation variable of a component which is modeled without a physical capacity ($K_\text{c} = 0$) is
+limited in one of three ways. The operation variable is fixed to
+
+$$
+\begin{aligned}
+    o_{\omega \text{,l,} \theta}  ~=~ \text{T}^\text{hours} \cdot \text{R}^\text{fix}_{\text{c,l,} \theta}
+\end{aligned}
+$$
+
+if a fixed, relative operation rate $\text{R}^\text{fix}_{\text{c,l,} \theta}$ is specified for all
+locations $\text{l}\in\mathcal{L}_\text{c}$ and for all periods and time steps $\theta \in \Theta$. This
+constraint can apply, for example, to the model of an electricity demand.
+
+The operation variable is limited by
+
+$$
+\begin{aligned}
+    o_{\omega \text{,l,} \theta}  ~\leq~ \text{T}^\text{hours} \cdot \text{R}^\text{max}_{\text{c,l,} \theta}
+\end{aligned}
+$$
+
+if a maximum, relative operation rate $\text{R}^\text{max}_{\text{c,l,} \theta}$ is specified for all
+locations $\text{l}\in\mathcal{L}_\text{c}$ and for all periods and time steps $\theta \in \Theta$. This
+constraint can apply, for example, to the model of an optional commodity import.
+
+The operation variable is limited by
+
+$$
+\begin{aligned}
+    o_{\omega \text{,l,} \theta}  ~\geq~ \text{T}^\text{hours} \cdot \text{R}^\text{min}_{\text{c,l,} \theta}
+\end{aligned}
+$$
+
+if a minimum, relative operation rate $\text{R}^\text{min}_{\text{c,l,} \theta}$ is specified for all
+locations $\text{l}\in\mathcal{L}_\text{c}$ and for all periods and time steps $\theta \in \Theta$.
 
 ## Basic Inter-Component Constraint Contributions
 
@@ -187,6 +252,12 @@ $$
 \end{aligned}
 $$
 
+if the component is modeled with a physical capacity. Otherwise, $NPV^\text{K}_\text{c,l}$ is set to 0.
+The parameters $\hat{X}^{\text{capex}_\text{K}}_\text{c,l}$ [costUnit/nominalCapacity] and
+$\hat{X}^{\text{opex}_\text{K}}_\text{c,l}\in\mathbb{R}^{\geq0}$ [costUnit/(nominalCapacity$\cdot$a)]
+describe the capital and annual operational expenditures in relation to the capacity. The parameter
+$\text{F}^\text{K}_\text{c,l}$ can be defined individually for a component (default: 1).
+
 The total annual cost contributions related to the binary decision variables are determined by
 
 $$
@@ -195,5 +266,34 @@ $$
 \end{aligned}
 $$
 
-The total annual cost contributions related to the operation are determined by the individual component
-model extensions.
+if the component is modeled with binary decision variables. Otherwise $NPV^\text{B}_\text{c,l}$ is set to 0.
+The parameters $\hat{X}^{\text{capex}_\text{B}}$ [costUnit] and
+$\hat{X}^{\text{opex}_\text{B}}\in\mathbb{R}^{\geq0}$ [costUnit/a] describe the capital and annual
+operational expenditures which arise if the component is built. The parameter $\text{F}^\text{B}_\text{c,l}$
+can be defined individually for a component (default: 1). The factor
+
+$$
+\begin{aligned}
+    &\text{CCF}_\text{c,l} = \frac{1}{\text{WACC}_\text{c,l}}-\frac{1}{\left(1+\text{WACC}_\text{c,l}\right)^{\text{T}^\text{EL}_\text{c}}\cdot\text{WACC}_\text{c,l}}
+\end{aligned}
+$$
+
+is applied to determine the annuity of the respective invest for one calendar year. Thus,
+$\text{WACC}_\text{c,l}\in(0,1]$ is the weighted average cost of capital and
+$T^\text{EL}_\text{c}\in\mathbb{Z}_0^{+}$ [a] is the economic lifetime of the component in years.
+
+With the combination of a capacity-dependent and a capacity-independent cost factor, a simplified nonlinear
+*economy-of-scale* approach is realized. The operation related total annual cost contributions are
+determined by
+
+$$
+\begin{aligned}
+    &NPV^\text{O}_\text{c,l} = \hspace{-3pt}
+    \sum\limits_{\substack{\theta \\ \in~\Theta}}\hspace{4pt}
+    \sum\limits_{\substack{\text{m} \\ \in~\mathcal{M}_\text{c}}}
+    \text{F}^\text{O}_{\omega \text{,l}}\hspace{-3pt}\cdot o_{\omega\text{,l,} \theta} \cdot \frac{f\left(p\right)}{\text{T}^\text{years}}
+\end{aligned}
+$$
+
+where $F^\text{O}_{\omega \text{,l}}$ [costUnit/(nominalCapacity$\cdot$h)] is defined in the individual
+component model extensions.

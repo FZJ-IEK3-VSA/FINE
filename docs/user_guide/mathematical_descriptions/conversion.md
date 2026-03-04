@@ -28,7 +28,7 @@ $$
 
 The conversion factor $\text{cf}_\text{c,g}\in\mathbb{R}$ is by convention negative if a commodity is consumed
 and positive if a commodity is generated. The nominal conversion factor
-$\big|\text{cf}_\text{c,g$^\text{nominal}$} \big|$ is set to 1.
+$\big|\text{cf}_{\text{c,g}^\text{nominal}} \big|$ is set to 1.
 
 ## Specification of Objective Function Contributions
 

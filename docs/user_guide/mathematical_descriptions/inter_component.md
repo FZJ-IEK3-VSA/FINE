@@ -25,19 +25,19 @@ is not empty. In this case the commodity balance equation is given for all as
 
 $$
 \begin{aligned}
-    &\sum\limits_{\text{c}~\in~\mathcal{C}_\text{g,l}} &&C_\text{c,g,l,$\theta$} ~=~ 0~.
+    &\sum\limits_{\text{c}~\in~\mathcal{C}_\text{g,l}} &&C_\text{c,g,l,\theta} ~=~ 0~.
 \end{aligned}
 $$
 
-The definition of $C_\text{c,g,l,$\theta$}$ is given in the component model extensions.
+The definition of $C_\text{c,g,l,\theta}$ is given in the component model extensions.
 
 ## Shared Potential Constraints
 
-Two or more components can share a potential in an energy system. The framework ensures that for each
-location/connection where a shared potential is specified, the share on the maximum capacity of all
-components with the same identifier does not exceed 100%. Each component for which a maximum capacity is
-defined can be associated with the shared potential by setting the parameter
-$\text{sharedPotentialID}_\text{c}=\text{sharedPotentialID}$.
+As already explained in the *Basic* component model, two or more components can share a potential in an
+energy system. The framework ensures that for each location/connection where a shared potential is specified,
+the share on the maximum capacity of all components with the same identifier does not exceed 100%. Each
+component for which a maximum capacity is defined can be associated with the shared potential by setting the
+parameter $\text{sharedPotentialID}_\text{c}=\text{sharedPotentialID}$ (default: $\emptyset$).
 
 Let $\mathcal{I}^\text{ID}$ be the set containing all shared potential IDs and let $\mathcal{L}^\text{ID}$ be
 the set of locations or connections at which components compete for a maximum potential, respectively. The

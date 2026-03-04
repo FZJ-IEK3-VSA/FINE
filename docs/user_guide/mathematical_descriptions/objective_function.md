@@ -21,7 +21,7 @@ design^\text{comp}_\text{loc,ip} =
 \sum\limits_{year=ip-\text{ipEconomicLifetime}}^{ip}
 \text{F}^\text{comp,bin}_\text{loc,year}
 \cdot \left( \frac{\text{investPerCap}^\text{comp}_\text{loc,year}}{\text{CCF}^\text{comp}_\text{loc,year}}
-+ \text{opexPerCap}^\text{comp}_\text{loc,year} \right) \cdot commis^\text{comp}_\text{loc,year}
++ \text{opexPerCap}^\text{comp}_\text{loc,year} \right) \cdot \text{commis}^\text{comp}_\text{loc,year}
 \cdot  \text{APVF}^\text{comp}_\text{loc} \cdot \text{discFactor}^\text{comp}_\text{loc,ip}
 $$
 
@@ -31,8 +31,8 @@ $$
 design^\text{comp}_\text{bin, \ loc,ip} =
 \sum\limits_{year=ip-\text{ipEconomicLifetime}}^{ip}
 \text{F}^\text{comp,bin}_\text{loc,year} \cdot \left( \frac{\text{investIfBuilt}^\text{comp}_\text{loc,year}} {\text{CCF}^\text{comp}_\text{loc,year}}
-+ \text{opexIfBuilt}^\text{comp}_\text{loc,year} \right)  \cdot  bin^\text{comp}_\text{loc,year}
-\cdot  \text{APVF}^\text{comp}_\text{loc} \cdot discFactor^\text{comp}_\text{loc,ip}
++ \text{opexIfBuilt}^\text{comp}_\text{loc,year} \right)  \cdot  \text{bin}^\text{comp}_\text{loc,year}
+\cdot  \text{APVF}^\text{comp}_\text{loc} \cdot \text{discFactor}^\text{comp}_\text{loc,ip}
 $$
 
 The operation variables $op^\text{comp}_\text{loc,ip}$ contribute to the objective function with
@@ -47,14 +47,13 @@ $$
 With the annuity present value factor (Rentenbarwertfaktor):
 
 $$
-\text{APVF}^{comp}_{loc} = \frac{(1 + \text{interestRate}^{comp}_{loc})^{interval} - 1}{\text{interestRate}^{comp}_{loc} \cdot
-(1 + \text{interestRate}^{comp}_{loc})^{interval}} \text{ if } \text{interestRate}^{comp}_{loc} \neq 0 \text{ else } 1
+\text{APVF}^\text{comp}_\text{loc} = \begin{cases} \dfrac{(1 + \text{interestRate}^\text{comp}_\text{loc})^\text{interval} - 1}{\text{interestRate}^\text{comp}_\text{loc} \cdot (1 + \text{interestRate}^\text{comp}_\text{loc})^\text{interval}} & \text{if } \text{interestRate}^\text{comp}_\text{loc} \neq 0 \\ 1 & \text{else} \end{cases}
 $$
 
 and the discount factor
 
 $$
-\text{discFactor}^{comp}_{loc,ip} = \frac{1+\text{interestRate}^{comp}_{loc}}{(1+\text{interestRate}^{comp}_{loc})^{ip \cdot
+\text{discFactor}^\text{comp}_\text{loc,ip} = \frac{1+\text{interestRate}^\text{comp}_\text{loc}}{(1+\text{interestRate}^\text{comp}_\text{loc})^{ip \cdot
 \text{interval}}}
 $$
 
