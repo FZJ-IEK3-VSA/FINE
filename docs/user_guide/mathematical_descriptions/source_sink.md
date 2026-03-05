@@ -23,7 +23,7 @@ $\text{l}\in\mathcal{L}_\text{c}$ and for all $\theta\in\Theta$ as
 
 $$
 \begin{aligned}
-    &C_{\text{c,g,l,}\theta} ~=~ \text{sign}_\text{c} \cdot o_{\omega\text{,l,}\theta}, ~~\text{where}\nonumber \\
+    &C_{\text{c,g,l,}\theta} ~=~ \text{sign}_\text{c} \cdot o_{\omega\text{,l,}\theta}, ~~\text{where} \\
     &\text{sign}^\text{c} =
     \begin{cases}
         +1 &,~\text{if c is a \textit{Source} component, and} \\
