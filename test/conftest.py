@@ -860,6 +860,8 @@ def test_esM_for_spagat(esM_init):
             capacityFix=data["Pumped hydro storage, capacityFix"],
             investPerCapacity=0,
             opexPerCapacity=0.000153,
+            opexPerChargeOperation=1e-6,
+            opexPerDischargeOperation=1e-6,
         )
     )
 

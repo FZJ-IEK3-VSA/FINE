@@ -56,7 +56,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
     )
 
     investPerCapacity = pd.DataFrame(
-        [[0.177, 0.17], [0.177, 0.14]],
+        [[0, 0.17], [0.177, 0]],
         index=["ElectrolyzerLocation", "IndustryLocation"],
         columns=["ElectrolyzerLocation", "IndustryLocation"],
     )
@@ -69,12 +69,20 @@ def test_export_to_dict_minimal(minimal_test_esM):
         ],
     )
 
-    minimal_test_esM.updateComponent(
-        "Pipelines", {"investPerCapacity": investPerCapacity}
-    )
-    minimal_test_esM.updateComponent(
-        "Pipelines", {"operationRateMax": operationRateMax}
-    )
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        minimal_test_esM.updateComponent(
+            "Pipelines", {"investPerCapacity": investPerCapacity}
+        )
+
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        minimal_test_esM.updateComponent(
+            "Pipelines", {"operationRateMax": operationRateMax}
+        )
+
     expected_Transmission_investPerCapacity = minimal_test_esM.getComponentAttribute(
         "Pipelines", "investPerCapacity"
     )

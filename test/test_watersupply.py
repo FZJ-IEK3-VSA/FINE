@@ -94,6 +94,8 @@ def test_watersupply():
             locationalEligibility=eligibility,
             investPerCapacity=0.10,
             opexPerCapacity=0.02 * 0.1,
+            opexPerChargeOperation=1e-6,
+            opexPerDischargeOperation=1e-6,
             interestRate=0.08,
             economicLifetime=20,
         )
