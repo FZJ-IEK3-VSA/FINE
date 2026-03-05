@@ -26,8 +26,8 @@ $$
     &C_{\text{c,g,l,}\theta} ~=~ \text{sign}_\text{c} \cdot o_{\omega\text{,l,}\theta}, ~~\text{where} \\
     &\text{sign}^\text{c} =
     \begin{cases}
-        +1 &,~\text{if c is a \textit{Source} component, and} \\
-        -1 &,~\text{if c is a \textit{Sink} component}~.
+        +1 &,~\text{if c is a }\mathit{Source}\text{ component, and} \\
+        -1 &,~\text{if c is a }\mathit{Sink}\text{ component}~.
     \end{cases}
 \end{aligned}
 $$
