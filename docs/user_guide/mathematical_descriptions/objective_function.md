@@ -47,7 +47,10 @@ $$
 With the annuity present value factor (Rentenbarwertfaktor):
 
 $$
-\text{APVF}^\text{comp}_\text{loc} = \begin{cases} \dfrac{(1 + \text{interestRate}^\text{comp}_\text{loc})^\text{interval} - 1}{\text{interestRate}^\text{comp}_\text{loc} \cdot (1 + \text{interestRate}^\text{comp}_\text{loc})^\text{interval}} & \text{if } \text{interestRate}^\text{comp}_\text{loc} \neq 0 \\ 1 & \text{else} \end{cases}
+\text{APVF}^\text{comp}_\text{loc} = \begin{cases}
+    \dfrac{(1 + \text{interestRate}^\text{comp}_\text{loc})^\text{interval} - 1}{\text{interestRate}^\text{comp}_\text{loc} \cdot (1 + \text{interestRate}^\text{comp}_\text{loc})^\text{interval}} & \text{if } \text{interestRate}^\text{comp}_\text{loc} \neq 0 \\
+    1 & \text{else}
+\end{cases}
 $$
 
 and the discount factor
