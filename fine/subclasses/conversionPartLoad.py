@@ -86,11 +86,11 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
         ydiff = yTemp - yBar
         sst = np.dot(ydiff, ydiff)
 
-        for i in range(nSegments):
+        for j in range(nSegments):
             if sst == 0:
-                R2values[i] = np.nan
+                R2values[j] = np.nan
             else:
-                R2values[i] = 1.0 - (ssr / sst)
+                R2values[j] = 1.0 - (ssr / sst)
 
     return {
         "xSegments": xSegments,
