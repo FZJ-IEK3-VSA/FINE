@@ -182,6 +182,7 @@ def test_minimumPartLoad():
             name="restricted",
             physicalUnit=r"GW$_{el}$",
             commodityConversionFactors={"electricity": 1, "methane": -1 / 0.625},
+            hasIsBuiltBinaryVariable=True,
             capacityFix=data_cap,
             partLoadMin=0.4,
             bigM=10000,

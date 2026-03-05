@@ -13,7 +13,7 @@ import matplotlib.patches as mpatches
 # abbreviated class names necessary for saving into excel files as sheet names are restricted by string length
 abbreviatedClassName = {
     "ConversionDynamicModel": "ConvDyn",
-    "ConversionPartLoad": "ConvPartLoad",
+    "ConversionPartLoadModel": "ConvPartLoad",
 }
 
 

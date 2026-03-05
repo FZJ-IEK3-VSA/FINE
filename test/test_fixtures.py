@@ -10,7 +10,7 @@ def test_minimal_test_esM(minimal_test_esM):
 
 def test_multi_node_test_esM_init(multi_node_test_esM_init):
     multi_node_test_esM_init.aggregateTemporally(
-        numberOfTypicalPeriods=3,
+        numberOfTypicalPeriods=5,
         segmentation=False,
         sortValues=True,
         representationMethod=None,

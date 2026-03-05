@@ -215,7 +215,7 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
             investPerCapacity=0.177,
             capacityMax={
                 ip: pd.DataFrame(
-                    data=[[0.2, 0.2], [0.25, 0.25]],
+                    data=[[0, 0.2], [0.25, 0]],
                     index=list(esM.locations),
                     columns=list(esM.locations),
                 )

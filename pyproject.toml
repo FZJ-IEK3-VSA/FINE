@@ -80,7 +80,10 @@ console_output_style = "progress"
 # Omit a field by adding ":" for each omitted field
 # Actions are: "default"
 # "error", "ignore", "always", "module", "once"
-filterwarnings = []
+filterwarnings = [
+    "default::Warning:fine.*",
+    "ignore::Warning:matplotlib",
+]
 
 [project.urls]
 homepage = "https://www.fz-juelich.de/en/ice/ice-2/research-1/open_source/fine"

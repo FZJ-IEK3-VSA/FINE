@@ -218,23 +218,19 @@ def test_capacityFix_subset(multi_node_test_esM_init):
 
     capacityFix = Series(0, index=esM.locations)
     capacityFix["cluster_1"] = 3
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="New CCGT plants (biogas)",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={"electricity": 1, "biogas": -1 / 0.635},
-            hasCapacityVariable=True,
-            investPerCapacity=0.7,
-            opexPerCapacity=0.021,
-            interestRate=0.08,
-            economicLifetime=33,
-            opexPerOperation=0.01,
-            locationalEligibility=Series(1, index=esM.locations),
-            capacityFix=capacityFix,
-            capacityMax=Series(3, index=esM.locations),
+    with pytest.warns(
+        UserWarning,
+        match="Component identifier New CCGT plants \\(biogas\\) already exists",
+    ):
+        multi_node_test_esM_init.updateComponent(
+            componentName="New CCGT plants (biogas)",
+            updateAttrs={
+                "opexPerOperation": 0.01,
+                "locationalEligibility": Series(1, index=esM.locations),
+                "capacityFix": capacityFix,
+                "capacityMax": Series(3, index=esM.locations),
+            },
         )
-    )
 
     module_directory = Path(__file__).parent.absolute()
     savePath = os.path.join(  # noqa: PTH118
@@ -348,7 +344,7 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     """
     esM = multi_node_test_esM_init
     esM.aggregateTemporally(
-        numberOfTypicalPeriods=3,
+        numberOfTypicalPeriods=5,
         segmentation=False,
         sortValues=True,
         representationMethod=None,

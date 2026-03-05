@@ -142,6 +142,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
                             combine_attrs="drop_conflicts",
+                            join="outer",
                         )
             elif esM.componentModelingDict[name].dimension == "2dim":
                 for component in optSum.index.get_level_values(0).unique():
@@ -174,6 +175,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
                             combine_attrs="drop_conflicts",
+                            join="outer",
                         )
 
             # Write output from esM.esM.componentModelingDict[name].getOptimalValues() to datasets
@@ -204,7 +206,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df.index.rename(["time", "location"], inplace=True)
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da]
+                            [xr_dss[ip][name][component], xr_da],
+                            join="outer",
                         )
             # Two dimensional time dependent data
             if dataTD2dim:
@@ -224,7 +227,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df.index = df.index.reorder_levels([2, 0, 1])
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da]
+                            [xr_dss[ip][name][component], xr_da], join="outer"
                         )
             # Time independent data
             if dataTI:
@@ -242,7 +245,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df.index.rename("location", inplace=True)
                             xr_da = df.to_xarray()
                             xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da]
+                                [xr_dss[ip][name][component], xr_da], join="outer"
                             )
                 # Two dimensional
                 elif esM.componentModelingDict[name].dimension == "2dim":
@@ -258,7 +261,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df.index.rename(["locationIn", "locationOut"], inplace=True)
                             xr_da = df.to_xarray()
                             xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da]
+                                [xr_dss[ip][name][component], xr_da], join="outer"
                             )
 
         for name in esM.componentModelingDict.keys():
