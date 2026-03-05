@@ -346,12 +346,12 @@ def test_coordinates(multi_node_test_esM_init):
 
     required_coord_1dim = {"location", "time"}
     xrRes = xrds["Results"][0]["SourceSinkModel"]["Wind (onshore)"]
-    assert (
-        set(xrRes.coords) == required_coord_1dim
-    ), f"Expected {required_coord_1dim}; got {set(xrRes.coords)}."
+    assert set(xrRes.coords) == required_coord_1dim, (
+        f"Expected {required_coord_1dim}; got {set(xrRes.coords)}."
+    )
 
     required_coord_2dim = {"locationIn", "locationOut", "time"}
     xrRes = xrds["Results"][0]["TransmissionModel"]["Pipelines (biogas)"]
-    assert (
-        set(xrRes.coords) == required_coord_2dim
-    ), f"Expected {required_coord_2dim}; got {set(xrRes.coords)}"
+    assert set(xrRes.coords) == required_coord_2dim, (
+        f"Expected {required_coord_2dim}; got {set(xrRes.coords)}"
+    )
