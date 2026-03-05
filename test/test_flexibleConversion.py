@@ -63,7 +63,6 @@ def test_flexibleConversion_init():
             investPerCapacity=0,
             interestRate=0,
             economicLifetime=10,
-            # flexibleConversion=True,
         )
     )
 
@@ -83,7 +82,6 @@ def test_flexibleConversion_init():
             investPerCapacity=0,
             interestRate=0,
             economicLifetime=10,
-            # flexibleConversion=True,
         )
     )
 
@@ -278,7 +276,6 @@ def test_flexibleConversion_groups():
             name="hydrogen_import",
             commodity="hydrogen",
             hasCapacityVariable=False,
-            # commodityCost=1,
         )
     )
 
@@ -529,13 +526,13 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
     if use_balanceLimit:
         assert (
             esM.getOptimizationSummary("SourceSinkModel", ip=2020)
-            .loc["co2Sink", "operation", "[Mio. t$_{CO_2}$/h*h/a]"]
+            .loc["co2Sink", "operation_annual", "[Mio. t$_{CO_2}$/h*h/a]"]
             .values[0]
             == 38280
         )
         assert (
             esM.getOptimizationSummary("SourceSinkModel", ip=2025)
-            .loc["co2Sink", "operation", "[Mio. t$_{CO_2}$/h*h/a]"]
+            .loc["co2Sink", "operation_annual", "[Mio. t$_{CO_2}$/h*h/a]"]
             .values[0]
             == 26280
         )
