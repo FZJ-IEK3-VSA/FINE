@@ -53,8 +53,7 @@ def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibil
     data = getData()
 
     esM = esM_init
-    # Wind (onshore)
-    # Delete operationRateMax and capacityMax data corresponding to cluster_0
+    # Wind (onshore): Delete operationRateMax and capacityMax data corresponding to cluster_0
     data["Wind (onshore), operationRateMax"].drop("cluster_0", axis=1, inplace=True)
     data["Wind (onshore), capacityMax"].drop("cluster_0", inplace=True)
 

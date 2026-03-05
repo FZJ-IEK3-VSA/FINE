@@ -120,19 +120,19 @@ class PiecewiseLinearCostFunctionModule:
             columns=["experience", "totalCost", "slope", "interception"],
         )
 
-        linEtlParameter["totalCost"].loc[0] = self.getTotalCostEtl(self.initCapacity)
-        linEtlParameter["totalCost"].loc[self.noSegments] = self.getTotalCostEtl(
+        linEtlParameter.loc[0, "totalCost"] = self.getTotalCostEtl(self.initCapacity)
+        linEtlParameter.loc[self.noSegments, "totalCost"] = self.getTotalCostEtl(
             self.maxCapacity
         )
         totalCostDiff = (
-            linEtlParameter["totalCost"].loc[self.noSegments]
-            - linEtlParameter["totalCost"].loc[0]
+            linEtlParameter.loc[self.noSegments, "totalCost"]
+            - linEtlParameter.loc[0, "totalCost"]
         )
 
         for segment in range(1, self.noSegments):
-            linEtlParameter["totalCost"].loc[segment] = linEtlParameter[
-                "totalCost"
-            ].loc[segment - 1] + (2 ** (segment - self.noSegments - 1)) * (
+            linEtlParameter.loc[segment, "totalCost"] = linEtlParameter.loc[
+                segment - 1, "totalCost"
+            ] + (2 ** (segment - self.noSegments - 1)) * (
                 totalCostDiff / (1 - 0.5**self.noSegments)
             )
 
@@ -143,7 +143,7 @@ class PiecewiseLinearCostFunctionModule:
         ) ** (1 / (1 - self.learningIndex))
 
         linEtlParameter["slope"] = (
-            linEtlParameter.diff()["totalCost"] / linEtlParameter.diff()["experience"]
+            linEtlParameter["totalCost"].diff() / linEtlParameter["experience"].diff()
         )
         linEtlParameter["interception"] = (
             linEtlParameter["totalCost"]
@@ -945,10 +945,6 @@ class PiecewiseLinearCostFunctionModel:
                 mdlOptSummaryPwlcf = pd.DataFrame(
                     index=mIndex, columns=list(esM.locations)
                 ).sort_index()
-                # optSummaryPwlcf = {
-                #     ip: pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
-                #     for ip in esM.investmentPeriodNames
-                # }
 
                 mdlOptSummaryPwlcf.loc[
                     moduleName, f"TAC_{curPWLCFtype}", "[" + esM.costUnit + "/a]"
@@ -1010,7 +1006,10 @@ class PiecewiseLinearCostFunctionModel:
                         )
                     ] = knowledgeStock
                 optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.concat(
-                    [optSummaryPwlcf[esM.investmentPeriodNames[ip]], mdlOptSummaryPwlcf]
+                    [
+                        optSummaryPwlcf[esM.investmentPeriodNames[ip]],
+                        mdlOptSummaryPwlcf.loc[[moduleName]],
+                    ]
                 )
 
         for model in esM.componentModelingDict.values():
@@ -1038,32 +1037,70 @@ class PiecewiseLinearCostFunctionModel:
                 ).sort_index()
                 if len(eosComps) > 0:
                     optSummary[ipName].loc[eosComps, "TAC", :] = (
-                        optSummary[ipName].loc[eosComps, "TAC", :].fillna(0)
-                        + optSummaryPwlcf[ipName].loc[eosComps, "TAC_EOS", :].values
+                        optSummary[ipName]
+                        .loc[eosComps, "TAC", :]
+                        .astype(float)
+                        .fillna(0)
+                        + optSummaryPwlcf[ipName]
+                        .loc[eosComps, "TAC_EOS", :]
+                        .astype(float)
+                        .fillna(0)
+                        .values
                     )
                     optSummary[ipName].loc[eosComps, "NPVcontribution", :] = (
-                        optSummary[ipName].loc[eosComps, "NPVcontribution", :].fillna(0)
+                        optSummary[ipName]
+                        .loc[eosComps, "NPVcontribution", :]
+                        .astype(float)
+                        .fillna(0)
                         + optSummaryPwlcf[ipName]
                         .loc[eosComps, "NPVcontribution_EOS", :]
+                        .astype(float)
+                        .fillna(0)
                         .values
                     )
                     optSummary[ipName].loc[eosComps, "invest", :] = (
-                        optSummary[ipName].loc[eosComps, "invest", :].fillna(0)
-                        + optSummaryPwlcf[ipName].loc[eosComps, "invest_EOS", :].values
+                        optSummary[ipName]
+                        .loc[eosComps, "invest", :]
+                        .astype(float)
+                        .fillna(0)
+                        + optSummaryPwlcf[ipName]
+                        .loc[eosComps, "invest_EOS", :]
+                        .astype(float)
+                        .fillna(0)
+                        .values
                     )
                 if len(etlComps) > 0:
                     optSummary[ipName].loc[etlComps, "TAC", :] = (
-                        optSummary[ipName].loc[etlComps, "TAC", :].fillna(0)
-                        + optSummaryPwlcf[ipName].loc[etlComps, "TAC_ETL", :].values
+                        optSummary[ipName]
+                        .loc[etlComps, "TAC", :]
+                        .astype(float)
+                        .fillna(0)
+                        + optSummaryPwlcf[ipName]
+                        .loc[etlComps, "TAC_ETL", :]
+                        .astype(float)
+                        .fillna(0)
+                        .values
                     )
                     optSummary[ipName].loc[etlComps, "NPVcontribution", :] = (
-                        optSummary[ipName].loc[etlComps, "NPVcontribution", :].fillna(0)
+                        optSummary[ipName]
+                        .loc[etlComps, "NPVcontribution", :]
+                        .astype(float)
+                        .fillna(0)
                         + optSummaryPwlcf[ipName]
                         .loc[etlComps, "NPVcontribution_ETL", :]
+                        .astype(float)
+                        .fillna(0)
                         .values
                     )
                     optSummary[ipName].loc[etlComps, "invest", :] = (
-                        optSummary[ipName].loc[etlComps, "invest", :].fillna(0)
-                        + optSummaryPwlcf[ipName].loc[etlComps, "invest_ETL", :].values
+                        optSummary[ipName]
+                        .loc[etlComps, "invest", :]
+                        .astype(float)
+                        .fillna(0)
+                        + optSummaryPwlcf[ipName]
+                        .loc[etlComps, "invest_ETL", :]
+                        .astype(float)
+                        .fillna(0)
+                        .values
                     )
             model.optSummary = optSummary[esM.startYear]

@@ -12,8 +12,7 @@ import pytest
 #   'Wind turbines', 'PV', 'Batteries' as well as transmission components 'AC cables', 'Heat pipes'
 #   'Electricity purchase' and 'AC cables' are included in the autarky analysis
 # 4) Optimize model
-# 5) The balanceLimit is compared to the outcome of the model
-#   purchase + exchange_in - exchange_out <= balanceLimit
+# 5) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
 
 
 def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
@@ -62,8 +61,7 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
     esM, losses, distances, balanceLimit = balanceLimitConstraint_test_esM
     # 1) Optimize model
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
-    # 2) The balanceLimit is compared to the outcome of the model
-    #   purchase + exchange_in - exchange_out <= balanceLimit
+    # 2) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
     check_selfSufficiency(esM, losses, distances, balanceLimit)
 
     # Test self sufficiency with segmenation
@@ -82,8 +80,7 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
 
     # 1) Optimize model
     esM_segmentation.optimize(timeSeriesAggregation=True, solver="glpk")
-    # 2) The balanceLimit is compared to the outcome of the model
-    #   purchase + exchange_in - exchange_out <= balanceLimit
+    # 2) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
     check_selfSufficiency(esM_segmentation, losses, distances, balanceLimit)
 
 

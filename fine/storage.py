@@ -381,7 +381,7 @@ class Storage(Component):
                 and self.fullChargeOpRateFix[ip] is not None
             ):
                 self.fullChargeOpRateMax[ip] = None
-                if esM.verbose < 2:
+                if esM.verboseLogLevel < 2:
                     warnings.warn(
                         "If chargeOpRateFix is specified, the chargeOpRateMax parameter is not required.\n"
                         + "The chargeOpRateMax time series was set to None."
@@ -960,7 +960,6 @@ class StorageModel(ComponentModel):
 
             # tests for testing the storage class with ip and TSAM
             def cyclicState(pyM, loc, compName, ip, p):
-                # tLast = esM.interPeriodTimeSteps[-1]
                 tLast = esM.numberOfInterPeriodTimeSteps
                 offsetUp_ = (
                     offsetUp[loc, compName, tLast]
@@ -1098,32 +1097,6 @@ class StorageModel(ComponentModel):
             pyM,
             "ConstrInterSOC_" + abbrvName,
             pyomo.Constraint(opVarSet, esM.periods, rule=connectInterSOC),
-        )
-
-    def intraSOCstart(self, pyM, esM):
-        """Declare the constraint that the (virtual) state of charge at the beginning of a typical period is zero.
-
-        .. math::
-
-            SoC^{comp}_{loc,ip,p,0} = 0
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-        """
-        abbrvName = self.abbrvName
-        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
-        SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
-
-        def intraSOCstart(pyM, loc, compName, ip, p):
-            return SOC[loc, compName, ip, p, 0] == 0
-
-        setattr(
-            pyM,
-            "ConstrSOCPeriodStart_" + abbrvName,
-            pyomo.Constraint(opVarSet, esM.typicalPeriods, rule=intraSOCstart),
         )
 
     def equalInterSOC(self, pyM, esM):
@@ -1884,7 +1857,9 @@ class StorageModel(ComponentModel):
             # Set optimal operation variables and append optimization summary
             props = [
                 "operationCharge",
+                "operationCharge_annual",
                 "operationDischarge",
+                "operationDischarge_annual",
                 "opexCharge",
                 "opexDischarge",
                 "NPV_opexCharge",
@@ -1892,12 +1867,14 @@ class StorageModel(ComponentModel):
             ]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
-                props[1]: ["[-*h]", "[-*h/a]"],
-                props[2]: ["[" + esM.costUnit + "/a]"],
-                props[3]: ["[" + esM.costUnit + "/a]"],
+                props[0]: ["[-*h]"],
+                props[1]: ["[-*h/a]"],
+                props[2]: ["[-*h]"],
+                props[3]: ["[-*h/a]"],
                 props[4]: ["[" + esM.costUnit + "/a]"],
                 props[5]: ["[" + esM.costUnit + "/a]"],
+                props[6]: ["[" + esM.costUnit + "/a]"],
+                props[7]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1915,7 +1892,12 @@ class StorageModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] in ["operationCharge", "NPV_operationCharge"]
+                        if x[1]
+                        in [
+                            "operationCharge",
+                            "operationCharge_annual",
+                            "NPV_operationCharge",
+                        ]
                         else x
                     ),
                     tuples,
@@ -1929,7 +1911,12 @@ class StorageModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] in ["operationDischarge", "NPV_operationDischarge"]
+                        if x[1]
+                        in [
+                            "operationDischarge",
+                            "operationDischarge_annual",
+                            "NPV_operationDischarge",
+                        ]
                         else x
                     ),
                     tuples,
@@ -1960,7 +1947,6 @@ class StorageModel(ComponentModel):
                 optVal_charge = optVal_charge.loc[
                     idx[:, :], :
                 ]  # perfect foresight: added ip and deleted again
-                # optVal_charge = optVal_charge.droplevel([1])
                 opSum = optVal_charge.sum(axis=1).unstack(-1)
 
                 # operation
@@ -1968,7 +1954,7 @@ class StorageModel(ComponentModel):
                     [
                         (
                             ix,
-                            "operationCharge",
+                            "operationCharge_annual",
                             "[" + compDict[ix].commodityUnit + "*h/a]",
                         )
                         for ix in opSum.index
@@ -2028,7 +2014,7 @@ class StorageModel(ComponentModel):
                     ].loc[compName],
                 )
                 if simultaneousChargeDischarge:
-                    if esM.verbose < 2:
+                    if esM.verboseLogLevel < 2:
                         warnings.warn(
                             f"Charge and discharge at the same time for component {compName}",
                             UserWarning,
@@ -2041,7 +2027,7 @@ class StorageModel(ComponentModel):
                     [
                         (
                             ix,
-                            "operationDischarge",
+                            "operationDischarge_annual",
                             "[" + compDict[ix].commodityUnit + "*h/a]",
                         )
                         for ix in opSum.index
@@ -2130,7 +2116,6 @@ class StorageModel(ComponentModel):
                             # Repeat each segment in each period as often as time steps are represented by the corresponding
                             # segment
                             repList = esM.timeStepsPerSegment[ip].loc[p, :].tolist()
-                            # repList = esM.timeStepsPerSegment.loc[p, :].tolist()
                             dataPeriod = pd.DataFrame(
                                 np.repeat(
                                     stateOfChargeIntra.loc[p]
@@ -2224,7 +2209,7 @@ class StorageModel(ComponentModel):
             * 'all' or another input: all variables are returned.
 
             For optimizations with several years also following values should be returned:
-            * '_operationVariablesOptimum'
+            * '_commissioningVariablesOptimum'
             * '_decommissioningVariablesOptimum'
 
         |br| * the default value is 'all'
@@ -2237,82 +2222,27 @@ class StorageModel(ComponentModel):
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        if name == "capacityVariablesOptimum":
+        timeDependentMapping = {
+            "capacityVariablesOptimum": False,
+            "commissioningVariablesOptimum": False,
+            "decommissioningVariablesOptimum": False,
+            "isBuiltVariablesOptimum": False,
+            "chargeOperationVariablesOptimum": True,
+            "dischargeOperationVariablesOptimum": True,
+            "stateOfChargeOperationVariablesOptimum": True,
+        }
+
+        if name in timeDependentMapping:
             return {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "commissioningVariablesOptimum":
-            return {
-                "values": self._commissioningVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "decommissioningVariablesOptimum":
-            return {
-                "values": self._decommissioningVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "isBuiltVariablesOptimum":
-            return {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "chargeOperationVariablesOptimum":
-            return {
-                "values": self._chargeOperationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-        if name == "dischargeOperationVariablesOptimum":
-            return {
-                "values": self._dischargeOperationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-        if name == "stateOfChargeOperationVariablesOptimum":
-            return {
-                "values": self._stateOfChargeOperationVariablesOptimum[ip],
-                "timeDependent": True,
+                "values": getattr(self, f"_{name}")[ip],
+                "timeDependent": timeDependentMapping[name],
                 "dimension": self.dimension,
             }
         return {
-            "commissioningVariablesOptimum": {
-                "values": self._commissioningVariablesOptimum[ip],
-                "timeDependent": False,
+            valName: {
+                "values": getattr(self, f"_{valName}")[ip],
+                "timeDependent": timeDependentMapping[valName],
                 "dimension": self.dimension,
-            },
-            "decommissioningVariablesOptimum": {
-                "values": self._decommissioningVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "capacityVariablesOptimum": {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "isBuiltVariablesOptimum": {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "chargeOperationVariablesOptimum": {
-                "values": self._chargeOperationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            },
-            "dischargeOperationVariablesOptimum": {
-                "values": self._dischargeOperationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            },
-            "stateOfChargeOperationVariablesOptimum": {
-                "values": self._stateOfChargeOperationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            },
+            }
+            for valName in timeDependentMapping
         }

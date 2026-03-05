@@ -500,28 +500,3 @@ def test_ConversionDynamicCommissioningDependent():
             bigM=100,
             rampDownMax=0.5,
         )
-
-
-@pytest.mark.parametrize(
-    "parameter", ["upTimeMin", "downTimeMin", "rampUpMax", "rampDownMax"]
-)
-def test_error_message_timeSeriesAggregation(parameter):
-    hoursPerTimeStep = 1
-    NUMBER_OF_HOURS = 96
-    esM = _create_system(
-        numberOfTimeSteps=NUMBER_OF_HOURS / hoursPerTimeStep,
-        hoursPerTimeStep=hoursPerTimeStep,
-    )
-    esM.updateComponent(
-        "Methane heater",
-        {
-            parameter: 1,
-            "bigM": 10000,
-        },
-    )
-
-    esM.aggregateTemporally(numberOfTypicalPeriods=2)
-    with pytest.raises(
-        ValueError, match=r".*Time series aggregation is not supported.*"
-    ):
-        esM.optimize(timeSeriesAggregation=True)

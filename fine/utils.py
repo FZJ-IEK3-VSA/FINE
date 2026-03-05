@@ -6,7 +6,23 @@ import pandas as pd
 
 import fine as fn
 
-# ruff: noqa
+
+def checkAndSetBalanceLimitID(balanceLimitID):
+    """Missing."""
+    if balanceLimitID is None or isinstance(balanceLimitID, str):
+        return balanceLimitID
+    raise ValueError("The input argument needs to be a string or None.")
+
+
+def checkCapacityOrCommissioningTransmission(df):
+    """MISSING."""
+    if isinstance(df, (pd.DataFrame, pd.Series, dict, float, int)):
+        return df
+    if df is None:
+        return df
+    raise ValueError(
+        "The input argument needs to be a dataframe, series, dict, float or int."
+    )
 
 
 def isInRange(value, lowerBound, upperBound):
@@ -15,10 +31,9 @@ def isInRange(value, lowerBound, upperBound):
         raise TypeError("The input argument has to be a number")
     if value <= upperBound and value >= lowerBound:
         return value
-    else:
-        raise ValueError(
-            f"The input argument has to be in the range [{lowerBound},{upperBound}]"
-        )
+    raise ValueError(
+        f"The input argument has to be in the range [{lowerBound},{upperBound}]"
+    )
 
 
 def isString(string):
@@ -27,17 +42,9 @@ def isString(string):
         raise TypeError("The input argument has to be a string")
 
 
-def equalStrings(ref, test):
-    """Check if two strings are equal to each other."""
-    if ref != test:
-        print("Reference string: " + str(ref))
-        print("String: " + str(test))
-        raise ValueError("Strings do not match")
-
-
 def isStrictlyPositiveInt(value):
     """Check if the input argument is a strictly positive integer."""
-    if not type(value) == int:
+    if not isinstance(value, int):
         raise TypeError("The input argument has to be an integer")
     if not value > 0:
         raise ValueError("The input argument has to be strictly positive")
@@ -61,13 +68,14 @@ def isPositiveNumber(value):
 
 def isSetOfStrings(setOfStrings):
     """Check if the input argument is a set of strings."""
-    if not type(setOfStrings) == set:
+    if not isinstance(setOfStrings, set):
         raise TypeError("The input argument has to be a set")
-    if not any([type(r) == str for r in setOfStrings]):
+    if not any([isinstance(currentString, str) for currentString in setOfStrings]):
         raise TypeError("The list entries in the input argument must be strings")
 
 
 def isEnergySystemModelInstance(esM):
+    """Check if input is an EnergySystemModel instance."""
     if not isinstance(esM, fn.EnergySystemModel):
         raise TypeError("The input is not an EnergySystemModel instance.")
 
@@ -86,13 +94,12 @@ def checkEnergySystemModelInput(
     lengthUnit,
 ):
     """Check input arguments of an EnergySystemModel instance for value/type correctness."""
-
     # Locations and commodities have to be sets
     isSetOfStrings(locations), isSetOfStrings(commodities)
 
     # The commodityUnitDict has to be a dictionary which keys equal the specified commodities and which values are
     # strings
-    if not type(commodityUnitsDict) == dict:
+    if not isinstance(commodityUnitsDict, dict):
         raise TypeError("The commodityUnitsDict input argument has to be a dictionary.")
     if commodities != set(commodityUnitsDict.keys()):
         raise ValueError(
@@ -124,17 +131,8 @@ def checkEnergySystemModelInput(
     isString(costUnit), isString(lengthUnit)
 
 
-def checkTimeUnit(timeUnit):
-    """
-    Check if the timeUnit input argument is equal to 'h'.
-    """
-    if not timeUnit == "h":
-        raise ValueError("The timeUnit input argument has to be 'h'")
-
-
 def checkTimeSeriesIndex(esM, data):
-    """
-    Necessary if the data rows represent the time-dependent data:
+    """Necessary if the data rows represent the time-dependent data:
     Check if the row-indices of the data match the time indices of the energy system model.
     """
     if list(data.index) != esM.totalTimeSteps:
@@ -144,8 +142,7 @@ def checkTimeSeriesIndex(esM, data):
 
 
 def checkRegionalColumnTitles(esM, data, locationalEligibility):
-    """
-    Necessary if the data columns represent the location-dependent data:
+    """Necessary if the data columns represent the location-dependent data:
     Check if the columns indices match the location indices of the energy system model.
     """
     # If its a single node esM set up via netCDF file, time series data is
@@ -169,8 +166,7 @@ def checkRegionalColumnTitles(esM, data, locationalEligibility):
                 + str(esM.locations)
                 + "If this was intentional, please provide locationalEligibility to cross-check."
             )
-        else:
-            data = addEmptyRegions(esM, data)
+        data = addEmptyRegions(esM, data)
 
     # Sort data according to _locationsOrdered, if not already sorted
     if not np.array_equal(data.columns, esM._locationsOrdered):
@@ -180,8 +176,7 @@ def checkRegionalColumnTitles(esM, data, locationalEligibility):
 
 
 def checkRegionalIndex(esM, data, locationalEligibility):
-    """
-    Necessary if the data rows represent the location-dependent data:
+    """Necessary if the data rows represent the location-dependent data:
     Check if the row-indices match the location indices of the energy system model.
     """
     if set(data.index) != esM.locations:
@@ -199,8 +194,7 @@ def checkRegionalIndex(esM, data, locationalEligibility):
                 + str(esM.locations)
                 + "If this was intentional, please provide locationalEligibility to cross-check."
             )
-        else:
-            data = addEmptyRegions(esM, data)
+        data = addEmptyRegions(esM, data)
 
     # Sort data according to _locationsOrdered, if not already sorted
     if not np.array_equal(data.index, esM._locationsOrdered):
@@ -210,8 +204,7 @@ def checkRegionalIndex(esM, data, locationalEligibility):
 
 
 def checkConnectionIndex(data, locationalEligibility):
-    """
-    Necessary for transmission components:
+    """Necessary for transmission components:
     Check if the indices of the connection data match the eligible connections.
     """
     if not set(data.index).issubset(locationalEligibility.index):
@@ -245,7 +238,7 @@ def checkCommodities(esM, commodities):
 
 def checkCommodityUnits(esM, commodityUnit):
     """Check if the commodity unit matches the in the energy system model defined commodity units."""
-    if not commodityUnit in esM.commodityUnitsDict.values():
+    if commodityUnit not in esM.commodityUnitsDict.values():
         raise ValueError(
             "Commodity unit does not match the ones of the specified energy system model.\n"
             + "Commodity unit: "
@@ -269,11 +262,9 @@ def checkCallableConversionFactor(conversionFactor):
 
 
 def checkDataFrameConversionFactor(conversionFactor):
-    """
-    Check if the callable conversion factor covers part loads from 0 to 1 and
+    """Check if the callable conversion factor covers part loads from 0 to 1 and
     if it includes only conversion factors greater than 0 in the relevant part load range.
     """
-
     if conversionFactor.shape[1] > 2:
         raise ValueError("The pandas dataframe has more than two columns.")
 
@@ -292,14 +283,13 @@ def checkDataFrameConversionFactor(conversionFactor):
 
 
 def checkAndSetDistances(distances, locationalEligibility, esM):
-    """
-    Check if the given values for the distances are valid (i.e. positive). If the distances parameter is None,
+    """Check if the given values for the distances are valid (i.e. positive). If the distances parameter is None,
     the distances for the eligible connections are set to 1.
     """
     if distances is None:
         output(
             "The distances of a component are set to a normalized value of 1.",
-            esM.verbose,
+            esM.verboseLogLevel,
             0,
         )
         distances = pd.Series(
@@ -316,8 +306,7 @@ def checkAndSetDistances(distances, locationalEligibility, esM):
 
 
 def checkAndSetTransmissionLosses(losses, distances, locationalEligibility):
-    """
-    Check if the type of the losses are valid (i.e. a number, pandas DataFrame or a pandas Series),
+    """Check if the type of the losses are valid (i.e. a number, pandas DataFrame or a pandas Series),
     and if the given values for the losses of the transmission component are valid (i.e. between 0 and 1).
     """
     if not (
@@ -364,9 +353,10 @@ def getCapitalChargeFactor(interestRate, economicLifetime, investmentPeriods):
 
 
 def castToSeries(data, esM):
+    """MISSING."""
     if data is None:
         return None
-    elif isinstance(data, pd.Series):
+    if isinstance(data, pd.Series):
         return data
     isPositiveNumber(data)
     return pd.Series(data, index=list(esM.locations))
@@ -389,6 +379,7 @@ def getQPbound(investmentPeriods, QPcostScale, capacityMax, capacityMin):
 
 
 def getQPcostDev(investmentPeriods, QPcostScale):
+    """MISSING."""
     QPcostDev = {}
     for ip in investmentPeriods:
         QPcostDev[ip] = 1 - QPcostScale[ip]
@@ -396,6 +387,7 @@ def getQPcostDev(investmentPeriods, QPcostScale):
 
 
 def checkLocationSpecficDesignInputParams(comp, esM):
+    """MISSING."""
     if len(esM.locations) == 1:
         comp.locationalEligibility = castToSeries(comp.locationalEligibility, esM)
         comp.isBuiltFix = castToSeries(comp.isBuiltFix, esM)
@@ -409,9 +401,6 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     hasCapacityVariable = comp.hasCapacityVariable
     hasIsBuiltBinaryVariable = comp.hasIsBuiltBinaryVariable
     sharedPotentialID = comp.sharedPotentialID
-    partLoadMin = comp.partLoadMin
-    name = comp.name
-    bigM = comp.bigM
     hasCapacityVariable = comp.hasCapacityVariable
 
     def checkAndSet(data, comp, esM):
@@ -429,6 +418,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                     "The dimension parameter has to be either '1dim' or '2dim' "
                 )
             return data
+        return None
 
     locationalEligibility = checkAndSet(locationalEligibility, comp, esM)
     isBuiltFix = checkAndSet(isBuiltFix, comp, esM)
@@ -526,7 +516,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 data = capacityMax[ip].copy()
                 data[data > 0] = 1
                 if (data > isBuiltFix).any():
-                    if esM.verbose < 2:
+                    if esM.verboseLogLevel < 2:
                         warnings.warn(
                             "The isBuiltFix and capacityMax parameters indicate different design options."
                         )
@@ -558,6 +548,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
 
 
 def processBoundParams(esM, param):
+    """MISSING."""
     processedParam = {}
     for ip in esM.investmentPeriods:
         if param is None:
@@ -577,6 +568,7 @@ def processBoundParams(esM, param):
 
 
 def checkAndSetBounds(esM, name, paramName, MinVal, MaxVal, FixVal):
+    """MISSING."""
     checkInvestmentPeriodParameters(name, MinVal, esM.investmentPeriodNames)
     checkInvestmentPeriodParameters(name, MaxVal, esM.investmentPeriodNames)
     checkInvestmentPeriodParameters(name, FixVal, esM.investmentPeriodNames)
@@ -631,6 +623,7 @@ def checkAndSetBounds(esM, name, paramName, MinVal, MaxVal, FixVal):
 
 
 def checkInvestmentPeriodParameters(name, param, years):
+    """MISSING."""
     if isinstance(param, dict):
         if len(param.keys()) != len(years):
             raise ValueError(
@@ -644,6 +637,7 @@ def checkInvestmentPeriodParameters(name, param, years):
 
 
 def checkAndSetInvestmentPeriodParamters(name, param, esM):
+    """MISSING."""
     checkInvestmentPeriodParameters(name, param, esM.investmentPeriodNames)
     processedParam = {}
     for ip in esM.investmentPeriods:
@@ -664,6 +658,7 @@ def checkCapacityDevelopmentWithStock(
     technicalLifetime,
     floorTechnicalLifetime,
 ):
+    """MISSING."""
     if stockCommissioning is None:
         pass
     else:
@@ -790,6 +785,7 @@ def checkCapacityDevelopmentWithStock(
 
 
 def checkAndSetAnnuityPerpetuity(annuityPerpetuity, numberOfInvestmentPeriods):
+    """MISSING."""
     if not isinstance(annuityPerpetuity, bool):
         raise ValueError("annuityPerpetuity must be a bool.")
     if annuityPerpetuity and numberOfInvestmentPeriods == 1:
@@ -801,6 +797,7 @@ def checkAndSetAnnuityPerpetuity(annuityPerpetuity, numberOfInvestmentPeriods):
 
 
 def checkAndSetInterestRate(esM, name, interestRate, dimension, elig):
+    """Set up interest rate per investment period."""
     # set up interest rate per investment period
     processedInterestRate = checkAndSetCostParameter(
         esM, name, interestRate, dimension, elig
@@ -815,32 +812,13 @@ def checkAndSetInterestRate(esM, name, interestRate, dimension, elig):
     return processedInterestRate
 
 
-def checkInvestmentPeriodsCommodityConversion(commodityConversion, investmentPeriods):
-    # If the commodity conversion is depending on commissioning year and investment period,
-    # the input shall be a dict with keys of commissioning year and ip and then another dict
-    # for commodity conversions
-    if any(
-        isinstance(commodityConversion[x], dict) for x in commodityConversion.keys()
-    ):
-        if len(commodityConversion.keys()) != len(investmentPeriods):
-            raise ValueError(
-                "CommodityConversion is initialized as dict but does not "
-                + "contain values for each investment-period"
-            )
-        if sorted(commodityConversion.keys()) != sorted(investmentPeriods):
-            raise ValueError(
-                f"CommodityConversion has different ip-names "
-                + f"('{commodityConversion.keys()}') than the investment "
-                + f"periods of the esM ('{investmentPeriods}')",
-            )
-
-
 def checkRampRates(
     esM,
     name,
     rampUpMax,
     rampDownMax,
 ):
+    """Check if ramprates are positive floats or ints."""
     if rampUpMax is not None:
         # Check if values are postive floats or ints
         if not isinstance(rampUpMax, (float, int)) and rampUpMax <= 0:
@@ -857,6 +835,7 @@ def checkRampRates(
 
 
 def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
+    """MISSING."""
     downTimeMin = compFancy.downTimeMin
     upTimeMin = compFancy.upTimeMin
     numberOfTimeSteps = esM.numberOfTimeSteps
@@ -866,7 +845,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
 
     if downTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
-        if type(downTimeMin) != int:
+        if not isinstance(downTimeMin, int):
             raise TypeError(
                 "downTimeMin for "
                 + name
@@ -887,7 +866,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
 
     if upTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
-        if type(upTimeMin) != int:
+        if not isinstance(upTimeMin, int):
             raise TypeError(
                 "upTimeMin for "
                 + name
@@ -929,118 +908,144 @@ def setLocationalEligibility(
     operationTimeSeries,
     dimension="1dim",
 ):
+    """MISSING."""
+    # ruff: noqa: PLR0911 # needed to avoid ruff saying "too many return statements"
     if locationalEligibility is not None:
-        # TODO implement checks for the locationalEligiblity, especially for transmission components
-        return locationalEligibility
-    else:
-        # If the location eligibility is None set it based on other information available
-        def defineLocDependencyCapacityBounds(name, capacityBound):
-            if capacityBound is None:
-                return False
-            anyLocDependent = any(
-                x is not None and not isinstance(x, (int, float))
-                for x in capacityBound.values()
-            )
-            if anyLocDependent:
-                return True
-            else:
-                return False
-
-        isCapacityMaxLocDepending = defineLocDependencyCapacityBounds(
-            "capacityMax", capacityMax
-        )
-        isCapacityFixLocDepending = defineLocDependencyCapacityBounds(
-            "capacityFix", capacityFix
-        )
-
-        if isinstance(operationTimeSeries, dict) and len(operationTimeSeries) == 0:
-            operationTimeSeries = None
-
-        if (
-            not hasCapacityVariable
-            and operationTimeSeries is not None
-            and any(ots is not None for ots in operationTimeSeries.values())
-        ):
+        if isinstance(locationalEligibility, pd.Series):
+            esm_locations = set(esM.locations)
+            le_index = set(locationalEligibility.index)
             if dimension == "1dim":
-                data = 0
-                # sum values over ips
-                for ip in esM.investmentPeriods:
-                    if operationTimeSeries[ip] is not None:
-                        data += operationTimeSeries[ip].copy().sum()
-                data[data > 0] = 1
-                return data
-            # Problems here ? Adapt this?
+                if esm_locations != le_index:
+                    raise ValueError(
+                        "if locationalEligibility (1dim) is specified, it needs to match the esM locations"
+                    )
             elif dimension == "2dim":
-                # New for perfect foresight
-                data = 0
-                # sum values over ips
-                for ip in esM.investmentPeriods:
-                    data += operationTimeSeries[ip].copy().sum()
-
-                data.loc[:] = 1
-                locationalEligibility = data
-                return locationalEligibility
-            else:
-                raise ValueError(
-                    "The dimension parameter has to be either '1dim' or '2dim' "
+                le_index_2dim = set(
+                    f"{a}_{b}"
+                    for a in sorted(esm_locations)
+                    for b in sorted(esm_locations)
+                    if a != b
                 )
-        elif (
-            (not isCapacityMaxLocDepending)
-            and (not isCapacityFixLocDepending)
-            and (isBuiltFix is None or isinstance(isBuiltFix, int))
-        ):
-            # If no information is given, or all information is given as float or integer, all values are set to 1
-            if dimension == "1dim":
-                return pd.Series([1 for loc in esM.locations], index=esM.locations)
+                if (
+                    le_index > le_index_2dim
+                ):  # location eligibility can only be defined between existing esm locations
+                    raise ValueError(
+                        "if locationalEligibility is specified, it can only be defined between existing esm locations"
+                    )
             else:
-                keys = {
-                    loc1 + "_" + loc2
-                    for loc1 in esM.locations
-                    for loc2 in esM.locations
-                    if loc1 != loc2
-                }
-                data = pd.Series([1 for key in keys], index=keys)
-                data.sort_index(inplace=True)
-                return data
-        elif isBuiltFix is not None and isinstance(isBuiltFix, pd.Series):
-            # If the isBuiltFix is not empty, the eligibility is set based on the fixed capacity
-            data = isBuiltFix.copy()
-            data[data > 0] = 1
-            data.sort_index(inplace=True)
-            return data
+                raise ValueError("dimensions needs to be either '1dim' or '2dim'")
+            if not locationalEligibility.isin([0, 1, True, False]).all():
+                raise ValueError(
+                    "all values in locationalEligibility must be either True or False or 1 or 0"
+                )
         else:
-            # If the fixCapacity is not empty, the eligibility is set based on the fixed capacity
-            # either use capacityFix or capacityMax
-            if isinstance(capacityFix, dict):
-                if all(x is None for x in capacityFix.values()):
-                    data = capacityMax
-                else:
-                    data = capacityFix
-            elif capacityFix is None:
-                data = capacityMax
-            else:
-                raise NotImplementedError()
+            raise ValueError(
+                "locationalEligibility needs to be a Series after it has been preprocessed"
+            )
+        return locationalEligibility
 
-            # First setup series with only 0
-            if dimension == "1dim":
-                regions = esM.locations
-            else:
-                firstYear = sorted(data.keys())[0]
-                regions = data[firstYear].index
-            _data = pd.Series(index=sorted(regions), data=0)
+    # If the location eligibility is None set it based on other information available
+    def defineLocDependencyCapacityBounds(name, capacityBound):
+        if capacityBound is None:
+            return False
+        anyLocDependent = any(
+            x is not None and not isinstance(x, (int, float))
+            for x in capacityBound.values()
+        )
+        if anyLocDependent:
+            return True
+        return False
 
-            # set location eligibility to 1 if capacity bound exists
+    isCapacityMaxLocDepending = defineLocDependencyCapacityBounds(
+        "capacityMax", capacityMax
+    )
+    isCapacityFixLocDepending = defineLocDependencyCapacityBounds(
+        "capacityFix", capacityFix
+    )
+
+    if isinstance(operationTimeSeries, dict) and len(operationTimeSeries) == 0:
+        operationTimeSeries = None
+
+    if (
+        not hasCapacityVariable
+        and operationTimeSeries is not None
+        and any(ots is not None for ots in operationTimeSeries.values())
+    ):
+        if dimension == "1dim":
+            data = 0
+            # sum values over ips
             for ip in esM.investmentPeriods:
-                if data[ip] is not None:
-                    loc_idx = data[ip][data[ip] > 0].index
-                    _data[loc_idx] = 1
+                if operationTimeSeries[ip] is not None:
+                    data += operationTimeSeries[ip].copy().sum()
+            data[data > 0] = 1
+            return data
+        # Problems here ? Adapt this?
+        if dimension == "2dim":
+            # New for perfect foresight
+            data = 0
+            # sum values over ips
+            for ip in esM.investmentPeriods:
+                data += operationTimeSeries[ip].copy().sum()
 
-            return _data
+            data.loc[:] = 1
+            return data
+        raise ValueError("The dimension parameter has to be either '1dim' or '2dim' ")
+    if (
+        (not isCapacityMaxLocDepending)
+        and (not isCapacityFixLocDepending)
+        and (isBuiltFix is None or isinstance(isBuiltFix, int))
+    ):
+        # If no information is given, or all information is given as float or integer, all values are set to 1
+        if dimension == "1dim":
+            return pd.Series([1 for loc in esM.locations], index=esM.locations)
+        keys = {
+            loc1 + "_" + loc2
+            for loc1 in esM.locations
+            for loc2 in esM.locations
+            if loc1 != loc2
+        }
+        data = pd.Series([1 for key in keys], index=keys)
+        data.sort_index(inplace=True)
+        return data
+    if isBuiltFix is not None and isinstance(isBuiltFix, pd.Series):
+        # If the isBuiltFix is not empty, the eligibility is set based on the fixed capacity
+        data = isBuiltFix.copy()
+        data[data > 0] = 1
+        data.sort_index(inplace=True)
+        return data
+    # If the fixCapacity is not empty, the eligibility is set based on the fixed capacity
+    # either use capacityFix or capacityMax
+    if isinstance(capacityFix, dict):
+        if all(x is None for x in capacityFix.values()):
+            data = capacityMax
+        else:
+            data = capacityFix
+    elif capacityFix is None:
+        data = capacityMax
+    else:
+        raise NotImplementedError()
+
+    # First setup series with only 0
+    if dimension == "1dim":
+        regions = esM.locations
+    else:
+        firstYear = sorted(data.keys())[0]
+        regions = data[firstYear].index
+    _data = pd.Series(index=sorted(regions), data=0)
+
+    # set location eligibility to 1 if capacity bound exists
+    for ip in esM.investmentPeriods:
+        if data[ip] is not None:
+            loc_idx = data[ip][data[ip] > 0].index
+            _data[loc_idx] = 1
+
+    return _data
 
 
 def checkAndSetInvestmentPeriodTimeSeries(
     esM, name, data, locationalEligibility, dimension="1dim"
 ):
+    """MISSING."""
     checkInvestmentPeriodParameters(name, data, esM.investmentPeriodNames)
     parameter = {}
     for _ip in esM.investmentPeriodNames:
@@ -1071,6 +1076,7 @@ def checkAndSetInvestmentPeriodTimeSeries(
 def checkAndSetInvestmentPeriodCostTimeSeries(
     esM, name, data, locationalEligibility, dimension="1dim"
 ):
+    """MISSING."""
     if (
         isinstance(data, dict)
         and any(x is None for x in data.values())
@@ -1087,6 +1093,7 @@ def checkAndSetInvestmentPeriodCostTimeSeries(
 def checkAndSetTimeSeries(
     esM, name, operationTimeSeries, locationalEligibility, dimension="1dim"
 ):
+    """MISSING."""
     if operationTimeSeries is not None:
         if not isinstance(operationTimeSeries, pd.DataFrame):
             if len(esM.locations) == 1:
@@ -1148,7 +1155,7 @@ def checkAndSetTimeSeries(
                 for loc2 in esM.locations:
                     if (
                         loc1 + "_" + loc2 in columns
-                        and not loc2 + "_" + loc1 in columns
+                        and loc2 + "_" + loc1 not in columns
                     ):
                         raise ValueError(
                             "Missing data in "
@@ -1191,9 +1198,7 @@ def checkAndSetTimeSeries(
             _operationTimeSeries.index,
         )
         return _operationTimeSeries.set_index(["Period", "TimeStep"])
-
-    else:
-        return None
+    return None
 
 
 def checkDesignVariableModelingParameters(
@@ -1204,7 +1209,8 @@ def checkDesignVariableModelingParameters(
     hasIsBuiltBinaryVariable,
     bigM,
 ):
-    if capacityVariableDomain != "continuous" and capacityVariableDomain != "discrete":
+    """MISSING."""
+    if capacityVariableDomain not in ("continuous", "discrete"):
         raise ValueError(
             "The capacity variable domain has to be either 'continuous' or 'discrete'."
         )
@@ -1229,7 +1235,7 @@ def checkDesignVariableModelingParameters(
     if bigM is not None and hasIsBuiltBinaryVariable:
         isPositiveNumber(bigM)
     elif bigM is not None and not hasIsBuiltBinaryVariable:
-        if esM.verbose < 2:
+        if esM.verboseLogLevel < 2:
             warnings.warn(
                 "The declared bigM variable is not used in the problem formulation for hasIsBuiltBinaryVariable, since hasIsBuiltBinaryVariable is set to false. \n"
                 "Check if bigM is needed for other binary variables (like partLoadMin). Else it is ignored."
@@ -1237,17 +1243,20 @@ def checkDesignVariableModelingParameters(
 
 
 def checkTechnicalLifetime(esM, technicalLifetime, economicLifetime):
+    """Set technical lifetime to economical lifetime if not explicitly given."""
     if technicalLifetime is None:
         technicalLifetime = economicLifetime
     return technicalLifetime
 
 
 def checkEconomicAndTechnicalLifetime(economicLifetime, technicalLifetime):
+    """Ensure that economic lifetime is smaller than technical lifetime."""
     if (economicLifetime.sort_index() > technicalLifetime.sort_index()).any():
         raise ValueError("Economic Lifetime must be smaller than technical Lifetime.")
 
 
 def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
+    """MISSING."""
     if not isinstance(floorTechnicalLifetime, bool):
         raise ValueError("floorTechnicalLifetime must be a bool")
     if floorTechnicalLifetime and any(
@@ -1260,6 +1269,7 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
 
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
+    """MISSING."""
     assert not (isinstance(data, pd.Series) and data.isnull().any()), (
         f"Initialization error in {name} detected.\n"
         "Economic parameters contain NaN values which are not allowed."
@@ -1340,6 +1350,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
 
 
 def setPartLoadMin(esM, partLoadMin):
+    """Set minimum part load."""
     partLoadMin_ip = {}
     for _ip in esM.investmentPeriodNames:
         # map name of investment period (e.g. 2020) to index (e.g. 0)
@@ -1361,10 +1372,12 @@ def checkAndSetPartLoadMin(
     hasCapacityVariable,
     fullOperationMin=None,
 ):
+    """MISSING."""
+
     # checking function
     def checkPartLoadMin(partLoadMin, bigM, hasCapacityVariable):
         # Check if values are floats and the intervall ]0,1].
-        if type(partLoadMin) != float:
+        if not isinstance(partLoadMin, float):
             raise TypeError(
                 "partLoadMin for "
                 + name
@@ -1457,6 +1470,7 @@ def checkAndSetPartLoadMin(
 def checkAndSetInvestmentPeriodCostParameter(
     esM, name, data, dimension, locationalEligibility, years
 ):
+    """MISSING."""
     # stock years are only considered for parameter for which the
     # years contain investment periods and stock years
     _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
@@ -1488,13 +1502,14 @@ def checkAndSetInvestmentPeriodCostParameter(
 
 
 def checkAndSetLifetimeInvestmentPeriod(esM, name, lifetime):
-    ip_LifeTime = lifetime / esM.investmentPeriodInterval
-    return ip_LifeTime
+    """Calculate lifetime in investement periods."""
+    return lifetime / esM.investmentPeriodInterval
 
 
 def checkAndSetTimeSeriesConversionFactors(
     esM, commodityConversionFactorsTimeSeries, locationalEligibility
 ):
+    """MISSING."""
     if commodityConversionFactorsTimeSeries is not None:
         if not isinstance(commodityConversionFactorsTimeSeries, pd.DataFrame):
             if len(esM.locations) == 1:
@@ -1551,9 +1566,7 @@ def checkAndSetTimeSeriesConversionFactors(
         return fullCommodityConversionFactorsTimeSeries.set_index(
             ["Period", "TimeStep"]
         )
-
-    else:
-        return None
+    return None
 
 
 def _addColumnsBalanceLimit(balanceLimit, locations):
@@ -1561,11 +1574,10 @@ def _addColumnsBalanceLimit(balanceLimit, locations):
     if "lowerBound" not in balanceLimit.columns:
         # default as in docs: lowerBound is set to False
         balanceLimit["lowerBound"] = 0
-    else:
-        if any(x for x in balanceLimit["lowerBound"] if x not in [0, 1]):
-            raise ValueError(
-                "lowerBound in balanceLimit must be set to either True, False, 0 or 1"
-            )
+    elif any(x for x in balanceLimit["lowerBound"] if x not in [0, 1]):
+        raise ValueError(
+            "lowerBound in balanceLimit must be set to either True, False, 0 or 1"
+        )
     # check and set locations:
     for loc in list(locations) + ["Total"]:
         if loc not in balanceLimit.columns:
@@ -1574,6 +1586,7 @@ def _addColumnsBalanceLimit(balanceLimit, locations):
 
 
 def checkAndSetPathwayBalanceLimit(esM, pathwayBalanceLimit, locations):
+    """MISSING."""
     # pathwayBalanceLimit has to be DataFrame with locations as columns,
     # if valid for whole model
     if pathwayBalanceLimit is None:
@@ -1588,6 +1601,7 @@ def checkAndSetPathwayBalanceLimit(esM, pathwayBalanceLimit, locations):
 
 
 def checkAndSetBalanceLimit(esM, balanceLimit, locations):
+    """MISSING."""
     # balanceLimit has to be DataFrame with locations as columns or Dict per
     # investment periods as keys and described dataframe as values,
     # if valid for whole model
@@ -1612,7 +1626,7 @@ def checkAndSetBalanceLimit(esM, balanceLimit, locations):
             _balanceLimit = balanceLimit.copy()
 
         if _balanceLimit is not None:
-            if not type(_balanceLimit) == pd.DataFrame:
+            if not isinstance(_balanceLimit, pd.DataFrame):
                 raise TypeError(
                     "The balanceLimit input argument has to be a pandas.DataFrame."
                 )
@@ -1644,6 +1658,7 @@ def checkAndSetBalanceLimit(esM, balanceLimit, locations):
 def checkAndSetFullLoadHoursParameter(
     esM, name, data, dimension, locationalEligibility
 ):
+    """MISSING."""
     checkInvestmentPeriodParameters(name, data, esM.investmentPeriodNames)
     parameter = {}
     for ip in esM.investmentPeriods:
@@ -1698,6 +1713,7 @@ def checkAndSetFullLoadHoursParameter(
 def checkClusteringInput(
     numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps
 ):
+    """MISSING."""
     (
         isStrictlyPositiveInt(numberOfTypicalPeriods),
         isStrictlyPositiveInt(numberOfTimeStepsPerPeriod),
@@ -1717,6 +1733,7 @@ def checkClusteringInput(
 def checkDeclareOptimizationProblemInput(
     timeSeriesAggregation, isTimeSeriesDataClustered
 ):
+    """MISSING."""
     if not isinstance(timeSeriesAggregation, bool):
         raise TypeError("The timeSeriesAggregation parameter has to be a boolean.")
 
@@ -1737,6 +1754,7 @@ def checkOptimizeInput(
     optimizationSpecs,
     warmstart,
 ):
+    """Ensure validity of input parameters for the optimization."""
     checkDeclareOptimizationProblemInput(
         timeSeriesAggregation, isTimeSeriesDataClustered
     )
@@ -1760,16 +1778,8 @@ def checkOptimizeInput(
         raise ValueError("The warmstart parameter has to be a boolean.")
 
 
-def setFormattedTimeSeries(timeSeries):
-    if timeSeries is None:
-        return timeSeries
-    else:
-        data = timeSeries.copy()
-        data["Period"], data["TimeStep"] = 0, data.index
-        return data.set_index(["Period", "TimeStep"])
-
-
 def buildFullTimeSeries(df, periodsOrder, ip, axis=1, esM=None, divide=True):
+    """MISSING."""
     # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
     # time steps first
     if esM is not None and esM.segmentation:
@@ -1810,8 +1820,7 @@ def buildFullTimeSeries(df, periodsOrder, ip, axis=1, esM=None, divide=True):
 def formatOptimizationOutput(
     data, varType, dimension, ip, periodsOrder=None, compDict=None, esM=None
 ):
-    """
-    Functionality for formatting the optimization output. The function is used in the
+    """Functionality for formatting the optimization output. The function is used in the
     setOptimalValues()-method of the ComponentModel class.
 
     **Required arguments:**
@@ -1873,7 +1882,7 @@ def formatOptimizationOutput(
         # Get rid of the unnecessary 0 level
         df.columns = df.columns.droplevel()
         return df
-    elif varType == "designVariables" and dimension == "2dim":
+    if varType == "designVariables" and dimension == "2dim":
         # Convert dictionary to DataFrame, transpose, put the components name first while keeping the order of the
         # regions and sort the index
         # Results in a one dimensional DataFrame
@@ -1892,7 +1901,7 @@ def formatOptimizationOutput(
         # Get rid of the unnecessary 0 level
         df.columns = df.columns.droplevel()
         return df
-    elif varType == "operationVariables" and dimension == "1dim":
+    if varType == "operationVariables" and dimension == "1dim":
         # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
 
         # Results in a one dimensional DataFrame
@@ -1910,7 +1919,7 @@ def formatOptimizationOutput(
         # drop ip from index
         df.reset_index(level=2, drop=True, inplace=True)
         return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
-    elif varType == "operationVariables" and dimension == "2dim":
+    if varType == "operationVariables" and dimension == "2dim":
         # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
         # regions and sort the index
         # Results in a one dimensional DataFrame
@@ -1942,14 +1951,14 @@ def formatOptimizationOutput(
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
         return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
-    else:
-        raise ValueError(
-            "The varType parameter has to be either 'designVariables' or 'operationVariables'\n"
-            + "and the dimension parameter has to be either '1dim' or '2dim'."
-        )
+    raise ValueError(
+        "The varType parameter has to be either 'designVariables' or 'operationVariables'\n"
+        + "and the dimension parameter has to be either '1dim' or '2dim'."
+    )
 
 
 def setOptimalComponentVariables(optVal, varType, compDict):
+    """MISSING."""
     if optVal is not None:
         for compName, comp in compDict.items():
             if compName in optVal.index:
@@ -1959,10 +1968,10 @@ def setOptimalComponentVariables(optVal, varType, compDict):
 
 
 def process2dimCapacityData(esM, name, data, years):
+    """MISSING."""
     data = preprocess2dimInvestmentPeriodData(esM, name, data, years)
     for year in years:
         data[year] = preprocess2dimData(data[year])
-
     return data
 
 
@@ -1975,6 +1984,7 @@ def preprocess2dimInvestmentPeriodData(
     mapC=None,
     discard=True,
 ):
+    """MISSING."""
     parameter = {}
     for ip in ComponentInvestmentPeriods:
         # map of year name (e.g. 2020) to internal name (e.g. 0)
@@ -2001,9 +2011,7 @@ def preprocess2dimInvestmentPeriodData(
 
 
 def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True):
-    """
-    Change format of 2-dimensional data (for transmission components).
-    """
+    """Change format of 2-dimensional data (for transmission components)."""
 
     def preprocessDataPerIp(data):
         if data is not None and isinstance(data, pd.DataFrame):
@@ -2026,60 +2034,56 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                                         index.append(loc1 + "_" + loc2),
                                         data_.append(data[loc1][loc2]),
                                     )
-                            else:
-                                if data[loc1][loc2] >= 0:
-                                    (
-                                        index.append(loc1 + "_" + loc2),
-                                        data_.append(data[loc1][loc2]),
-                                    )
-                        else:
-                            if counter == 0:
-                                if data[loc1][loc2] != 0:
-                                    warnings.warn(
-                                        "Matrix diagonale contains Non-Zeros. Location is connected to itself. Matrix adapted automatically. Please check your input!"
-                                    )
-                                    counter = counter + 1
+                            elif data[loc1][loc2] >= 0:
+                                (
+                                    index.append(loc1 + "_" + loc2),
+                                    data_.append(data[loc1][loc2]),
+                                )
+                        elif counter == 0:
+                            if data[loc1][loc2] != 0:
+                                warnings.warn(
+                                    "Matrix diagonale contains Non-Zeros. Location is connected to itself. Matrix adapted automatically. Please check your input!"
+                                )
+                                counter = counter + 1
 
                 data_ = pd.Series(data_, index=index)
                 data_.sort_index(inplace=True)
                 return data_
-            else:
-                data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
-                data_.sort_index(inplace=True)
-                return data_
-        elif isinstance(data, float) and locationalEligibility is not None:
+            data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+            data_.sort_index(inplace=True)
+            return data_
+        if isinstance(data, float) and locationalEligibility is not None:
             data_ = data * locationalEligibility
             data_.sort_index(inplace=True)
             return data_
-        elif isinstance(data, int) and locationalEligibility is not None:
+        if isinstance(data, int) and locationalEligibility is not None:
             data_ = data * locationalEligibility
             data_.sort_index(inplace=True)
             return data_
-        elif isinstance(data, pd.Series):
-            data_ = data.sort_index()
-            return data_
-        else:
-            return data
+        if isinstance(data, pd.Series):
+            return data.sort_index()
+        return data
 
     if isinstance(data, dict):
         return {ip: preprocessDataPerIp(data[ip]) for ip in data.keys()}
-    else:
-        return preprocessDataPerIp(data)
+    return preprocessDataPerIp(data)
 
 
 def map2dimData(data, mapC):
+    """Missing."""
     if data is not None and isinstance(data, pd.DataFrame):
         return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
-    else:
-        return data
+    return data
 
 
 def output(output, verbose, val):
+    """Missing."""
     if verbose == val:
         print(output)
 
 
 def checkModelClassEquality(esM, file):
+    """Missing."""
     mdlListFromModel = list(esM.componentModelingDict.keys())
     mdlListFromExcel = []
     for sheet in file.sheet_names:
@@ -2093,6 +2097,7 @@ def checkModelClassEquality(esM, file):
 
 
 def checkComponentsEquality(esM, file):
+    """Missing."""
     compListFromExcel = []
     compListFromModel = list(esM.componentNames.keys())
     for mdl in esM.componentModelingDict.keys():
@@ -2106,24 +2111,23 @@ def checkComponentsEquality(esM, file):
 
 
 def checkNumberOfConversionFactors(commods):
+    """Missing."""
     if len(commods) > 2:
         if all([isinstance(value, (int, float)) for value in commods.values()]):
             raise ValueError(
                 "Currently commodityConversionFactors are overwritten by commodityConversionFactorsPartLoad."
             )
-        else:
-            raise ValueError(
-                "Currently only two commodities are allowed in conversion processes that use commodityConversionFactorsPartLoad."
-            )
-    else:
-        return True
+        raise ValueError(
+            "Currently only two commodities are allowed in conversion processes that use commodityConversionFactorsPartLoad."
+        )
+    return True
 
 
+# ruff: noqa: PLW0127 # included technically unnecessary elif for readability
 def checkAndSetTimeHorizon(
     startYear, endYear=None, nbOfSteps=None, nbOfRepresentedYears=None
 ):
-    """
-    Check if there are enough input parameters given for defining the time horizon for the myopic approach.
+    """Check if there are enough input parameters given for defining the time horizon for the myopic approach.
     Calculate the number of optimization steps and the number of represented years per each step if not given.
     """
     if (endYear is not None) & (nbOfSteps is None) & (nbOfRepresentedYears is None):
@@ -2134,6 +2138,7 @@ def checkAndSetTimeHorizon(
             for i in [10, 5, 3, 2, 1]:
                 if diff % i == 0:
                     return i
+            return i
 
         nbOfRepresentedYears = biggestDivisor(diff)
         nbOfSteps = int(diff / nbOfRepresentedYears)
@@ -2152,7 +2157,7 @@ def checkAndSetTimeHorizon(
             raise ValueError(
                 "Number of Steps does not fit for the given time horizon between start and end year."
             )
-        elif (diff % nbOfSteps == 0) & (nbOfRepresentedYears is not None):
+        if (diff % nbOfSteps == 0) & (nbOfRepresentedYears is not None):
             if diff / nbOfSteps != nbOfRepresentedYears:
                 raise ValueError(
                     "Number of represented years does not fit for the given time horizon and the number of steps."
@@ -2165,8 +2170,7 @@ def checkAndSetTimeHorizon(
             raise ValueError(
                 "Number of represented Years is not an integer divisor of the requested time horizon."
             )
-        else:
-            nbOfSteps = int(diff / nbOfRepresentedYears)
+        nbOfSteps = int(diff / nbOfRepresentedYears)
     else:
         nbOfSteps = 1
         nbOfRepresentedYears = 1
@@ -2177,10 +2181,11 @@ def checkAndSetTimeHorizon(
 def checkStockYears(
     stockCommissioning, startYear, investmentPeriodInterval, ipTechnicalLifetime
 ):
+    """Missing."""
     if stockCommissioning is None:
         return [], []
     if not isinstance(stockCommissioning, dict):
-        raise ValueError(f"stockCommissioning must be None or a dict")
+        raise ValueError("stockCommissioning must be None or a dict")
 
     # check years
     for year, yearly_stock in stockCommissioning.items():
@@ -2207,6 +2212,7 @@ def checkStockYears(
 
 
 def checkAndSetStock(component, esM, stockCommissioning):
+    """Missing."""
     if stockCommissioning is None:
         return stockCommissioning
 
@@ -2240,11 +2246,11 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 raise ValueError(
                     "esM has more than one location, so the location of the stock has to be set."
                 )
-            else:  # if there is only one region, convert into pd.series region:stock
-                isPositiveNumber(yearly_stock)
-                stockCommissioning[year] = pd.Series(
-                    data={list(esM.locations)[0]: yearly_stock}
-                )
+            # if there is only one region, convert into pd.series region:stock
+            isPositiveNumber(yearly_stock)
+            stockCommissioning[year] = pd.Series(
+                data={list(esM.locations)[0]: yearly_stock}
+            )
         elif isinstance(yearly_stock, pd.Series):
             # series must have all locations as index and float/int for values
 
@@ -2347,11 +2353,11 @@ def checkAndSetStock(component, esM, stockCommissioning):
         maxTechnicalLifetime = math.ceil(component.ipTechnicalLifetime.max())
     allStockYears = [x for x in range(-1, -maxTechnicalLifetime - 1, -1)]
     stock_df = stock_df.reindex(allStockYears).fillna(0)
-    processedStockCommissioning = stock_df.T.to_dict(orient="series")
-    return processedStockCommissioning
+    return stock_df.T.to_dict(orient="series")
 
 
 def setStockCapacityStartYear(component, esM, dimension):
+    """Missing."""
     if dimension == "1dim":
         regions = esM.locations
     elif dimension == "2dim":
@@ -2363,24 +2369,22 @@ def setStockCapacityStartYear(component, esM, dimension):
         ]
     if component.processedStockCommissioning is None:
         return pd.Series(index=regions, data=0)
-    else:
-        stockCapacityStartYear = pd.Series()
-        for loc in regions:
-            _stock_location = 0
-            if component.floorTechnicalLifetime:
-                ipTechLifetime = math.floor(component.ipTechnicalLifetime[loc])
-            else:
-                ipTechLifetime = math.ceil(component.ipTechnicalLifetime[loc])
-            for year in range(-1, -ipTechLifetime - 1, -1):
-                _stock_location += component.processedStockCommissioning[year].loc[loc]
-            stockCapacityStartYear[loc] = _stock_location
-        return stockCapacityStartYear
+
+    stockCapacityStartYear = pd.Series()
+    for loc in regions:
+        _stock_location = 0
+        if component.floorTechnicalLifetime:
+            ipTechLifetime = math.floor(component.ipTechnicalLifetime[loc])
+        else:
+            ipTechLifetime = math.ceil(component.ipTechnicalLifetime[loc])
+        for year in range(-1, -ipTechLifetime - 1, -1):
+            _stock_location += component.processedStockCommissioning[year].loc[loc]
+        stockCapacityStartYear[loc] = _stock_location
+    return stockCapacityStartYear
 
 
 def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
-    """
-    Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps.
-    """
+    """Check if the CO2 reduction target is either None or the length of the given list equals the number of optimization steps."""
     if CO2ReductionTargets is not None:
         if len(CO2ReductionTargets) != nbOfSteps + 1:
             raise ValueError(
@@ -2390,31 +2394,26 @@ def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
 
 
 def checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets):
-    """
-    Check if a sink component object called >CO2 to environment< exists.
+    """Check if a sink component object called >CO2 to environment< exists.
     This component is required if CO2 reduction targets are given.
     """
-
     if CO2ReductionTargets is not None:
         if "CO2 to environment" not in esM.componentNames:
             warnings.warn(
                 "CO2 emissions are not considered in the current esM. CO2ReductionTargets will be ignored."
             )
-            CO2ReductionTargets = None
-            return CO2ReductionTargets
-        else:
-            return CO2ReductionTargets
+            return None
+    return CO2ReductionTargets
 
 
 def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
-    """
-    Check if simultaneous charge and discharge occurs for StorageComponent.
+    """Check if simultaneous charge and discharge occurs for StorageComponent.
     :param tsCharge: Charge time series of component, which is checked. Can be retrieved from
         chargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
     :type tsCharge: pd.DataFrame
     :param tsDischarge: Discharge time series of component, which is checked. Can be retrieved from
         dischargeOperationVariablesOptimum.loc[compName]. Columns are the time steps, index are the regions.
-    :type tsDischarge: pd.DataFrame
+    :type tsDischarge: pd.DataFrame.
 
     :return: simultaneousChargeDischarge: Boolean with information if simultaneous charge & discharge happens
     :type simultaneousChargeDischarge: bool
@@ -2424,39 +2423,28 @@ def checkSimultaneousChargeDischarge(tsCharge, tsDischarge):
     # If no simultaneous charge and discharge occurs ts[region][ts[region] > 0] will only return nan values. After
     # dropping them the len() is 0 and the check returns False. This is done for all regions in the list comprehension.
     # If any() region returns True the check returns True.
-    simultaneousChargeDischarge = any(
+    return any(
         [
             len(ts[region][ts[region] > 0].dropna()) > 0
             for region in set(ts.columns.values)
         ]
     )
-    return simultaneousChargeDischarge
-
-
-def checkParamInput(param):
-    if isinstance(param, dict):
-        for key, value in param.items():
-            if value is None:
-                raise ValueError(
-                    f"Currently a dict containing None values cannot be passed for '{param}'"
-                )
 
 
 def addEmptyRegions(esM, data):
-    """
+    """Check empty regions.
     If data for a region is missing, fill with 0s.
     """
-
     esM_locations = esM.locations
     data_locations = data.index
     missing_locations = [loc for loc in esM_locations if loc not in data_locations]
 
-    if type(data) == pd.Series:
+    if isinstance(data, pd.Series):
         for loc in missing_locations:
             tst = pd.Series([0], index=[loc])
             data = pd.concat([data, tst], axis=0)
 
-    elif type(data) == pd.DataFrame:
+    elif isinstance(data, pd.DataFrame):
         for loc in missing_locations:
             if loc not in data.columns:
                 data[loc] = 0
@@ -2465,17 +2453,18 @@ def addEmptyRegions(esM, data):
 
 
 def annuityPresentValueFactor(esM, compName, loc, years):
+    """Calculate annuity of present value factor."""
     # DE:Rentenbarwertfaktor
     interestRate = esM.getComponent(compName).interestRate[loc]
     if interestRate == 0:
         return years
-    else:
-        return (((1 + interestRate) ** (years)) - 1) / (
-            interestRate * (1 + interestRate) ** (years)
-        )
+    return (((1 + interestRate) ** (years)) - 1) / (
+        interestRate * (1 + interestRate) ** (years)
+    )
 
 
 def discountFactor(esM, ip, compName, loc):
+    """Calculate discount factors."""
     return (
         1
         / (1 + esM.getComponent(compName).interestRate[loc])
@@ -2485,11 +2474,10 @@ def discountFactor(esM, ip, compName, loc):
 
 
 def checkConversionFactorProperties(comp, esM, commisDependingCcf):
-    """
-    check commodity conversion factors (ccf) in order to determine if the conversion component is:
-        a) ipDepending (ccf changes with investment period it is operated (e.g. due to weather changes))
-        b) commisDepending (ccf changes based on year a component is commissioned (e.g. due to technological improvements)
-        c) flexibleConversion (component can decide which commodity to use (within a specified commodity group))
+    """Check commodity conversion factors (ccf) in order to determine if the conversion component is.
+    a) ipDepending (ccf changes with investment period it is operated (e.g. due to weather changes))
+    b) commisDepending (ccf changes based on year a component is commissioned (e.g. due to technological improvements)
+    c) flexibleConversion (component can decide which commodity to use (within a specified commodity group)).
     """
     isIpDepending = False
     isCommisDepending = False
@@ -2561,7 +2549,7 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
             for ccf in _commodConvFactorForIp:
                 for commod in ccf.keys():
                     # check for same datatype
-                    if type(ccf[commod]) != type(_baseCommodConvFactor[commod]):
+                    if type(ccf[commod]) is not type(_baseCommodConvFactor[commod]):
                         raise ValueError(
                             f"Unallowed data type variation for commodity {commod} for yearly dependency."
                         )
@@ -2569,10 +2557,9 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
                         if not ccf[commod].equals(_baseCommodConvFactor[commod]):
                             isDataVariating = True
                             break
-                    else:
-                        if not ccf[commod] == _baseCommodConvFactor[commod]:
-                            isDataVariating = True
-                            break
+                    elif not ccf[commod] == _baseCommodConvFactor[commod]:
+                        isDataVariating = True
+                        break
         # if data is varying, set commis depending true
         if isDataVariating:
             isCommisDepending = True
@@ -2588,22 +2575,22 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
 
 
 def checkNestedNanValues(obj):
+    """Missing."""
     if isinstance(obj, dict):
         return any(checkNestedNanValues(v) for v in obj.values())
-    elif isinstance(obj, (list, tuple)):
+    if isinstance(obj, (list, tuple)):
         return any(checkNestedNanValues(v) for v in obj)
-    elif isinstance(obj, pd.Series):
+    if isinstance(obj, pd.Series):
         return obj.isnull().any()
-    elif isinstance(obj, pd.DataFrame):
+    if isinstance(obj, pd.DataFrame):
         return obj.isnull().values.any()
-    elif isinstance(obj, float):
+    if isinstance(obj, float):
         return math.isnan(obj)
     return False
 
 
 def checkAndSetCommodityConversionFactor(comp, esM):
-    """
-    Set up the full commodity conversion factor, if necessary depending on
+    """Set up the full commodity conversion factor, if necessary depending on
     commissioning year and investment period.
     """
     iterationList = esM.investmentPeriodNames
@@ -2670,7 +2657,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 if isinstance(value, float) and math.isnan(value):
                     raise ValueError(f"NaN found at key '{key}'")
 
-                elif isinstance(value, list):
+                if isinstance(value, list):
                     for i, v in enumerate(value):
                         if isinstance(v, float) and math.isnan(v):
                             raise ValueError(
@@ -2735,10 +2722,10 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                     ):
                         raise NotImplementedError(
                             "Flexible conversion components currently do not support "
-                            f"time series data for commodity conversion factors."
+                            "time series data for commodity conversion factors."
                         )
 
-                    elif isinstance(
+                    if isinstance(
                         _commodityConversionFactors[group][commod], (int, float)
                     ):
                         # fix values do not need a time-series aggregation and are written
@@ -2800,16 +2787,14 @@ def checkAndSetCommodityConversionFactor(comp, esM):
 
 
 def checkEmissionFactors(comp, esM):
-    """
-    Check emission factors for flexible conversion components.
-    """
+    """Check emission factors for flexible conversion components."""
 
     def is_nan(val):
         return isinstance(val, float) and math.isnan(val)
 
     if comp.emissionFactors is None:
         return None
-    elif not comp.flexibleConversion:
+    if not comp.flexibleConversion:
         raise NotImplementedError(
             "Emission factors can only be defined for flexible conversion components. "
             "For non flexible conversion components emission factors must be introduced "
@@ -2824,7 +2809,7 @@ def checkEmissionFactors(comp, esM):
     for key, value in comp.emissionFactors.items():
         if isinstance(value, float) and is_nan(value):
             raise ValueError(f"NaN found in emission factor for key '{key}'")
-        elif isinstance(value, list):
+        if isinstance(value, list):
             for i, v in enumerate(value):
                 if isinstance(v, float) and is_nan(v):
                     raise ValueError(
@@ -2872,9 +2857,7 @@ def checkEmissionFactors(comp, esM):
 
 
 def checkAndSetFlowShares(comp, esM):
-    """
-    Check flow shares for flexible conversion components.
-    """
+    """Check flow shares for flexible conversion components."""
     if comp.flowShares is None:
         return None
     if not comp.flexibleConversion:
@@ -2903,7 +2886,7 @@ def checkAndSetFlowShares(comp, esM):
             )
         for param in flowShares.keys():
             for commod, flowShare in flowShares[param].items():
-                if not commod in flex_commodities:
+                if commod not in flex_commodities:
                     raise ValueError(
                         "Flow shares commodities must be defined as flexible "
                         f"commodity. Please check {commod} in {comp.name}"
@@ -2942,6 +2925,7 @@ def checkAndSetFlowShares(comp, esM):
 
 
 def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
+    """Get parameters for uneven lifetimes."""
     ipEconomicLifetime = getattr(esM.getComponent(compName), "ipEconomicLifetime")[loc]
     ipTechnicalLifetime = getattr(esM.getComponent(compName), "ipTechnicalLifetime")[
         loc

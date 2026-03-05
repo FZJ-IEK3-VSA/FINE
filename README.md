@@ -9,7 +9,7 @@
 [![PyPI - License](https://img.shields.io/pypi/l/FINE)](https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)
 [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06274/status.svg)](https://doi.org/10.21105/joss.06274)
-
+[![JURSE Code of the month Feburary 2026](https://img.shields.io/badge/JuRSE_Code_Pick-Feb_2026-blue?link=https://www.fz-juelich.de/en/rse/community-initiatives/jurse-code-of-the-month/february-2026)](https://www.fz-juelich.de/en/rse/community-initiatives/jurse-code-of-the-month/february-2026)
 
 
 The ETHOS.FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities, time steps and investment periods can be modeled. Target of the optimization is the minimization of the systems net present value (NPV) while considering technical and environmental constraints. If only one investment period is considered, the net present value is equal to the total annual costs (TAC). Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
@@ -144,7 +144,8 @@ We use [ruff](https://docs.astral.sh/ruff) to ensure good coding style. Make
 sure to use it before contributing to the code base with
 
 ```bash
-ruff check fine
+ruff check --config=pyproject.toml
+ruff format --diff --config=pyproject.toml
 ```
 
 ## License

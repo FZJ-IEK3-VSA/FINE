@@ -267,7 +267,8 @@ def stock_esM():
 
 
 def test_stock():
-    esM = stock_esM()
+    with pytest.warns(UserWarning, match="Stock of component Pressure tank"):
+        esM = stock_esM()
 
     # Check input of optimization
     # electrolyzers
