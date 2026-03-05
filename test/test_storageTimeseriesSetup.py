@@ -44,7 +44,6 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
             name="dummy_storage_2",
             commodity="hydrogen",
             hasCapacityVariable=True,
-            # chargeOpRateMax=dummy_time_series,
             chargeOpRateFix=dummy_time_series,
             capacityVariableDomain="continuous",
             stateOfChargeMin=0.33,
