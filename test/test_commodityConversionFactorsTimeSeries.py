@@ -303,8 +303,7 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
         )
 
     # Assert the optimal operation
-    # We are asserting up to a precision of one decimal to account for precision gaps
-    # of the solver.
+    # Asserting up to a precision of one decimal to account for precision gaps of the solver.
     assertion_values_const = [0.0, 9385714.2, 0.0, 9385714.2]
     assertion_values_var = [18771428.5, 18771428.5, 18771428.5, 0.0]
     for t in range(0, 4):
@@ -401,7 +400,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe():
         )
     )
 
-    # --- Hydrogen demand (10 each timestep, each location) ---
+    # --- Hydrogen demand  ---
     demand = pd.DataFrame(
         {
             "Loc1": [10.0, 10.0, 10.0, 10.0],
@@ -454,7 +453,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe():
 
     assert isinstance(full, pd.DataFrame)
 
-    # Check a few entries
+    # Check entries
     np.testing.assert_almost_equal(full.at[(0, 0), "Loc1"], 0.5)
     np.testing.assert_almost_equal(full.at[(0, 3), "Loc1"], 0.8)
     np.testing.assert_almost_equal(full.at[(0, 1), "Loc2"], 0.9)
@@ -540,9 +539,6 @@ def test_location_specific_timeseries_conversion_factors_with_tsa():
     esM = create_two_loc_esm_4ts_for_tsa()
 
     # Location-specific + time-varying efficiency
-    # choose values so TSA with 2 typical periods clusters into two "types":
-    # - small efficiencies (0.5 / 0.6) => high electricity use
-    # - large efficiencies (0.9 / 1.0) => low electricity use
     ccf_h2 = pd.DataFrame(
         {
             "Loc1": [0.5, 0.5, 1.0, 1.0],
@@ -569,7 +565,7 @@ def test_location_specific_timeseries_conversion_factors_with_tsa():
         )
     )
 
-    # --- TSA aggregation (same pattern as your existing tests) ---
+    # --- TSA aggregation ---
     esM.aggregateTemporally(
         numberOfTypicalPeriods=2,
         numberOfTimeStepsPerPeriod=1,
@@ -594,7 +590,6 @@ def test_location_specific_timeseries_conversion_factors_with_tsa():
     # With 2 typical periods and our constructed factors, we expect only 2 unique electricity levels.
     assert len(unique_vals) == 2
 
-    # Optional: validate the levels approximately.
     # Loc1: demand=10, eff either 0.5 => 20, or 1.0 => 10
     # TSA rescaling can replicate those levels; values should be near 10 and 20.
     assert np.isclose(unique_vals, 10.0, atol=1e-6).any()

@@ -128,6 +128,20 @@ class Conversion(Component):
             * dictionary with investment periods as key and one of the first option  as value
             * dictionary with tuple of (commissioning year, investment period) as key and one of the first option above as value
 
+        Example:
+                {
+                    2025: {'electricity': -1,
+                        'hydrogen': pd.DataFrame(
+                            {'ElectrolyzerLocation': [0.5, 0.6, 0.7, ...],
+                                'IndustryLocation':     [1.0, 0.9, 0.8, ...]},
+                            index=esM.totalTimeSteps)},
+                    2030: {'electricity': -1,
+                        'hydrogen': pd.DataFrame(
+                            {'ElectrolyzerLocation': [0.6, 0.7, 0.8, ...],
+                                'IndustryLocation':     [0.9, 0.8, 0.7, ...]},
+                            index=esM.totalTimeSteps)}
+                }
+
         **Default arguments:**
 
         :param linkedConversionCapacityID: if specifies, indicates that all conversion components with the

@@ -2582,7 +2582,11 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                     if item[0] in esM.commodities:
                         raise ValueError(
                             "Commodity group names must be different from commodity names. "
-                            f"Group name '{item[0]}' is not valid."
+                            f"Group name '{item[0]}' is not valid.\n"
+                            "Hint: If you want investment-period-dependent conversion factors, use:\n"
+                            "  {YEAR: {'electricity': ..., 'hydrogen': ...}, ...}\n"
+                            "and not:\n"
+                            "  {'hydrogen': {YEAR: ...}}"
                         )
                     commodities += list(item[1].keys())
                     commodTypes += [
@@ -2594,14 +2598,13 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                         raise ValueError(
                             f"Commodity conversion factors for '{item[0]}' contain NaN values."
                         )
-                    if not (
-                        all(ccf > 0 for ccf in item[1].values())
-                        or all(ccf < 0 for ccf in item[1].values())
-                    ):
-                        raise ValueError(
-                            f"All commodity conversion factors of {comp.name}"
-                            f" in commodity group '{item[0]}' must have the same sign."
-                        )
+                    vals = list(item[1].values())
+                    if not any(isinstance(v, (pd.Series, pd.DataFrame)) for v in vals):
+                        if not (all(v > 0 for v in vals) or all(v < 0 for v in vals)):
+                            raise ValueError(
+                                f"All commodity conversion factors of {comp.name}"
+                                f" in commodity group '{item[0]}' must have the same sign."
+                            )
                 else:
                     commodities.append(item[0])
                     commodTypes.append(type(item[1]))
@@ -2614,6 +2617,15 @@ def checkAndSetCommodityConversionFactor(comp, esM):
             ]
 
             for key, value in ccf.items():
+                if isinstance(value, dict):
+                    raise ValueError(
+                        f"{comp.name}: Invalid commodityConversionFactors format: found a nested dict under key '{key}'. "
+                        "If you want investment-period-dependent conversion factors, use:\n"
+                        "  {YEAR: {'electricity': ..., 'hydrogen': ...}, ...}\n"
+                        "and not:\n"
+                        "  {'hydrogen': {YEAR: ...}}"
+                    )
+
                 if isinstance(value, float) and math.isnan(value):
                     raise ValueError(f"NaN found at key '{key}'")
 
@@ -2644,8 +2656,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     else:
         checkFactorCommod(commodityConversionFactors)
 
-    # 3. Setup of fullCommodityConversionFactor, processedConversionFactor
-    # and preprocessedConversionFactor
+    # 3. Setup of fullCommodityConversionFactor, processedConversionFactor and preprocessedConversionFactor
     fullCommodityConversionFactor = {}
     processedCommodityConversionFactor = {}
     preprocessedCommodityConversionFactor = {}
