@@ -2,6 +2,7 @@ import fine as fn
 import numpy as np
 import pandas as pd
 from fine.utils import annuityPresentValueFactor, discountFactor
+from fine.utils import ImplementedSolvers
 
 
 def create_test_esM(techLifetime, economicLifetime, floorTechnicalLifetime):
@@ -279,7 +280,10 @@ def test_TAC_netPresentValueContributions():
     esM = create_test_esM(technicalLifetime, economicLifetime, floorTechnicalLifetime)
     esM.optimize()
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
 
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value

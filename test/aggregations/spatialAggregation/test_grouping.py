@@ -9,6 +9,7 @@ from sklearn.datasets import make_blobs
 from shapely.geometry import Point
 
 from fine.aggregations.spatialAggregation import grouping
+from fine.utils import ImplementedSolvers
 
 
 # %%
@@ -187,7 +188,7 @@ def test_perform_parameter_based_grouping(
         n_groups=2,
         aggregation_method=aggregation_method,
         weights=weights,
-        solver="glpk",
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
     )
 
     # ASSERTION

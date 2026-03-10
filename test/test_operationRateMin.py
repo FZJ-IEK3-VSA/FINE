@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from fine.utils import ImplementedSolvers
+
 
 def test_operationRateMin(minimal_test_esM):
     esM = minimal_test_esM
@@ -22,7 +24,10 @@ def test_operationRateMin(minimal_test_esM):
             updateAttrs={"operationRateMin": operationRateMin},
         )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
 
     ts = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.loc[
         "Electrolyzers"

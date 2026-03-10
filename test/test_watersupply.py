@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 from pathlib import Path
 
 
@@ -231,7 +232,10 @@ def test_watersupply():
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
 
     # Selected results output
     esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)

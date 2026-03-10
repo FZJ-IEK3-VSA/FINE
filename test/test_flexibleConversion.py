@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 
 from fine.IOManagement.xarrayIO import writeEnergySystemModelToNetCDF
+from fine.utils import ImplementedSolvers
 
 
 def test_flexibleConversion_init():
@@ -405,7 +406,10 @@ def test_flexibleConversion_groups():
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
     writeEnergySystemModelToNetCDF(esM, "flex_conversion_esm.nc")
     print("Objective Value: \n" + str(esM.pyM.Obj()))
     Path("flex_conversion_esm.nc").unlink()
@@ -522,7 +526,10 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
     if use_balanceLimit:
         assert (
             esM.getOptimizationSummary("SourceSinkModel", ip=2020)
@@ -664,7 +671,10 @@ def test_flexibleConversionFlowShare():
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
     assert (
         esM.pyM.op_flex_conv[
             "loc1", "conversion_flex", 0, "in", "hydrogen", 0, 0

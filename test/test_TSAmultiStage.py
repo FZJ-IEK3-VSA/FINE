@@ -1,6 +1,8 @@
 import fine as fn
 import pandas as pd
 
+from fine.utils import ImplementedSolvers
+
 
 def test_TSAmultiStage(minimal_test_esM):
     """Get the minimal test system, and check if the Error-Bounding-Approach works for it."""
@@ -35,7 +37,7 @@ def test_TSAmultiStage(minimal_test_esM):
     fn.optimizeTSAmultiStage(
         esM,
         relaxIsBuiltBinary=True,
-        solver="glpk",
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
         numberOfTypicalPeriods=2,
         numberOfTimeStepsPerPeriod=1,
     )

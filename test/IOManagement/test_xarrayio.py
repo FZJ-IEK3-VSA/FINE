@@ -5,6 +5,7 @@ import pandas as pd
 from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
 
+from fine.utils import ImplementedSolvers
 import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
 from fine.IOManagement.dictIO import exportToDict
@@ -311,7 +312,10 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
     optSum = esM.getOptimizationSummary("TransmissionModel").loc[
@@ -340,7 +344,10 @@ def test_coordinates(multi_node_test_esM_init):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
 

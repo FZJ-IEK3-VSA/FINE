@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 
 # %%
@@ -49,7 +50,10 @@ def test_eos_NPV():
 
     esM.declareOptimizationProblem()
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
 
     commissioning = [
         esM.getOptimizationSummary("SourceSinkModel", ip=0).loc[

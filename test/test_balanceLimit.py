@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import pytest
 
+from fine.utils import ImplementedSolvers
+
 # Test balanceLimit constraint for autarky analysis
 # In this test the following steps are performed:
 # 0) Preprocess energy system model
@@ -60,7 +62,10 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
     # Test without segmentation:
     esM, losses, distances, balanceLimit = balanceLimitConstraint_test_esM
     # 1) Optimize model
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
     # 2) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
     check_selfSufficiency(esM, losses, distances, balanceLimit)
 
@@ -79,7 +84,10 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
     )
 
     # 1) Optimize model
-    esM_segmentation.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM_segmentation.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
     # 2) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
     check_selfSufficiency(esM_segmentation, losses, distances, balanceLimit)
 
@@ -261,7 +269,10 @@ def test_electricitySourceDriver():
     )
 
     # 4) Optimize model
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
 
     # 5) The balanceLimit is compared to the outcome of the model
     #   operation wind + operation pv >= balanceLimit
@@ -442,7 +453,10 @@ def test_hydrogenSinkDriver():
         )
     )
     # 4) Optimize model
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
 
     # 5) The balanceLimit is compared to the outcome of the model
     # Hydrogen Annual Production >= hydrogenDriver (as balanceLimitID)
@@ -661,7 +675,10 @@ def test_CO2Limit(co2_limits):
     )
 
     # 4) Optimize model
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+    )
     co2_to_environment = 0
 
     # 5) The CO2_limit is compared to the outcome of the model
