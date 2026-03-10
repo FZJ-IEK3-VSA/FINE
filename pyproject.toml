@@ -45,7 +45,7 @@ dependencies = [
     "tsam>=3.1.2,<=3.1.2",
     "pwlf>=2.0.4,<=2.5.2",
     "psutil>=5.8.0,<=7.2.2",
-    "gurobi-logtools>=3.0.0,<=3.2.0",
+    "gurobi-logtools>=3.0.0,<=4.0.1",
     "ipykernel<=7.2.0",
 ]
 # <=3.13 translates to <=3.13.0, why the <3.14 is used
