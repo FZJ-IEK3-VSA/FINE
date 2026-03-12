@@ -442,7 +442,7 @@ def test_conversionPartLoad():
     ### Optimization ###
     # Input parameters
     timeSeriesAggregation = False
-    solver = ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value
+    solver = ImplementedSolvers.STANDARD_SOLVER.value
     # Code
     esM.optimize(timeSeriesAggregation=timeSeriesAggregation, solver=solver)
 

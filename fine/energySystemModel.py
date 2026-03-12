@@ -2032,7 +2032,7 @@ class EnergySystemModel:
         # Order of possible solvers in solverList defines the priority of chosen default solver.
         solverList = [
             ImplementedSolvers.GUROBI.value,
-            ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+            ImplementedSolvers.STANDARD_SOLVER.value,
             ImplementedSolvers.CBC.value,
             ImplementedSolvers.HIGHS.value,
         ]

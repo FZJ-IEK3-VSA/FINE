@@ -1335,7 +1335,7 @@ def multi_node_test_esM_optimized(esM_init):
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     return esM
@@ -2300,7 +2300,7 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     return esM

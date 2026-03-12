@@ -64,7 +64,7 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
     # 1) Optimize model
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     # 2) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
     check_selfSufficiency(esM, losses, distances, balanceLimit)
@@ -86,7 +86,7 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
     # 1) Optimize model
     esM_segmentation.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     # 2) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
     check_selfSufficiency(esM_segmentation, losses, distances, balanceLimit)
@@ -271,7 +271,7 @@ def test_electricitySourceDriver():
     # 4) Optimize model
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # 5) The balanceLimit is compared to the outcome of the model
@@ -455,7 +455,7 @@ def test_hydrogenSinkDriver():
     # 4) Optimize model
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # 5) The balanceLimit is compared to the outcome of the model
@@ -677,7 +677,7 @@ def test_CO2Limit(co2_limits):
     # 4) Optimize model
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     co2_to_environment = 0
 

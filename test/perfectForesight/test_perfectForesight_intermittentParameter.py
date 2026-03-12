@@ -81,7 +81,7 @@ def test_capacityCommissioningMinMaxFix():
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     ops = {
@@ -170,7 +170,7 @@ def test_fullLoadHoursMinMax():
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     ops_srcSnk = {
@@ -232,7 +232,7 @@ def test_storageAndBalanceLimit():
     )
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     assert (

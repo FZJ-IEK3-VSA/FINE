@@ -33,7 +33,7 @@ def test_linkedQuantityID(minimal_test_esM):
     # optimize
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     assert (

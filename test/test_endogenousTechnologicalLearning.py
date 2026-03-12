@@ -58,7 +58,7 @@ def test_etl_NPV():
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     commissioning = [
@@ -88,7 +88,7 @@ def test_etl_NPV():
 
     esm_from_netcdf.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     np.testing.assert_almost_equal(esm_from_netcdf.pyM.Obj(), esM.pyM.Obj(), 5)
     np.testing.assert_almost_equal(esm_from_netcdf.pyM.Obj(), 4.6906658, 5)
@@ -153,7 +153,7 @@ def test_etl_stock_NPV():
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     commis = [
         esM.getOptimizationSummary("SourceSinkModel", ip).loc[
@@ -243,5 +243,5 @@ def test_etl_multi_regional():
         )
     )
 
-    esM.optimize(solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value)
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
     print(1)

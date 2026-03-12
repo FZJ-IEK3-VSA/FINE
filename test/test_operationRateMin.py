@@ -26,7 +26,7 @@ def test_operationRateMin(minimal_test_esM):
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     ts = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.loc[

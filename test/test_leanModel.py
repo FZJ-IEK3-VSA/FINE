@@ -223,5 +223,5 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )

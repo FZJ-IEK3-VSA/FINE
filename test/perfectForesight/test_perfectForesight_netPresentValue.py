@@ -5,7 +5,7 @@ from fine.utils import ImplementedSolvers
 def test_perfectForesight_netPresentValue(perfectForesight_test_esM):
     perfectForesight_test_esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 11861.771783274202

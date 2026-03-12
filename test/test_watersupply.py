@@ -234,7 +234,7 @@ def test_watersupply():
     )
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # Selected results output

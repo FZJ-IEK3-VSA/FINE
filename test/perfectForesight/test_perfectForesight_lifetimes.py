@@ -282,7 +282,7 @@ def test_TAC_netPresentValueContributions():
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # the sum of all npv contributions in the optimization summary must equal

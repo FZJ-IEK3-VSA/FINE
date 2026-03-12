@@ -188,7 +188,7 @@ def test_perform_parameter_based_grouping(
         n_groups=2,
         aggregation_method=aggregation_method,
         weights=weights,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # ASSERTION

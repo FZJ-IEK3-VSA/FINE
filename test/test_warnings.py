@@ -11,7 +11,7 @@ def test_userWarnings_esm(minimal_test_esM):
     ):
         minimal_test_esM.optimize(
             timeSeriesAggregation=False,
-            solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
         minimal_test_esM.getOptimizationSummary("SourceSinkModel", outputLevel=5)
 

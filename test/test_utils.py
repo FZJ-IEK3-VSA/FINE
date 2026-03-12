@@ -146,7 +146,7 @@ def test_checkSimultaneousChargeDischarge():
     with pytest.warns(UserWarning, match="Charge and discharge at the same time"):
         esM.optimize(
             timeSeriesAggregation=False,
-            solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
     # Get the charge and discharge time series of the Batteries and use the check in the utils.
     tsCharge = esM.componentModelingDict[

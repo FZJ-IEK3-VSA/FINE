@@ -87,7 +87,7 @@ def test_variable_conversion_simple_no_tsa():
     # optimize
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     df = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
@@ -128,7 +128,7 @@ def test_variable_conversion_simple_with_tsa():
     # Optimization
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     df = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
@@ -160,7 +160,7 @@ def test_basecase(minimal_test_esM):
     # Optimize without TSA
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # Get the optimal electrolyzer operation
@@ -222,7 +222,7 @@ def test_variable_conversion_factor_no_tsa(minimal_test_esM):
     # Optimize the esM without TSA.
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # Get optimal electrolyzer operations
@@ -301,7 +301,7 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # Get optimal electrolyzer operations

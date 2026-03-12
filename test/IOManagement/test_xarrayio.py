@@ -314,7 +314,7 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     )
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
@@ -346,7 +346,7 @@ def test_coordinates(multi_node_test_esM_init):
     )
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)

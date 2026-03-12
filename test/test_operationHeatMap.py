@@ -8,7 +8,7 @@ def test_fullloadhours_above(minimal_test_esM):
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # Plot the operational heat map

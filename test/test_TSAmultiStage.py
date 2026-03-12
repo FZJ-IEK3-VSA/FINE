@@ -37,7 +37,7 @@ def test_TSAmultiStage(minimal_test_esM):
     fn.optimizeTSAmultiStage(
         esM,
         relaxIsBuiltBinary=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
         numberOfTypicalPeriods=2,
         numberOfTimeStepsPerPeriod=1,
     )

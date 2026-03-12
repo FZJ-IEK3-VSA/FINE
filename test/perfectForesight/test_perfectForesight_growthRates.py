@@ -65,7 +65,7 @@ def test_commissioningMinMaxFix(perfectForesight_test_esM):
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     commissioning_Pipe = esM.getOptimizationSummary("TransmissionModel", ip=2020).loc[
         "Pipelines", "commissioning", "[kW$_{H_{2},LHV}$]", "ForesightLand"

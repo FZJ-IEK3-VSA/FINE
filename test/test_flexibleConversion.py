@@ -408,7 +408,7 @@ def test_flexibleConversion_groups():
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     writeEnergySystemModelToNetCDF(esM, "flex_conversion_esm.nc")
     print("Objective Value: \n" + str(esM.pyM.Obj()))
@@ -528,7 +528,7 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     if use_balanceLimit:
         assert (
@@ -673,7 +673,7 @@ def test_flexibleConversionFlowShare():
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     assert (
         esM.pyM.op_flex_conv[

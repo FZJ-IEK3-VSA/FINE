@@ -252,7 +252,7 @@ def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
     )
     multi_node_test_esM_init.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     writeOptimizationOutputToExcel(
         multi_node_test_esM_init,
@@ -278,9 +278,7 @@ def saveExcelResultsWithSegmentation(
     minimal_test_esM, savePathWithoutSegmentation, savePathWithSegmentation
 ):
     # run and save model without segmentation
-    minimal_test_esM.optimize(
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value
-    )
+    minimal_test_esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
     writeOptimizationOutputToExcel(
         minimal_test_esM,
         outputFileName=savePathWithoutSegmentation,
@@ -310,7 +308,7 @@ def saveExcelResultsWithSegmentation(
     )
     minimal_test_esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     writeOptimizationOutputToExcel(
         minimal_test_esM,

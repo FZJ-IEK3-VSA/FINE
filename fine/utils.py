@@ -3009,4 +3009,4 @@ class ImplementedSolvers(Enum):
     GUROBI = "gurobi"
     CBC = "cbc"
     HIGHS = "highs"
-    STANDARD_OPEN_SOURCE_SOLVER = "glpk"
+    STANDARD_SOLVER = "glpk"  # Use Gurobi if available, otherwise use GLPK

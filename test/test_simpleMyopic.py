@@ -301,7 +301,7 @@ def test_CO2ReductionTargets():
         saveResults=False,
         trackESMs=True,
         numberOfTypicalPeriods=3,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     assert (
@@ -470,7 +470,7 @@ def test_exceededLifetime():
         endYear=2030,
         nbOfRepresentedYears=5,
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
         saveResults=False,
         trackESMs=True,
     )

@@ -9,7 +9,7 @@ def test_fullloadhours_above(minimal_test_esM):
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # get cumulative operation
@@ -54,7 +54,7 @@ def test_fullloadhours_max(minimal_test_esM):
     # optimize
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # get cumulative operation
@@ -112,7 +112,7 @@ def test_fullloadhours_min(minimal_test_esM):
     # optimize
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # get cumulative operation

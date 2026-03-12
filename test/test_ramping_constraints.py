@@ -64,7 +64,7 @@ def maximize_period_boundary_jump_up(esM):
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     pyM = esM.pyM
@@ -79,7 +79,7 @@ def maximize_period_boundary_jump_up(esM):
         expr=pyM.op_conv[key_after] - pyM.op_conv[key_before], sense=pyo.maximize
     )
 
-    pyo.SolverFactory(ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value).solve(pyM)
+    pyo.SolverFactory(ImplementedSolvers.STANDARD_SOLVER.value).solve(pyM)
     return pyM, key_before, key_after
 
 
@@ -88,7 +88,7 @@ def maximize_period_boundary_jump_down(esM):
     esM.aggregateTemporally(numberOfTypicalPeriods=2)
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     pyM = esM.pyM
 
@@ -107,7 +107,7 @@ def maximize_period_boundary_jump_down(esM):
         sense=pyo.maximize,
     )
 
-    pyo.SolverFactory(ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value).solve(pyM)
+    pyo.SolverFactory(ImplementedSolvers.STANDARD_SOLVER.value).solve(pyM)
     return pyM, key_before, key_after
 
 

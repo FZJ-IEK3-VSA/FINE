@@ -199,10 +199,10 @@ def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False
 
 def test_stochasticBasic():
     singleYearesM = stochasticESM(singleYear=True)
-    singleYearesM.optimize(solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value)
+    singleYearesM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     doubleYear = stochasticESM(singleYear=False, sameParameters=True)
-    doubleYear.optimize(solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value)
+    doubleYear.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     # check objective values
     np.testing.assert_almost_equal(singleYearesM.pyM.Obj(), 7545)
@@ -229,7 +229,7 @@ def test_stochasticBasic():
 
 def test_stochasticParameters():
     esM = stochasticESM(singleYear=False, sameParameters=False)
-    esM.optimize(solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value)
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     # check objective value
     np.testing.assert_almost_equal(esM.pyM.Obj(), 15135)
@@ -290,7 +290,7 @@ def test_stochasticTimeSeries_withTransmission():
     # Optimize energy system model
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     cms_vars = esM.pyM.commis_srcSnk.get_values()

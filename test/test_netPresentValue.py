@@ -6,7 +6,7 @@ from fine.utils import ImplementedSolvers
 def test_Mini_netPresentValue(minimal_test_esM):
     minimal_test_esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value

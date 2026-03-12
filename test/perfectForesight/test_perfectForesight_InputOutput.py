@@ -14,7 +14,7 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
     # optimize perfect foresight model
     perfectForesight_test_esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # create empty directory to save results
@@ -105,7 +105,7 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
 
     perfectForesight_test_esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     expected_obj = perfectForesight_test_esM.pyM.Obj().copy()
 
@@ -116,7 +116,7 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
     # run with the reloaded esM
     output_esM_dict.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     output_obj_dict = output_esM_dict.pyM.Obj()
     # test if objective values are the same
@@ -145,7 +145,7 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
     # 2.check result for reloaded esM from netcdf
     output_esM_xarray.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     output_obj_xarray = output_esM_xarray.pyM.Obj()
     # test if objective values are the same
@@ -182,7 +182,7 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
 
     perfectForesight_test_esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     expected_obj = perfectForesight_test_esM.pyM.Obj()
 
@@ -193,7 +193,7 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
     # run with the reloaded esM
     output_esM_dict.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     output_obj_dict = output_esM_dict.pyM.Obj()
     # test if objective values are the same
@@ -222,7 +222,7 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
     # 2.check result for reloaded esM from netcdf
     output_esM_xarray.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     output_obj_xarray = output_esM_xarray.pyM.Obj()
     # test if objective values are the same

@@ -9,7 +9,7 @@ from fine.utils import ImplementedSolvers
 def test_perfectForesight_mini(perfectForesight_test_esM):
     perfectForesight_test_esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 11861.771783274202
@@ -66,7 +66,7 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # CHECKS
@@ -266,7 +266,7 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
     )
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
 
@@ -348,7 +348,7 @@ def test_perfectForesight_binary():
         )
     )
 
-    esM.optimize(solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value)
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     # test commissioning variables
     assert esM.pyM.commis_srcSnk.get_values()[("PerfectLand", "PV", -1)] == 1
@@ -383,7 +383,7 @@ def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
     perfectForesight_test_esM.annuityPerpetuity = True
     perfectForesight_test_esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 31984.802368949295
@@ -431,7 +431,7 @@ def test_perfectForesight_npv_with_stock(perfectForesight_test_esM, annuityPerpe
     perfectForesight_test_esM.annuityPerpetuity = annuityPerpetuity
     perfectForesight_test_esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     print(perfectForesight_test_esM.pyM.Obj())

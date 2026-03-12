@@ -10,7 +10,7 @@ def test_minimal_test_esM(minimal_test_esM):
 
     minimal_test_esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
 
@@ -25,5 +25,5 @@ def test_multi_node_test_esM_init(multi_node_test_esM_init):
 
     multi_node_test_esM_init.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )

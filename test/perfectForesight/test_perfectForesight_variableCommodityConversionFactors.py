@@ -351,7 +351,7 @@ def test_perfectForesight_variableConversions_timeindependent(
 
         esM.optimize(
             timeSeriesAggregation=True,
-            solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
 
     expected_value = 1000 if use_tsa is False else 3000
@@ -529,7 +529,7 @@ def test_perfectForesight_variableConversions_timedepending(
 
         esM.optimize(
             timeSeriesAggregation=True,
-            solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
 
         # check that aggregation is correct
@@ -651,7 +651,7 @@ def test_perfectForesight_variableConversions_operationRateMax(
         )
         esM.optimize(
             timeSeriesAggregation=True,
-            solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
 
     # test the sum of the operation
@@ -795,7 +795,7 @@ def test_perfectForesight_variableConversions_operationRateFix(
         )
         esM.optimize(
             timeSeriesAggregation=True,
-            solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
         timeStepList = [0]
 
@@ -935,7 +935,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMax(
         )
         esM.optimize(
             timeSeriesAggregation=True,
-            solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
         timeStepList = [0]
 
@@ -1069,7 +1069,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
         )
         esM.optimize(
             timeSeriesAggregation=True,
-            solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
         timeStepList = [0]
 

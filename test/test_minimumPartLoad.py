@@ -207,7 +207,7 @@ def test_minimumPartLoad():
     )
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     print("restricted dispatch:\n")

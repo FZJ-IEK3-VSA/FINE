@@ -8,7 +8,7 @@ def test_shadowCostOutPut(minimal_test_esM):
     """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000."""
     esM = minimal_test_esM
 
-    esM.optimize(solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value)
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     SP = fn.getShadowPrices(
         esM,
@@ -32,7 +32,7 @@ def test_shadowCostOutPut(minimal_test_esM):
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     SP = fn.getShadowPrices(

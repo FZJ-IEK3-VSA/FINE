@@ -81,7 +81,7 @@ def test_miniSystem():
 
     esM.optimize(
         timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
@@ -109,7 +109,7 @@ def test_miniSystem():
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_OPEN_SOURCE_SOLVER.value,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
