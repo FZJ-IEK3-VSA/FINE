@@ -54,7 +54,7 @@ def writeOptimizationOutputToExcel(
     outputFileName="scenarioOutput",
     optSumOutputLevel=2,
     optValOutputLevel=1,
-    investmentPeriod=None
+    investmentPeriod=None,
 ):
     """Write optimization output to an Excel file.
 
@@ -90,7 +90,9 @@ def writeOptimizationOutputToExcel(
         investmentPeriodNamesExport = esM.investmentPeriodNames
     else:
         if not isinstance(investmentPeriod, int):
-            raise ValueError("investmentPeriod must be type int and specify a single year, which shall be exported.")
+            raise ValueError(
+                "investmentPeriod must be type int and specify a single year, which shall be exported."
+            )
         investmentPeriodNamesExport = [investmentPeriod]
 
     for ip in investmentPeriodNamesExport:

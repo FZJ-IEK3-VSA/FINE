@@ -2,6 +2,7 @@ import FINE as fn
 import numpy as np
 import pandas as pd
 
+
 def test_rolling_horizon():
     esM = fn.EnergySystemModel(
         locations={"PerfectLand"},
@@ -28,12 +29,7 @@ def test_rolling_horizon():
             hasCapacityVariable=True,
             investPerCapacity=1e3,
             interestRate=0.02,
-            opexPerOperation={
-                2020:1,
-                2025:1,
-                2030:100,
-                2035:100
-            },
+            opexPerOperation={2020: 1, 2025: 1, 2030: 100, 2035: 100},
             economicLifetime=15,
         )
     )
@@ -46,12 +42,7 @@ def test_rolling_horizon():
             hasCapacityVariable=True,
             investPerCapacity=1e3,
             interestRate=0.02,
-            opexPerOperation={
-                2020:100,
-                2025:100,
-                2030:1,
-                2035:1
-            },
+            opexPerOperation={2020: 100, 2025: 100, 2030: 1, 2035: 1},
             economicLifetime=15,
         )
     )
@@ -63,9 +54,8 @@ def test_rolling_horizon():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateFix=pd.DataFrame(
-                np.array([4380,4380]),
-                columns=["PerfectLand"],
-                index=[0,1]),
+                np.array([4380, 4380]), columns=["PerfectLand"], index=[0, 1]
+            ),
         )
     )
 
