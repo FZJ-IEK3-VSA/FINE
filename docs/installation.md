@@ -16,7 +16,7 @@ In the following, you find information on:
 If you would like to run ETHOS.FINE for your analysis we recommend to install it directly from conda-forge into a new Python environment with
 
 ```bash
-mamba create --name fine --channel conda-forge fine
+mamba create --name fine_env --channel conda-forge fine
 ```
 
 !!! note "Mamba vs. Conda"
@@ -34,8 +34,8 @@ mamba create --name fine --channel conda-forge fine
 To install an editable version of the code, it is recommended to create a clean environment, e.g., with conda to use ETHOS.FINE because it requires many dependencies.
 
 ```bash
-mamba env create --name fine --file requirements_dev.yml
-mamba activate fine
+mamba env create --name fine_env --file requirements_dev.yml
+mamba activate fine_env
 ```
 
 Install ETHOS.FINE as editable install and without checking the dependencies from PyPI with
@@ -91,7 +91,7 @@ python -m pip install --editable .[develop]
 
 ## Installation of an optimization solver
 
-ETHOS.FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html).
+ETHOS.FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/).
 It searches for the following solvers in this order:
 
 ### GUROBI
@@ -101,19 +101,17 @@ The solver [GUROBI](http://www.gurobi.com/) is recommended due to better perform
 
 The installation requires the following three components:
 
-- **Gurobi Optimizer** — In order to [download](https://www.gurobi.com/downloads/gurobi-optimizer-eula/) the
+- **Gurobi Optimizer** — In order to [download](https://www.gurobi.com/downloads/) the
   software you need to create an account and obtain a license.
 - **Gurobi license** — The license needs to be installed according to the instructions in the registration process.
-- **Gurobi python api** — The python api can be installed according to
-  [this instruction](https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python-).
+- **Gurobi python api** — The python api comes automatically with the fine installation.
 
 ### GLPK
 
 The solver [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download) is installed with the
-ETHOS.FINE environment. A complete installation instruction for Windows can be found at
-[winglpk.sourceforge.net](http://winglpk.sourceforge.net/).
+ETHOS.FINE environment.
 
 ### CBC
 
 Installation procedure for the solver [CBC](https://projects.coin-or.org/Cbc) can be found
-[here](https://projects.coin-or.org/Cbc).
+[here](https://projects.coin-or.org/Cbc). Please note that the CBC solver is no longer actively tested. Results may differ from those of the GLPK or Gurobi solvers.
