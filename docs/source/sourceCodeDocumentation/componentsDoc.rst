@@ -1,4 +1,3 @@
-##########
 Components
 ##########
 
@@ -16,14 +15,16 @@ classes in FINE. These are
 Form these basic component and component modeling classes, further subclasses can be defined. For example, a
 LinearOptimalPowerFlow + LOPFModel class inherit from the Transmission and TransmissionModel class.
 
-**Component and ComponentModeling class**
+Component and ComponentModeling class
+*************************************
 
 .. toctree::
    :maxdepth: 1
 
    components/componentClassDoc
 
-**Basic component and component modeling classes**
+Basic component and component modeling classes
+**********************************************
 
 .. toctree::
    :maxdepth: 1
@@ -33,11 +34,11 @@ LinearOptimalPowerFlow + LOPFModel class inherit from the Transmission and Trans
    components/transmissionClassDoc
    components/storageClassDoc
 
-**Extended subclasses**
+Extended subclasses
+*******************
 
 .. toctree::
    :maxdepth: 1
 
-   components/subclasses/conversionPartLoadClassDoc
    components/subclasses/conversionDynamicClassDoc
    components/subclasses/lopfClassDoc

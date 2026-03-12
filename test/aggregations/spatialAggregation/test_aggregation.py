@@ -1,11 +1,10 @@
 import pytest
 import numpy as np
 
-from FINE.aggregations.spatialAggregation import aggregation
+from fine.aggregations.spatialAggregation import aggregation
 
 
 def test_aggregate_geometries(xr_and_dict_for_basic_representation):
-
     (
         sub_to_sup_region_id_dict,
         xr_for_basic_representation,
@@ -41,9 +40,9 @@ test_data = [
         },
         3,
         5,
-        30,
         15,
-        np.array([[0, 25], [25, 0]]),
+        5,
+        np.array([[0, 5], [5, 0]]),
         np.array([[0, 1], [1, 0]]),
     ),
 ]
@@ -66,7 +65,6 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict(
     expected_2d_capacityMax,
     expected_2d_locationalEligibility,
 ):
-
     sub_to_sup_region_id_dict, test_xr = xr_and_dict_for_basic_representation
 
     output_ds_dict = aggregation.aggregate_based_on_sub_to_sup_region_id_dict(

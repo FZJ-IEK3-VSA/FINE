@@ -1,6 +1,6 @@
 # directories
 .vscode/
-FINE.egg-info
+fine.egg-info
 .idea/
 __pycache__/
 .ipynb_checkpoints/
@@ -12,6 +12,8 @@ __pycache__/
 *.dist/
 *.docs/build/
 .vscode/
+build/
+.venv/
 
 # file types to ignore
 *.pyc
@@ -21,3 +23,5 @@ __pycache__/
 *.glp
 *.mps
 .coverage
+
+test_esM_etl.nc

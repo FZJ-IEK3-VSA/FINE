@@ -1,12 +1,9 @@
-import FINE as fn
+import fine as fn
 import pandas as pd
 
 
 def test_TSAmultiStage(minimal_test_esM):
-    """
-    Get the minimal test system, and check if the Error-Bounding-Approach works for it
-    """
-
+    """Get the minimal test system, and check if the Error-Bounding-Approach works for it."""
     # modify the minimal LP and change it to a MILP
     esM = minimal_test_esM
 

@@ -1,6 +1,7 @@
-import FINE as fn
+import fine as fn
 import pandas as pd
 import numpy as np
+import pytest
 
 # Test balanceLimit constraint for autarky analysis
 # In this test the following steps are performed:
@@ -11,8 +12,7 @@ import numpy as np
 #   'Wind turbines', 'PV', 'Batteries' as well as transmission components 'AC cables', 'Heat pipes'
 #   'Electricity purchase' and 'AC cables' are included in the autarky analysis
 # 4) Optimize model
-# 5) The balanceLimit is compared to the outcome of the model
-#   purchase + exchange_in - exchange_out <= balanceLimit
+# 5) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
 
 
 def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
@@ -49,8 +49,6 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
                     exch_out = cables.loc[loc, loc_].T.sum()
                     exch_out_h = pipes.loc[loc, loc_].T.sum()
 
-            tolerance = 0.001
-
             ## Compare modelled autarky to limit set in constraint.
             assert np.isclose(
                 (el_purchase + exch_in - exch_out), balanceLimit.loc["el", loc]
@@ -63,8 +61,7 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
     esM, losses, distances, balanceLimit = balanceLimitConstraint_test_esM
     # 1) Optimize model
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
-    # 2) The balanceLimit is compared to the outcome of the model
-    #   purchase + exchange_in - exchange_out <= balanceLimit
+    # 2) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
     check_selfSufficiency(esM, losses, distances, balanceLimit)
 
     # Test self sufficiency with segmenation
@@ -83,8 +80,7 @@ def test_balanceLimitConstraint(balanceLimitConstraint_test_esM):
 
     # 1) Optimize model
     esM_segmentation.optimize(timeSeriesAggregation=True, solver="glpk")
-    # 2) The balanceLimit is compared to the outcome of the model
-    #   purchase + exchange_in - exchange_out <= balanceLimit
+    # 2) The balanceLimit is compared to the outcome of the model: purchase + exchange_in - exchange_out <= balanceLimit
     check_selfSufficiency(esM_segmentation, losses, distances, balanceLimit)
 
 
@@ -147,6 +143,7 @@ def test_electricitySourceDriver():
     ## Define balanceLimit constraint in relation to demand in two regions
     balanceLimit = pd.DataFrame(columns=["Region1", "Region2"], index=["Renewables"])
     balanceLimit.loc["Renewables"] = 0.25 * demand.sum()
+    balanceLimit["lowerBound"] = True
 
     # 2) Initialize esM with two regions
     esM = fn.EnergySystemModel(
@@ -159,7 +156,6 @@ def test_electricitySourceDriver():
         lengthUnit="km",
         verboseLogLevel=2,
         balanceLimit=balanceLimit,
-        lowerBound=True,
     )
 
     # 3) Components are added: 'Electricity demand', 'Electricity purchase', 'Wind turbines', 'PV', 'Batteries'
@@ -300,7 +296,6 @@ def test_electricitySourceDriver():
 # 5) The balanceLimit is compared to the outcome of the model
 #   Hydrogen Annual Production >= hydrogenDriver (as balanceLimitID)
 def test_hydrogenSinkDriver():
-
     # 0) Preprocess energy system model
     locations = {"Region1"}
     commodityUnitDict = {"electricity": r"MW$_{el}$", "hydrogen": r"MW$_{LHV_H2}$"}
@@ -367,7 +362,6 @@ def test_hydrogenSinkDriver():
         lengthUnit="km",
         verboseLogLevel=2,
         balanceLimit=balanceLimit,
-        lowerBound=False,
     )
 
     # 3) Components are added: 'Wind turbines', 'Electrolyzer', 'Batteries' and 'Hydrogen Annual Production'
@@ -480,7 +474,8 @@ def test_hydrogenSinkDriver():
 # 4) Optimize Model
 # 5) The CO2_limit is compared to the outcome of the model
 # (sink are defined negative)
-def test_CO2Limit():
+@pytest.mark.parametrize("co2_limits", [[("max", 1)], [("max", 1.2), ("min", 1.1)]])
+def test_CO2Limit(co2_limits):
     # 0) Preprocess energy system model
     locations = {"Region1", "Region2"}
     commodityUnitDict = {
@@ -530,8 +525,32 @@ def test_CO2Limit():
     ).round(2)
 
     # 1) Define CO2-Limit with balanceLimitConstraint (sink are defined negative)
-    CO2_limit = pd.Series(index=["CO2 limit"])
-    CO2_limit.loc["CO2 limit"] = -1 * demand.sum().sum() * 0.6 * 201 * 1e-6 / 0.6
+    base_co2_limit = -1 * demand.sum().sum() * 0.6 * 201 * 1e-6 / 0.6
+    # possibility to add upper and lower bound for balance limit
+    constaints = []
+    for minMax, scalingFactor in co2_limits:
+        minMaxBool = True if minMax == "max" else False
+        constaints.append(
+            pd.DataFrame(
+                index=["CO2 limit"],
+                columns=["Total", "lowerBound"],
+                data=[[base_co2_limit * scalingFactor, minMaxBool]],
+            )
+        )
+    CO2_limit = pd.concat(constaints)
+
+    # extract values for checking the constraint later
+    if len(constaints) == 1:
+        minCheckingValue = CO2_limit.loc["CO2 limit", "Total"]
+        maxCheckingValue = CO2_limit.loc["CO2 limit", "Total"]
+    else:
+        CO2_limit.loc[CO2_limit["lowerBound"] == True].loc["CO2 limit", "Total"]  # noqa: E712
+        minCheckingValue = CO2_limit.loc[CO2_limit["lowerBound"] == False].loc[  # noqa: E712
+            "CO2 limit", "Total"
+        ]
+        maxCheckingValue = CO2_limit.loc[CO2_limit["lowerBound"] == True].loc[  # noqa: E712
+            "CO2 limit", "Total"
+        ]
 
     # 2) Initialize EnergySystemModel with two Regions
     esM = fn.EnergySystemModel(
@@ -544,7 +563,6 @@ def test_CO2Limit():
         lengthUnit="km",
         verboseLogLevel=2,
         balanceLimit=CO2_limit,
-        lowerBound=True,
     )
 
     # 3) Components are added: 'Electricity demand', 'Methane purchase', 'cctg', 'CO2 to environment',
@@ -657,5 +675,5 @@ def test_CO2Limit():
         )
     tolerance = 0.001
     ## Compare modeled co2 emissions to limit set in constraint.
-    assert co2_to_environment * (1 - tolerance) < -1 * CO2_limit.loc["CO2 limit"]
-    assert co2_to_environment * (1 + tolerance) > -1 * CO2_limit.loc["CO2 limit"]
+    assert co2_to_environment * (1 - tolerance) < -1 * maxCheckingValue
+    assert co2_to_environment * (1 + tolerance) > -1 * minCheckingValue

@@ -7,14 +7,13 @@ import xarray as xr
 from shapely.geometry import Polygon, MultiPolygon
 from collections import namedtuple
 
-import FINE.aggregations.spatialAggregation.managerUtils as manUtils
+import fine.aggregations.spatialAggregation.managerUtils as manUtils
 
 # ============================================Fixtures for Grouping==================================================#
 
 
 @pytest.fixture()
 def xr_for_connectivity():
-
     space_list = [
         "01_reg",
         "02_reg",
@@ -117,9 +116,7 @@ def xr_for_connectivity():
 
     geom_xr = manUtils.create_geom_xarray(gdf)
 
-    test_ds_dict = {"Input": input_xr_dict, "Geometry": geom_xr}
-
-    return test_ds_dict
+    return {"Input": input_xr_dict, "Geometry": geom_xr}
 
 
 @pytest.fixture()
@@ -218,9 +215,7 @@ def xr_for_parameter_based_grouping():
 
     geom_xr = manUtils.create_geom_xarray(gdf)
 
-    test_ds_dict = {"Input": input_xr_dict, "Geometry": geom_xr}
-
-    return test_ds_dict
+    return {"Input": input_xr_dict, "Geometry": geom_xr}
 
 
 # ============================================Fixtures for Basic Representation==================================================#
@@ -228,8 +223,8 @@ def xr_for_parameter_based_grouping():
 
 @pytest.fixture()
 def xr_and_dict_for_basic_representation():
-    """
-    xarray to test basic representation functions-
+    """Xarray to test basic representation functions.
+
     1. test_aggregate_based_on_sub_to_sup_region_id_dict()
     2. test_aggregate_time_series()
     3. test_aggregate_values()
@@ -407,7 +402,7 @@ def gridded_RE_data(scope="session"):
 
     test_xr_ds = xr.Dataset({"capacity": capacity_xr_da, "capfac": capfac_xr_da})
 
-    test_xr_ds.attrs["SRS"] = "epsg:3035"
+    test_xr_ds.attrs["SRS"] = "EPSG:3035"
 
     return test_xr_ds
 
@@ -443,11 +438,9 @@ def non_gridded_RE_data(scope="session"):
     ]
     regions_xr_da = xr.DataArray(test_data, coords=[locations], dims=["locations"])
 
-    test_xr_ds = xr.Dataset(
+    return xr.Dataset(
         {"capacity": capacity_xr_da, "capfac": capfac_xr_da, "region": regions_xr_da}
     )
-
-    return test_xr_ds
 
 
 @pytest.fixture
@@ -459,6 +452,4 @@ def sample_shapefile(scope="session"):
 
     df = pd.DataFrame({"region_ids": ["reg_01", "reg_02"]})
 
-    gdf = gpd.GeoDataFrame(df, geometry=test_geometries, crs={"init": "epsg:3035"})
-
-    return gdf
+    return gpd.GeoDataFrame(df, geometry=test_geometries, crs="EPSG:3035")

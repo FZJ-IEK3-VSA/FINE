@@ -1,11 +1,8 @@
-import pandas as pd
-import FINE as fn
+import fine as fn
 
 
 def test_fullloadhours_above(minimal_test_esM):
-    """
-    Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000.
-    """
+    """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000."""
     esM = minimal_test_esM
 
     esM.optimize(timeSeriesAggregation=False, solver="glpk")

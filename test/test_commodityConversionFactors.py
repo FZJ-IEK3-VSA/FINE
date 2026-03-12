@@ -1,4 +1,4 @@
-import FINE as fn
+import fine as fn
 import pandas as pd
 import numpy as np
 import pytest
@@ -10,9 +10,7 @@ not covered in the minimal test system or other tests.
 
 
 def create_core_esm():
-    """
-    We create a core esm that only consists of a source and a sink in one location.
-    """
+    """We create a core esm that only consists of a source and a sink in one location."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
     # Create an energy system model instance
@@ -53,10 +51,7 @@ def create_core_esm():
 
 
 def test_conversion_factors_as_series():
-    """
-    Input as pandas.Series for one location.
-    """
-
+    """Input as pandas.Series for one location."""
     esM = create_core_esm()
 
     with pytest.raises(

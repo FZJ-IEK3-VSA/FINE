@@ -2,7 +2,8 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+# SPHINXOPTS    = -a -n -v -w log.txt
+SPHINXOPTS    = -a -v
 SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = FINE
 SOURCEDIR     = source

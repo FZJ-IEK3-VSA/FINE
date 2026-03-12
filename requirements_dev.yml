@@ -1,42 +1,39 @@
-name: FINE_dev
+name: fine_dev_env
+
+channels:
+  - conda-forge
+  - nodefaults
 
 dependencies:
-- python=3.10
-- conda-forge::libiconv
-- conda-forge::gdal=3.4
-- conda-forge::geopandas
-- conda-forge::jupyter
-- conda-forge::notebook
-- conda-forge::libpysal
-- pip
-- descartes
-- glpk
-- openpyxl
-- matplotlib
-- xlrd
-- pyomo
-- numpy
-- pandas
-- GPyOpt
-- networkx
-- scipy
-- pwlf
-- pyDOE
-- sphinx_rtd_theme
-- scikit-learn
-- xarray
-- statsmodels
-- seaborn
-- conda-forge::rasterio
-- conda-forge::netcdf4
-- pytest
-- pytest-cov
-- pylint
-- conda-forge::nbval
-- conda-forge::black=21.9b0 
+  - python >=3.10,<=3.13.12
+  - pip
+  - geopandas >=1.0.0,<=1.1.2
+  - glpk >=4.63,<=5.0
+  - openpyxl <=3.1.5
+  - matplotlib <=3.10.8
+  - xlrd >=1.2.0,<=2.0.2
+  - pyomo >=6.8,<=6.10.0
+  - numpy >=1.22,<=2.4.2
+  - pandas >=1.4,<=2.3.3
+  - scipy >=1.7.2,<=1.17.1
+  - scikit-learn >=1.2,<=1.8.0
+  - xarray >=2022.3.0,<=2026.2.0,!=2024.10.0,!=2024.11.0,!=2025.1.*,!=2025.3.*,!=2025.9.*
+  - rasterio >=1.3.7,<=1.5.0
+  - netcdf4 >1.6.4,<=1.7.4
+  - tsam >=2.0.1,<=2.3.9
+  - pwlf >=2.0.4,<=2.5.2
+  - psutil >=5.8.0,<=7.2.2
+  - gurobi-logtools >=3.0.0,<=3.2.0
+  # Examples
+  - ipykernel <=7.2.0
+  # develop
+  - pytest <=9.0.2
+  - pytest-cov <=7.0.0
+  - pytest-xdist <=3.8.0
+  - nbval <=0.11.0
+  - ruff <=0.13.1
+  # Documentation
+  - sphinx <=7.4.7
+  - sphinx_rtd_theme <=2.0.0
+  - myst-parser <=2.0.0
 
-
-- pip:
-    - tsam
-    - wquantiles
-    - -e .

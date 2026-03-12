@@ -1,25 +1,21 @@
-import os
 import time
 
 import pandas as pd
 import numpy as np
 
-import FINE as fn
+import fine as fn
+from pathlib import Path
 
 
 def test_watersupply():
-
     # read in original results
     results = pd.read_csv(
-        os.path.join(
-            os.path.dirname(__file__),
-            "_testInputFiles",
-            "waterSupplySystem_totalTransmission.csv",
-        ),
+        Path(__file__).parent
+        / "_testInputFiles"
+        / "waterSupplySystem_totalTransmission.csv",
         index_col=[0, 1, 2],
         header=None,
-        squeeze=True,
-    )
+    ).squeeze("columns")
 
     # get parameters
     locations = [
@@ -98,6 +94,8 @@ def test_watersupply():
             locationalEligibility=eligibility,
             investPerCapacity=0.10,
             opexPerCapacity=0.02 * 0.1,
+            opexPerChargeOperation=1e-6,
+            opexPerDischargeOperation=1e-6,
             interestRate=0.08,
             economicLifetime=20,
         )
@@ -225,7 +223,7 @@ def test_watersupply():
         )
     )
 
-    # # Optimize the system
+    # Optimize the system
     esM.aggregateTemporally(
         numberOfTypicalPeriods=7,
         segmentation=False,
@@ -235,17 +233,16 @@ def test_watersupply():
     )
     esM.optimize(timeSeriesAggregation=True, solver="glpk")
 
-    # # Selected results output
+    # Selected results output
     esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
 
-    # ### Storage
+    ### Storage
     esM.getOptimizationSummary("StorageModel", outputLevel=2)
 
-    # ### Transmission
+    ### Transmission
     esM.getOptimizationSummary("TransmissionModel", outputLevel=2)
     esM.componentModelingDict["TransmissionModel"].operationVariablesOptimum.sum(axis=1)
 
-    #
     testresults = esM.componentModelingDict[
         "TransmissionModel"
     ].operationVariablesOptimum.sum(axis=1)
@@ -254,7 +251,3 @@ def test_watersupply():
 
     # test if here solved fits with original results
     np.testing.assert_array_almost_equal(testresults.values, results.values, decimal=2)
-
-
-if __name__ == "__main__":
-    test_watersupply()

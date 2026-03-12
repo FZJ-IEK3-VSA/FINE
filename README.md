@@ -1,142 +1,189 @@
-[![Build Status](https://travis-ci.com/FZJ-IEK3-VSA/FINE.svg?branch=master)](https://travis-ci.com/FZJ-IEK3-VSA/FINE) [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE) [![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/) [![PyPI - License](https://img.shields.io/pypi/l/FINE)]((https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)) [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
+<!-- markdownlint-disable line-length no-inline-html -->
+# ETHOS.FINE - Framework for Integrated Energy System Assessment
+<a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/Logo_FZ_Juelich_412x120_rgb_jpg.jpg?raw=true" alt="Forschungszentrum Juelich Logo" width="300px"></a>
+
+[![.github/workflows/test_push.yml](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml/badge.svg)](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml)
+[![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/fine.svg)](https://anaconda.org/conda-forge/fine)
+[![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/)
+[![PyPI - License](https://img.shields.io/pypi/l/FINE)](https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)
+[![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.06274/status.svg)](https://doi.org/10.21105/joss.06274)
+[![JURSE Code of the month Feburary 2026](https://img.shields.io/badge/JuRSE_Code_Pick-Feb_2026-blue?link=https://www.fz-juelich.de/en/rse/community-initiatives/jurse-code-of-the-month/february-2026)](https://www.fz-juelich.de/en/rse/community-initiatives/jurse-code-of-the-month/february-2026)
 
 
-<a href="https://www.fz-juelich.de/iek/iek-3/DE/Home/home_node.html"><img src="http://www.fz-juelich.de/SharedDocs/Bilder/IBG/IBG-3/DE/Plant-soil-atmosphere%20exchange%20processes/INPLAMINT%20(BONARES)/Bild3.jpg?__blob=poster" alt="Forschungszentrum Juelich Logo" width="230px"></a> 
+The ETHOS.FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities, time steps and investment periods can be modeled. Target of the optimization is the minimization of the systems net present value (NPV) while considering technical and environmental constraints. If only one investment period is considered, the net present value is equal to the total annual costs (TAC). Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
 
-# FINE - Framework for Integrated Energy System Assessment
+This Readme provides information on the installation of the package. For further information have a look at the [documentation](https://vsa-fine.readthedocs.io/en/latest/).
 
-The FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities and time steps can be modeled. Target of the optimization is the minimization of the total annual cost while considering technical and enviromental constraints. Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
+ETHOS.FINE is used for the modelling of a diverse group of optimization problems within the [Energy Transformation PatHway Optimization Suite (ETHOS) at ICE-2](https://www.fz-juelich.de/de/ice/ice-2/leistungen/model-services).  
 
-If you want to use FINE in a published work, please [**kindly cite following publication**](https://www.sciencedirect.com/science/article/pii/S036054421830879X) which gives a description of the first stages of the framework. The python package which provides the time series aggregation module and its corresponding literatur can be found [**here**](https://github.com/FZJ-IEK3-VSA/tsam).
+If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://joss.theoj.org/papers/10.21105/joss.06274). The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
 
-## Features
-* representation of an energy system by multiple locations, commodities and time steps
-* complexity reducing storage formulation based on typical periods
-
-## Documentation
-
-A "Read the Docs" documentation of FINE can be found [**here**](https://vsa-fine.readthedocs.io/en/latest/).
-## Requirements
-### Framework
-The FINE Framework itself requires the following components:
-- FINE sourcecode
-- Python dependencies
-- A Mixed Integer Linear Programming (MILP) solver like Gurobi or GLPK
-### Installation 
-The installation proceedure requires:
-- Git
-- Anaconda
-## Installation of framework and dependencies
-### Installation requirements
-1.  Install anaconda [by choosing your operating system here](https://docs.anaconda.com/anaconda/install/). If you are a Windows 10 user, remember to tick "Add Anaconda to my PATH environment variable" during installation under "Advanced installations options".
-2. Install git from https://git-scm.com/downloads
-### Prepare folder
-1. Open a prompt e.g. "anaconda prompt" or "cmd" from the windows start menu
-2. Make a folder where you want to work, for example C:\Users\<your username>\work with "mkdir C:\Users\<your username>\work"
-3. Go to that directory with "cd C:\Users\<your username>\work" at the command line
+## Installation 
+There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge. In all of the following variants it is recommended to install your dependencies from conda-forge as the ecosystem is better tested and maintained. For more information on installation specifics and comparison between the different options, have a look at the [installation documentation](https://vsa-fine.readthedocs.io/en/latest/installationDoc.html). In the following first the [preqrequisites](#Preqrequisites) for the installation are presented. Then the recommended [installation](#Installation from conda-forge (Recomended)) is shown. If you want to work on the source code of FINE, see [Editable install from conda-forge](#editable-install-from-conda-forge).
 
 
-### Get source code via GIT
 
-Clone public repository or repository of your choice first
+### Preqrequisites
+
+You either need a mamba or conda installation (recommended), but any Python installation will do. However, if you are unfamiliar with using environment manager (like mamba), you should [consider using one](https://realpython.com/python-virtual-environments-a-primer/). Fine has many dependencies and will likely interfere with other software projects on your machine in case you dont isolate them with an environment
+
+You need conda or mamba installer on your machine, which are mostly interchangeable. The code is tested for Linux, Windows and Macos. We recommend to use [mamba](https://mamba.readthedocs.io/en/latest/) and install it using the [miniforge installer](https://github.com/conda-forge/miniforge). Please be aware that having multiple conda and mamba installation (for example from the [miniforge installer](https://github.com/conda-forge/miniforge) and the [anaconda installer](https://www.anaconda.com/download)) can cause serious problems during the installation. Please remove the other installer and any old environment on your machine if you decide to switch. 
+
+### Installation from conda-forge (Recomended)
+
+```bash
+mamba create --name fine_env --channel conda-forge fine
 ```
-git clone https://github.com/FZJ-IEK3-VSA/FINE.git 
-```
-Move into the FINE folder with
-```
-cd fine
+### Installation from PyPI
+
+Create venv environment
+```bash
+python -m venv .venv
 ```
 
-### Installation for users
-It is recommended to create a clean environment with conda to use FINE because it requires many dependencies. 
+Activate venv environment on Linux
 
-```
-conda env create -f requirements.yml
-```
-
-This directly installs FINE and its dependencies in the `FINE` conda environment. Activate the created environment with:
-
-```
-activate FINE
+```bash
+source .venv/bin/activate
 ```
 
-### Installation for developers
-Create a development environment if you want to modify it.
-Install the requirements in a clean conda environment:
-```
-conda env create -f requirements_dev.yml
-activate FINE_dev
+Activate venv environment on Windows
+
+```bash
+.venv\Scripts\activate
 ```
 
-This installs FINE and its requirements for development (testing, formatting). Further changes in the current folder are reflected in package installation through the installation with `pip -e`.
+Find more information on creating virtual environments with venv [here](https://docs.python.org/3/library/venv.html#how-venvs-work>).  
 
-Run the test suite with:
+```bash
+python -m pip install fine
 ```
-pytest --cov=FINE test/
-```
 
-## Installation of an optimization solver
 
-FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). There are three standard solvers defined:
-- [GUROBI](http://www.gurobi.com/)
-   - Recommended due to better performance but requires license (free academic version available)
-   - Set as standard solver
-- [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download)
-  - Free version available 
-- [CBC](https://projects.coin-or.org/Cbc)
-  - Free version available
 
-### Gurobi installation
-The installation requires the following three components:
-- Gurobi Optimizer
-    - In order to [download](https://www.gurobi.com/downloads/gurobi-optimizer-eula/) the software you need to create an account and obtain a license.
-- Gurobi license
-    - The license needs to be installed according to the instructions in the registration process.
-- Gurobi python api
-    - The python api can be installed according to [this instruction](https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python-).
+### Solver
 
-### GLPK installation
-A complete installation instruction for Windows can be found [here](http://winglpk.sourceforge.net/).
+The functionality of ETHOS.FINE depends on the following C libraries that need to be installed on your system. If you do not know how to install those, consider installing from conda-forge. The mamba/conda installation comes with [GLPK](https://www.gnu.org/software/glpk/) [(installation for Windows)](https://sourceforge.net/projects/winglpk/files/latest/download) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](https://vsa-fine.readthedocs.io/en/latest/installationDoc.html#installation-of-an-optimization-solver) in the documentation for more information.
 
-### CBC
-Installation procedure can be found [here](https://projects.coin-or.org/Cbc).
 
 ## Examples
 
-A number of [**examples**](examples/) shows the capabilities of FINE.
+A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples) shows the capabilities of ETHOS.FINE.
+
+- [00_Tutorial](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/00_Tutorial)
+  - In this application, an energy supply system, consisting of two regions, is modeled and optimized. Recommended as starting point to get to know to ETHOS.FINE.
+- [01_1node_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/01_1node_Energy_System_Workflow)
+  - In this application, a single region energy system is modeled and optimized. The system includes only a few technologies.
+- [02_EnergyLand](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/02_EnergyLand)
+  - In this application, a single region energy system is modeled and optimized. Compared to the previous examples, this example includes a lot more technologies considered in the system.
+- [03_Multi-regional_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/03_Multi-regional_Energy_System_Workflow)
+  - In this application, an energy supply system, consisting of eight regions, is modeled and optimized. The example shows how to model multi-regional energy systems. The example also includes a notebook to get to know the optional performance summary. The summary shows how the optimization performed.
+- [04_Model_Run_from_Excel](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/04_Model_Run_from_Excel)
+  - ETHOS.FINE can also be run by excel. This example shows how to read and run a model using excel files.
+- [05_District_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/05_District_Optimization)
+  - In this application, a small district is modeled and optimized. This example also includes binary decision variables.
+- [06_Water_Supply_System](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/06_Water_Supply_System)
+  - The application cases of ETHOS.FINE are not limited. This application shows how to model the water supply system.
+- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/dmaster/examples/07_NetCDF_to_save_and_set_up_model_instance)
+  - This example shows how to save the input and optimized results of an energy system Model instance to netCDF files to allow reproducibility.
+- [08_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/08_Spatial_and_technology_aggregation)
+  - These two examples show how to reduce the model complexity. Model regions can be aggregated to reduce the number of regions (spatial aggregation). Input parameters are automatically adapted. Furthermore, technologies can be aggregated to reduce complexity, e.g. reducing the number of different PV components (technology aggregation). Input parameters are automatically adapted.
+- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/9_Stochastic_Optimizatio)
+  - In this application, a stochastic optimization is performed. It is possible to perform the optimization of an energy system model with different input parameter sets to receive a more robust solution.
+- [10_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/10_PerfectForesight)
+  - In this application, a transformation pathway of an energy system is modeled and optimized showing how to handle several investment periods with time-dependent assumptions for costs and operation.
+- [11_Partload](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/11_Partload)
+  - In this application, a hydrogen system is modeled and optimized considering partload behavior of the electrolyzer.
+
+## Notes for developers
+
+### Editable install from conda-forge
+
+It is recommended to create a clean environment with conda to use ETHOS.FINE because it requires many dependencies.
+
+```bash
+mamba env create --name fine --file requirements_dev.yml
+mamba activate fine
+```
+
+Install ETHOS.FINE as editable install and without checking the dependencies from pypi with
+
+```bash
+python -m pip install --no-deps --editable .
+```
+
+### Editable install from pypi
+
+If you do not want to use conda-forge consider the steps in section [Installation from PyPI](#Installation-from-pipy) and install ETHOS.FINE as editable install and with developer dependencies with
+
+```bash
+python -m venv .venv
+```
+
+Activate venv environment on Linux
+
+```bash
+source .venv/bin/activate
+```
+
+Activate venv environment on Windows
+
+```bash
+.venv\Scripts\activate
+```
+
+```bash
+python -m pip install --editable .[develop]
+```
+
+### Good coding style
+
+We use [ruff](https://docs.astral.sh/ruff) to ensure good coding style. Make
+sure to use it before contributing to the code base with
+
+```bash
+ruff check --config=pyproject.toml
+ruff format --diff --config=pyproject.toml
+```
 
 ## License
 
 MIT License
 
-Copyright (C) 2016-2022 FZJ-IEK-3
+Copyright (C) 2016-2025 FZJ-ICE-2
 
-Active Developers: Theresa Groß, Leander Kotzur, Noah Pflugradt, Julian Belina, Toni Busch, Philipp Dunkel, Patrick Freitag, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Kevin Knosala, Felix Kullmann, Stefan Kraus, Jochen Linßen, Rachel Maier, Peter Markewitz, Lars Nolting, Shruthi Patil, Jan Priesmann, Stanley Risch, Julian Schönau, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Christoph Winkler, Michael Zier, Detlef Stolten
+Active Developers: Johannes Behrens, Theresa Klütz, Noah Pflugradt,  Julian Belina, Arne Burdack, Toni Busch, Philipp Dunkel, David Franzmann, Maike Gnirß, Thomas Grube, Lars Hadidi, Heidi Heinrichs, Shitab Ishmam, Sebastian Kebrich, Jochen Linßen, Nils Ludwig, Lilly Madeisky, Drin Marmullaku, Gian Müller, Kenneth Okosun, Olalekan Omoyele, Shruthi Patil, Kai Schulze, Julian Schönau, Maximilian Stargardt, Lana Söltzer, Henrik Wenzel, Bernhard Wortmann, Lovindu Wijesinghe, Christoph Winkler, Detlef Stolten
 
-Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Timo Kannengießer, Martin Robinius, Johannes Thürauf, Lara Welder
+Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Patrick Freitag, Maximilian Hoffmann, Jason Hu, Timo Kannengießer, Kevin Knosala, Leander Kotzur, Felix Kullmann, Stefan Kraus, Rachel Maier, Peter Markewitz, Lars Nolting, Jan Priesmann, Stanley Risch, Martin Robinius, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder, Michael Zier
 
 You should have received a copy of the MIT License along with this program.
 If not, see https://opensource.org/licenses/MIT
 
 
 ## About Us 
-<a href="https://www.fz-juelich.de/iek/iek-3/DE/Home/home_node.html"><img src="https://www.fz-juelich.de/SharedDocs/Bilder/IEK/IEK-3/Abteilungen2015/VSA_DepartmentPicture_2019-02-04_459x244_2480x1317.jpg?__blob=normal" alt="Institut TSA"></a> 
 
-We are the [Institute of Energy and Climate Research - Techno-economic Systems Analysis (IEK-3)](https://www.fz-juelich.de/iek/iek-3/DE/Home/home_node.html) belonging to the [Forschungszentrum Jülich](www.fz-juelich.de/). Our interdisciplinary institute's research is focusing on energy-related process and systems analyses. Data searches and system simulations are used to determine energy and mass balances, as well as to evaluate performance, emissions and costs of energy systems. The results are used for performing comparative assessment studies between the various systems. Our current priorities include the development of energy strategies, in accordance with the German Federal Government’s greenhouse gas reduction targets, by designing new infrastructures for sustainable and secure energy supply chains and by conducting cost analysis studies for integrating new technologies into future energy market frameworks.
+<a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/iek3-square.png?raw=True" alt="Institute image ICE-2" width="280" align="right" style="margin:0px 10px"/></a>
 
-## Contributions and Users
+We are the <a href="https://www.fz-juelich.de/en/ice/ice-2">Institute of Climate and Energy Systems (ICE) - Jülich Systems Analysis</a> belonging to the <a href="https://www.fz-juelich.de/en">Forschungszentrum Jülich</a>. Our interdisciplinary department's research is focusing on energy-related process and systems analyses. Data searches and system simulations are used to determine energy and mass balances, as well as to evaluate performance, emissions and costs of energy systems. The results are used for performing comparative assessment studies between the various systems. Our current priorities include the development of energy strategies, in accordance with the German Federal Government’s greenhouse gas reduction targets, by designing new infrastructures for sustainable and secure energy supply chains and by conducting cost analysis studies for integrating new technologies into future energy market frameworks.
 
-Within the BMWi funded project [**METIS**](http://www.metis-platform.net/) we develop together with the RWTH-Aachen ([**Prof. Aaron Praktiknjo**](http://www.wiwi.rwth-aachen.de/cms/Wirtschaftswissenschaften/Die-Fakultaet/Institute-und-Lehrstuehle/Professoren/~jgfr/Praktiknjo-Aaron/?allou=1&lidx=1)), the EDOM Team at FAU ([**PD Bismark Singh**](https://www.math.fau.de/wirtschaftsmathematik/team/bismark-singh/)) and the [**Jülich Supercomputing Centre**](http://www.fz-juelich.de/ias/jsc/DE/Home/home_node.html) new methods and models within FINE.
+## Contributions and Support
+Every contributions are welcome:
+- If you have a question, you can start a [Discussion](https://github.com/FZJ-IEK3-VSA/FINE/discussions). You will get a response as soon as possible.
+- If you want to report a bug, please open an [Issue](https://github.com/FZJ-IEK3-VSA/FINE/issues/new). We will then take care of the issue as soon as possible.
+- If you want to contribute with additional features or code improvements, open a [Pull request](https://github.com/FZJ-IEK3-VSA/FINE/pulls).
 
-<a href="http://www.metis-platform.net/"><img src="http://www.metis-platform.net/metis-platform/DE/_Documents/Pictures/projectTeamAtKickOffMeeting_640x338.jpg?__blob=normal" alt="METIS Team" width="400px" style="float:center"></a> 
-
-<p float="left">
-<a href="https://www.rwth-aachen.de/go/id/a/"> <img src="https://jugit.fz-juelich.de/iek-3/shared-code/fine/uploads/633d3c56d4fde45de2691c0262f96697/RWTH_Logo.png" width="230" /> </a> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
-<a href="https://www.fau.de/"> <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Friedrich-Alexander-Universit%C3%A4t_Erlangen-N%C3%BCrnberg_logo.svg/2000px-Friedrich-Alexander-Universit%C3%A4t_Erlangen-N%C3%BCrnberg_logo.svg.png" width="230" /> </a>
-</p>
+## Code of Conduct
+Please respect our [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Acknowledgement
+This work was initially supported by the Helmholtz Association under the Joint Initiative ["Energy System 2050   A Contribution of the Research Field Energy"](https://www.helmholtz.de/en/research/energy/energy_system_2050/). 
 
-This work was supported by the Helmholtz Association under the Joint Initiative ["Energy System 2050   A Contribution of the Research Field Energy"](https://www.helmholtz.de/en/research/energy/energy_system_2050/).
+The authors also gratefully acknowledge financial support by the Federal Ministry for Economic Affairs and Energy of Germany as part of the project [METIS](http://www.metis-platform.net/) (project number 03ET4064, 2018-2022).
 
-<a href="https://www.helmholtz.de/en/"><img src="https://www.helmholtz.de/fileadmin/user_upload/05_aktuelles/Marke_Design/logos/HG_LOGO_S_ENG_RGB.jpg" alt="Helmholtz Logo" width="200px" style="float:right"></a>
+This work was supported by the Helmholtz Association under the program ["Energy System Design"](https://www.helmholtz.de/en/research/research-fields/energy/energy-system-design/).
+
+<p float="left">
+<a href="https://www.helmholtz.de/en/"><img src="https://www.helmholtz.de/fileadmin/user_upload/05_aktuelles/Marke_Design/logos/HG_LOGO_S_ENG_RGB.jpg" alt="Helmholtz Logo" width="200px"></a>
+</p>

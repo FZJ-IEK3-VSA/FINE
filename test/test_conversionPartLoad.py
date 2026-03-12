@@ -1,10 +1,10 @@
-import FINE as fn
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+import fine as fn
 
 
 def test_conversionPartLoad():
-
     # Set up energy system model instance
     locations = {"GlassProductionSite"}
     commodities = {"electricity", "heat", "hydrogen", "O2", "CO2", "rawMaterial"}
@@ -375,6 +375,7 @@ def test_conversionPartLoad():
             },
             nSegments=nSegments,
             hasCapacityVariable=True,
+            hasIsBuiltBinaryVariable=True,
             bigM=99999,
             investPerCapacity=900,
             opexPerCapacity=900 * 0.01,
@@ -511,7 +512,7 @@ def test_conversionPartLoad():
     )  # relative toerlance < 0.2%
     np.testing.assert_allclose(
         convPartloadSummary.loc[
-            ("PEMEC", "operation", "[kW$_{el}$*h/a]"), "GlassProductionSite"
+            ("PEMEC", "operation_annual", "[kW$_{el}$*h/a]"), "GlassProductionSite"
         ],
         8.82488e07,
         rtol=0.01,

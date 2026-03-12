@@ -1,7 +1,6 @@
-import pytest
 import numpy as np
 
-from FINE.aggregations.technologyAggregation import techAggregationUtils
+from fine.aggregations.technologyAggregation import techAggregationUtils
 
 
 def test_rasterize_xr_ds(gridded_RE_data, sample_shapefile):

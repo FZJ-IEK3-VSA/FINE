@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 # # Workflow for a multi-regional energy system
 #
@@ -21,13 +20,11 @@
 
 # 1. Import required packages and set input data path
 
-import FINE as fn
 import numpy as np
 import pandas as pd
 
 
 def test_miniSystem(minimal_test_esM):
-
     minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
     # test if solve fits to the original results

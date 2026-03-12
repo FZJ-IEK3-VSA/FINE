@@ -1,6 +1,7 @@
 import pytest
 
-import FINE as fn
+import fine as fn
+import pandas as pd
 
 
 def test_export_to_dict_minimal(minimal_test_esM):
@@ -21,7 +22,8 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "lengthUnit",
                 "verboseLogLevel",
                 "balanceLimit",
-                "lowerBound",
+                "pathwayBalanceLimit",
+                "annuityPerpetuity",
             ),
             (
                 minimal_test_esM.locations,
@@ -37,7 +39,8 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.lengthUnit,
                 minimal_test_esM.verboseLogLevel,
                 minimal_test_esM.balanceLimit,
-                minimal_test_esM.lowerBound,
+                minimal_test_esM.pathwayBalanceLimit,
+                minimal_test_esM.annuityPerpetuity,
             ),
         )
     )
@@ -52,6 +55,46 @@ def test_export_to_dict_minimal(minimal_test_esM):
         "Industry site", "operationRateFix"
     )
 
+    investPerCapacity = pd.DataFrame(
+        [[0, 0.17], [0.177, 0]],
+        index=["ElectrolyzerLocation", "IndustryLocation"],
+        columns=["ElectrolyzerLocation", "IndustryLocation"],
+    )
+    operationRateMax = pd.DataFrame(
+        0.8,
+        index=range(0, 4),
+        columns=[
+            "ElectrolyzerLocation_IndustryLocation",
+            "IndustryLocation_ElectrolyzerLocation",
+        ],
+    )
+
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        minimal_test_esM.updateComponent(
+            "Pipelines", {"investPerCapacity": investPerCapacity}
+        )
+
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        minimal_test_esM.updateComponent(
+            "Pipelines", {"operationRateMax": operationRateMax}
+        )
+
+    expected_Transmission_investPerCapacity = minimal_test_esM.getComponentAttribute(
+        "Pipelines", "investPerCapacity"
+    )
+    # for xarray, 2dim data that is not a transmission is converted to series
+    expected_Transmission_investPerCapacity = fn.utils.preprocess2dimData(
+        expected_Transmission_investPerCapacity
+    )
+
+    expected_Transmission_operationRateMax = minimal_test_esM.getComponentAttribute(
+        "Pipelines", "operationRateMax"
+    )
+
     # FUNCTION CALL
     output_esm_dict, output_comp_dict = fn.dictIO.exportToDict(minimal_test_esM)
 
@@ -64,6 +107,13 @@ def test_export_to_dict_minimal(minimal_test_esM):
     output_Sink_operationRateFix = (
         output_comp_dict.get("Sink").get("Industry site").get("operationRateFix")
     )
+    output_Transmission_investPerCapacity = (
+        output_comp_dict.get("Transmission").get("Pipelines").get("investPerCapacity")
+    )  # invest per capacity should be processed as pandas series
+
+    output_Transmission_operationRateMax = (
+        output_comp_dict.get("Transmission").get("Pipelines").get("operationRateMax")
+    )
 
     # ASSERTION
     assert output_esm_dict == expected_esm_dict
@@ -74,6 +124,12 @@ def test_export_to_dict_minimal(minimal_test_esM):
         output_Source_operationRateMax
     )
     assert expected_Industrysite_operationRateFix.equals(output_Sink_operationRateFix)
+    assert expected_Transmission_investPerCapacity.equals(
+        output_Transmission_investPerCapacity
+    )
+    assert expected_Transmission_operationRateMax.equals(
+        output_Transmission_operationRateMax
+    )
 
 
 def test_export_to_dict_singlenode(single_node_test_esM):
@@ -94,7 +150,8 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "lengthUnit",
                 "verboseLogLevel",
                 "balanceLimit",
-                "lowerBound",
+                "pathwayBalanceLimit",
+                "annuityPerpetuity",
             ),
             (
                 single_node_test_esM.locations,
@@ -110,7 +167,8 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.lengthUnit,
                 single_node_test_esM.verboseLogLevel,
                 single_node_test_esM.balanceLimit,
-                single_node_test_esM.lowerBound,
+                single_node_test_esM.pathwayBalanceLimit,
+                single_node_test_esM.annuityPerpetuity,
             ),
         )
     )
@@ -169,7 +227,8 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "lengthUnit",
                 "verboseLogLevel",
                 "balanceLimit",
-                "lowerBound",
+                "pathwayBalanceLimit",
+                "annuityPerpetuity",
             ),
             (
                 multi_node_test_esM_init.locations,
@@ -185,7 +244,8 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.lengthUnit,
                 multi_node_test_esM_init.verboseLogLevel,
                 multi_node_test_esM_init.balanceLimit,
-                multi_node_test_esM_init.lowerBound,
+                multi_node_test_esM_init.pathwayBalanceLimit,
+                multi_node_test_esM_init.annuityPerpetuity,
             ),
         )
     )
@@ -261,7 +321,6 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
     "test_esM_fixture", ["minimal_test_esM", "multi_node_test_esM_init"]
 )
 def test_import_from_dict(test_esM_fixture, request):
-
     test_esM = request.getfixturevalue(test_esM_fixture)
 
     # FUNCTION CALL

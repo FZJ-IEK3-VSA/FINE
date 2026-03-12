@@ -1,10 +1,9 @@
-import FINE as fn
+import fine as fn
 import numpy as np
 import pandas as pd
 
 
 def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False):
-
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 
@@ -38,9 +37,6 @@ def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False
         lengthUnit="km",
         verboseLogLevel=2,
     )
-
-    # time step length [h]
-    timeStepLength = numberOfTimeSteps * hoursPerTimeStep
 
     # Sources
     # Electricity market
@@ -292,7 +288,6 @@ def test_stochasticTimeSeries_withTransmission():
     # Optimize energy system model
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
 
-    #
     cms_vars = esM.pyM.commis_srcSnk.get_values()
     assert cms_vars[("PerfectLand", "PV", 0)] == cms_vars[("PerfectLand", "PV", 1)]
     assert cms_vars[("PerfectLand2", "PV", 0)] == cms_vars[("PerfectLand2", "PV", 1)]

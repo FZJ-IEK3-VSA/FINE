@@ -3,14 +3,13 @@ import pytest
 import numpy as np
 import xarray as xr
 
-import FINE.aggregations.spatialAggregation.groupingUtils as gprUtils
+import fine.aggregations.spatialAggregation.groupingUtils as gprUtils
 
 
 @pytest.mark.parametrize(
     "test_array", [np.array([[10, 9, 8], [7, 4, 6], [2, 1, 0]]), np.array([10, 5, 0])]
 )
 def test_get_normalized_array(test_array):
-
     expected_array = 0.1 * test_array
 
     output_array = gprUtils.get_normalized_array(test_array)
@@ -19,7 +18,6 @@ def test_get_normalized_array(test_array):
 
 
 def test_get_normalized_array_flat():
-
     test_array = np.array([5, 5, 5])
     expected_array = np.array([1, 1, 1])
 
@@ -175,14 +173,24 @@ def test_preprocess_dataset():
 def test_get_custom_distance_matrix(
     weights, expected_dist_matrix, data_for_distance_measure
 ):
-
     test_ts_dict, test_1d_dict, test_2d_dict = data_for_distance_measure
 
     # FUNCTION CALL
     n_regions = 3
-    output_dist_matrix = gprUtils.get_custom_distance_matrix(
-        test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
-    )
+    if isinstance(weights, dict):
+        if "variables" not in weights:
+            with pytest.warns(UserWarning):
+                output_dist_matrix = gprUtils.get_custom_distance_matrix(
+                    test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
+                )
+        else:
+            output_dist_matrix = gprUtils.get_custom_distance_matrix(
+                test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
+            )
+    else:
+        output_dist_matrix = gprUtils.get_custom_distance_matrix(
+            test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
+        )
 
     # ASSERTION
     assert np.isclose(expected_dist_matrix, output_dist_matrix).all()
@@ -200,13 +208,12 @@ def test_get_custom_distance_matrix(
 def test_get_custom_distance_matrix_with_unusual_weights(
     weights, data_for_distance_measure
 ):
-
     test_ts_dict, test_1d_dict, test_2d_dict = data_for_distance_measure
 
     # FUNCTION CALL
     n_regions = 3
     with pytest.raises(ValueError):
-        output_dist_matrix = gprUtils.get_custom_distance_matrix(
+        _ = gprUtils.get_custom_distance_matrix(
             test_ts_dict, test_1d_dict, test_2d_dict, n_regions, weights
         )
 

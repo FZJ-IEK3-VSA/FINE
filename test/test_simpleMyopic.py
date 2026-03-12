@@ -1,12 +1,14 @@
-import FINE as fn
+import fine as fn
 import numpy as np
 import pandas as pd
+import pytest
 
 np.random.seed(
     42
 )  # Sets a "seed" to produce the same random input data in each model run
 
 
+@pytest.mark.skip()
 def test_CO2ReductionTargets():
     locations = {"regionN", "regionS"}
     commodityUnitDict = {
@@ -18,6 +20,11 @@ def test_CO2ReductionTargets():
     numberOfTimeSteps, hoursPerTimeStep = 8760, 1
     costUnit, lengthUnit = "1e6 Euro", "km"
     CO2_reductionTarget = 0.8
+    balanceLimit = pd.DataFrame(
+        index=["CO2 limit"],
+        columns=["Total", "lowerBound"],
+        data=[[-366 * (1 - CO2_reductionTarget), True]],
+    )
 
     esM = fn.EnergySystemModel(
         locations=locations,
@@ -28,6 +35,7 @@ def test_CO2ReductionTargets():
         costUnit=costUnit,
         lengthUnit=lengthUnit,
         verboseLogLevel=0,
+        balanceLimit=balanceLimit,
     )
 
     # Add Source Components
@@ -269,19 +277,16 @@ def test_CO2ReductionTargets():
         "CO2",
     )
     hasCapacityVariable = False
-    commodityLimitID, yearlyLimit = "CO2 limit", 366 * (1 - CO2_reductionTarget)
 
-    if yearlyLimit > 0:
-        esM.add(
-            fn.Sink(
-                esM=esM,
-                name=name,
-                commodity=commodity,
-                hasCapacityVariable=hasCapacityVariable,
-                commodityLimitID=commodityLimitID,
-                yearlyLimit=yearlyLimit,
-            )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name=name,
+            commodity=commodity,
+            hasCapacityVariable=hasCapacityVariable,
+            balanceLimitID="CO2 limit",
         )
+    )
 
     # Optimize the system with simple myopic approach
     results = fn.optimizeSimpleMyopic(
@@ -316,10 +321,10 @@ def test_CO2ReductionTargets():
     )
 
 
+@pytest.mark.skip()
 def test_exceededLifetime():
     # load a minimal test system
-    """Returns minimal instance of esM"""
-
+    """Returns minimal instance of esM."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
 

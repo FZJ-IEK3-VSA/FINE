@@ -12,5 +12,4 @@ or can be applied in the pre- and postprocessing of an energy system model run.
 
    
    expansionModules/optimizeTSAmultiStageDoc
-   expansionModules/robustPipelineSizingDoc
    expansionModules/transformationPathDoc

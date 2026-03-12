@@ -1,13 +1,13 @@
-import os
 import shutil
 import pytest
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
 import geopandas as gpd
 from shapely.geometry import Point
 
-import FINE.aggregations.spatialAggregation.managerUtils as manUtils
+import fine.aggregations.spatialAggregation.managerUtils as manUtils
 
 
 def test_create_gdf():
@@ -16,9 +16,7 @@ def test_create_gdf():
     df = pd.DataFrame({"space": ["reg_01", "reg_02"]})
 
     crs = 3035
-    path_to_test_dir = os.path.join(
-        os.path.dirname(__file__), "../data/output/test_dir"
-    )
+    path_to_test_dir = Path(__file__).parent / "../data/output/test_dir"
     file_name = "test_file"
 
     # FUNCTION CALL
@@ -27,7 +25,7 @@ def test_create_gdf():
     )
 
     # EXPECTED
-    output_shp = gpd.read_file(os.path.join(path_to_test_dir, f"{file_name}.shp"))
+    output_shp = gpd.read_file(Path(path_to_test_dir) / f"{file_name}.shp")
     assert list(output_shp.columns) == ["space", "geometry"]
 
     # Delete test_dir
@@ -36,7 +34,6 @@ def test_create_gdf():
 
 @pytest.mark.parametrize("add_centroids", [True, False])
 def test_create_geom_xarray(sample_shapefile, add_centroids):
-
     expected_centroids = [Point(2, 2), Point(5.5, 2)]
     expected_centroid_distances = 0.001 * np.array(
         [[0, 3.5], [3.5, 0]]
