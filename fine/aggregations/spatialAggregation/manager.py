@@ -334,8 +334,6 @@ def perform_spatial_aggregation(
     aggregated_xr_dataset = aggregation.aggregate_based_on_sub_to_sup_region_id_dict(
         xr_datasets, aggregation_dict, aggregation_function_dict_default
     )
-    import pytest
-    pytest.set_trace()
 
     # STEP 6. Save shapefiles and aggregated xarray dataset if user chooses
     if aggregatedResultsPath is not None:
