@@ -1,11 +1,10 @@
 from FINE.expansionModules.rollingHorizon import rollingHorizonOptimization
-import os
 from pathlib import Path
 
 def test_rollingHorizon(perfectForesight_test_esM):
     results=rollingHorizonOptimization(
         perfectForesight_test_esM,
-        resultExportPath=os.path.dirname(os.path.abspath(__file__)),
+        resultExportPath=Path(__file__).resolve().parent,
         scenario_name="test",
         timeSeriesAggregation=True,
         numberOfInvestmentPeriodsForRollingHorizon=2,
@@ -14,10 +13,9 @@ def test_rollingHorizon(perfectForesight_test_esM):
         numberOfTypicalPeriods=1)
 
     # check that commissioning of first year is in stock of second year
-    assert results[2020].getOptimizationSummary("SourceSinkModel", ip=2020).loc["PV","commissioning"].squeeze()["ForesightLand"] == results[2025].getComponent("PV").stockCommissioning[2020]["ForesightLand"]  
+    assert results[2020].getOptimizationSummary("SourceSinkModel", ip=2020).loc["PV","commissioning"].squeeze()["ForesightLand"] == results[2025].getComponent("PV").stockCommissioning[2020]["ForesightLand"]
 
-    # delete created excel lists  
+    # delete created excel lists
     for year in [2020,2025,2030,2035,2040]:
-        path= os.path.dirname(os.path.abspath(__file__))
-        file_path=os.path.join(path, f"test_rollingHorizon_{year}.xlsx")
-        Path(file_path).unlink()
+        path = Path(__file__).resolve().parent
+        (path / f"test_rollingHorizon_{year}.xlsx").unlink()

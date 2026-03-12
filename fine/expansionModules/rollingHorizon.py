@@ -1,8 +1,8 @@
 import fine as fn
 from fine import utils
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
-import os
 import copy
+from pathlib import Path
 
 def rollingHorizonOptimization(
     esM,
@@ -17,11 +17,7 @@ def rollingHorizonOptimization(
     solver="gurobi",
     optimizationSpecs="",
 ):
-    """
-    If numberOfInvestmentPeriodsForRollingHorizon == numberOfInvestmentPeriods -> Perfect Foresight,
-    If numberOfInvestmentPeriodsForRollingHorizon == 1 -> Foresight, else Rolling Horizon
-    """
-
+    """If numberOfInvestmentPeriodsForRollingHorizon == numberOfInvestmentPeriods -> Perfect Foresight, If numberOfInvestmentPeriodsForRollingHorizon == 1 -> Foresight, else Rolling Horizon."""
     if esM.rollingHorizonStartYear is None:
         esM.rollingHorizonStartYear = esM.startYear
 
@@ -44,9 +40,9 @@ def rollingHorizonOptimization(
                 start+interval*numberOfInvestmentPeriodsForRollingHorizon,
                 interval
             )
-        ) 
-        for start in esM.investmentPeriodNames 
-        if start+interval*(numberOfInvestmentPeriodsForRollingHorizon-1) in esM.investmentPeriodNames] 
+        )
+        for start in esM.investmentPeriodNames
+        if start+interval*(numberOfInvestmentPeriodsForRollingHorizon-1) in esM.investmentPeriodNames]
 
     # extract all information of original esM
     esmDict, compDict = fn.dictIO.exportToDict(esM)
@@ -99,7 +95,7 @@ def rollingHorizonOptimization(
                             rollingHorizonCompDict[classname][comp][
                                 "stockCommissioning"
                             ][previousYear] = previousCommissioningLocation
-                            
+
                         # c) delete "too" old stock, as it will make
                         # problems with setup of parameters otherwise
                         stockData=rollingHorizonCompDict[classname][comp][
@@ -112,13 +108,13 @@ def rollingHorizonOptimization(
                         for outdatedStockYear in outdatedStockYears:
                             rollingHorizonCompDict[classname][comp][
                                 "stockCommissioning"
-                            ].pop(outdatedStockYear)                            
-                
-                if rollingHorizonCompDict[classname][comp][ "stockCommissioning"] is not None:
+                            ].pop(outdatedStockYear)
+
+                if rollingHorizonCompDict[classname][comp]["stockCommissioning"] is not None:
                     stockYears=list(rollingHorizonCompDict[classname][comp]["stockCommissioning"].keys())
                 else:
                     stockYears=[]
-                
+
                 # get data for rolling horizon years from perfect foresight model
                 for parameter_name, parameter_value in rollingHorizonCompDict[
                     classname
@@ -127,10 +123,10 @@ def rollingHorizonOptimization(
                     if parameter_name == "stockCommissioning":
                         continue
                     # 1.2 commodity conversion factors
-                    elif parameter_name == "commodityConversionFactors":
+                    if parameter_name == "commodityConversionFactors":
                         firstKey=list(parameter_value.keys())[0]
                         # check for ip dependendy
-                        if firstKey in self.parent.esM.investmentPeriods:
+                        if firstKey in esM.investmentPeriods:
                             # filter for years of rolling horizon time frame
                             new_parameter_value = {
                                 key: value
@@ -154,7 +150,7 @@ def rollingHorizonOptimization(
                             for (commisYear, opYear) in _new_parameter_value.keys():
                                 if commisYear < rollingHorizonYears[0] and commisYear not in stockYears:
                                     new_parameter_value.pop((commisYear, opYear))
-    
+
                             rollingHorizonCompDict[classname][comp][
                                 parameter_name
                             ] = new_parameter_value
@@ -179,7 +175,6 @@ def rollingHorizonOptimization(
                     else:
                         pass
 
-                
         # 2. init esm with new startYear and numberOfInvestmentPeriods and add components
         rollingHorizonEsmDict=esmDict.copy()
         rollingHorizonEsmDict["startYear"]=rollingHorizonYears[0]
@@ -197,7 +192,7 @@ def rollingHorizonOptimization(
             for comp in rollingHorizonCompDict[classname]:
                 rollingHorizonEsm.add(
                     getattr(fn, classname)(
-                        esM=rollingHorizonEsm, 
+                        esM=rollingHorizonEsm,
                         **rollingHorizonCompDict[classname][comp] # information of component
                     )
                 )
@@ -234,10 +229,7 @@ def rollingHorizonOptimization(
         for year in exportYears:
             writeOptimizationOutputToExcel(
                 rollingHorizonEsm,
-                outputFileName=os.path.join(
-                    resultExportPath,
-                    f"{scenario_name}_rollingHorizon"
-                    ),
+                outputFileName=str(Path(resultExportPath) / f"{scenario_name}_rollingHorizon"),
                 optSumOutputLevel={
                     "SourceSinkModel": 0,
                     "ConversionModel": 0,

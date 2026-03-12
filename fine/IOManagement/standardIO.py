@@ -84,16 +84,15 @@ def writeOptimizationOutputToExcel(
     :param investmentPeriod: option to define an investment period for the export. If not investment period is set
         all investement periods of the esM will be exported
         |br| * the default value is None
-    :type investmentPeriod: int or None  
+    :type investmentPeriod: int or None
     """
-
     if investmentPeriod is None:
         investmentPeriodNamesExport = esM.investmentPeriodNames
     else:
         if not isinstance(investmentPeriod, int):
             raise ValueError("investmentPeriod must be type int and specify a single year, which shall be exported.")
         investmentPeriodNamesExport = [investmentPeriod]
-        
+
     for ip in investmentPeriodNamesExport:
         if len(esM.investmentPeriodNames) > 1:
             _outputFileName = outputFileName + f"_{ip}"

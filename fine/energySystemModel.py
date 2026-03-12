@@ -368,7 +368,7 @@ class EnergySystemModel:
         self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
         self.annuityPerpetuity = utils.checkAndSetAnnuityPerpetuity(
             annuityPerpetuity, numberOfInvestmentPeriods
-        )        
+        )
         self.rollingHorizonStartYear = rollingHorizonStartYear
 
         # set up the modelling years by the start year, interval and number of investment periods

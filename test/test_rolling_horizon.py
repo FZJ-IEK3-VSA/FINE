@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 
 def test_rolling_horizon():
-    
     esM = fn.EnergySystemModel(
         locations={"PerfectLand"},
         commodities={"electricity", "hydrogen"},
@@ -56,7 +55,7 @@ def test_rolling_horizon():
             economicLifetime=15,
         )
     )
-    
+
     esM.add(
         fn.Sink(
             esM=esM,
@@ -64,8 +63,8 @@ def test_rolling_horizon():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateFix=pd.DataFrame(
-                np.array([4380,4380]), 
-                columns=["PerfectLand"], 
+                np.array([4380,4380]),
+                columns=["PerfectLand"],
                 index=[0,1]),
         )
     )

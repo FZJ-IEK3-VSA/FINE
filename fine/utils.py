@@ -141,9 +141,7 @@ def checkEnergySystemModelInput(
 
 
 def checkTimeUnit(timeUnit):
-    """
-    Check if the timeUnit input argument is equal to 'h'.
-    """
+    """Check if the timeUnit input argument is equal to 'h'."""
     if not timeUnit == "h":
         raise ValueError("The timeUnit input argument has to be 'h'")
 
