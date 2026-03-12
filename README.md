@@ -103,8 +103,8 @@ A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples
 It is recommended to create a clean environment with conda to use ETHOS.FINE because it requires many dependencies.
 
 ```bash
-mamba env create --name fine --file requirements_dev.yml
-mamba activate fine
+mamba env create --name fine_env --file requirements_dev.yml
+mamba activate fine_env
 ```
 
 Install ETHOS.FINE as editable install and without checking the dependencies from pypi with
