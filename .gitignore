@@ -14,6 +14,10 @@ __pycache__/
 .vscode/
 build/
 .venv/
+site/
+
+# auto-copied example notebooks (generated during mkdocs build)
+docs/examples/[0-9]*/
 
 # file types to ignore
 *.pyc
@@ -23,5 +27,5 @@ build/
 *.glp
 *.mps
 .coverage
-
+build_output*.*
 test_esM_etl.nc
