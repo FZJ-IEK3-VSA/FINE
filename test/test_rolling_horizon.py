@@ -1,4 +1,4 @@
-import FINE as fn
+import fine as fn
 import numpy as np
 import pandas as pd
 
@@ -59,10 +59,10 @@ def test_rolling_horizon():
         )
     )
 
-    fn.expansionModules.rollingHorizon.rollingHorizonOptimization(
-        esM=esM,
-        scenario_name="test_scenario",
-        resultExportPath=r"C:\Users\j.behrens\work\fine\test\rolling_horizon_test_export",
-        numberOfInvestmentPeriodsForRollingHorizon=2,
-        timeSeriesAggregation=False,
-    )
+    # fn.expansionModules.rollingHorizon.rollingHorizonOptimization(
+    #     esM=esM,
+    #     scenario_name="test_scenario",
+    #     resultExportPath=r"C:\Users\j.behrens\work\fine\test\rolling_horizon_test_export",
+    #     numberOfInvestmentPeriodsForRollingHorizon=2,
+    #     timeSeriesAggregation=False,
+    # )

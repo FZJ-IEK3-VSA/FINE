@@ -1,4 +1,4 @@
-from FINE.expansionModules.rollingHorizon import rollingHorizonOptimization
+from fine.expansionModules.rollingHorizon import rollingHorizonOptimization
 from pathlib import Path
 
 

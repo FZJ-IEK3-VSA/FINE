@@ -24,6 +24,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "balanceLimit",
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
+                "rollingHorizonStartYear",
             ),
             (
                 minimal_test_esM.locations,
@@ -41,6 +42,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.balanceLimit,
                 minimal_test_esM.pathwayBalanceLimit,
                 minimal_test_esM.annuityPerpetuity,
+                minimal_test_esM.rollingHorizonStartYear,
             ),
         )
     )
@@ -152,6 +154,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "balanceLimit",
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
+                "rollingHorizonStartYear",
             ),
             (
                 single_node_test_esM.locations,
@@ -169,6 +172,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.balanceLimit,
                 single_node_test_esM.pathwayBalanceLimit,
                 single_node_test_esM.annuityPerpetuity,
+                single_node_test_esM.rollingHorizonStartYear,
             ),
         )
     )
@@ -229,6 +233,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "balanceLimit",
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
+                "rollingHorizonStartYear",
             ),
             (
                 multi_node_test_esM_init.locations,
@@ -246,6 +251,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.balanceLimit,
                 multi_node_test_esM_init.pathwayBalanceLimit,
                 multi_node_test_esM_init.annuityPerpetuity,
+                multi_node_test_esM_init.rollingHorizonStartYear,
             ),
         )
     )
