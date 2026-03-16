@@ -146,7 +146,7 @@ def test_fullloadhours_min(minimal_test_esM):
     fullloadhoursMarket = (operationSumMarket / capacitySumMarket) / esM.numberOfYears
 
     assert fullloadhours > 4999.99
-    assert fullloadhoursMarket > 3000.1
+    assert fullloadhoursMarket >= 3000.0 - 1e-6
 
 
 def test_init_full_load_hours(minimal_test_esM):

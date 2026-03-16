@@ -25,9 +25,7 @@ def _setup_gurobi_wls_license():
     if wlsaccessid and wlssecret and licenseid:
         lic_path = Path.home() / "gurobi.lic"
         lic_path.write_text(
-            f"WLSACCESSID={wlsaccessid}\n"
-            f"WLSSECRET={wlssecret}\n"
-            f"LICENSEID={licenseid}\n"
+            f"WLSACCESSID={wlsaccessid}\nWLSSECRET={wlssecret}\nLICENSEID={licenseid}\n"
         )
 
 
