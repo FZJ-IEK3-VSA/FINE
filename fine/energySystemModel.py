@@ -17,6 +17,7 @@ from fine.utils import ImplementedSolvers
 from fine.aggregations.spatialAggregation import manager as spagat
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
+import gurobipy as gp
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -2109,6 +2110,13 @@ class EnergySystemModel:
                     + " "
                     + optimizationSpecs
                 )
+
+                options = {
+                    "WLSACCESSID": wlsaccessid,
+                    "WLSSECRET": wlssecret,
+                    "LICENSEID": licenseid,
+                }
+                gp.Env(params=options)
 
             optimizer.set_options(
                 "Threads="
