@@ -9,6 +9,16 @@ from fine.utils import ImplementedSolvers
 
 import fine as fn
 
+sys.path.append(
+    str(
+        Path(__file__).parent
+        / ".."
+        / "examples"
+        / "03_Multi-regional_Energy_System_Workflow"
+    )
+)
+from getData import getData
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _setup_gurobi_wls_license():
@@ -27,17 +37,6 @@ def _setup_gurobi_wls_license():
         lic_path.write_text(
             f"WLSACCESSID={wlsaccessid}\nWLSSECRET={wlssecret}\nLICENSEID={licenseid}\n"
         )
-
-
-sys.path.append(
-    str(
-        Path(__file__).parent
-        / ".."
-        / "examples"
-        / "03_Multi-regional_Energy_System_Workflow"
-    )
-)
-from getData import getData
 
 
 @pytest.fixture
