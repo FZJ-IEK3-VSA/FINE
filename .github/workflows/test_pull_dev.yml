@@ -44,7 +44,7 @@ jobs:
       ipynb_example_folder: "examples"
       python_version: ${{ needs.extract-python-versions.outputs.max_version }}
       optional_dependency_PyPI_tag: "[develop]"
-      additional_conda_forge_dependencies: "glpk"
+      additional_conda_forge_dependencies: "glpk gurobi"
       multiprocessing_pytest_string: "-n auto"
       multiprocessing_example_string: "-n auto"
 
@@ -52,7 +52,7 @@ jobs:
     if: github.actor != 'renovate[bot]'
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_extract_env_versions_matrix.yml@main
     with:
-      libraries: "geopandas,glpk,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
+      libraries: "geopandas,glpk,gurobi,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
       version_type: min
       env_file: requirements_dev.yml
 
