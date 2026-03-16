@@ -13,6 +13,7 @@ from pyomo import opt
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from fine import utils
+from fine.utils import ImplementedSolvers
 from fine.aggregations.spatialAggregation import manager as spagat
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
@@ -2029,7 +2030,12 @@ class EnergySystemModel:
 
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
-        solverList = ["gurobi", "glpk", "cbc"]
+        solverList = [
+            ImplementedSolvers.GUROBI.value,
+            ImplementedSolvers.STANDARD_SOLVER.value,
+            ImplementedSolvers.CBC.value,
+            ImplementedSolvers.HIGHS.value,
+        ]
 
         if solver != "None":
             try:
@@ -2072,16 +2078,22 @@ class EnergySystemModel:
             optimizer = opt.SolverFactory(solver)
 
         # Set, if specified, the time limit
-        if self.solverSpecs["timeLimit"] is not None and solver == "gurobi":
+        if (
+            self.solverSpecs["timeLimit"] is not None
+            and solver == ImplementedSolvers.GUROBI.value
+        ):
             optimizer.options["timelimit"] = timeLimit
 
         # Set the specified solver options
-        if "LogToConsole=" not in optimizationSpecs and solver == "gurobi":
+        if (
+            "LogToConsole=" not in optimizationSpecs
+            and solver == ImplementedSolvers.GUROBI.value
+        ):
             if self.verboseLogLevel == 2:
                 optimizationSpecs += " LogToConsole=0"
 
         # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
-        if solver == "gurobi":
+        if solver == ImplementedSolvers.GUROBI.value:
             optimizer.set_options(
                 "Threads="
                 + str(threads)
@@ -2095,7 +2107,7 @@ class EnergySystemModel:
                 warmstart=warmstart,
                 tee=True,
             )
-        elif solver == "glpk":
+        elif solver == ImplementedSolvers.GLPK.value:
             optimizer.set_options(optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, tee=True)
         else:

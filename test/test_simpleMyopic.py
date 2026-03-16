@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from fine.utils import ImplementedSolvers
+
 np.random.seed(
     42
 )  # Sets a "seed" to produce the same random input data in each model run
@@ -299,7 +301,7 @@ def test_CO2ReductionTargets():
         saveResults=False,
         trackESMs=True,
         numberOfTypicalPeriods=3,
-        solver="glpk",
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     assert (
@@ -468,7 +470,7 @@ def test_exceededLifetime():
         endYear=2030,
         nbOfRepresentedYears=5,
         timeSeriesAggregation=False,
-        solver="glpk",
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
         saveResults=False,
         trackESMs=True,
     )

@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
+from fine.utils import ImplementedSolvers
 
 
 def test_etl_NPV():
@@ -55,7 +56,10 @@ def test_etl_NPV():
 
     esM.declareOptimizationProblem()
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     commissioning = [
         esM.getOptimizationSummary("SourceSinkModel", ip=ip).loc[
@@ -82,7 +86,10 @@ def test_etl_NPV():
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM_etl.nc")
     Path("test_esM_etl.nc").unlink()
 
-    esm_from_netcdf.optimize(timeSeriesAggregation=False, solver="glpk")
+    esm_from_netcdf.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     np.testing.assert_almost_equal(esm_from_netcdf.pyM.Obj(), esM.pyM.Obj(), 5)
     np.testing.assert_almost_equal(esm_from_netcdf.pyM.Obj(), 4.6906658, 5)
     np.testing.assert_almost_equal(
@@ -144,7 +151,10 @@ def test_etl_stock_NPV():
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     commis = [
         esM.getOptimizationSummary("SourceSinkModel", ip).loc[
             "PV_with_etl", "commissioning", "[kW$_{el}$]"
@@ -233,5 +243,5 @@ def test_etl_multi_regional():
         )
     )
 
-    esM.optimize(solver="glpk")
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
     print(1)

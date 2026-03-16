@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from fine.utils import ImplementedSolvers
 
 import fine as fn
 
@@ -1332,7 +1333,10 @@ def multi_node_test_esM_optimized(esM_init):
         rescaleClusterPeriods=True,
     )
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     return esM
 
@@ -2294,7 +2298,10 @@ def multi_node_test_esM_optimized(scope="session"):  # noqa: F811
         rescaleClusterPeriods=True,
     )
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     return esM
 

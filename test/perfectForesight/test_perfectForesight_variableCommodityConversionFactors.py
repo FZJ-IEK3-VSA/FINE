@@ -4,6 +4,7 @@ import pytest
 import fine as fn
 import copy
 import math
+from fine.utils import ImplementedSolvers
 
 
 def test_perfectForesight_variableConversions_input(
@@ -348,7 +349,10 @@ def test_perfectForesight_variableConversions_timeindependent(
             rescaleClusterPeriods=True,
         )
 
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
 
     expected_value = 1000 if use_tsa is False else 3000
 
@@ -523,7 +527,10 @@ def test_perfectForesight_variableConversions_timedepending(
             rescaleClusterPeriods=True,
         )
 
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
 
         # check that aggregation is correct
         assert np.array_equal(
@@ -642,7 +649,10 @@ def test_perfectForesight_variableConversions_operationRateMax(
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
 
     # test the sum of the operation
     processedOperation = (
@@ -783,7 +793,10 @@ def test_perfectForesight_variableConversions_operationRateFix(
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
         timeStepList = [0]
 
     # test the sum of the operation
@@ -920,7 +933,10 @@ def test_perfectForesight_variableConversions_fullLoadHoursMax(
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
         timeStepList = [0]
 
     # check that yearly full load hours max is kept for the installed capacities for each commissioning year
@@ -1051,7 +1067,10 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
         timeStepList = [0]
 
     # check that yearly full load hours min is kept for the installed capacities for each commissioning year

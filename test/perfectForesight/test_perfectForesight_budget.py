@@ -2,6 +2,8 @@ import fine as fn
 import numpy as np
 import pandas as pd
 
+from fine.utils import ImplementedSolvers
+
 
 def test_pathwayBudget():
     # Create an energy system model instance
@@ -115,7 +117,7 @@ def test_pathwayBudget():
         )
     )
     # 2. optimize
-    esM.optimize(solver="glpk")
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     # 3. test
     # Without a budget limit for CO2, the cost optimal system would only build

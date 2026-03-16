@@ -2,6 +2,7 @@ import numpy as np
 import pyomo.environ as pyo
 from pyomo.repn import generate_standard_repn
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 
 def build_test_system(rampUp=None, rampDown=None):
@@ -61,7 +62,10 @@ def maximize_period_boundary_jump_up(esM):
     """Force optimization to push the inter-period ramp constraint to its limit."""
     esM.aggregateTemporally(numberOfTypicalPeriods=2)
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     pyM = esM.pyM
     last_timestep_p0 = max(t for (p, t) in pyM.intraYearTimeSet if p == 0)
@@ -75,14 +79,17 @@ def maximize_period_boundary_jump_up(esM):
         expr=pyM.op_conv[key_after] - pyM.op_conv[key_before], sense=pyo.maximize
     )
 
-    pyo.SolverFactory("glpk").solve(pyM)
+    pyo.SolverFactory(ImplementedSolvers.STANDARD_SOLVER.value).solve(pyM)
     return pyM, key_before, key_after
 
 
 def maximize_period_boundary_jump_down(esM):
     """Build TSA model and choose an objective that maximizes the downward jump at the period boundary: op_before - op_after."""
     esM.aggregateTemporally(numberOfTypicalPeriods=2)
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")  # or your equivalent
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     pyM = esM.pyM
 
     # Last timestep of period 0, first timestep of period 1
@@ -100,7 +107,7 @@ def maximize_period_boundary_jump_down(esM):
         sense=pyo.maximize,
     )
 
-    pyo.SolverFactory("glpk").solve(pyM)
+    pyo.SolverFactory(ImplementedSolvers.STANDARD_SOLVER.value).solve(pyM)
     return pyM, key_before, key_after
 
 

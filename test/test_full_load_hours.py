@@ -1,12 +1,16 @@
 import pandas as pd
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 
 def test_fullloadhours_above(minimal_test_esM):
     """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000."""
     esM = minimal_test_esM
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     # get cumulative operation
     operationSum = (
@@ -48,7 +52,10 @@ def test_fullloadhours_max(minimal_test_esM):
     market.processedYearlyFullLoadHoursMax = {0: pd.Series(3000.0, index=esM.locations)}
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     # get cumulative operation
     operationSum = (
@@ -103,7 +110,10 @@ def test_fullloadhours_min(minimal_test_esM):
     market.processedYearlyFullLoadHoursMin = {0: pd.Series(3000.0, index=esM.locations)}
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     # get cumulative operation
     operationSum = (
