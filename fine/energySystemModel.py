@@ -2080,12 +2080,11 @@ class EnergySystemModel:
 
             if wlsaccessid and wlssecret and licenseid:
                 lic_path = Path.home() / "gurobi.lic"
-                if not lic_path.exists():
-                    lic_path.write_text(
-                        f"WLSACCESSID={wlsaccessid}\n"
-                        f"WLSSECRET={wlssecret}\n"
-                        f"LICENSEID={licenseid}\n"
-                    )
+                lic_path.write_text(
+                    f"WLSACCESSID={wlsaccessid}\n"
+                    f"WLSSECRET={wlssecret}\n"
+                    f"LICENSEID={licenseid}\n"
+                )
 
         # Set which solver should solve the specified optimization problem
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
