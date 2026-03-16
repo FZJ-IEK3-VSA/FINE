@@ -11,6 +11,7 @@ jobs:
       matrix:
         runner_tag: ["self-hosted"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    secrets: inherit
     with:
       runner_tag: ${{ matrix.runner_tag }}
       requirements_file_name: requirements_dev.yml
@@ -25,6 +26,7 @@ jobs:
       matrix:
         runner_tag: ["self-hosted"]
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test_uv_miniforge.yml@main
+    secrets: inherit
     with:
       runner_tag: ${{ matrix.runner_tag }}
       ipynb_example_folder: "examples"

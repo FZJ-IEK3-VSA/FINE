@@ -17,7 +17,6 @@ from fine.utils import ImplementedSolvers
 from fine.aggregations.spatialAggregation import manager as spagat
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
-import gurobipy as gp
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -2071,6 +2070,23 @@ class EnergySystemModel:
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
 
+        # If Gurobi WLS credentials are available as environment variables, write them to
+        # ~/gurobi.lic so Gurobi picks them up before creating its first environment.
+        # This must happen before the SolverFactory is created.
+        if solver == ImplementedSolvers.GUROBI.value:
+            wlsaccessid = os.environ.get("WLSACCESSID", "")
+            wlssecret = os.environ.get("WLSSECRET", "")
+            licenseid = os.environ.get("LICENSEID", "")
+
+            if wlsaccessid and wlssecret and licenseid:
+                lic_path = Path.home() / "gurobi.lic"
+                if not lic_path.exists():
+                    lic_path.write_text(
+                        f"WLSACCESSID={wlsaccessid}\n"
+                        f"WLSSECRET={wlssecret}\n"
+                        f"LICENSEID={licenseid}\n"
+                    )
+
         # Set which solver should solve the specified optimization problem
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
             # Use the direct gurobi solver that uses the Python API.
@@ -2095,29 +2111,6 @@ class EnergySystemModel:
 
         # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
         if solver == ImplementedSolvers.GUROBI.value:
-            wlsaccessid = os.environ.get("WLSACCESSID", "")
-            wlssecret = os.environ.get("WLSSECRET", "")
-            licenseid = os.environ.get("LICENSEID", "")
-
-            if wlsaccessid != "" and wlssecret != "" and licenseid != "":
-                optimizationSpecs = (
-                    "WLSACCESSID="
-                    + str(wlsaccessid)
-                    + " WLSSECRET="
-                    + str(wlssecret)
-                    + " LICENSEID="
-                    + str(licenseid)
-                    + " "
-                    + optimizationSpecs
-                )
-
-                options = {
-                    "WLSACCESSID": wlsaccessid,
-                    "WLSSECRET": wlssecret,
-                    "LICENSEID": licenseid,
-                }
-                gp.Env(params=options)
-
             optimizer.set_options(
                 "Threads="
                 + str(threads)

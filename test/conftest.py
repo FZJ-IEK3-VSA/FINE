@@ -1,3 +1,4 @@
+import os
 import pytest
 import sys
 from pathlib import Path
@@ -7,6 +8,28 @@ import pandas as pd
 from fine.utils import ImplementedSolvers
 
 import fine as fn
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _setup_gurobi_wls_license():
+    """Write ~/gurobi.lic from environment variables before any Gurobi environment is created.
+
+    Gurobi reads the license file when it creates its first Env object.  Writing
+    the file here (session scope, autouse) guarantees it exists before any test
+    body runs, regardless of how deep in the call stack Gurobi is first used.
+    """
+    wlsaccessid = os.environ.get("WLSACCESSID", "")
+    wlssecret = os.environ.get("WLSSECRET", "")
+    licenseid = os.environ.get("LICENSEID", "")
+
+    if wlsaccessid and wlssecret and licenseid:
+        lic_path = Path.home() / "gurobi.lic"
+        if not lic_path.exists():
+            lic_path.write_text(
+                f"WLSACCESSID={wlsaccessid}\n"
+                f"WLSSECRET={wlssecret}\n"
+                f"LICENSEID={licenseid}\n"
+            )
 
 sys.path.append(
     str(
