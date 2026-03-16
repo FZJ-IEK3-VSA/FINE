@@ -48,6 +48,7 @@ jobs:
       additional_conda_forge_dependencies: "glpk gurobi"
       multiprocessing_pytest_string: "-n auto"
       multiprocessing_example_string: "-n auto"
+      additional_conda_channel: "gurobi"
 
   extract-min-versions:
     if: github.actor != 'renovate[bot]'
