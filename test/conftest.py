@@ -38,6 +38,20 @@ def _setup_gurobi_wls_license():
             f"WLSACCESSID={wlsaccessid}\nWLSSECRET={wlssecret}\nLICENSEID={licenseid}\n"
         )
 
+    yield
+
+    # Explicitly release the WLS session when the test process finishes so the
+    # license slot is freed immediately rather than waiting for GC / process exit.
+    try:
+        import importlib.util
+
+        if importlib.util.find_spec("gurobipy"):
+            import gurobipy as gp
+
+            gp.disposeDefaultEnv()
+    except Exception:
+        pass
+
 
 @pytest.fixture
 def minimal_test_esM(scope="session"):
