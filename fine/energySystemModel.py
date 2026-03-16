@@ -2094,6 +2094,22 @@ class EnergySystemModel:
 
         # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
         if solver == ImplementedSolvers.GUROBI.value:
+            wlsaccessid = os.environ.get("WLSACCESSID", "")
+            wlssecret = os.environ.get("WLSSECRET", "")
+            licenseid = os.environ.get("LICENSEID", "")
+
+            if wlsaccessid != "" and wlssecret != "" and licenseid != "":
+                optimizationSpecs = (
+                    "WLSACCESSID="
+                    + str(wlsaccessid)
+                    + " WLSSECRET="
+                    + str(wlssecret)
+                    + " LICENSEID="
+                    + str(licenseid)
+                    + " "
+                    + optimizationSpecs
+                )
+
             optimizer.set_options(
                 "Threads="
                 + str(threads)
