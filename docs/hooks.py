@@ -12,15 +12,18 @@ EXAMPLES_DST = Path("docs/examples")
 COPY_EXTENSIONS = {".ipynb", ".xlsx", ".csv", ".png", ".jpg", ".svg", ".json", ".nc"}
 
 
-def on_page_markdown(markdown, page, config, files) -> str:
+def on_page_content(html, page, config, files) -> str:
     """Rewrite image paths in docs/index.md that originate from the README snippet.
 
     README.md uses ``./docs/<file>`` paths so images render on GitHub.
-    MkDocs resolves paths relative to docs/, so ``./docs/`` must become ``./``.
+    pymdownx.snippets expands the snippet *during* markdown conversion, which
+    runs after on_page_markdown, so path rewriting must happen here in the
+    rendered HTML instead.
     """
     if page.file.src_path == "index.md":
-        markdown = markdown.replace("./docs/", "./")
-    return markdown
+        html = html.replace('src="./docs/', 'src="./')
+        html = html.replace("src='./docs/", "src='./")
+    return html
 
 
 def on_pre_build(config) -> None:

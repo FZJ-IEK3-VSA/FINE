@@ -26,7 +26,8 @@
 /* Larger logo in navigation header */
 .md-header__button.md-logo img,
 .md-header__button.md-logo svg {
-    width: 180px;
+    height: 2.5rem;
+    width: auto;
 }
 
 /* Dark/light logo switching */
