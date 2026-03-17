@@ -19,6 +19,10 @@ site/
 # auto-copied example notebooks (generated during mkdocs build)
 docs/examples/[0-9]*/
 
+# environment / secrets
+.env
+.env.*
+
 # file types to ignore
 *.pyc
 *.egg-info

@@ -106,6 +106,32 @@ The installation requires the following three components:
 - **Gurobi license** — The license needs to be installed according to the instructions in the registration process.
 - **Gurobi python api** — The python api comes automatically with the fine installation.
 
+#### Activating a Gurobi Web License Server (WLS) license via a .env file
+
+If you use a [Gurobi WLS license](https://www.gurobi.com/features/web-license-service/), you can store
+your credentials in a `.env` file in the root of your project instead of setting environment variables
+manually each session.
+
+Create a `.env` file (never commit this file — it is already listed in `.gitignore`):
+
+```text
+WLSACCESSID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+WLSSECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+LICENSEID=000000
+```
+
+Then load the credentials at the beginning of your script or notebook:
+
+```python
+import fine as fn
+
+fn.load_gurobi_license_from_env()          # reads .env from the current directory
+# fn.load_gurobi_license_from_env("/path/to/my/.env")  # or pass an explicit path
+```
+
+After calling `load_gurobi_license_from_env()`, the WLS credentials are available as environment
+variables for the current process and FINE will automatically pick them up when solving with Gurobi.
+
 ### GLPK
 
 The solver [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download) is installed with the

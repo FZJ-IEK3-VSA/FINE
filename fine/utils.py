@@ -1,6 +1,8 @@
 import math
+import os
 import warnings
 from enum import Enum
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -3010,3 +3012,76 @@ class ImplementedSolvers(Enum):
     CBC = "cbc"
     HIGHS = "highs"
     STANDARD_SOLVER = "gurobi"  # Use Gurobi if available, otherwise use GLPK
+
+
+def load_gurobi_license_from_env(env_file=".env"):
+    """Load Gurobi WLS license credentials from a .env file.
+
+    Reads ``WLSACCESSID``, ``WLSSECRET``, and ``LICENSEID`` from a ``.env``
+    file and sets them as environment variables so that FINE can authenticate
+    against a Gurobi Web License Server (WLS) without storing credentials in
+    source code.
+
+    The ``.env`` file must be kept out of version control. Add ``.env`` to
+    your ``.gitignore`` to avoid accidentally committing credentials.
+
+    Parameters
+    ----------
+    env_file : str or Path, optional
+        Path to the ``.env`` file. Defaults to ``".env"`` in the current
+        working directory.
+
+    Returns
+    -------
+    bool
+        ``True`` if at least one WLS credential was loaded, ``False`` if the
+        file was not found or contained no recognised keys.
+
+    Examples
+    --------
+    Create a ``.env`` file in the root of your project::
+
+        WLSACCESSID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        WLSSECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        LICENSEID=000000
+
+    Then call this function before running any optimization::
+
+        import fine as fn
+        fn.load_gurobi_license_from_env()
+        esM.optimize(solver="gurobi")
+    """
+    env_path = Path(env_file)
+    if not env_path.is_file():
+        warnings.warn(
+            f"Gurobi .env file not found: {env_path.resolve()}. "
+            "WLS credentials were not loaded."
+        )
+        return False
+
+    credentials = {}
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                credentials[key] = value
+
+    wls_keys = {"WLSACCESSID", "WLSSECRET", "LICENSEID"}
+    found_keys = wls_keys & set(credentials)
+
+    if not found_keys:
+        warnings.warn(
+            f"No Gurobi WLS credentials (WLSACCESSID, WLSSECRET, LICENSEID) "
+            f"found in {env_path}."
+        )
+        return False
+
+    for key in found_keys:
+        os.environ[key] = credentials[key]
+
+    return True
