@@ -2086,7 +2086,7 @@ class EnergySystemModel:
         #         )
 
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
-            from gurobipy import Env
+            from gurobipy import Env  # noqa: PLC0415
 
             # Use the direct gurobi solver that uses the Python API.
             params = {
