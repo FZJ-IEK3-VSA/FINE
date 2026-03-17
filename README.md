@@ -3,7 +3,7 @@
 <table style="border:0; border-collapse:collapse;">
 	<tr>
 		<td style="border:0;">
-			<img src="./docs/fine_logo_v18_lettermark_detailed.svg" alt="ETHOS.FINE logo" width="180px">
+			<img src="./docs/fine_logo_v19_no_overlap.svg" alt="ETHOS.FINE logo" width="180px">
 		</td>
 		<td style="border:0;">
 			<a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/JSA-Header.svg?raw=True" alt="Logo für Forschungszentrum Juelich - Juelich System Analysis" width="300px"></a>

@@ -25,8 +25,8 @@ validation:
 theme:
     name: material
     custom_dir: docs/overrides
-    logo: ./fine_logo_v19_no_overlap.svg
-    favicon: ./fine_logo_v19_no_overlap.svg
+    logo: ./fine_logo_v19_white_bg.svg
+    favicon: ./fine_logo_v19_white_bg.svg
     palette:
         - media: "(prefers-color-scheme: light)"
           scheme: default
