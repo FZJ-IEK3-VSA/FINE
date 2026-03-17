@@ -2033,7 +2033,6 @@ class EnergySystemModel:
         solverList = [
             ImplementedSolvers.GUROBI.value,
             ImplementedSolvers.STANDARD_SOLVER.value,
-            ImplementedSolvers.CBC.value,
             ImplementedSolvers.HIGHS.value,
         ]
 
