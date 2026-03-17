@@ -27,5 +27,5 @@ jobs:
             library_version: ${{ matrix.dependencies.version }}
             dependency_position_env_file: ${{ matrix.dependencies.yaml_position }}
             library_name: ${{ matrix.dependencies.library_name }}
-            multiprocessing_pytest_string: "-n auto"
-            multiprocessing_example_string: "-n auto"
+            multiprocessing_pytest_string: "-n 2"
+            multiprocessing_example_string: "-n 2"

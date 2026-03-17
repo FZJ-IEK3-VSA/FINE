@@ -28,8 +28,8 @@ jobs:
       library_name: "python"
       library_version: ${{ matrix.python_version }}
       dependency_position_env_file: ${{ needs.extract-python-versions.outputs.dependency_position }}
-      multiprocessing_pytest_string: "-n auto"
-      multiprocessing_example_string: "-n auto"
+      multiprocessing_pytest_string: "-n 2"
+      multiprocessing_example_string: "-n 2"
   TestPullPyPIDev:
     name: Test PyPI development version on ${{ matrix.runner_tag }}
     needs: extract-python-versions
@@ -44,9 +44,9 @@ jobs:
       ipynb_example_folder: "examples"
       python_version: ${{ needs.extract-python-versions.outputs.max_version }}
       optional_dependency_PyPI_tag: "[develop]"
-      additional_conda_forge_dependencies: "glpk"
-      multiprocessing_pytest_string: "-n auto"
-      multiprocessing_example_string: "-n auto"
+      additional_conda_forge_dependencies: "gurobi glpk"
+      multiprocessing_pytest_string: "-n 2"
+      multiprocessing_example_string: "-n 2"
 
   extract-min-versions:
     if: github.actor != 'renovate[bot]'
@@ -72,5 +72,5 @@ jobs:
       library_name: ${{ matrix.dependencies.library_name }}
       library_version: ${{ matrix.dependencies.version }}
       dependency_position_env_file: ${{ matrix.dependencies.yaml_position }}
-      multiprocessing_pytest_string: "-n auto"
-      multiprocessing_example_string: "-n auto"
+      multiprocessing_pytest_string: "-n 2"
+      multiprocessing_example_string: "-n 2"
