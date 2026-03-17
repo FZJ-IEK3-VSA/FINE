@@ -24,6 +24,8 @@ validation:
 
 theme:
     name: material
+    logo: fine_logo_v18_lettermark_detailed.svg
+    favicon: fine_logo_v18_lettermark_detailed.svg
     palette:
         - media: "(prefers-color-scheme: light)"
           scheme: default

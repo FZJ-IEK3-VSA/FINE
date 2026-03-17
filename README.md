@@ -1,5 +1,16 @@
 <!-- markdownlint-disable line-length no-inline-html -->
 # ETHOS.FINE - Framework for Integrated Energy System Assessment
+<table style="border:0; border-collapse:collapse;">
+	<tr>
+		<td style="border:0;">
+			<img src="./docs/fine_logo_v18_lettermark_detailed.svg" alt="ETHOS.FINE logo" width="300px">
+		</td>
+		<td style="border:0;">
+			<a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/JSA-Header.svg?raw=True" alt="Logo für Forschungszentrum Juelich - Juelich System Analysis" width="300px"></a>
+		</td>
+	</tr>
+</table>
+
 <a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/Logo_FZ_Juelich_412x120_rgb_jpg.jpg?raw=true" alt="Forschungszentrum Juelich Logo" width="300px"></a>
 
 [![.github/workflows/test_push.yml](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml/badge.svg)](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml)
