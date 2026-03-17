@@ -1,7 +1,7 @@
 # ruff: noqa # needed since packages are not used here
 
 from .energySystemModel import EnergySystemModel
-from .utils import load_gurobi_license_from_env
+from .utils import check_gurobi_license
 from .sourceSink import Source, Sink
 from .conversion import Conversion
 from .storage import Storage

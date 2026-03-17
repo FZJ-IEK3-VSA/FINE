@@ -64,17 +64,8 @@ python -m pip install fine
 
 ### Solver
 
-The functionality of ETHOS.FINE depends on the following C libraries that need to be installed on your system. If you do not know how to install those, consider installing from conda-forge. The mamba/conda installation comes with [GLPK](https://www.gnu.org/software/glpk/) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](https://vsa-fine.readthedocs.io/en/develop/installation.html#installation-of-an-optimization-solver) in the documentation for more information.
-
-If you use a **Gurobi Web License Server (WLS)** license, you can store your credentials in a `.env` file in your project root (already excluded from git via `.gitignore`) and activate them with:
-
-```python
-import fine as fn
-fn.load_gurobi_license_from_env()  # loads WLSACCESSID, WLSSECRET, LICENSEID from .env
-```
-
-See the [installation docs](https://vsa-fine.readthedocs.io/en/develop/installation.html#activating-a-gurobi-web-license-server-wls-license-via-a-env-file) for details.
-
+At its core, ETHOS.FINE creates an optimisation problem via the Pyomo interface. A Mixed Integer Linear Programming (MILP) solver is required, and theoretically any solver supported by Pyomo can be used with ETHOS.FINE. However, the Conda installation of ETHOS.FINE comes with [GUROBI](http://www.gurobi.com/) and with [GLPK](https://www.gnu.org/software/glpk/) preinstalled. If you want to solve large problems, it is highly recommended that you use [GUROBI](http://www.gurobi.com/) due to its superior performance. However, a proprietary licence is required to use GUROBI for larger optimisation problems, but this is available free of charge to academics.
+See the [installation documentation](https://vsa-fine.readthedocs.io/en/develop/installation.html#installation-of-an-optimization-solver) for full details. If you do not want or cannot use a GUROBI licence, you can use the GLPK solver, which does not require an additional licence. If you use the PyPi installation, you need to install the solvers yourself. Please check the solver provider's homepage, or consider using Conda/Mamba.
 
 ## Examples
 

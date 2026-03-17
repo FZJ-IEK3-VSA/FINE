@@ -1,3 +1,4 @@
+import importlib.util
 import math
 import os
 import warnings
@@ -3009,79 +3010,121 @@ class ImplementedSolvers(Enum):
 
     GLPK = "glpk"
     GUROBI = "gurobi"
-    CBC = "cbc"
     HIGHS = "highs"
     STANDARD_SOLVER = "gurobi"  # Use Gurobi if available, otherwise use GLPK
 
 
-def load_gurobi_license_from_env(env_file=".env"):
-    """Load Gurobi WLS license credentials from a .env file.
+def check_gurobi_license():
+    """Check whether a valid Gurobi license is available and print a status report.
 
-    Reads ``WLSACCESSID``, ``WLSSECRET``, and ``LICENSEID`` from a ``.env``
-    file and sets them as environment variables so that FINE can authenticate
-    against a Gurobi Web License Server (WLS) without storing credentials in
-    source code.
+    Detects the license type and verifies it by attempting to initialise a
+    Gurobi environment. Two license types are supported:
 
-    The ``.env`` file must be kept out of version control. Add ``.env`` to
-    your ``.gitignore`` to avoid accidentally committing credentials.
+    - **Named-user / node-locked** — activated once via ``grbgetkey`` (requires
+      internet only during that one-time activation). The license is stored in
+      ``~/gurobi.lic`` and works fully offline afterwards.
+    - **Web License Server (WLS)** — validates against Gurobi's servers on
+      every use (requires internet access each time). Credentials are either
+      passed via environment variables (``WLSACCESSID``, ``WLSSECRET``,
+      ``LICENSEID``) or stored in ``~/gurobi.lic``.
 
-    Parameters
-    ----------
-    env_file : str or Path, optional
-        Path to the ``.env`` file. Defaults to ``".env"`` in the current
-        working directory.
+    License sources are checked in the following order:
+
+    1. WLS credentials in environment variables (e.g. loaded via
+       :func:`load_gurobi_license_from_env`).
+    2. ``~/gurobi.lic`` — either a WLS license stored there, or a
+       named-user license activated via ``grbgetkey``.
 
     Returns
     -------
     bool
-        ``True`` if at least one WLS credential was loaded, ``False`` if the
-        file was not found or contained no recognised keys.
+        ``True`` if a valid Gurobi license is found, ``False`` otherwise.
 
     Examples
     --------
-    Create a ``.env`` file in the root of your project::
-
-        WLSACCESSID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-        WLSSECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-        LICENSEID=000000
-
-    Then call this function before running any optimization::
+    ::
 
         import fine as fn
+
+        # Optional: load WLS credentials from a .env file first
         fn.load_gurobi_license_from_env()
-        esM.optimize(solver="gurobi")
+
+        # Then verify
+        fn.check_gurobi_license()
+
     """
-    env_path = Path(env_file)
-    if not env_path.is_file():
-        warnings.warn(
-            f"Gurobi .env file not found: {env_path.resolve()}. "
-            "WLS credentials were not loaded."
-        )
+    print("Checking Gurobi license ...")
+
+    # --- 1. gurobipy installed? ----------------------------------------------
+    if not importlib.util.find_spec("gurobipy"):
+        print("  [FAIL] gurobipy is not installed.")
+        print("         Install it with:  mamba install -c gurobi gurobi")
         return False
 
-    credentials = {}
-    with open(env_path) as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            if "=" in line:
-                key, _, value = line.partition("=")
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                credentials[key] = value
+    import gurobipy  # noqa: PLC0415
 
-    wls_keys = {"WLSACCESSID", "WLSSECRET", "LICENSEID"}
-    found_keys = wls_keys & set(credentials)
+    version_str = ".".join(str(v) for v in gurobipy.gurobi.version())
+    print(f"  gurobipy version : {version_str}")
 
-    if not found_keys:
-        warnings.warn(
-            f"No Gurobi WLS credentials (WLSACCESSID, WLSSECRET, LICENSEID) "
-            f"found in {env_path}."
-        )
+    # --- 2. Detect license source --------------------------------------------
+    wls_access_id = os.environ.get("WLSACCESSID", "")
+    lic_file = Path.home() / "gurobi.lic"
+
+    if wls_access_id:
+        license_source = "WLS credentials in environment variables"
+        license_type = "wls_env"
+    elif lic_file.is_file():
+        lic_text = lic_file.read_text(errors="replace")
+        if "WLSACCESSID" in lic_text:
+            license_source = f"WLS credentials in {lic_file}"
+            license_type = "wls_file"
+        else:
+            license_source = f"Named-user license file ({lic_file})"
+            license_type = "named_user"
+    else:
+        license_source = "None detected"
+        license_type = "unknown"
+
+    print(f"  License source   : {license_source}")
+    print(f"  License type     : {license_type.replace('_', '-')}")
+
+    # --- 3. Validate by creating a Gurobi environment -----------------------
+    try:
+        if license_type == "wls_env":
+            params = {
+                "WLSACCESSID": wls_access_id,
+                "WLSSECRET": os.environ.get("WLSSECRET", ""),
+                "LICENSEID": int(os.environ.get("LICENSEID", "0")),
+            }
+            with gurobipy.Env(params=params):
+                pass
+        else:
+            with gurobipy.Env():
+                pass
+
+        print("  [OK]  License is valid.")
+        return True
+
+    except gurobipy.GurobiError as exc:
+        print(f"  [FAIL] License check failed: {exc}")
+        if license_type == "unknown":
+            print(
+                "\n  No license source was found. Options:\n"
+                "  - Named-user (once-off internet activation):\n"
+                "      grbgetkey <your-key>   # downloads license to ~/gurobi.lic\n"
+                "  - WLS (internet required each use):\n"
+                "      Create a .env file and call fn.load_gurobi_license_from_env()"
+            )
+        elif license_type in ("wls_env", "wls_file"):
+            print(
+                "\n  WLS credentials were found but the validation failed.\n"
+                "  Check that WLSACCESSID, WLSSECRET, and LICENSEID are correct\n"
+                "  and that you have internet access."
+            )
+        else:
+            print(
+                "\n  A license file was found but validation failed.\n"
+                "  The license may have expired. Re-activate with:\n"
+                "      grbgetkey <your-key>"
+            )
         return False
-
-    for key in found_keys:
-        os.environ[key] = credentials[key]
-
-    return True
