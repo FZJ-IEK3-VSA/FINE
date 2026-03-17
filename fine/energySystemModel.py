@@ -2073,25 +2073,42 @@ class EnergySystemModel:
         # If Gurobi WLS credentials are available as environment variables, write them to
         # ~/gurobi.lic so Gurobi picks them up before creating its first environment.
         # This must happen before the SolverFactory is created.
-        if solver == ImplementedSolvers.GUROBI.value:
-            wlsaccessid = os.environ.get("WLSACCESSID", "")
-            wlssecret = os.environ.get("WLSSECRET", "")
-            licenseid = os.environ.get("LICENSEID", "")
+        # if solver == ImplementedSolvers.GUROBI.value:
+        #     wlsaccessid = os.environ.get("WLSACCESSID", "")
+        #     wlssecret = os.environ.get("WLSSECRET", "")
+        #     licenseid = os.environ.get("LICENSEID", "")
 
-            if wlsaccessid and wlssecret and licenseid:
-                lic_path = Path.home() / "gurobi.lic"
-                lic_path.write_text(
-                    f"WLSACCESSID={wlsaccessid}\n"
-                    f"WLSSECRET={wlssecret}\n"
-                    f"LICENSEID={licenseid}\n"
-                )
+        #     if wlsaccessid and wlssecret and licenseid:
+        #         lic_path = Path.home() / "gurobi.lic"
+        #         lic_path.write_text(
+        #             f"WLSACCESSID={wlsaccessid}\n"
+        #             f"WLSSECRET={wlssecret}\n"
+        #             f"LICENSEID={licenseid}\n"
+        #         )
 
-        # Set which solver should solve the specified optimization problem
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
+            from gurobipy import Env
+
             # Use the direct gurobi solver that uses the Python API.
-            optimizer = opt.SolverFactory(solver, solver_io="python")
+            params = {
+                "WLSACCESSID": os.environ.get("WLSACCESSID", ""),
+                "WLSSECRET": os.environ.get("WLSSECRET", ""),
+                "LICENSEID": int(os.environ.get("LICENSEID", "0")),
+            }
+            if params["WLSACCESSID"] == "":
+                optimizer = opt.SolverFactory(solver, solver_io="python")
+            else:
+                with Env(params=params) as env:
+                    optimizer = opt.SolverFactory(solver, solver_io="python", env=env)
         else:
             optimizer = opt.SolverFactory(solver)
+
+        # # Set which solver should solve the specified optimization problem
+        # if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
+        #     # Use the direct gurobi solver that uses the Python API.
+        #     optimizer = opt.SolverFactory(solver, solver_io="python")
+        # else:
+        #     optimizer = opt.SolverFactory(solver)
 
         # Set, if specified, the time limit
         if (
@@ -2118,6 +2135,7 @@ class EnergySystemModel:
                 + " "
                 + optimizationSpecs
             )
+
             solver_info = optimizer.solve(
                 self.pyM,
                 warmstart=warmstart,

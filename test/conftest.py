@@ -1,4 +1,3 @@
-import os
 import pytest
 import sys
 from pathlib import Path
@@ -20,37 +19,37 @@ sys.path.append(
 from getData import getData
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _setup_gurobi_wls_license():
-    """Write ~/gurobi.lic from environment variables before any Gurobi environment is created.
+# @pytest.fixture(scope="session", autouse=True)
+# def _setup_gurobi_wls_license():
+#     """Write ~/gurobi.lic from environment variables before any Gurobi environment is created.
 
-    Gurobi reads the license file when it creates its first Env object.  Writing
-    the file here (session scope, autouse) guarantees it exists before any test
-    body runs, regardless of how deep in the call stack Gurobi is first used.
-    """
-    wlsaccessid = os.environ.get("WLSACCESSID", "")
-    wlssecret = os.environ.get("WLSSECRET", "")
-    licenseid = os.environ.get("LICENSEID", "")
+#     Gurobi reads the license file when it creates its first Env object.  Writing
+#     the file here (session scope, autouse) guarantees it exists before any test
+#     body runs, regardless of how deep in the call stack Gurobi is first used.
+#     """
+#     wlsaccessid = os.environ.get("WLSACCESSID", "")
+#     wlssecret = os.environ.get("WLSSECRET", "")
+#     licenseid = os.environ.get("LICENSEID", "")
 
-    if wlsaccessid and wlssecret and licenseid:
-        lic_path = Path.home() / "gurobi.lic"
-        lic_path.write_text(
-            f"WLSACCESSID={wlsaccessid}\nWLSSECRET={wlssecret}\nLICENSEID={licenseid}\n"
-        )
+#     if wlsaccessid and wlssecret and licenseid:
+#         lic_path = Path.home() / "gurobi.lic"
+#         lic_path.write_text(
+#             f"WLSACCESSID={wlsaccessid}\nWLSSECRET={wlssecret}\nLICENSEID={licenseid}\n"
+#         )
 
-    yield
+#     yield
 
-    # Explicitly release the WLS session when the test process finishes so the
-    # license slot is freed immediately rather than waiting for GC / process exit.
-    try:
-        import importlib.util
+#     # Explicitly release the WLS session when the test process finishes so the
+#     # license slot is freed immediately rather than waiting for GC / process exit.
+#     try:
+#         import importlib.util
 
-        if importlib.util.find_spec("gurobipy"):
-            import gurobipy as gp
+#         if importlib.util.find_spec("gurobipy"):
+#             import gurobipy as gp
 
-            gp.disposeDefaultEnv()
-    except Exception:
-        pass
+#             gp.disposeDefaultEnv()
+#     except Exception:
+#         pass
 
 
 @pytest.fixture
