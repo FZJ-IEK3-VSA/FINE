@@ -2069,22 +2069,6 @@ class EnergySystemModel:
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
 
-        # If Gurobi WLS credentials are available as environment variables, write them to
-        # ~/gurobi.lic so Gurobi picks them up before creating its first environment.
-        # This must happen before the SolverFactory is created.
-        # if solver == ImplementedSolvers.GUROBI.value:
-        #     wlsaccessid = os.environ.get("WLSACCESSID", "")
-        #     wlssecret = os.environ.get("WLSSECRET", "")
-        #     licenseid = os.environ.get("LICENSEID", "")
-
-        #     if wlsaccessid and wlssecret and licenseid:
-        #         lic_path = Path.home() / "gurobi.lic"
-        #         lic_path.write_text(
-        #             f"WLSACCESSID={wlsaccessid}\n"
-        #             f"WLSSECRET={wlssecret}\n"
-        #             f"LICENSEID={licenseid}\n"
-        #         )
-
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
             from gurobipy import Env  # noqa: PLC0415
 
@@ -2106,13 +2090,6 @@ class EnergySystemModel:
 
         else:
             optimizer = opt.SolverFactory(solver)
-
-        # # Set which solver should solve the specified optimization problem
-        # if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
-        #     # Use the direct gurobi solver that uses the Python API.
-        #     optimizer = opt.SolverFactory(solver, solver_io="python")
-        # else:
-        #     optimizer = opt.SolverFactory(solver)
 
         # Set, if specified, the time limit
         if (

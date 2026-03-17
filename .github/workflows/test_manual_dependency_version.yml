@@ -51,6 +51,7 @@ jobs:
       max_version: ${{ inputs.max_version }}
       dependency_position_env_file: ${{ needs.extract-position.outputs.dependency_position }}
       requirements_file_name: requirements_dev.yml
+      conda_channel: ${{ inputs.additional_conda_channel || 'conda-forge' }}
 
   TestManualVersions:
     name: "Test ${{ matrix.library_name }} ${{ matrix.library_version }}"
