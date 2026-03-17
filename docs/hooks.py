@@ -12,6 +12,17 @@ EXAMPLES_DST = Path("docs/examples")
 COPY_EXTENSIONS = {".ipynb", ".xlsx", ".csv", ".png", ".jpg", ".svg", ".json", ".nc"}
 
 
+def on_page_markdown(markdown, page, config, files) -> str:
+    """Rewrite image paths in docs/index.md that originate from the README snippet.
+
+    README.md uses ``./docs/<file>`` paths so images render on GitHub.
+    MkDocs resolves paths relative to docs/, so ``./docs/`` must become ``./``.
+    """
+    if page.file.src_path == "index.md":
+        markdown = markdown.replace("./docs/", "./")
+    return markdown
+
+
 def on_pre_build(config) -> None:
     """Copy example notebooks and data files into docs/examples/ before the build.
 

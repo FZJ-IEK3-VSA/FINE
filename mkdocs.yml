@@ -24,8 +24,9 @@ validation:
 
 theme:
     name: material
-    logo: ./fine_logo_v18_lettermark_detailed.svg
-    favicon: ./fine_logo_v18_lettermark_detailed.svg
+    custom_dir: docs/overrides
+    logo: ./fine_logo_v19_no_overlap.svg
+    favicon: ./fine_logo_v19_no_overlap.svg
     palette:
         - media: "(prefers-color-scheme: light)"
           scheme: default
