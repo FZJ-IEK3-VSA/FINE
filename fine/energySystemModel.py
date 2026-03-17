@@ -2089,16 +2089,15 @@ class EnergySystemModel:
             from gurobipy import Env  # noqa: PLC0415
 
             # Use the direct gurobi solver that uses the Python API.
-            params = {
-                "WLSACCESSID": os.environ.get("WLSACCESSID", ""),
-                "WLSSECRET": os.environ.get("WLSSECRET", ""),
-                "LICENSEID": os.environ.get("LICENSEID", ""),
-            }
-            if (
-                params["WLSACCESSID"] != ""
-                and params["WLSSECRET"] != ""
-                and params["LICENSEID"] != ""
-            ):
+            wlsaccessid = os.environ.get("WLSACCESSID", "")
+            wlssecret = os.environ.get("WLSSECRET", "")
+            licenseid = os.environ.get("LICENSEID", "")
+            if wlsaccessid and wlssecret and licenseid:
+                params = {
+                    "WLSACCESSID": wlsaccessid,
+                    "WLSSECRET": wlssecret,
+                    "LICENSEID": int(licenseid),
+                }
                 with Env(params=params) as env:
                     optimizer = opt.SolverFactory(solver, solver_io="python", env=env)
 
