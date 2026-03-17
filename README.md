@@ -14,7 +14,7 @@
 [![.github/workflows/test_push.yml](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml/badge.svg)](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml)
 [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/fine.svg)](https://anaconda.org/conda-forge/fine)
-[![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=develop)](https://vsa-fine.readthedocs.io/en/develop/)
 [![PyPI - License](https://img.shields.io/pypi/l/FINE)](https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)
 [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06274/status.svg)](https://doi.org/10.21105/joss.06274)

@@ -42,11 +42,8 @@
     max-height: none !important;
 }
 
-/* Dark/light logo switching */
-[data-md-color-scheme="default"] .md-header__button.md-logo .logo-dark {
-    display: none;
-}
-
-[data-md-color-scheme="slate"] .md-header__button.md-logo .logo-light {
-    display: none;
+/* README logo in dark mode: invert the dark-blue logo to white so it
+   remains legible on the dark page background */
+[data-md-color-scheme="slate"] .md-content img[alt="ETHOS.FINE logo"] {
+    filter: brightness(0) invert(1);
 }
