@@ -2092,7 +2092,7 @@ class EnergySystemModel:
             params = {
                 "WLSACCESSID": os.environ.get("WLSACCESSID", ""),
                 "WLSSECRET": os.environ.get("WLSSECRET", ""),
-                "LICENSEID": int(os.environ.get("LICENSEID"), ""),
+                "LICENSEID": os.environ.get("LICENSEID", ""),
             }
             if (
                 params["WLSACCESSID"] != ""
