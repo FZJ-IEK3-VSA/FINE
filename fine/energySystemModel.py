@@ -2092,13 +2092,19 @@ class EnergySystemModel:
             params = {
                 "WLSACCESSID": os.environ.get("WLSACCESSID", ""),
                 "WLSSECRET": os.environ.get("WLSSECRET", ""),
-                "LICENSEID": int(os.environ.get("LICENSEID", "0")),
+                "LICENSEID": int(os.environ.get("LICENSEID"), ""),
             }
-            if params["WLSACCESSID"] == "":
-                optimizer = opt.SolverFactory(solver, solver_io="python")
-            else:
+            if (
+                params["WLSACCESSID"] != ""
+                and params["WLSSECRET"] != ""
+                and params["LICENSEID"] != ""
+            ):
                 with Env(params=params) as env:
                     optimizer = opt.SolverFactory(solver, solver_io="python", env=env)
+
+            else:
+                optimizer = opt.SolverFactory(solver, solver_io="python")
+
         else:
             optimizer = opt.SolverFactory(solver)
 
