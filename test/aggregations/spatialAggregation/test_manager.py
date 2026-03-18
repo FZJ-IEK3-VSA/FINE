@@ -8,7 +8,7 @@ from fine.utils import ImplementedSolvers
 
 @pytest.mark.parametrize("use_saved_file", [False, True])
 def test_esm_to_xr_and_back_during_spatial_aggregation(
-    use_saved_file, test_esM_for_spagat
+    use_saved_file, test_esM_for_spagat, tmp_path
 ):
     """Resulting number of regions would be the same as the original number.
 
@@ -25,9 +25,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
-    PATH_TO_SAVE = os.path.join(  # noqa: PTH118
-        os.path.dirname(__file__)  # noqa: PTH120
-    )
+    PATH_TO_SAVE = str(tmp_path)
     netcdf_file_name = "my_xr.nc"
     shp_file_name = "my_shp"
 
