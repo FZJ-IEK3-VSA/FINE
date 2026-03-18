@@ -61,11 +61,16 @@ Find more information on creating virtual environments with venv [here](https://
 python -m pip install fine
 ```
 
+### Solver 
 
-### Solver
+At its core, ETHOS.FINE creates an optimisation problem via the Pyomo interface. A Mixed Integer Linear Programming (MILP) solver is required, and theoretically any solver supported by Pyomo can be used with ETHOS.FINE. ETHOS.FINE is tested with [GUROBI](http://www.gurobi.com/) and with [GLPK](https://www.gnu.org/software/glpk/) preinstalled. If you want to solve large problems, it is highly recommended that you use [GUROBI](http://www.gurobi.com/) due to its superior performance. However, a proprietary licence is required to use GUROBI for larger optimisation problems, but this is available free of charge to academics.
+See the [installation documentation](https://vsa-fine.readthedocs.io/en/develop/installation.html#optimization-solver) for full details. If you do not want or cannot use a GUROBI licence, you can use the GLPK solver, which does not require an additional licence.
 
-At its core, ETHOS.FINE creates an optimisation problem via the Pyomo interface. A Mixed Integer Linear Programming (MILP) solver is required, and theoretically any solver supported by Pyomo can be used with ETHOS.FINE. However, the Conda installation of ETHOS.FINE comes with [GUROBI](http://www.gurobi.com/) and with [GLPK](https://www.gnu.org/software/glpk/) preinstalled. If you want to solve large problems, it is highly recommended that you use [GUROBI](http://www.gurobi.com/) due to its superior performance. However, a proprietary licence is required to use GUROBI for larger optimisation problems, but this is available free of charge to academics.
-See the [installation documentation](https://vsa-fine.readthedocs.io/en/develop/installation.html#installation-of-an-optimization-solver) for full details. If you do not want or cannot use a GUROBI licence, you can use the GLPK solver, which does not require an additional licence. If you use the PyPi installation, you need to install the solvers yourself. Please check the solver provider's homepage, or consider using Conda/Mamba.
+#### Conda Solver Installation 
+The Conda installation of ETHOS.FINE comes with [GUROBI](http://www.gurobi.com/) and with [GLPK](https://www.gnu.org/software/glpk/) preinstalled. 
+
+#### PyPi Solver Installation 
+If you use the PyPi installation, it comes with a reduced version of Pyomo called 'GurobiPy'. However, if you require the full Gurobi software or another solver, please check the solver provider's homepage. Alternatively, consider using Conda/Mamba.
 
 ## Examples
 

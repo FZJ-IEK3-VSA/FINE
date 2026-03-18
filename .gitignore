@@ -33,3 +33,9 @@ docs/examples/[0-9]*/
 .coverage
 build_output*.*
 test_esM_etl.nc
+
+# Gurobi test files
+
+firstStage
+relaxedProblem
+secondStage
