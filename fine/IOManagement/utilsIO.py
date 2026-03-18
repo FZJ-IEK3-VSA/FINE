@@ -58,6 +58,16 @@ def getKeyHierarchyOfNestedDict(
 
     return key_list  # noqa: RET504
 
+def _get_base_name_and_ip(variable_description):
+    key_list = getKeyHierarchyOfNestedDict(variable_description)
+
+    if len(key_list) > 1 and isinstance(key_list[1], (int, tuple)):
+        ip = key_list[1]
+        base_key_list = [key_list[0]] + key_list[2:]        # strip ip from middle
+        base_name = ".".join(str(k) for k in base_key_list) # rejoin remainder
+        return base_name, ip
+
+    return variable_description, None
 
 def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
     """Get a list of all paths in a nested dict, starting after the variable_name,
@@ -492,33 +502,62 @@ def addConstantsToXarray(
 
     :return: xr_ds
     """
-    for (
-        variable_description,
-        description_tuple_list,
-    ) in constants_iteration_dict.items():
-        df_dict = {}
-        for description_tuple in description_tuple_list:
-            classname, component = description_tuple
-            df_description = f"{classname}; {component}"
+    # Group all variable descriptions by base name (stripping ip suffix if present)
+    grouped = {}
+    for variable_description in constants_iteration_dict:
+        base_name, ip_value = _get_base_name_and_ip(variable_description)
+        if base_name not in grouped:
+            grouped[base_name] = {}
+        grouped[base_name][ip_value] = variable_description
 
-            key_list = getKeyHierarchyOfNestedDict(variable_description)
+    for base_name, ip_to_desc in grouped.items():
+        is_ip_dep = not (len(ip_to_desc) == 1 and None in ip_to_desc)
 
-            # get the data in the dict with all keys within the key_list
-            data = component_dict[classname][component]
-            for item in key_list:
-                data = data[item]
+        if not is_ip_dep:
+            # ip-independent: gather data into a Series, write as scalar DataArray
+            variable_description = ip_to_desc[None]
+            df_dict = {}
+            for classname, component in constants_iteration_dict[variable_description]:
+                df_description = f"{classname}; {component}"
+                key_list = getKeyHierarchyOfNestedDict(variable_description)
+                data = component_dict[classname][component]
+                for item in key_list:
+                    data = data[item]
+                df_dict[df_description] = data
 
-            df_dict[df_description] = data
+            df_variable = pd.Series(df_dict)
+            df_variable.index.set_names("component", inplace=True)
 
-        df_variable = pd.Series(df_dict)
-        df_variable.index.set_names("component", inplace=True)
+            ds_component = xr.Dataset()
+            ds_component[f"0d_{base_name}"] = xr.DataArray.from_series(df_variable)
 
-        ds_component = xr.Dataset()
-        ds_component[f"0d_{variable_description}"] = xr.DataArray.from_series(
-            df_variable
-        )
+        else:
+            # ip-dependent: gather one Series per ip, combine into DataFrame, write with ip dim
+            ip_series = {}
+            for ip_value, variable_description in ip_to_desc.items():
+                df_dict = {}
+                for classname, component in constants_iteration_dict[variable_description]:
+                    df_description = f"{classname}; {component}"
+                    key_list = getKeyHierarchyOfNestedDict(variable_description)
+                    data = component_dict[classname][component]
+                    for item in key_list:
+                        data = data[item]
+                    df_dict[df_description] = data
+                ip_series[str(ip_value)] = pd.Series(df_dict)
 
-        for comp in df_variable.index.get_level_values(0).unique():
+            df_combined = pd.DataFrame(ip_series)
+            df_combined.index.set_names("component", inplace=True)
+            df_combined.columns.set_names("ip", inplace=True)
+
+            ds_component = xr.Dataset()
+            ds_component[f"0d_{base_name}"] = xr.DataArray(
+                df_combined.values,
+                coords={"component": df_combined.index, "ip": df_combined.columns},
+                dims=["component", "ip"],
+            )
+
+        # Merge each component's slice into xr_ds (shared for both branches)
+        for comp in ds_component[f"0d_{base_name}"].coords["component"].values:
             this_class = comp.split("; ")[0]
             this_comp = comp.split("; ")[1]
             this_ds_component = (
