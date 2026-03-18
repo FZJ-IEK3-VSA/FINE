@@ -104,7 +104,7 @@ A full Gurobi installation comes with the Conda Forge installation, while a redu
 
     This downloads the license and saves it to `~/gurobi.lic`. 
 
-5. (Optional and only with conda forge) Check whether the activation has succeeded by running a file containing the following from an activated environment:
+5. (Optional and only with conda forge) Check whether the activation has succeeded by the following command from an activated environment:
 
     ```bash
     gurobi_cl --license
