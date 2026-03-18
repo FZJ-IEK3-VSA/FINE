@@ -33,6 +33,6 @@ jobs:
       python_version: "3.13"
       optional_dependency_PyPI_tag: "[develop]"
       additional_conda_forge_dependencies: "glpk gurobi"
-      multiprocessing_pytest_string: "-n 3"
-      multiprocessing_example_string: "-n 3"
+      multiprocessing_pytest_string: "-n auto"
+      multiprocessing_example_string: "-n auto"
       additional_conda_channel: "gurobi"

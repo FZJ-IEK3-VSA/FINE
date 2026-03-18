@@ -24,6 +24,9 @@ validation:
 
 theme:
     name: material
+    custom_dir: docs/overrides
+    logo: ./fine_logo_nav.svg
+    favicon: ./fine_logo_nav.svg
     palette:
         - media: "(prefers-color-scheme: light)"
           scheme: default

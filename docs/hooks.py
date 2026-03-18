@@ -12,6 +12,20 @@ EXAMPLES_DST = Path("docs/examples")
 COPY_EXTENSIONS = {".ipynb", ".xlsx", ".csv", ".png", ".jpg", ".svg", ".json", ".nc"}
 
 
+def on_page_content(html, page, config, files) -> str:
+    """Rewrite image paths in docs/index.md that originate from the README snippet.
+
+    README.md uses ``./docs/<file>`` paths so images render on GitHub.
+    pymdownx.snippets expands the snippet *during* markdown conversion, which
+    runs after on_page_markdown, so path rewriting must happen here in the
+    rendered HTML instead.
+    """
+    if page.file.src_path == "index.md":
+        html = html.replace('src="./docs/', 'src="./')
+        html = html.replace("src='./docs/", "src='./")
+    return html
+
+
 def on_pre_build(config) -> None:
     """Copy example notebooks and data files into docs/examples/ before the build.
 
