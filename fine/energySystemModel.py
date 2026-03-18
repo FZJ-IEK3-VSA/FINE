@@ -2033,7 +2033,6 @@ class EnergySystemModel:
         solverList = [
             ImplementedSolvers.GUROBI.value,
             ImplementedSolvers.STANDARD_SOLVER.value,
-            ImplementedSolvers.CBC.value,
             ImplementedSolvers.HIGHS.value,
         ]
 
@@ -2070,10 +2069,25 @@ class EnergySystemModel:
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
 
-        # Set which solver should solve the specified optimization problem
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
+            from gurobipy import Env  # noqa: PLC0415
+
             # Use the direct gurobi solver that uses the Python API.
-            optimizer = opt.SolverFactory(solver, solver_io="python")
+            wlsaccessid = os.environ.get("WLSACCESSID", "")
+            wlssecret = os.environ.get("WLSSECRET", "")
+            licenseid = os.environ.get("LICENSEID", "")
+            if wlsaccessid and wlssecret and licenseid:
+                params = {
+                    "WLSACCESSID": wlsaccessid,
+                    "WLSSECRET": wlssecret,
+                    "LICENSEID": int(licenseid),
+                }
+                with Env(params=params) as env:
+                    optimizer = opt.SolverFactory(solver, solver_io="python", env=env)
+
+            else:
+                optimizer = opt.SolverFactory(solver, solver_io="python")
+
         else:
             optimizer = opt.SolverFactory(solver)
 
@@ -2102,6 +2116,7 @@ class EnergySystemModel:
                 + " "
                 + optimizationSpecs
             )
+
             solver_info = optimizer.solve(
                 self.pyM,
                 warmstart=warmstart,

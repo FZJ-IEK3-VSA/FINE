@@ -25,6 +25,11 @@ on:
         required: false
         type: string
         default: "develop"
+      additional_conda_channel:
+        description: "Additional conda channel to search for packages (e.g. 'gurobi'). When provided, it is passed to the test workflow via -c flag."
+        required: false
+        type: string
+        default: ""
 
 jobs:
   # Resolve the line position of the library inside requirements_dev.yml so
@@ -46,6 +51,7 @@ jobs:
       max_version: ${{ inputs.max_version }}
       dependency_position_env_file: ${{ needs.extract-position.outputs.dependency_position }}
       requirements_file_name: requirements_dev.yml
+      conda_channel: ${{ inputs.additional_conda_channel || 'conda-forge' }}
 
   TestManualVersions:
     name: "Test ${{ matrix.library_name }} ${{ matrix.library_version }}"
@@ -56,6 +62,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.query-versions.outputs.matrix_json) }}
     uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    secrets: inherit
     with:
       runner_tag: ${{ inputs.runner_tag }}
       requirements_file_name: ${{ matrix.requirements_file_name }}
@@ -63,5 +70,6 @@ jobs:
       library_name: ${{ matrix.library_name }}
       library_version: ${{ matrix.library_version }}
       dependency_position_env_file: ${{ matrix.dependency_position_env_file }}
-      multiprocessing_pytest_string: "-n 2"
-      multiprocessing_example_string: "-n 2"
+      multiprocessing_pytest_string: "-n auto"
+      multiprocessing_example_string: "-n auto"
+      additional_conda_channel: ${{ inputs.additional_conda_channel }}

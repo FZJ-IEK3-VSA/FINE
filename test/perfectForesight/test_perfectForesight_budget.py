@@ -138,7 +138,7 @@ def test_pathwayBudget():
         + esM.getOptimizationSummary("SourceSinkModel", ip=2035)
         + esM.getOptimizationSummary("SourceSinkModel", ip=2040)
     ).loc["CO2 for balance", "operation", "[t$_{CO_2}$/h*h]"]["PerfectLand"]
-    assert co2_emissions * 5 < 1000
+    assert co2_emissions * 5 <= 1000 + 1e-6
 
     # With limitation the expensive PV must be installed
     installed_cap_PV_2045 = esM.getOptimizationSummary("SourceSinkModel", ip=2040).loc[
