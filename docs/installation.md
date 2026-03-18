@@ -102,15 +102,6 @@ The solver [GUROBI](http://www.gurobi.com/) is recommended due to better perform
     ```
 
     This downloads the license and saves it to `~/gurobi.lic`. 
-4. You can optionally check whether the activation has succeeded by running a file containing the following from an activated environment:
-
-
-
-
-```python
-import fine as fn
-fn.check_gurobi_license()
-```
 
 Example output for a valid named-user license:
 
