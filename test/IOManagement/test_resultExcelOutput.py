@@ -242,6 +242,7 @@ def compareTwoExcelFiles(path1, path2):
 
 
 def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
+    # No deeopycopy is necessary, because the model is not used afterwards and only for saving the results.
     # run and save model without segmentation
     multi_node_test_esM_init.aggregateTemporally(
         numberOfTypicalPeriods=3,

@@ -1,7 +1,6 @@
 import fine as fn
 import pandas as pd
 import numpy as np
-import copy
 import fine.IOManagement.xarrayIO as xrIO
 from pandas.testing import assert_frame_equal
 
@@ -350,8 +349,7 @@ def test_variable_conversion_export_to_xarray():
         )
     )
 
-    esM_copy = copy.deepcopy(esM)
-    xrds = xrIO.convertOptimizationInputToDatasets(esM_copy)
+    xrds = xrIO.convertOptimizationInputToDatasets(esM)
     input_ds = xrds["Input"]["Conversion"]["Electrolyzers_VarConvFac_Export"]
 
     # === Check exported electricity DataFrame ===
