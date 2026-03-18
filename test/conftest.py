@@ -19,8 +19,8 @@ sys.path.append(
 from getData import getData
 
 
-@pytest.fixture
-def minimal_test_esM(scope="session"):
+@pytest.fixture(scope="function")
+def minimal_test_esM():
     """Return minimal instance of esM."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
@@ -2636,8 +2636,8 @@ def balanceLimitConstraint_test_esM():
     return esM, losses, distances, balanceLimit
 
 
-@pytest.fixture
-def perfectForesight_test_esM(scope="session"):
+@pytest.fixture(scope="function")
+def perfectForesight_test_esM():
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},

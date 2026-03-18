@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import fine as fn
-import copy
 import math
 from fine.utils import ImplementedSolvers
 
@@ -10,7 +9,7 @@ from fine.utils import ImplementedSolvers
 def test_perfectForesight_variableConversions_input(
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     # 1. Variation of the commodity conversion per investment period
     # e.g. due to weather differences
     # note: electrolyzers just exemplary for usage
@@ -282,7 +281,7 @@ def test_perfectForesight_variableConversions_timeindependent(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -376,7 +375,7 @@ def test_perfectForesight_variableConversions_timeindependent(
 def test_perfectForesight_variableConversions_timedepending(
     use_tsa, perfectForesight_test_esM
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -581,7 +580,7 @@ def test_perfectForesight_variableConversions_operationRateMax(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -712,7 +711,7 @@ def test_perfectForesight_variableConversions_operationRateFix(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     # add operation rate fix, so that the additional h2 source must be used to meet the demand
     esM.add(
         fn.Conversion(
@@ -852,7 +851,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMax(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     # check if the full load hour max is kept with a variable commodity conversion over the transformation pathway
     fullLoadHoursMax = 100
 
@@ -985,7 +984,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     # check if the full load hour min is kept with a variable commodity conversion over the transformation pathway
     fullLoadHoursMin = 100
 
