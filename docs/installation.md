@@ -3,7 +3,7 @@
 There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge.
 The provided framework enables you to create an optimization program based on your model constraints.
 The optimization program is built by using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html).
-To solve the program, ETHOS.FINE requires an MILP solver which is be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). Depending on your solver choice you might need to obtain and activate a license. 
+To solve the program, ETHOS.FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). Depending on your solver choice you might need to obtain and activate a license. 
 
 In the following, you find information on:
 
@@ -46,9 +46,7 @@ out-of-the-box installation experience.
 
 ## Installation from PyPI
 
-The functionality of ETHOS.FINE depends on a MILP solver that cannot be easily installed using PyPi alone. Please refer to the homepage of the solver provider in the next section, or consider installing it from Conda Forge.
-
-It is recommended to create a virtual environment. Create the venv environment:
+To install ETHOS.FINE it is recommended to create a virtual environment. Create the venv environment:
 
 ```bash
 python -m venv .venv
@@ -97,7 +95,7 @@ A full Gurobi installation comes with the Conda Forge installation, while a redu
   ```bash
   conda activate fine_env
   ```
-3. Run the activation command once (internet required):
+4. Run the activation command once (internet required):
 
     ```bash
     grbgetkey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -105,7 +103,7 @@ A full Gurobi installation comes with the Conda Forge installation, while a redu
 
     This downloads the license and saves it to `~/gurobi.lic`. 
 
-4. (Optional and only with conda forge) Check whether the activation has succeeded by running a file containing the following from an activated environment:
+5. (Optional and only with conda forge) Check whether the activation has succeeded by running a file containing the following from an activated environment:
 
 ```bash
 gurobi_cl --license
