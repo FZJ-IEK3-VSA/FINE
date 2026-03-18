@@ -3,13 +3,13 @@
 There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge.
 The provided framework enables you to create an optimization program based on your model constraints.
 The optimization program is built by using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html).
-To solve the program, ETHOS.FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html).
+To solve the program, ETHOS.FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). Depending on your solver choice you might need to obtain and activate a license. 
 
 In the following, you find information on:
 
 - how to install the package from conda-forge ([Installation from conda-forge](#installation-from-conda-forge))
 - how to install the package from PyPI ([Installation from PyPI](#installation-from-pypi))
-- how to install a solver ([Installation of an optimization solver](#installation-of-an-optimization-solver))
+- how to ([select and activate a solver](#installation-of-an-optimization-solver))
 
 ## Installation from conda-forge
 
@@ -24,12 +24,7 @@ mamba create --name fine_env --channel conda-forge fine
     [Mamba](https://mamba.readthedocs.io/en/latest/) instead of Conda. The recommended way to use Mamba on
     your system is to install the [Miniforge distribution](https://github.com/conda-forge/miniforge#miniforge3).
     They offer installers for Windows, Linux and OS X. In principle, Conda and Mamba are interchangeable.
-    The commands and concepts are the same.
-
-!!! note "On the solver"
-    The mamba/conda installation comes with [GLPK](https://www.gnu.org/software/glpk/) as Mixed Integer Linear
-    Programming (MILP) solver. If you want to solve large problems it is highly recommended to install
-    [GUROBI](http://www.gurobi.com/). See [Installation of an optimization solver](#installation-of-an-optimization-solver) for more information.
+   The commands and concepts are the same.
 
 To install an editable version of the code, it is recommended to create a clean environment, e.g., with conda to use ETHOS.FINE because it requires many dependencies.
 
@@ -51,13 +46,7 @@ out-of-the-box installation experience.
 
 ## Installation from PyPI
 
-The functionality of ETHOS.FINE depends on the following C libraries that need to be installed on your system.
-If you do not know how to install those, consider installing from conda-forge.
-
-- [GLPK](https://www.gnu.org/software/glpk/)
-- [GDAL](https://gdal.org/index.html)
-
-It is recommended to create a virtual environment. Create the venv environment:
+To install ETHOS.FINE it is recommended to create a virtual environment. Create the venv environment:
 
 ```bash
 python -m venv .venv
@@ -89,29 +78,52 @@ To install an editable version of the code, install ETHOS.FINE with:
 python -m pip install --editable .[develop]
 ```
 
-## Installation of an optimization solver
+## Optimization solver
 
-ETHOS.FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/).
-It searches for the following solvers in this order:
+### Selection of an Optimization Solver
+At its core, ETHOS.FINE creates an optimisation problem via the [PYOMO](https://pyomo.readthedocs.io/) interface. In theory, any MILP solver supported by Pyomo can be used with ETHOS.FINE, but it has only been tested with [GUROBI](http://www.gurobi.com/) and with [GLPK](https://www.gnu.org/software/glpk/). If you want to solve large problems, it is highly recommended that you use [GUROBI](http://www.gurobi.com/) due to its superior performance. However, a proprietary licence is required to use GUROBI for larger optimisation problems, but this is available free of charge to academics. If you do not want or cannot use a GUROBI licence, you can use the GLPK solver, which does not require an additional licence. The solver [HiGHS](https://github.com/ERGO-Code/HiGHS), which has better performance than GLPK but worse performance than Gurobi, has been tested. However, not all problems can be solved with it yet. You can check the progress of compatibility with this issue: https://github.com/FZJ-IEK3-VSA/FINE/issues/103.
 
 ### GUROBI
 
-The solver [GUROBI](http://www.gurobi.com/) is recommended due to better performance but requires a license
-(free academic version available). It is set as the default solver.
+A full Gurobi installation comes with the Conda Forge installation, while a reduced installation (called gurobipy) comes with the PyPI installation. Small problems can be solved using the preinstalled test licence. However, for larger problems, you need to activate a Gurobi licence by following these steps:
 
-The installation requires the following three components:
+1. Create a [free Gurobi account](https://www.gurobi.com/downloads/end-user-license-agreement-academic/)
+   and request a named-user academic license from the [Gurobi user portal](https://portal.gurobi.com/).
+2. Copy the license key shown in the portal (format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
+3. activate your fine environment
 
-- **Gurobi Optimizer** — In order to [download](https://www.gurobi.com/downloads/) the
-  software you need to create an account and obtain a license.
-- **Gurobi license** — The license needs to be installed according to the instructions in the registration process.
-- **Gurobi python api** — The python api comes automatically with the fine installation.
+    ```bash
+    conda activate fine_env
+    ```
+
+4. Run the activation command once (internet required):
+
+    ```bash
+    grbgetkey xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    ```
+
+    This downloads the license and saves it to `~/gurobi.lic`. 
+
+5. (Optional and only with conda forge) Check whether the activation has succeeded by the following command from an activated environment:
+
+    ```bash
+    gurobi_cl --license
+    ```
+
+    Example output for a valid named-user license:
+
+    ```
+    Set parameter Username
+    Set parameter LicenseID to value 2793634
+    Set parameter LogFile to value "gurobi.log"
+    Using license file C:\Users\j.belina\gurobi.lic
+    Academic license - for non-commercial use only - expires 2027-03-17
+    ```
+
+    If the check fails, the function prints the detected license type and actionable hints to resolve
+    the issue.
 
 ### GLPK
 
-The solver [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download) is installed with the
-ETHOS.FINE environment.
+The conda-forge installation of Fine comes with the [GLPK](https://www.gnu.org/software/glpk/) solver preinstalled and be used without any further steps. If you installed it successfully using PyPI, you will need to search for binaries compatible with your operating system, or compile the solver yourself. This can be a complex task. If you don't feel ready for that, please consider switching to the Conda installation.
 
-### CBC
-
-Installation procedure for the solver [CBC](https://projects.coin-or.org/Cbc) can be found
-[here](https://projects.coin-or.org/Cbc). Please note that the CBC solver is no longer actively tested. Results may differ from those of the GLPK or Gurobi solvers.
