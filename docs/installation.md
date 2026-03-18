@@ -92,9 +92,10 @@ A full Gurobi installation comes with the Conda Forge installation, while a redu
 2. Copy the license key shown in the portal (format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
 3. activate your fine environment
 
-  ```bash
-  conda activate fine_env
-  ```
+    ```bash
+    conda activate fine_env
+    ```
+
 4. Run the activation command once (internet required):
 
     ```bash
@@ -105,22 +106,22 @@ A full Gurobi installation comes with the Conda Forge installation, while a redu
 
 5. (Optional and only with conda forge) Check whether the activation has succeeded by running a file containing the following from an activated environment:
 
-```bash
-gurobi_cl --license
-```
+    ```bash
+    gurobi_cl --license
+    ```
 
-Example output for a valid named-user license:
+    Example output for a valid named-user license:
 
-```
-Set parameter Username
-Set parameter LicenseID to value 2793634
-Set parameter LogFile to value "gurobi.log"
-Using license file C:\Users\j.belina\gurobi.lic
-Academic license - for non-commercial use only - expires 2027-03-17
-```
+    ```
+    Set parameter Username
+    Set parameter LicenseID to value 2793634
+    Set parameter LogFile to value "gurobi.log"
+    Using license file C:\Users\j.belina\gurobi.lic
+    Academic license - for non-commercial use only - expires 2027-03-17
+    ```
 
-If the check fails, the function prints the detected license type and actionable hints to resolve
-the issue.
+    If the check fails, the function prints the detected license type and actionable hints to resolve
+    the issue.
 
 ### GLPK
 
