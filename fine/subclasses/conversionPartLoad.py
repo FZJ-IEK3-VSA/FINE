@@ -1,3 +1,14 @@
+"""Conversion component with nonlinear part-load efficiency modeling.
+
+This module provides the ``ConversionPartLoad`` class and its associated optimization
+model ``ConversionPartLoadModel``. These extend the standard ``Conversion`` component
+to capture load-dependent conversion efficiencies using piecewise linear approximations
+with SOS2 (Special Ordered Sets of type 2) constraints.
+
+Helper functions for piecewise linearization, input validation, and boundary correction
+are also included.
+"""
+
 from fine.conversion import Conversion, ConversionModel
 from fine.utils import checkDataFrameConversionFactor, checkCallableConversionFactor
 from fine import utils
@@ -8,9 +19,37 @@ import pwlf
 
 
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
-    """Determine xSegments, ySegments.
-    If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by
-    a bayesian optimization algorithm.
+    """Perform piecewise linear approximation of a nonlinear part-load efficiency curve.
+
+    Uses the PWLF (piecewise linear fit) library to approximate a nonlinear function or
+    raw data points with a piecewise linear function consisting of ``nSegments`` line segments.
+
+    If the input is raw data (DataFrame) that does not cover the full [0, 1] range, the missing
+    regions are extrapolated by holding the boundary values constant.
+
+    Parameters
+    ----------
+    functionOrRaw : callable or pandas.DataFrame
+        Either a callable function ``f(x) -> y`` mapping operation level to conversion factor,
+        or a DataFrame with two columns: the first column contains operation levels (x) and the
+        second contains corresponding conversion factors (y).
+    xLowerBound : float
+        Lower bound of the operation level range (typically 0).
+    xUpperBound : float
+        Upper bound of the operation level range (typically 1).
+    nSegments : int or None
+        Number of line segments for the piecewise linearization. If None, defaults to 5.
+
+    Returns
+    -------
+    dict
+        A dictionary with the following keys:
+
+        - ``'xSegments'`` (numpy.ndarray): breakpoint x-coordinates of the piecewise linear function.
+        - ``'ySegments'`` (numpy.ndarray): breakpoint y-coordinates of the piecewise linear function.
+        - ``'nSegments'`` (int): number of segments used.
+        - ``'Rsquared'`` (float): overall R-squared value of the fit.
+        - ``'R2values'`` (numpy.ndarray): per-segment R-squared values.
     """
     if callable(functionOrRaw):
         nPointsForInputData = 1000
@@ -102,7 +141,30 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
 
 
 def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
-    """Preprocess the conversion factors passed by the user."""
+    """Preprocess commodity conversion factors into discretized piecewise linear representations.
+
+    For each commodity in ``commodityConversionFactorsPartLoad``, this function either applies
+    piecewise linearization (if the conversion factor is a callable or DataFrame) or assigns
+    constant segment values (if the conversion factor is 1 or -1). After discretization, the
+    non-function commodity's x-segments are aligned with the function commodity's breakpoints.
+
+    Parameters
+    ----------
+    commodityConversionFactorsPartLoad : dict
+        Dictionary mapping commodity names (str) to their part-load conversion factors.
+        Exactly one commodity must have a callable or DataFrame value, and exactly one
+        must have a value of 1 or -1.
+    nSegments : int or None
+        Number of line segments for piecewise linearization. If None, defaults to 5.
+
+    Returns
+    -------
+    tuple of (dict, int)
+        A tuple of ``(discretizedPartLoad, nSegments)`` where ``discretizedPartLoad`` maps
+        each commodity to a dict with keys ``'xSegments'``, ``'ySegments'``, ``'nSegments'``,
+        ``'Rsquared'``, and ``'R2values'``.
+
+    """
     discretizedPartLoad = {
         commod: None for commod in commodityConversionFactorsPartLoad.keys()
     }
@@ -139,7 +201,32 @@ def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
 
 
 def checkAndCorrectDiscretizedPartloads(discretizedPartLoad):
-    """Check if the discretized points are >=0 and <=100% ."""
+    """Validate and correct discretized part-load breakpoints to the [0, 1] range.
+
+    Checks that all x-segment values (operation levels) lie within [0, 1] and all y-segment
+    values (conversion factors) are non-negative. If a single boundary point falls slightly
+    outside the valid range, it is corrected by linear extrapolation from the two nearest
+    breakpoints. Raises a ``ValueError`` if more than one point is out of range or if the
+    out-of-range point is not at a boundary.
+
+    Parameters
+    ----------
+    discretizedPartLoad : dict
+        Dictionary mapping commodity names to their discretization dicts, each containing
+        ``'xSegments'`` and ``'ySegments'`` arrays.
+
+    Returns
+    -------
+    dict
+        The corrected ``discretizedPartLoad`` dictionary (modified in-place).
+
+    Raises
+    ------
+    ValueError
+        If more than one breakpoint is out of the valid range, or if an interior breakpoint
+        is out of range.
+
+    """
     for commod, conversionFactor in discretizedPartLoad.items():
         # ySegments
         if not np.all(
@@ -229,10 +316,30 @@ def checkAndCorrectDiscretizedPartloads(discretizedPartLoad):
 
 
 def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
-    """Check if one of the commodity conversion factors equals 1 and another is either a lambda function or a set of data points.
-    Additionally check if the conversion factor that depicts part load behavior
-        (1) covers part loads from 0 to 1 and
-        (2) includes only conversion factors greater than 0 in the relevant part load range.
+    """Validate that part-load commodity conversion factors are correctly specified.
+
+    Ensures that:
+
+    - Exactly one commodity has a conversion factor of 1 or -1 (the nominal commodity).
+    - Exactly one commodity has a callable function or a DataFrame describing the
+      nonlinear part-load efficiency curve.
+
+    The callable or DataFrame conversion factor is further validated via
+    ``checkCallableConversionFactor`` or ``checkDataFrameConversionFactor`` from
+    ``fine.utils``.
+
+    Parameters
+    ----------
+    commodityConversionFactorsPartLoad : dict_values
+        The values of the ``commodityConversionFactorsPartLoad`` dictionary, where each
+        value is either ``1``, ``-1``, a callable, or a ``pandas.DataFrame``.
+
+    Raises
+    ------
+    TypeError
+        If no conversion factor equals 1 or -1, or if no conversion factor is a callable
+        or DataFrame.
+
     """
     partLoadCommodPresent = False
     nonPartLoadCommodPresent = False
@@ -256,13 +363,24 @@ def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
 
 
 class ConversionPartLoad(Conversion):
-    """A ConversionPartLoad component maps the (nonlinear) part-load behavior of a Conversion component.
-    It uses the open source module PWLF to generate piecewise linear functions upon a continuous function or
-    discrete data points.
-    The formulation of the optimization is done by using special ordered sets (SOS) constraints.
-    When using ConversionPartLoad it is recommended to check the piecewise linearization
-    visually to verify that the accuracy meets the desired requirements.
-    The ConversionPartLoad class inherits from the Conversion class.
+    """A Conversion component with nonlinear part-load efficiency behavior.
+
+    ``ConversionPartLoad`` extends the standard ``Conversion`` component to model the
+    nonlinear relationship between a component's operation level and its conversion
+    efficiency. Instead of using fixed (constant) conversion factors, this class
+    approximates a nonlinear efficiency curve with a piecewise linear function using
+    the `PWLF <https://github.com/cjekel/piecewise_linear_fit_py>`_ library.
+
+    The piecewise linear approximation is formulated in the optimization model using
+    Special Ordered Sets of type 2 (SOS2) constraints. This ensures that only two
+    adjacent breakpoints of the piecewise linear function can be active simultaneously,
+    correctly interpolating between them.
+
+    .. note::
+        When using ``ConversionPartLoad``, it is recommended to visually inspect the
+        piecewise linearization to verify that it approximates the original curve
+        with sufficient accuracy. See Example 11 (Partload) for guidance.
+
     """
 
     def __init__(
@@ -275,55 +393,65 @@ class ConversionPartLoad(Conversion):
         nSegments=None,
         **kwargs,
     ):
-        """Create an ConversionPartLoad class instance. Capacities are given in the physical unit
-        of the plants.
-        The ConversionPartLoad component specific input arguments are described below.
-        Other specific input arguments are described in the Conversion class
-        and the general component input arguments are described in the Component class.
+        """Create a ConversionPartLoad instance.
 
-        **Required arguments:**
+        Capacities are given in the physical unit of the plants. The
+        ``ConversionPartLoad``-specific parameters are described below. All other
+        parameters are inherited from the ``Conversion`` class and the ``Component``
+        base class.
 
-        :param commodityConversionFactorsPartLoad: A dictionary containing key-value pairs, where each key represents
-        a commodity (e.g., "electricity", "hydrogen") and each value provides the conversion factors that vary with
-        the operation load. These conversion factors dictate the efficiency or rate at which one commodity is transformed
-        into another under different operational conditions. The (nonlinear) part load behavior, which is the relationship
-        between the conversion factors (or efficiency) and the operational load, can be described either using a lambda function
-        for a direct mathematical relationship or a Pandas DataFrame. If a Pandas DataFrame is used, it should contain two columns:
-        one for the x-axis, which represents the operation level (nominal load), and one for the y-axis, which represents the
-        corresponding conversion factor (efficiency) at the corresponding operation level. A negative value indicates that the
-        commodity is consumed. A positive value indicates that the commodity is produced.
+        Parameters
+        ----------
+        esM : EnergySystemModel
+            The energy system model to which the component is added.
+        name : str
+            Name of the component. Must be unique within the energy system model.
+        physicalUnit : str
+            Reference physical unit of the plants (e.g., ``'GW_el'``).
+        commodityConversionFactors : dict
+            Constant conversion factors (see ``Conversion`` class for details).
+        commodityConversionFactorsPartLoad : dict or tuple
+            Specifies the part-load efficiency behavior. Can be provided in two forms:
 
-        Example:
-            * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
-                depending on the operation level. The physicalUnit is given as GW_electric, the unit for the 'electricity'
-                commodity isgiven in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue.
-                Here, electricity consumption is represented by a negative value (-1), and hydrogen production efficiency
-                is detailed in a DataFrame with operation levels and corresponding efficiencies.
+            **As a dict:** Maps commodity names (str) to their part-load conversion
+            factors. Exactly one commodity must have a value of ``1`` or ``-1``
+            (the nominal commodity), and exactly one must provide the nonlinear
+            efficiency curve as either:
 
-                # Efficiency Curve of Electrolyzer
-                Operation_level = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
-                Efficiency = [0.1, 0.15, 0.5, 0.7, 0.7, 0.65, 0.63, 0.62, 0.61, 0.60]
-                d = {"x": Operation_level, "y": Efficiency}
-                partLoadData = pd.DataFrame(d)
+            - A **callable** ``f(x) -> y`` where ``x`` is the operation level in
+              [0, 1] and ``y`` is the conversion factor at that operation level.
+            - A **pandas.DataFrame** with two columns: operation levels (x) and
+              corresponding conversion factors (y).
 
-                # Definition of commodityConversionFactorsPartLoad
-                -> the commodityConversionFactorsPartLoad are defined as {'electricity':-1,'hydrogen':partLoadData}.
+            A negative value indicates commodity consumption; a positive value
+            indicates commodity production.
 
-        **Default arguments:**
+            **As a tuple:** A pre-computed ``(discretizedPartLoad, nSegments)`` tuple,
+            useful for reusing previously computed discretizations.
 
-        :param nSegments: Number of line segments used for piecewise linearization and generation of point variable (nSegment+1) and
-            segment (nSegment) variable sets.
-            By default, the nSegments is None. For this case, the number of line segments is set to 5.
-            The user can set nSegments by choosing an integer (>=0). It is recommended to choose values between 3 and 7 since
-            the computational cost rises dramatically with increasing nSegments.
-            When specifying nSegements='optimizeSegmentNumbers', an optimal number of line segments is automatically chosen by a
-            bayesian optimization algorithm.
-            |br| * the default value is None
-        :type nSegments: None or integer or string
+            Example
+            -------
+            An electrolyzer converting electricity to hydrogen with load-dependent
+            efficiency::
 
-        :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
-        :type **kwargs:
-            * Check Conversion Class documentation.
+                operation_level = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+                efficiency = [0.1, 0.15, 0.5, 0.7, 0.7, 0.65, 0.63, 0.62, 0.61, 0.60]
+                partLoadData = pd.DataFrame({"x": operation_level, "y": efficiency})
+
+                commodityConversionFactorsPartLoad = {
+                    "electricity": -1,
+                    "hydrogen": partLoadData,
+                }
+
+        nSegments : int or None, optional
+            Number of line segments for the piecewise linearization. Determines the
+            number of point variables (``nSegments + 1``) and segment variables
+            (``nSegments``). Recommended values are between 3 and 7, as computational
+            cost increases significantly with more segments.
+            If None, defaults to 5.
+        **kwargs
+            All other keyword arguments accepted by the ``Conversion`` class
+            (e.g., ``hasCapacityVariable``, ``investPerCapacity``, ``bigM``, etc.).
 
         """
         Conversion.__init__(
@@ -356,10 +484,25 @@ class ConversionPartLoad(Conversion):
 
 
 class ConversionPartLoadModel(ConversionModel):
-    """A ConversionPartLoad class instance will be instantly created if a ConversionPartLoad class instance is initialized.
-    It is used for the declaration of the sets, variables and constraints which are valid for the Conversion class
-    instance. These declarations are necessary for the modeling and optimization of the energy system model.
-    The ConversionPartLoad class inherits from the ConversionModel class.
+    """Optimization model for ConversionPartLoad components.
+
+    This class extends ``ConversionModel`` with the additional sets, variables, and
+    constraints needed to formulate the piecewise linear part-load efficiency model
+    using SOS2 (Special Ordered Sets of type 2) constraints.
+
+    The model introduces three types of additional decision variables per component,
+    location, and time step:
+
+    - **Discretization point variables** (continuous, non-negative): one per breakpoint
+      of the piecewise linear function (``nSegments + 1`` variables).
+    - **Discretization segment continuous variables** (continuous, non-negative): one per
+      line segment (``nSegments`` variables), representing the weight of each segment.
+    - **Discretization segment binary variables** (binary): one per line segment,
+      indicating which segment is active.
+
+    An instance is automatically created when a ``ConversionPartLoad`` component is
+    initialized.
+
     """
 
     def __init__(self):
@@ -376,11 +519,17 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
 
     def initDiscretizationPointVarSet(self, pyM):
-        """Declare discretization variable set of type 1 in the pyomo object for for each node.
-        Type 1 represents every start, end, and intermediate point in the piecewise linear function.
+        """Declare the discretization point variable index set.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Creates a 3-dimensional Pyomo set indexed by ``(location, componentName,
+        discreteStep)`` where ``discreteStep`` ranges from 0 to ``nSegments``
+        (inclusive), representing all breakpoints of the piecewise linear function.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -401,11 +550,17 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def initDiscretizationSegmentVarSet(self, pyM):
-        """Declare discretization variable set of type 2 in the pyomo object for for each node.
-        Type 2 represents every segment in the piecewise linear function.
+        """Declare the discretization segment variable index set.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Creates a 3-dimensional Pyomo set indexed by ``(location, componentName,
+        discreteStep)`` where ``discreteStep`` ranges from 0 to ``nSegments - 1``,
+        representing each line segment of the piecewise linear function.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -426,14 +581,19 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareSets(self, esM, pyM):
-        """Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
-        linked components dictionary.
+        """Declare sets including discretization point and segment variable sets.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
+        Extends the parent ``ConversionModel.declareSets`` with the additional
+        discretization point and segment index sets needed for the piecewise
+        linear part-load formulation.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Parameters
+        ----------
+        esM : EnergySystemModel
+            The energy system model instance.
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         super().declareSets(esM, pyM)
 
@@ -446,10 +606,16 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
 
     def declareDiscretizationPointVariables(self, pyM):
-        """Declare discretization point variables.
+        """Declare continuous non-negative discretization point variables.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        One variable per breakpoint of the piecewise linear function, indexed over
+        the discretization point variable set and the time set.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         setattr(
             pyM,
@@ -462,10 +628,17 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareDiscretizationSegmentBinVariables(self, pyM):
-        """Declare discretization segment variables.
+        """Declare binary discretization segment variables.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        One binary variable per line segment, indexed over the discretization
+        segment variable set and the time set. Indicates which segment of the
+        piecewise linear function is active.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         setattr(
             pyM,
@@ -478,10 +651,17 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareDiscretizationSegmentConVariables(self, pyM):
-        """Declare discretization segment variables.
+        """Declare continuous non-negative discretization segment variables.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        One continuous variable per line segment, indexed over the discretization
+        segment variable set and the time set. Represents the weight/contribution
+        of each segment.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         setattr(
             pyM,
@@ -494,22 +674,22 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
-        """Declare design and operation variables.
+        """Declare all variables including discretization point and segment variables.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
+        Extends the parent ``ConversionModel.declareVariables`` with the three
+        additional variable types for the piecewise linear formulation.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Parameters
+        ----------
+        esM : EnergySystemModel
+            The energy system model instance.
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+        relaxIsBuiltBinary : bool
+            If True, solve as relaxed LP to obtain a lower bound.
+        relevanceThreshold : float or None
+            Force operation parameters to 0 if below this threshold.
 
-        :param relaxIsBuiltBinary: states if the optimization problem should be solved as a relaxed LP to get the lower
-            bound of the problem.
-            |br| * the default value is False
-        :type declaresOptimizationProblem: boolean
-
-        :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
-            |br| * the default value is None
-        :type relevanceThreshold: float (>=0) or None
         """
         super().declareVariables(esM, pyM, relaxIsBuiltBinary, relevanceThreshold)
 
@@ -525,11 +705,16 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
 
     def segmentSOS1(self, pyM):
-        """Ensure that the binary segment variables are in sum equal to 1.
-        Enforce that only one binary is set to 1, while all other are fixed 0.
+        """Enforce that exactly one segment is active at each time step (SOS1 constraint).
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        The binary segment variables must sum to 1, ensuring that exactly one segment
+        of the piecewise linear function is selected while all others are zero.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationSegmentBinVar = getattr(
@@ -553,10 +738,16 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def segmentBigM(self, pyM):
-        """Ensure that the continuous segment variables are zero if the respective binary variable is zero and unlimited otherwise.
+        """Link continuous segment variables to their binary counterparts via Big-M constraints.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        If a segment's binary variable is 0, the corresponding continuous variable is
+        forced to 0. If the binary is 1, the continuous variable is bounded by ``bigM``.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationSegmentConVar = getattr(
@@ -585,10 +776,19 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def segmentCapacityConstraint(self, pyM, esM):
-        """Ensure that the continuous segment variables are in sum equal to the installed capacity of the component.
+        """Ensure segment variables sum to the installed capacity.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        The sum of all continuous segment variables must equal the component's installed
+        capacity (scaled by ``hoursPerTimeStep`` or ``hoursPerSegment``), linking the
+        piecewise linear formulation to the capacity decision.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+        esM : EnergySystemModel
+            The energy system model instance.
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationSegmentConVar = getattr(
@@ -652,10 +852,18 @@ class ConversionPartLoadModel(ConversionModel):
             )
 
     def pointCapacityConstraint(self, pyM, esM):
-        """Ensure that the continuous point variables are in sum equal to the installed capacity of the component.
+        """Ensure point variables sum to the installed capacity.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        The sum of all discretization point variables must equal the component's installed
+        capacity (scaled by ``hoursPerTimeStep`` or ``hoursPerSegment``).
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+        esM : EnergySystemModel
+            The energy system model instance.
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationPointConVar = getattr(
@@ -702,10 +910,18 @@ class ConversionPartLoadModel(ConversionModel):
             )
 
     def pointSOS2(self, pyM):
-        """Ensure that only two consecutive point variables are non-zero while all other point variables are fixed to zero.
+        """Enforce the SOS2 adjacency condition on point variables.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Ensures that at most two consecutive discretization point variables can be
+        non-zero at any time step. Each point variable is bounded by the sum of the
+        continuous segment variables of its adjacent segments. This is the core SOS2
+        constraint that guarantees correct piecewise linear interpolation.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationPointConVar = getattr(
@@ -747,10 +963,18 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def partLoadOperationOutput(self, pyM):
-        """Set the required input of a conversion process dependent on the part load efficency.
+        """Link the operation variable to the piecewise linear part-load representation.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Constrains the operation variable to equal the weighted sum of the discretization
+        point variables multiplied by their corresponding x-segment breakpoint values.
+        This maps the abstract piecewise linear formulation back to the physical operation
+        level of the component.
+
+        Parameters
+        ----------
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationPointConVar = getattr(
@@ -781,13 +1005,19 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareComponentConstraints(self, esM, pyM):
-        """Declare time independent and dependent constraints.
+        """Declare all constraints including piecewise linear part-load constraints.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
+        Extends the parent ``ConversionModel.declareComponentConstraints`` with six
+        additional constraints: SOS1 on segments, Big-M linking, segment and point
+        capacity constraints, SOS2 adjacency, and the operation output mapping.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Parameters
+        ----------
+        esM : EnergySystemModel
+            The energy system model instance.
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         super().declareComponentConstraints(esM, pyM)
 
@@ -807,22 +1037,29 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """Check if the commodity´s transfer between a given location and the other locations of the energy system model
-        is eligible.
+        """Check if operation variables exist for a given location and commodity.
 
-        :param esM: EnergySystemModel in which the LinearOptimalPowerFlow components have been added to.
-        :type esM: esM - EnergySystemModel class instance
+        Parameters
+        ----------
+        esM : EnergySystemModel
+            The energy system model instance.
+        loc : str
+            Name of the location.
+        commod : str
+            Name of the commodity.
 
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
-
-        :param commod: Name of the regarded commodity (commodities are defined in the EnergySystemModel instance)
-        :param commod: string
         """
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """Get contribution to a commodity balance."""
+        """Get the part-load-aware contribution to a commodity balance.
+
+        Computes the commodity flow as the weighted sum of discretization point
+        variables multiplied by both the x-segment (operation level) and y-segment
+        (conversion factor) breakpoint values. This replaces the simple
+        ``conversionFactor * operation`` product used in the standard Conversion model.
+
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
         discretizationPointConVar = getattr(
@@ -847,22 +1084,29 @@ class ConversionPartLoadModel(ConversionModel):
     def getObjectiveFunctionContribution(self, esM, pyM):
         """Get contribution to the objective function.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
+        Parameters
+        ----------
+        esM : EnergySystemModel
+            The energy system model instance.
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
         """
         return super().getObjectiveFunctionContribution(esM, pyM)
 
     def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
+        """Extract and store optimal values after optimization.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
+        Extends the parent method to also extract the optimal values of the
+        discretization point, segment continuous, and segment binary variables.
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Parameters
+        ----------
+        esM : EnergySystemModel
+            The energy system model instance.
+        pyM : pyomo.ConcreteModel
+            Pyomo ConcreteModel storing the mathematical formulation.
+
         """
         super().setOptimalValues(esM, pyM)
         abbrvName = self.abbrvName
@@ -913,22 +1157,32 @@ class ConversionPartLoadModel(ConversionModel):
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:
+        In addition to the standard capacity, isBuilt, and operation variables, this
+        method can return the discretization point, segment continuous, and segment
+        binary variable optima.
 
-            * 'capacityVariables',
-            * 'isBuiltVariables',
-            * '_operationVariablesOptimum',
-            * 'all' or another input: all variables are returned.
+        Parameters
+        ----------
+        name : str, optional
+            Name of the variable group to return. Options:
 
-        |br| * the default value is 'all'
-        :type name: string
+            - ``'capacityVariablesOptimum'``
+            - ``'isBuiltVariablesOptimum'``
+            - ``'operationVariablesOptimum'``
+            - ``'discretizationPointVariablesOptimum'``
+            - ``'discretizationSegmentConVariablesOptimum'``
+            - ``'discretizationSegmentBinVariablesOptimum'``
+            - ``'all'`` (default): returns all of the above.
 
-        :param ip: investment period
-        |br| * the default value is 0
-        :type ip: int
+        ip : int, optional
+            Investment period index. Default is 0.
 
-        :returns: a dictionary with the optimal values of the components
-        :rtype: dict
+        Returns
+        -------
+        dict
+            Dictionary with keys ``'values'``, ``'timeDependent'``, and ``'dimension'``.
+            If ``name='all'``, returns a nested dict keyed by variable group name.
+
         """
         # return super().getOptimalValues(name)
 

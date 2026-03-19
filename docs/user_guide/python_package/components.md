@@ -31,6 +31,13 @@ From these basic component classes, further subclasses can be defined.
         show_root_heading: true
         show_source: false
 
+## Conversion Part Load
+
+::: fine.subclasses.conversionPartLoad
+    options:
+        show_root_heading: true
+        show_source: false
+
 ## Transmission
 
 ::: fine.transmission
