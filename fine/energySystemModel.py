@@ -955,6 +955,7 @@ class EnergySystemModel:
             |br| * the default value is False
         :type storeTSAinstance: boolean
         """
+
         def _map_cluster_method(method):
             cluster_method_map = {
                 "averaging": "averaging",
@@ -1082,7 +1083,8 @@ class EnergySystemModel:
             numericalTolerance = aggregate_kwargs.pop("numericalTolerance", 1e-13)
 
             segmentRepresentationMethod = aggregate_kwargs.pop(
-                "segmentRepresentationMethod", _map_representation_method(representationMethod)
+                "segmentRepresentationMethod",
+                _map_representation_method(representationMethod),
             )
 
             extremePeriodMethod = aggregate_kwargs.pop("extremePeriodMethod", None)
@@ -1105,7 +1107,9 @@ class EnergySystemModel:
             if segmentation:
                 segmentConfig = SegmentConfig(
                     n_segments=numberOfSegmentsPerPeriod,
-                    representation=_map_representation_method(segmentRepresentationMethod),
+                    representation=_map_representation_method(
+                        segmentRepresentationMethod
+                    ),
                 )
 
             extremeConfig = None
