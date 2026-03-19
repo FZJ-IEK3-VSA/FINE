@@ -773,3 +773,44 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
                     decimal=5,
                     err_msg=f"Mismatch in IP={ip_year}, loc={loc}, t={t}, eta={eta}",
                 )
+
+def test_location_specific_constant_conversion_factors_series():
+    """Time-independent but location-dependent conversion factors via pd.Series."""
+    esM = create_two_loc_esm_4ts_for_tsa()  # Loc1/Loc2, 4 timesteps, demand=10 each
+
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzers_LocCcf_Const",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={
+                "electricity": -1,
+                "hydrogen": pd.Series({"Loc1": 0.5, "Loc2": 1.0}),
+            },
+            hasCapacityVariable=True,
+            investPerCapacity=0,
+            opexPerCapacity=0,
+            interestRate=0.08,
+            economicLifetime=10,
+        )
+    )
+
+    # Check processed structure (should stay a location-indexed Series)
+    comp = esM.getComponent("Electrolyzers_LocCcf_Const")
+    processed = comp.processedCommodityConversionFactors[0]["hydrogen"]
+    assert isinstance(processed, pd.Series)
+    np.testing.assert_almost_equal(processed.loc["Loc1"], 0.5)
+    np.testing.assert_almost_equal(processed.loc["Loc2"], 1.0)
+
+    # Optimize (no TSA)
+    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+
+    op = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs(
+        "Electrolyzers_LocCcf_Const"
+    )
+
+    # Demand is 10 each timestep per location
+    # operation = demand / efficiency
+    for t in range(4):
+        np.testing.assert_almost_equal(op.loc["Loc1", t], 10.0 / 0.5, decimal=6)  # 20
+        np.testing.assert_almost_equal(op.loc["Loc2", t], 10.0 / 1.0, decimal=6)  # 10
