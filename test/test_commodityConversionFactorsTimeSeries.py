@@ -774,6 +774,7 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
                     err_msg=f"Mismatch in IP={ip_year}, loc={loc}, t={t}, eta={eta}",
                 )
 
+
 def test_location_specific_constant_conversion_factors_series():
     """Time-independent but location-dependent conversion factors via pd.Series."""
     esM = create_two_loc_esm_4ts_for_tsa()  # Loc1/Loc2, 4 timesteps, demand=10 each
@@ -814,3 +815,4 @@ def test_location_specific_constant_conversion_factors_series():
     for t in range(4):
         np.testing.assert_almost_equal(op.loc["Loc1", t], 10.0 / 0.5, decimal=6)  # 20
         np.testing.assert_almost_equal(op.loc["Loc2", t], 10.0 / 1.0, decimal=6)  # 10
+
