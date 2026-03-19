@@ -260,9 +260,9 @@ def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpy
             temp = row.dropna()
             temp = temp.drop(temp[temp == "None"].index)
             temp = temp.apply(
-                lambda v: ast.literal_eval(v)
-                if isinstance(v, str) and v[0] == "{"
-                else v
+                lambda v: (
+                    ast.literal_eval(v) if isinstance(v, str) and v[0] == "{" else v
+                )
             )
 
             if comp + "LocSpecs" in file.sheet_names:
