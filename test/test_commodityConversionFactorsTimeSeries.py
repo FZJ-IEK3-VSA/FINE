@@ -1,7 +1,6 @@
 import fine as fn
 import pandas as pd
 import numpy as np
-import copy
 import fine.IOManagement.xarrayIO as xrIO
 from pandas.testing import assert_frame_equal
 
@@ -154,8 +153,7 @@ def test_basecase(minimal_test_esM):
     """We test the minimal test system with constant conversion factor the get a reference.
     Optimal operation of the electrolyzer component is determined by the electricity price.
     """
-    # Get the minimal test system from conftest
-    esM = copy.deepcopy(minimal_test_esM)
+    esM = minimal_test_esM
 
     # Optimize without TSA
     esM.optimize(
@@ -188,8 +186,7 @@ def test_variable_conversion_factor_no_tsa(minimal_test_esM):
     Efficiency in the last time-step is very low for the new electolyzer, therefore
     it is not operated in this time-step.
     """
-    # Get the minimal test system from conftest
-    esM = copy.deepcopy(minimal_test_esM)
+    esM = minimal_test_esM
 
     # Create time-variable conversion rates for the two locations as pandas.DataFrame.
     locs = ["ElectrolyzerLocation", "IndustryLocation"]
@@ -259,8 +256,7 @@ def test_variable_conversion_factor_with_tsa(minimal_test_esM):
     using 3 typical periods. Now the optimal solution is composed of only three different
     periods.
     """
-    # Get the minimal test system from conftest
-    esM = copy.deepcopy(minimal_test_esM)
+    esM = minimal_test_esM
 
     # Create time-variable conversion rates for the two locations as pandas.DataFrame.
     locs = ["ElectrolyzerLocation", "IndustryLocation"]
@@ -353,8 +349,7 @@ def test_variable_conversion_export_to_xarray():
         )
     )
 
-    esM_copy = copy.deepcopy(esM)
-    xrds = xrIO.convertOptimizationInputToDatasets(esM_copy)
+    xrds = xrIO.convertOptimizationInputToDatasets(esM)
     input_ds = xrds["Input"]["Conversion"]["Electrolyzers_VarConvFac_Export"]
 
     # === Check exported electricity DataFrame ===

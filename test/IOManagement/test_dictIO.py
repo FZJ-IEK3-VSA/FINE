@@ -210,6 +210,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
 
 
 def test_export_to_dict_multinode(multi_node_test_esM_init):
+    # to check if the function does not change the input esM
     # EXPECTED
     expected_esm_dict = dict(
         zip(
