@@ -1,6 +1,7 @@
 import inspect
 from pathlib import Path
 import time
+from types import SimpleNamespace
 import warnings
 import importlib.util
 import os
@@ -10,7 +11,8 @@ import pandas as pd
 import psutil
 import pyomo.environ as pyomo
 from pyomo import opt
-from tsam.timeseriesaggregation import TimeSeriesAggregation
+import tsam
+from tsam import ClusterConfig, SegmentConfig, ExtremeConfig
 
 from fine import utils
 from fine.utils import ImplementedSolvers
@@ -875,7 +877,7 @@ class EnergySystemModel:
         days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
         time steps with an irregular duration using the segmentation option.
         For the clustering itself, the tsam package is used (cf. https://github.com/FZJ-IEK3-VSA/tsam). Additional
-        keyword arguments for the TimeSeriesAggregation instance can be added (facilitated by kwargs). As an example: it
+        keyword arguments for the tsam.aggregate call can be added (facilitated by kwargs). As an example: it
         might be useful to add extreme periods to the clustered typical periods.
 
         .. note::
@@ -948,11 +950,42 @@ class EnergySystemModel:
             |br| * the default value is True
         :type sortValues: boolean
 
-        :param storeTSAinstance: states if the TimeSeriesAggregation instance created during clustering should be
+        :param storeTSAinstance: states if the tsam aggregation result created during clustering should be
             stored in the EnergySystemModel instance.
             |br| * the default value is False
         :type storeTSAinstance: boolean
         """
+        def _map_cluster_method(method):
+            cluster_method_map = {
+                "averaging": "averaging",
+                "k_means": "kmeans",
+                "k_medoids": "kmedoids",
+                "k_maxoids": "kmaxoids",
+                "hierarchical": "hierarchical",
+                "adjacent_periods": "contiguous",
+            }
+            return cluster_method_map.get(method, method)
+
+        def _map_representation_method(method):
+            representation_method_map = {
+                "meanRepresentation": "mean",
+                "medoidRepresentation": "medoid",
+                "maxoidRepresentation": "maxoid",
+                "distributionRepresentation": "distribution",
+                "durationRepresentation": "distribution",
+                "distributionAndMinMaxRepresentation": "distribution_minmax",
+                "minmaxmeanRepresentation": "minmax_mean",
+            }
+            return representation_method_map.get(method, method)
+
+        def _map_extreme_method(method):
+            extreme_method_map = {
+                "append": "append",
+                "replace_cluster_center": "replace",
+                "new_cluster_center": "new_cluster",
+            }
+            return extreme_method_map.get(method, method)
+
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(
             numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps)
@@ -1007,6 +1040,7 @@ class EnergySystemModel:
         self.segmentStartTime = {}
 
         # clustering of the time series data per investment period individually
+        tsaInstanceToStore = None
         for ip in self.investmentPeriods:
             timeSeriesData, weightDict = [], {}
             for mdlName, mdl in self.componentModelingDict.items():
@@ -1034,45 +1068,125 @@ class EnergySystemModel:
             timeSeriesData = timeSeriesData.reindex(
                 sorted(timeSeriesData.columns), axis=1
             )
+
+            # Migrate old kwargs to new tsam.aggregate API kwargs and configs
+            aggregate_kwargs = kwargs.copy()
+
+            weightDict = aggregate_kwargs.pop("weightDict", weightDict)
+            normalizeColumnMeans = aggregate_kwargs.pop("sameMean", False)
+            includePeriodSums = aggregate_kwargs.pop("evalSumPeriods", False)
+            tsamSolver = aggregate_kwargs.pop("solver", "highs")
+
+            rescaleExcludeColumns = aggregate_kwargs.pop("rescaleExcludeColumns", None)
+            roundDecimals = aggregate_kwargs.pop("roundOutput", None)
+            numericalTolerance = aggregate_kwargs.pop("numericalTolerance", 1e-13)
+
+            segmentRepresentationMethod = aggregate_kwargs.pop(
+                "segmentRepresentationMethod", _map_representation_method(representationMethod)
+            )
+
+            extremePeriodMethod = aggregate_kwargs.pop("extremePeriodMethod", None)
+            addPeakMax = aggregate_kwargs.pop("addPeakMax", None)
+            addPeakMin = aggregate_kwargs.pop("addPeakMin", None)
+            addMeanMax = aggregate_kwargs.pop("addMeanMax", None)
+            addMeanMin = aggregate_kwargs.pop("addMeanMin", None)
+
+            clusterConfig = ClusterConfig(
+                method=_map_cluster_method(clusterMethod),
+                representation=_map_representation_method(representationMethod),
+                weights=weightDict,
+                normalize_column_means=normalizeColumnMeans,
+                use_duration_curves=sortValues,
+                include_period_sums=includePeriodSums,
+                solver=tsamSolver,
+            )
+
+            segmentConfig = None
             if segmentation:
-                clusterClass = TimeSeriesAggregation(
-                    timeSeries=timeSeriesData,
-                    noTypicalPeriods=numberOfTypicalPeriods,
-                    segmentation=segmentation,
-                    noSegments=numberOfSegmentsPerPeriod,
-                    hoursPerPeriod=hoursPerPeriod,
-                    clusterMethod=clusterMethod,
-                    sortValues=sortValues,
-                    weightDict=weightDict,
-                    rescaleClusterPeriods=rescaleClusterPeriods,
-                    representationMethod=representationMethod,
-                    **kwargs,
+                segmentConfig = SegmentConfig(
+                    n_segments=numberOfSegmentsPerPeriod,
+                    representation=_map_representation_method(segmentRepresentationMethod),
+                )
+
+            extremeConfig = None
+            if (
+                extremePeriodMethod not in [None, "None"]
+                or addPeakMax is not None
+                or addPeakMin is not None
+                or addMeanMax is not None
+                or addMeanMin is not None
+            ):
+                extremeConfig = ExtremeConfig(
+                    method=_map_extreme_method(extremePeriodMethod or "append"),
+                    max_value=addPeakMax,
+                    min_value=addPeakMin,
+                    max_period=addMeanMax,
+                    min_period=addMeanMin,
+                )
+
+            if segmentation:
+                aggregationResult = tsam.aggregate(
+                    timeSeriesData,
+                    n_clusters=numberOfTypicalPeriods,
+                    period_duration=hoursPerPeriod,
+                    cluster=clusterConfig,
+                    segments=segmentConfig,
+                    extremes=extremeConfig,
+                    preserve_column_means=rescaleClusterPeriods,
+                    rescale_exclude_columns=rescaleExcludeColumns,
+                    round_decimals=roundDecimals,
+                    numerical_tolerance=numericalTolerance,
+                    **aggregate_kwargs,
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as segment number per typical period.
-                data = pd.DataFrame.from_dict(
-                    clusterClass.clusterPeriodDict
-                ).reset_index(level=2, drop=True)
+                data = aggregationResult.cluster_representatives.reset_index(
+                    level=2, drop=True
+                )
                 # Get the length of each segment in each typical period with the first index as typical period number and
                 # the second index as segment number per typical period.
-                timeStepsPerSegment = pd.DataFrame.from_dict(
-                    clusterClass.segmentDurationDict
-                )["Segment Duration"]
+                rawSegmentDurations = aggregationResult.segment_durations
+                if isinstance(rawSegmentDurations, pd.Series):
+                    timeStepsPerSegment = rawSegmentDurations
+                else:
+                    clusterIds = list(
+                        aggregationResult.cluster_representatives.index.get_level_values(
+                            0
+                        ).unique()
+                    )
+                    if len(clusterIds) != len(rawSegmentDurations):
+                        clusterIds = list(range(len(rawSegmentDurations)))
+
+                    indexTuples = []
+                    values = []
+                    for clusterId, segmentDurations in zip(
+                        clusterIds, rawSegmentDurations
+                    ):
+                        for segmentStep, segmentDuration in enumerate(segmentDurations):
+                            indexTuples.append((clusterId, segmentStep))
+                            values.append(segmentDuration)
+
+                    timeStepsPerSegment = pd.Series(
+                        values,
+                        index=pd.MultiIndex.from_tuples(indexTuples),
+                        name="Segment Duration",
+                    )
             else:
-                clusterClass = TimeSeriesAggregation(
-                    timeSeries=timeSeriesData,
-                    noTypicalPeriods=numberOfTypicalPeriods,
-                    hoursPerPeriod=hoursPerPeriod,
-                    clusterMethod=clusterMethod,
-                    sortValues=sortValues,
-                    weightDict=weightDict,
-                    rescaleClusterPeriods=rescaleClusterPeriods,
-                    representationMethod=representationMethod,
-                    **kwargs,
+                aggregationResult = tsam.aggregate(
+                    timeSeriesData,
+                    n_clusters=numberOfTypicalPeriods,
+                    period_duration=hoursPerPeriod,
+                    cluster=clusterConfig,
+                    extremes=extremeConfig,
+                    preserve_column_means=rescaleClusterPeriods,
+                    rescale_exclude_columns=rescaleExcludeColumns,
+                    round_decimals=roundDecimals,
+                    numerical_tolerance=numericalTolerance,
+                    **aggregate_kwargs,
                 )
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as time step number per typical period.
-                data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+                data = aggregationResult.cluster_representatives
 
             # Store the respective clustered time series data in the associated components
             for mdlName, mdl in self.componentModelingDict.items():
@@ -1081,8 +1195,19 @@ class EnergySystemModel:
 
             # Store time series aggregation parameters in class instance
             if storeTSAinstance:
-                self.tsaInstance = clusterClass
-            self.typicalPeriods = clusterClass.clusterPeriodIdx
+                tsaInstanceToStore = SimpleNamespace(
+                    clusterMethod=clusterMethod,
+                    noTypicalPeriods=numberOfTypicalPeriods,
+                    hoursPerPeriod=hoursPerPeriod,
+                    segmentation=segmentation,
+                    noSegments=numberOfSegmentsPerPeriod,
+                    solver=tsamSolver,
+                    timeStepsPerPeriod=numberOfTimeStepsPerPeriod,
+                    aggregationResult=aggregationResult,
+                )
+            self.typicalPeriods = sorted(
+                [int(x) for x in data.index.get_level_values(0).unique()]
+            )
             self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
             self.segmentation = segmentation
             if segmentation:
@@ -1104,7 +1229,7 @@ class EnergySystemModel:
                 segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
                 self.segmentStartTime[ip] = segmentStartTime  # ip-dependent
 
-            self.periodsOrder[ip] = clusterClass.clusterOrder
+            self.periodsOrder[ip] = aggregationResult.cluster_assignments
             self.periodOccurrences[ip] = [
                 (self.periodsOrder[ip] == tp).sum() for tp in self.typicalPeriods
             ]
@@ -1124,9 +1249,9 @@ class EnergySystemModel:
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
         timeEnd = time.time()
-        if storeTSAinstance:
-            clusterClass.tsaBuildTime = timeEnd - timeStart
-            self.tsaInstance = clusterClass
+        if storeTSAinstance and tsaInstanceToStore is not None:
+            tsaInstanceToStore.tsaBuildTime = timeEnd - timeStart
+            self.tsaInstance = tsaInstanceToStore
         utils.output(
             "\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verboseLogLevel, 0
         )
