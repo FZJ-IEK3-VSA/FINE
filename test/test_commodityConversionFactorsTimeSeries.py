@@ -815,4 +815,3 @@ def test_location_specific_constant_conversion_factors_series():
     for t in range(4):
         np.testing.assert_almost_equal(op.loc["Loc1", t], 10.0 / 0.5, decimal=6)  # 20
         np.testing.assert_almost_equal(op.loc["Loc2", t], 10.0 / 1.0, decimal=6)  # 10
-
