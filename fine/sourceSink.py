@@ -286,6 +286,19 @@ class Source(Component):
             esM.investmentPeriods,
         )
 
+        # commodityCostTimeSeries
+        if isinstance(self.processedCommodityCost, dict):
+            self.fullCommodityCostTimeSeries = self.processedCommodityCost
+        else:
+            self.commodityCostTimeSeries = commodityCostTimeSeries
+            self.fullCommodityCostTimeSeries = (
+                utils.checkAndSetInvestmentPeriodCostTimeSeries(
+                    esM, name, commodityCostTimeSeries, locationalEligibility
+                )
+            )
+        self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
+        self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)            
+
         # commodtyRevenue
         self.commodityRevenue = commodityRevenue
         self.processedCommodityRevenue = utils.checkAndSetInvestmentPeriodCostParameter(
@@ -296,16 +309,6 @@ class Source(Component):
             locationalEligibility,
             esM.investmentPeriods,
         )
-
-        # commodityCostTimeSeries
-        self.commodityCostTimeSeries = commodityCostTimeSeries
-        self.fullCommodityCostTimeSeries = (
-            utils.checkAndSetInvestmentPeriodCostTimeSeries(
-                esM, name, commodityCostTimeSeries, locationalEligibility
-            )
-        )
-        self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
-        self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
         # commodityRevenueTimeSeries
         self.commodityRevenueTimeSeries = commodityRevenueTimeSeries

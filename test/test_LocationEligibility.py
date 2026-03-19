@@ -20,26 +20,27 @@ def test_LocationEligibility():
     """
     esm = fn.EnergySystemModel(
         locations={"DE", "AT", "CH"},
+        numberOfTimeSteps = 10,
         commodities={"energy"},
         commodityUnitsDict={"energy": "joule"},
     )
 
-    operationRateMax = pd.DataFrame(index=range(8760))
-    capacityMax = pd.Series()
+    operationRateMax = pd.DataFrame(index=range(10))
+    capacityFix = pd.Series()
 
-    operationRateMax["DE_CH"] = 0
-    operationRateMax["AT_CH"] = 0.5
-    operationRateMax["AT_DE"] = 0.5
-    operationRateMax["CH_DE"] = 0
-    operationRateMax["CH_AT"] = 0.5
-    operationRateMax["DE_AT"] = 0.5
+    operationRateMax["DE_CH"] = 10
+    operationRateMax["AT_CH"] = 0
+    operationRateMax["AT_DE"] = 5
+    operationRateMax["CH_DE"] = 15
+    operationRateMax["CH_AT"] = 0
+    operationRateMax["DE_AT"] = 10
 
-    capacityMax["DE_CH"] = 0.5
-    capacityMax["AT_CH"] = 0
-    capacityMax["AT_DE"] = 0.5
-    capacityMax["CH_DE"] = 0.5
-    capacityMax["CH_AT"] = 0
-    capacityMax["DE_AT"] = 0.5
+    capacityFix["DE_CH"] = 0.5
+    capacityFix["AT_CH"] = 0
+    capacityFix["AT_DE"] = 0.5
+    capacityFix["CH_DE"] = 0.5
+    capacityFix["CH_AT"] = 0
+    capacityFix["DE_AT"] = 0.5
 
     esm.add(
         fn.Transmission(
@@ -47,8 +48,9 @@ def test_LocationEligibility():
             name="transmission",
             commodity="energy",
             hasCapacityVariable=True,
-            capacityFix=capacityMax,
-            # operationRateMax=operationRateMax,
+            # capacityFix=capacityFix,
+            # capacityMax=capacityFix,
+            operationRateMax=operationRateMax,
         )
     )
 
@@ -71,7 +73,7 @@ def test_TransmissionWithoutCapacityRestrictions():
     operationRateMax["AT_DE"] = 0.5
     operationRateMax["DE_AT"] = 0.5
     operationRateMax["CH_DE"] = 0.5
-    operationRateMax["CH_AT"] = 0.5
+    operationRateMax["CH_AT"] = 0.0
 
     fn.Transmission(
         esM=esm,
@@ -79,3 +81,5 @@ def test_TransmissionWithoutCapacityRestrictions():
         commodity="energy",
         operationRateMax=operationRateMax,
     )
+# test_TransmissionWithoutCapacityRestrictions()
+test_LocationEligibility()

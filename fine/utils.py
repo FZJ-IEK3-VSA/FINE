@@ -1237,12 +1237,15 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             isinstance(data, int)
             or isinstance(data, float)
             or isinstance(data, pd.Series)
+            or isinstance(data, pd.DataFrame)
+            or isinstance(data, dict)
         ):
             raise TypeError(
                 "Type error in "
                 + name
                 + " detected.\n"
-                + "Economic parameters have to be a number or a pandas Series."
+                + "Economic parameters have to be a number or a pandas "
+                    "Series or a pandas DataFrame or a dictionary."
             )
     elif dimension == "2dim":
         if not (
@@ -1270,7 +1273,13 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             return pd.Series(
                 [float(data) for loc in esM.locations], index=esM.locations
             )
-        data = checkRegionalIndex(esM, data, locationalEligibility)
+        if isinstance(data, pd.Series):
+            data = checkConnectionIndex(data, locationalEligibility)        
+        elif isinstance(data, pd.DataFrame) or isinstance(data, dict):
+            data = checkAndSetInvestmentPeriodCostTimeSeries(
+                esM, name, data, locationalEligibility
+            )
+            return data
     else:
         if isinstance(data, int) or isinstance(data, float):
             if data < 0:
@@ -1283,8 +1292,6 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
                 [float(data) for loc in locationalEligibility.index],
                 index=locationalEligibility.index,
             )
-        data = checkConnectionIndex(data, locationalEligibility)
-
     _data = data.astype(float)
     if _data.isnull().any():
         raise ValueError(
@@ -2010,17 +2017,19 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
             data_ = data * locationalEligibility
             data_.sort_index(inplace=True)
             return data_
-        elif isinstance(data, pd.Series) and locationalEligibility is not None:
+        elif isinstance(data, pd.Series):
             data_ = data.sort_index()
-            # Lines 2016 - 2022 was added to solve issue 334
-            index, data_ = [], []
-            for loc in data.index:
-                if data[loc] > 0:
-                    index.append(loc)
-                    data_.append(data[loc])
-            data_ = pd.Series(data_, index=index)
-            data_.sort_index(inplace=True)
             return data_
+        # elif isinstance(data, pd.Series) and locationalEligibility is not None:
+            # data_ = data.sort_index()
+            # index, data_ = [], []
+            # for loc in data.index:
+            #     if data[loc] > 0:
+            #         index.append(loc)
+            #         data_.append(data[loc])
+            # data_ = pd.Series(data_, index=index)
+            # data_.sort_index(inplace=True)
+            # return data_
         else:
             return data
 
