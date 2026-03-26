@@ -40,9 +40,21 @@
                 "/(^|/)requirements_dev\\.yml$/"
             ],
             "matchStrings": [
-                "- (?<depName>gurobi[a-zA-Z0-9_.-]*)[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
+                "- (?<depName>gurobi)[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
             ],
             "packageNameTemplate": "gurobi/{{{depName}}}",
+            "datasourceTemplate": "conda",
+            "versioningTemplate": "pep440"
+        },
+        {
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/(^|/)requirements_dev\\.yml$/"
+            ],
+            "matchStrings": [
+                "- (?<depName>gurobi-[a-zA-Z0-9_.-]+)[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
+            ],
+            "packageNameTemplate": "conda-forge/{{{depName}}}",
             "datasourceTemplate": "conda",
             "versioningTemplate": "pep440"
         }
