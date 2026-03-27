@@ -84,12 +84,10 @@ console_output_style = "progress"
 filterwarnings = ["default::Warning:fine.*", "ignore::Warning:matplotlib"]
 
 [tool.coverage.run]
+patch = ["subprocess"]
 source = ["fine"]
-omit = [
-    "fine/tests/*",
-    "examples/*",
-    "docs/*",
-]
+parallel = true
+omit = ["fine/tests/*", "examples/*", "docs/*"]
 
 [tool.coverage.report]
 exclude_lines = [
