@@ -83,6 +83,22 @@ console_output_style = "progress"
 # "error", "ignore", "always", "module", "once"
 filterwarnings = ["default::Warning:fine.*", "ignore::Warning:matplotlib"]
 
+[tool.coverage.run]
+source = ["fine"]
+omit = [
+    "fine/tests/*",
+    "examples/*",
+    "docs/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]
+
 [project.urls]
 homepage = "https://www.fz-juelich.de/en/ice/ice-2/research-1/open_source/fine"
 repository = "https://github.com/FZJ-IEK3-VSA/FINE"

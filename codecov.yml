@@ -1,0 +1,15 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto      # allow up to 1% drop from base
+        threshold: 1%
+    patch:
+      default:
+        target: 70%       # at least 70% of new/changed lines must be covered
+        threshold: 5%
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default       # only comment once per PR, update in place
+  require_changes: true   # don't comment if nothing changed

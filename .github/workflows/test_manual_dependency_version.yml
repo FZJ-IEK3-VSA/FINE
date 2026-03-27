@@ -35,16 +35,16 @@ jobs:
   # Resolve the line position of the library inside requirements_dev.yml so
   # the test workflow knows which entry to override.
   extract-position:
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_extract_env_versions.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
     with:
-      library_name: ${{ inputs.library }}
+      libraries: ${{ inputs.library }}
       env_file: requirements_dev.yml
 
   # Query conda-forge for all versions of the library within the given bounds
-  # and produce a matrix ready for _run_single_conda_forge_test.yml.
+  # and produce a matrix ready for run_conda_forge_test.yml.
   query-versions:
     needs: extract-position
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_query_conda_forge_versions.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/query_conda_versions.yml@v1
     with:
       package_name: ${{ inputs.library }}
       min_version: ${{ inputs.min_version }}
@@ -61,7 +61,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.query-versions.outputs.matrix_json) }}
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
     secrets: inherit
     with:
       runner_tag: ${{ inputs.runner_tag }}
