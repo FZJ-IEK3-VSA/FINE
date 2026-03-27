@@ -85,7 +85,6 @@ filterwarnings = ["default::Warning:fine.*", "ignore::Warning:matplotlib"]
 
 [tool.coverage.run]
 source = ["fine"]
-parallel = true
 omit = [
     "fine/tests/*",
     "examples/*",
