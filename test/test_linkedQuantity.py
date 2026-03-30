@@ -1,6 +1,8 @@
 import fine as fn
 import pandas as pd
 
+from fine.utils import ImplementedSolvers
+
 
 def test_linkedQuantityID(minimal_test_esM):
     """Test that components with the same linkedQuantityID have consistent optimization results."""
@@ -29,7 +31,10 @@ def test_linkedQuantityID(minimal_test_esM):
     electrolyzer.processedOpexPerCapacity[0] = pd.Series(1, index=esM.locations)
 
     # optimize
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     assert (
         esM.getOptimizationSummary("ConversionModel")

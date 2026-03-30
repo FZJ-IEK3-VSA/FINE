@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 from fine import subclasses
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
@@ -241,6 +242,7 @@ def compareTwoExcelFiles(path1, path2):
 
 
 def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
+    # No deeopycopy is necessary, because the model is not used afterwards and only for saving the results.
     # run and save model without segmentation
     multi_node_test_esM_init.aggregateTemporally(
         numberOfTypicalPeriods=3,
@@ -249,7 +251,10 @@ def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    multi_node_test_esM_init.optimize(timeSeriesAggregation=True, solver="glpk")
+    multi_node_test_esM_init.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     writeOptimizationOutputToExcel(
         multi_node_test_esM_init,
         outputFileName=savePathWithoutSegmentation,
@@ -274,7 +279,7 @@ def saveExcelResultsWithSegmentation(
     minimal_test_esM, savePathWithoutSegmentation, savePathWithSegmentation
 ):
     # run and save model without segmentation
-    minimal_test_esM.optimize(solver="glpk")
+    minimal_test_esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
     writeOptimizationOutputToExcel(
         minimal_test_esM,
         outputFileName=savePathWithoutSegmentation,
@@ -302,7 +307,10 @@ def saveExcelResultsWithSegmentation(
         sortValues=False,
         rescaleClusterPeriods=False,
     )
-    minimal_test_esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    minimal_test_esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     writeOptimizationOutputToExcel(
         minimal_test_esM,
         outputFileName=savePathWithSegmentation,

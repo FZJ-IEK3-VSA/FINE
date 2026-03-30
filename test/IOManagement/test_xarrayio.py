@@ -1,10 +1,10 @@
-from copy import deepcopy
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
 
+from fine.utils import ImplementedSolvers
 import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
 from fine.IOManagement.dictIO import exportToDict
@@ -106,7 +106,7 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
 
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
     esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_datasets)
@@ -115,7 +115,7 @@ def test_esm_input_to_dataset_and_back(minimal_test_esM):
 
 
 def test_esm_output_to_dataset_and_back(minimal_test_esM):
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
     esm_original.optimize()
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
     esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_datasets)
@@ -136,7 +136,7 @@ def test_input_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     """
     test_esM = str(tmp_path / "test_esM.nc")
 
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
     xrIO.writeEnergySystemModelToNetCDF(
         esm_original, outputFilePath=test_esM, overwriteExisting=True
     )
@@ -152,7 +152,7 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     """
     test_esM = str(tmp_path / "test_esM.nc")
 
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
     esm_original.optimize()
     xrIO.writeEnergySystemModelToNetCDF(
         esm_original, outputFilePath=test_esM, overwriteExisting=True
@@ -172,7 +172,7 @@ def test_output_esm_to_netcdf_and_back_perfectForesight(
     """
     test_esM = str(tmp_path / "test_esM_pf.nc")
 
-    esm_original_pf = deepcopy(perfectForesight_test_esM)
+    esm_original_pf = perfectForesight_test_esM
     esm_original_pf.optimize()
 
     xrIO.writeEnergySystemModelToNetCDF(esm_original_pf, outputFilePath=test_esM)
@@ -212,7 +212,7 @@ def test_capacityFix_subset(multi_node_test_esM_init, tmp_path):
 
 
 def test_esm_to_datasets_with_processed_values(minimal_test_esM):
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
 
     xr_dss = xrIO.convertOptimizationInputToDatasets(
         esm_original, useProcessedValues=True
@@ -276,7 +276,7 @@ def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM, tmp_pa
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-    esm_original_pf = deepcopy(perfectForesight_test_esM)
+    esm_original_pf = perfectForesight_test_esM
     esm_original_pf.aggregateTemporally(
         numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=2
     )
@@ -311,7 +311,10 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
     optSum = esM.getOptimizationSummary("TransmissionModel").loc[
@@ -340,7 +343,10 @@ def test_coordinates(multi_node_test_esM_init):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
 

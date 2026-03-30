@@ -2,13 +2,7 @@ import fine as fn
 import pandas as pd
 import pytest
 
-from pyomo.opt import SolverFactory
 
-
-@pytest.mark.skipif(
-    not SolverFactory("gurobi").available(),
-    reason="QP solver required (check for license",
-)
 @pytest.mark.parametrize("capacityMin", [0, 5])
 def test_QPinvest(capacityMin):
     capacityMin_variation = 5

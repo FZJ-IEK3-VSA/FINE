@@ -24,6 +24,9 @@ validation:
 
 theme:
     name: material
+    custom_dir: docs/overrides
+    logo: ./fine_logo_nav.svg
+    favicon: ./fine_logo_nav.svg
     palette:
         - media: "(prefers-color-scheme: light)"
           scheme: default
@@ -164,7 +167,6 @@ nav:
           - "10 Perfect Foresight": examples/10_PerfectForesight/10_perfectForesight_example.ipynb
           - "11 Partload": examples/11_Partload/11_Partload_Example.ipynb
 
-    - News: news.md
     - Integrated Software: integrated_software.md
     - Further Reading: further_reading.md
     - API Reference: reference/

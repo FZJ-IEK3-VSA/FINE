@@ -1,5 +1,6 @@
 import math
 import warnings
+from enum import Enum
 
 import numpy as np
 import pandas as pd
@@ -3014,3 +3015,12 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
         hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval,
         hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval,
     )
+
+
+class ImplementedSolvers(Enum):
+    """Enum for implemented solvers."""
+
+    GLPK = "glpk"
+    GUROBI = "gurobi"
+    HIGHS = "highs"
+    STANDARD_SOLVER = "gurobi"  # Use Gurobi if available, otherwise use GLPK
