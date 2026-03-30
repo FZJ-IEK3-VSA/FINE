@@ -84,7 +84,7 @@ console_output_style = "progress"
 filterwarnings = ["default::Warning:fine.*", "ignore::Warning:matplotlib"]
 
 [tool.coverage.run]
-source = ["fine"]
+source_pkgs = ["fine"]
 omit = ["fine/tests/*", "examples/*", "docs/*"]
 
 [tool.coverage.report]
