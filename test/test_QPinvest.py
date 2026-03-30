@@ -2,13 +2,19 @@ import fine as fn
 import pandas as pd
 import pytest
 
-import pyomo.environ  # noqa: F401 - registers solver plugins
-from pyomo import opt
-
-
 def _gurobi_available():
     try:
-        return opt.SolverFactory("gurobi").available()
+        import subprocess  # noqa: PLC0415
+
+        result = subprocess.run(
+            ["gurobi_cl", "--license"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        output = (result.stdout + result.stderr).lower()
+        return result.returncode == 0 and "restricted license" not in output
     except Exception:
         return False
 

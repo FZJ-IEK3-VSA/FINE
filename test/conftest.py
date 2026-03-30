@@ -4,24 +4,37 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pyomo.environ  # noqa: F401 - registers solver plugins
-from pyomo import opt
-
-from fine.utils import ImplementedSolvers
-
 import fine as fn
 from copy import deepcopy
 
 
 def _gurobi_available():
-    """Check if Gurobi solver is properly activated and available."""
+    """Check if Gurobi is installed with a valid non-restricted license.
+
+    Runs ``gurobi_cl --license`` and inspects the output for
+    "Restricted license", which indicates a size-limited test license
+    that is insufficient for the test suite.
+
+    See https://support.gurobi.com/hc/en-us/articles/13417565229713
+    """
     try:
-        return opt.SolverFactory("gurobi").available()
+        import subprocess  # noqa: PLC0415
+
+        result = subprocess.run(
+            ["gurobi_cl", "--license"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        output = (result.stdout + result.stderr).lower()
+        return result.returncode == 0 and "restricted license" not in output
     except Exception:
         return False
 
 
 SOLVER = "gurobi" if _gurobi_available() else "glpk"
+print(f"\n=== FINE test suite: using solver '{SOLVER}' ===\n")
 
 
 @pytest.fixture(scope="session")
