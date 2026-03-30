@@ -1279,7 +1279,7 @@ class SourceSinkModel(ComponentModel):
                             (comp, "NPVcontribution", "[" + esM.costUnit + "]")
                         ][loc] / (1 + compDict[comp].interestRate[loc]) ** (
                             esM.startYear - esM.rollingHorizonStartYear
-                    )
+                        )
 
             # Delete details of NPV contributions
             optSummary = optSummary.drop("NPV_opexOp", level=1)
