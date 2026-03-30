@@ -2,7 +2,18 @@ import fine as fn
 import pandas as pd
 import pytest
 
+import pyomo.environ  # noqa: F401 - registers solver plugins
+from pyomo import opt
 
+
+def _gurobi_available():
+    try:
+        return opt.SolverFactory("gurobi").available()
+    except Exception:
+        return False
+
+
+@pytest.mark.skipif(not _gurobi_available(), reason="Gurobi not available")
 @pytest.mark.parametrize("capacityMin", [0, 5])
 def test_QPinvest(capacityMin):
     capacityMin_variation = 5

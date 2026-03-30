@@ -4,10 +4,31 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyomo.environ  # noqa: F401 - registers solver plugins
+from pyomo import opt
+
 from fine.utils import ImplementedSolvers
 
 import fine as fn
 from copy import deepcopy
+
+
+def _gurobi_available():
+    """Check if Gurobi solver is properly activated and available."""
+    try:
+        return opt.SolverFactory("gurobi").available()
+    except Exception:
+        return False
+
+
+SOLVER = "gurobi" if _gurobi_available() else "glpk"
+
+
+@pytest.fixture(scope="session")
+def solver():
+    """Return the best available solver, falling back to GLPK if Gurobi is unavailable."""
+    return SOLVER
+
 
 sys.path.append(
     str(
@@ -1429,7 +1450,7 @@ def multi_node_test_esM_optimized(get_data_fixture):
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        solver=SOLVER,
     )
 
     return esM
