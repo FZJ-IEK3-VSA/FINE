@@ -10,3 +10,7 @@ from .subclasses import *
 from .IOManagement import *
 from .expansionModules import *
 from .aggregations import *
+
+from .utils import ImplementedSolvers
+
+ImplementedSolvers.set_standard_solver()
