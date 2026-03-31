@@ -64,7 +64,7 @@ develop = [
     "mkdocs-section-index>=0.3,<=0.3.10",
     "griffe>=0.45,<=2.0.0",
     "pytest<=9.0.2",
-    "pytest-cov<=7.0.0",
+    "pytest-cov<=7.1.0",
     "pytest-xdist<=3.8.0",
     "nbval<=0.11.0",
     "ruff<=0.13.1",
@@ -82,6 +82,18 @@ console_output_style = "progress"
 # Actions are: "default"
 # "error", "ignore", "always", "module", "once"
 filterwarnings = ["default::Warning:fine.*", "ignore::Warning:matplotlib"]
+
+[tool.coverage.run]
+source_pkgs = ["fine"]
+omit = ["fine/tests/*", "examples/*", "docs/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]
 
 [project.urls]
 homepage = "https://www.fz-juelich.de/en/ice/ice-2/research-1/open_source/fine"
@@ -121,7 +133,9 @@ ignore = [
     "PLR2004", # Magic value used in comparison, consider replacing `2` with a constant variable
     "ARG001",
     "ARG002",
-    "E501",    # Lines to long 
+    "E501",    # Lines to long
+    "D203",    # Incompatible with D211 (no blank line before class docstring)
+    "D213",    # Incompatible with D212 (multi-line summary on first line)
 ]
 
 [tool.ruff.lint.per-file-ignores]
