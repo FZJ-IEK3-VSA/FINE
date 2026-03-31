@@ -4,7 +4,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from fine.utils import ImplementedSolvers
 import fine as fn
+
 from copy import deepcopy
 
 
@@ -55,14 +57,10 @@ def _gurobi_available():
             env.close()
 
 
-SOLVER = "gurobi" if _gurobi_available() else "glpk"
-print(f"\n=== FINE test suite: using solver '{SOLVER}' ===\n")
-
-
-@pytest.fixture(scope="session")
-def solver():
-    """Return the best available solver, falling back to GLPK if Gurobi is unavailable."""
-    return SOLVER
+ImplementedSolvers.STANDARD_SOLVER.value if _gurobi_available() else ImplementedSolvers.GLPK.value
+print(
+    f"\n=== FINE test suite: using solver '{ImplementedSolvers.STANDARD_SOLVER.value}' ===\n"
+)
 
 
 @pytest.fixture(scope="session")
@@ -1474,7 +1472,7 @@ def multi_node_test_esM_optimized(get_data_fixture):
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=SOLVER,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     return esM
