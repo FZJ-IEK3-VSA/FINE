@@ -1472,7 +1472,7 @@ def multi_node_test_esM_optimized(get_data_fixture):
 
     esM.optimize(
         timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        solver=SOLVER,
     )
 
     return esM
