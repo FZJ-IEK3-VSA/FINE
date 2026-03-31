@@ -2,21 +2,7 @@ import fine as fn
 import pandas as pd
 import pytest
 
-def _gurobi_available():
-    try:
-        import subprocess  # noqa: PLC0415
-
-        result = subprocess.run(
-            ["gurobi_cl", "--license"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        output = (result.stdout + result.stderr).lower()
-        return result.returncode == 0 and "restricted license" not in output
-    except Exception:
-        return False
+from test.conftest import _gurobi_available
 
 
 @pytest.mark.skipif(not _gurobi_available(), reason="Gurobi not available")

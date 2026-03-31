@@ -8,29 +8,51 @@ import fine as fn
 from copy import deepcopy
 
 
+sys.path.append(
+    str(
+        Path(__file__).parent
+        / ".."
+        / "examples"
+        / "03_Multi-regional_Energy_System_Workflow"
+    )
+)
+from getData import getData
+
+
 def _gurobi_available():
-    """Check if Gurobi is installed with a valid non-restricted license.
+    """Check if Gurobi is installed with a valid full (non-size-limited) license.
 
-    Runs ``gurobi_cl --license`` and inspects the output for
-    "Restricted license", which indicates a size-limited test license
-    that is insufficient for the test suite.
+    Creates a Gurobi model that exceeds the 2000-variable limit of the
+    restricted license bundled with the gurobipy pip package, then tries
+    to optimize it.  If creating the environment fails, no license is
+    available at all; if optimize fails, only the restricted license is
+    present.  Model and environment are properly disposed of so that
+    license tokens are released.
 
-    See https://support.gurobi.com/hc/en-us/articles/13417565229713
+    See https://support.gurobi.com/hc/en-us/articles/4424054948881
     """
     try:
-        import subprocess  # noqa: PLC0415
-
-        result = subprocess.run(
-            ["gurobi_cl", "--license"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        output = (result.stdout + result.stderr).lower()
-        return result.returncode == 0 and "restricted license" not in output
-    except Exception:
+        import gurobipy as gp  # noqa: PLC0415
+    except ImportError:
         return False
+
+    env = None
+    model = None
+    try:
+        env = gp.Env(empty=True)
+        env.setParam("OutputFlag", 0)
+        env.start()
+        model = gp.Model(env=env)
+        model.addVars(2001)
+        model.optimize()
+        return True
+    except gp.GurobiError:
+        return False
+    finally:
+        if model is not None:
+            model.close()
+        if env is not None:
+            env.close()
 
 
 SOLVER = "gurobi" if _gurobi_available() else "glpk"
@@ -41,17 +63,6 @@ print(f"\n=== FINE test suite: using solver '{SOLVER}' ===\n")
 def solver():
     """Return the best available solver, falling back to GLPK if Gurobi is unavailable."""
     return SOLVER
-
-
-sys.path.append(
-    str(
-        Path(__file__).parent
-        / ".."
-        / "examples"
-        / "03_Multi-regional_Energy_System_Workflow"
-    )
-)
-from getData import getData
 
 
 @pytest.fixture(scope="session")
