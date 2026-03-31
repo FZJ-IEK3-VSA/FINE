@@ -12,7 +12,7 @@ import fine.aggregations.spatialAggregation.managerUtils as manUtils
 # ============================================Fixtures for Grouping==================================================#
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def xr_for_connectivity():
     space_list = [
         "01_reg",
@@ -119,7 +119,7 @@ def xr_for_connectivity():
     return {"Input": input_xr_dict, "Geometry": geom_xr}
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def data_for_distance_measure():
     ## ts dict
     matrix_ts = np.array([[1, 2, 3], [1, 2, 3]])
@@ -163,7 +163,7 @@ def data_for_distance_measure():
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def xr_for_parameter_based_grouping():
     time_list = ["T0", "T1"]
     space_list = ["01_reg", "02_reg", "03_reg"]
@@ -221,7 +221,7 @@ def xr_for_parameter_based_grouping():
 # ============================================Fixtures for Basic Representation==================================================#
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def xr_and_dict_for_basic_representation():
     """Xarray to test basic representation functions.
 
@@ -376,8 +376,8 @@ def xr_and_dict_for_basic_representation():
 # ============================================Fixtures for RE Representation==================================================#
 
 
-@pytest.fixture
-def gridded_RE_data(scope="session"):
+@pytest.fixture(scope="function")
+def gridded_RE_data():
     time_steps = 10
     x_coordinates = 5
     y_coordinates = 3
@@ -407,8 +407,8 @@ def gridded_RE_data(scope="session"):
     return test_xr_ds
 
 
-@pytest.fixture
-def non_gridded_RE_data(scope="session"):
+@pytest.fixture(scope="function")
+def non_gridded_RE_data():
     time_steps = 10
     n_locations = 8
 
@@ -443,8 +443,8 @@ def non_gridded_RE_data(scope="session"):
     )
 
 
-@pytest.fixture
-def sample_shapefile(scope="session"):
+@pytest.fixture(scope="function")
+def sample_shapefile():
     polygon1 = Polygon([(0, 0), (4, 0), (4, 4), (0, 4)])
     polygon2 = Polygon([(4, 0), (7, 0), (7, 4), (4, 4)])
 

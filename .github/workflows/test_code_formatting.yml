@@ -9,14 +9,6 @@ on:
 
 jobs:
   ruff:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@v3
-        with:
-          args: "--version"
-          version: "0.13.1"
-      - name: Check Linter
-        run: ruff check --output-format=github --config=pyproject.toml
-      - name: Check Format
-        run: ruff format --diff --config=pyproject.toml
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/lint.yml@v1
+    with:
+      ruff_version: "0.13.1"

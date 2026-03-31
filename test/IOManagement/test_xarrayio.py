@@ -1,11 +1,10 @@
-from copy import deepcopy
-from pathlib import Path
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
 
+from fine.utils import ImplementedSolvers
 import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
 from fine.IOManagement.dictIO import exportToDict
@@ -108,7 +107,7 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
 
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
     esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_datasets)
@@ -117,7 +116,7 @@ def test_esm_input_to_dataset_and_back(minimal_test_esM):
 
 
 def test_esm_output_to_dataset_and_back(minimal_test_esM):
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
     esm_original.optimize()
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
     esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_datasets)
@@ -132,59 +131,58 @@ def test_esm_output_to_dataset_and_back(minimal_test_esM):
         )
 
 
-def test_input_esm_to_netcdf_and_back(minimal_test_esM):
+def test_input_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     """Write an esM to netCDF, then load the esM from this file. Compare if both
     esMs are identical.
     """
-    esm_original = deepcopy(minimal_test_esM)
+    test_esM = str(tmp_path / "test_esM.nc")
+
+    esm_original = minimal_test_esM
     xrIO.writeEnergySystemModelToNetCDF(
-        esm_original, outputFilePath="test_esM.nc", overwriteExisting=True
+        esm_original, outputFilePath=test_esM, overwriteExisting=True
     )
-    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
 
-    Path("test_esM.nc").unlink()
 
-
-def test_output_esm_to_netcdf_and_back(minimal_test_esM):
+def test_output_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     """Optimize an esM, write it to  netCDF, then load the esM from this file.
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-    esm_original = deepcopy(minimal_test_esM)
+    test_esM = str(tmp_path / "test_esM.nc")
+
+    esm_original = minimal_test_esM
     esm_original.optimize()
     xrIO.writeEnergySystemModelToNetCDF(
-        esm_original, outputFilePath="test_esM.nc", overwriteExisting=True
+        esm_original, outputFilePath=test_esM, overwriteExisting=True
     )
-    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM.nc")
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
     compare_esm_outputs(esm_original, esm_from_netcdf)
 
-    Path("test_esM.nc").unlink()
 
-
-def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_esM):
+def test_output_esm_to_netcdf_and_back_perfectForesight(
+    perfectForesight_test_esM, tmp_path
+):
     """Optimize an esM, write it to  netCDF, then load the esM from this file.
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-    esm_original_pf = deepcopy(perfectForesight_test_esM)
+    test_esM = str(tmp_path / "test_esM_pf.nc")
+
+    esm_original_pf = perfectForesight_test_esM
     esm_original_pf.optimize()
 
-    xrIO.writeEnergySystemModelToNetCDF(
-        esm_original_pf, outputFilePath="test_esM_pf.nc"
-    )
-    esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM_pf.nc")
-
+    xrIO.writeEnergySystemModelToNetCDF(esm_original_pf, outputFilePath=test_esM)
+    esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
     compare_esm_inputs(esm_original_pf, esm_pf_from_netcdf)
     compare_esm_outputs(esm_original_pf, esm_pf_from_netcdf)
 
-    Path("test_esM_pf.nc").unlink()
 
-
-def test_capacityFix_subset(multi_node_test_esM_init):
+def test_capacityFix_subset(multi_node_test_esM_init, tmp_path):
     """Optimize esM, set optimal capacity values for every component as capacity Fix.
     Then, save the esM to netCDF and read out the same netCDF to esM.
     Assert that capacityFix values do not have to be provided for every location when saving to NetCDF.
@@ -194,33 +192,28 @@ def test_capacityFix_subset(multi_node_test_esM_init):
 
     capacityFix = Series(0, index=esM.locations)
     capacityFix["cluster_1"] = 3
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="New CCGT plants (biogas)",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={"electricity": 1, "biogas": -1 / 0.635},
-            hasCapacityVariable=True,
-            investPerCapacity=0.7,
-            opexPerCapacity=0.021,
-            interestRate=0.08,
-            economicLifetime=33,
-            opexPerOperation=0.01,
-            locationalEligibility=Series(1, index=esM.locations),
-            capacityFix=capacityFix,
-            capacityMax=Series(3, index=esM.locations),
+    with pytest.warns(
+        UserWarning,
+        match="Component identifier New CCGT plants \\(biogas\\) already exists",
+    ):
+        multi_node_test_esM_init.updateComponent(
+            componentName="New CCGT plants (biogas)",
+            updateAttrs={
+                "opexPerOperation": 0.01,
+                "locationalEligibility": Series(1, index=esM.locations),
+                "capacityFix": capacityFix,
+                "capacityMax": Series(3, index=esM.locations),
+            },
         )
-    )
 
-    fileName = "test_cdf_error.nc"
-    xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=fileName)
-    _ = xrIO.readNetCDFtoEnergySystemModel(filePath=fileName)
+    test_esM = str(tmp_path / "test_cdf_error.nc")
 
-    Path("test_cdf_error.nc").unlink()
+    xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=test_esM)
+    _ = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
 
 
 def test_esm_to_datasets_with_processed_values(minimal_test_esM):
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
 
     xr_dss = xrIO.convertOptimizationInputToDatasets(
         esm_original, useProcessedValues=True
@@ -279,18 +272,17 @@ def test_transmission_dims(minimal_test_esM):
     esM2.optimize()
 
 
-def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM):
+def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM, tmp_path):
     """Optimize an esM, write it to  netCDF, then load the esM from this file.
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-    esm_original_pf = deepcopy(perfectForesight_test_esM)
+    esm_original_pf = perfectForesight_test_esM
     esm_original_pf.aggregateTemporally(
         numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=2
     )
     esm_original_pf.optimize()
-    path_to_output_file = Path(__file__).parent.joinpath("test_esM_pf.nc")
-    path_to_output_file_str = str(path_to_output_file)
+    path_to_output_file_str = str(tmp_path / "test_esM_pf.nc")
     xrIO.writeEnergySystemModelToNetCDF(
         esm_original_pf, outputFilePath=path_to_output_file_str
     )
@@ -303,8 +295,6 @@ def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM):
 
     compare_esm_inputs(esm_original_pf, esm_pf_from_netcdf)
 
-    path_to_output_file.unlink()
-
 
 def test_operation_export_to_xarray(multi_node_test_esM_init):
     """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
@@ -316,13 +306,16 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     """
     esM = multi_node_test_esM_init
     esM.aggregateTemporally(
-        numberOfTypicalPeriods=3,
+        numberOfTypicalPeriods=5,
         segmentation=False,
         sortValues=True,
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
     optSum = esM.getOptimizationSummary("TransmissionModel").loc[
@@ -337,6 +330,38 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     xrRes.columns.name = None
 
     assert_frame_equal(optSum, xrRes, check_dtype=False)
+
+
+def test_coordinates(multi_node_test_esM_init):
+    """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
+    Check that the coordinates of the results of the ESM model are as expected.
+    """
+    esM = multi_node_test_esM_init
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
+
+    xrds = xrIO.writeEnergySystemModelToDatasets(esM)
+
+    required_coord_1dim = {"location", "time"}
+    xrRes = xrds["Results"][0]["SourceSinkModel"]["Wind (onshore)"]
+    assert set(xrRes.coords) == required_coord_1dim, (
+        f"Expected {required_coord_1dim}; got {set(xrRes.coords)}."
+    )
+
+    required_coord_2dim = {"locationIn", "locationOut", "time"}
+    xrRes = xrds["Results"][0]["TransmissionModel"]["Pipelines (biogas)"]
+    assert set(xrRes.coords) == required_coord_2dim, (
+        f"Expected {required_coord_2dim}; got {set(xrRes.coords)}"
+    )
 
 
 def test_shadow_price_data_exists_in_xarray(multi_node_test_esM_init):
