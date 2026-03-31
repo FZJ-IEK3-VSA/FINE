@@ -1,6 +1,5 @@
 import math
 import warnings
-from enum import Enum
 
 import numpy as np
 import pandas as pd
@@ -3002,10 +3001,17 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
     )
 
 
-class ImplementedSolvers(Enum):
-    """Enum for implemented solvers."""
+class _Solver:
+    """Solver identifier with mutable value."""
 
-    GLPK = "glpk"
-    GUROBI = "gurobi"
-    HIGHS = "highs"
-    STANDARD_SOLVER = "gurobi"  # Use Gurobi if available, otherwise use GLPK
+    def __init__(self, value):
+        self.value = value
+
+
+class ImplementedSolvers:
+    """Implemented solvers."""
+
+    GLPK = _Solver("glpk")
+    GUROBI = _Solver("gurobi")
+    HIGHS = _Solver("highs")
+    STANDARD_SOLVER = _Solver("gurobi")  # Use Gurobi if available, otherwise use GLPK
