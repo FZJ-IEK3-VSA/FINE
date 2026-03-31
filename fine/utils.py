@@ -3015,3 +3015,47 @@ class ImplementedSolvers:
     GUROBI = _Solver("gurobi")
     HIGHS = _Solver("highs")
     STANDARD_SOLVER = _Solver("gurobi")  # Use Gurobi if available, otherwise use GLPK
+
+    @staticmethod
+    def _gurobi_available():
+        """Check if Gurobi is installed with a valid full (non-size-limited) license.
+
+        Creates a Gurobi model that exceeds the 2000-variable limit of the
+        restricted license bundled with the gurobipy pip package, then tries
+        to optimize it.  If creating the environment fails, no license is
+        available at all; if optimize fails, only the restricted license is
+        present.  Model and environment are properly disposed of so that
+        license tokens are released.
+
+        See https://support.gurobi.com/hc/en-us/articles/4424054948881
+        """
+        try:
+            import gurobipy as gp
+        except ImportError:
+            return False
+
+        env = None
+        model = None
+        try:
+            env = gp.Env(empty=True)
+            env.setParam("OutputFlag", 0)
+            env.start()
+            model = gp.Model(env=env)
+            model.addVars(2001)
+            model.optimize()
+            return True
+        except gp.GurobiError:
+            return False
+        finally:
+            if model is not None:
+                model.close()
+            if env is not None:
+                env.close()
+
+    @classmethod
+    def set_standard_solver(cls):
+        """Detect available solver and set STANDARD_SOLVER accordingly."""
+        if cls._gurobi_available():
+            cls.STANDARD_SOLVER.value = cls.GUROBI.value
+        else:
+            cls.STANDARD_SOLVER.value = cls.GLPK.value
