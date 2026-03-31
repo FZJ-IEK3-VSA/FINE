@@ -387,7 +387,13 @@ def test_shadow_price_data_exists_in_xarray(multi_node_test_esM_init):
     assert set(["ip", "component", "space", "time"]).issubset(
         set(xrds["ShadowPrices"].dims)
     )
-    
+
     # Test fail behaviour if nonexistent constraint is given: msg = f"Constraint '{constraint_str}' not found in model."
-    with pytest.raises(ValueError, match="Constraint 'non_existent_constraint' not found in model."):
-        xrIO.writeEnergySystemModelToDatasets(esM, includeShadowPrices=True, shadowPriceConstraintStr="non_existent_constraint")
+    with pytest.raises(
+        ValueError, match="Constraint 'non_existent_constraint' not found in model."
+    ):
+        xrIO.writeEnergySystemModelToDatasets(
+            esM,
+            includeShadowPrices=True,
+            shadowPriceConstraintStr="non_existent_constraint",
+        )
