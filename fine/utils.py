@@ -3,6 +3,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import gurobipy as gp
 
 import fine as fn
 
@@ -3029,11 +3030,6 @@ class ImplementedSolvers:
 
         See https://support.gurobi.com/hc/en-us/articles/4424054948881
         """
-        try:
-            import gurobipy as gp
-        except ImportError:
-            return False
-
         env = None
         model = None
         try:
