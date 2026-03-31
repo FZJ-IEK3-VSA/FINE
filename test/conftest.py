@@ -57,7 +57,11 @@ def _gurobi_available():
             env.close()
 
 
-ImplementedSolvers.STANDARD_SOLVER.value if _gurobi_available() else ImplementedSolvers.GLPK.value
+if _gurobi_available() is True:
+    ImplementedSolvers.STANDARD_SOLVER.value = ImplementedSolvers.GUROBI.value
+else:
+    ImplementedSolvers.STANDARD_SOLVER.value = ImplementedSolvers.GLPK.value
+
 print(
     f"\n=== FINE test suite: using solver '{ImplementedSolvers.STANDARD_SOLVER.value}' ===\n"
 )
