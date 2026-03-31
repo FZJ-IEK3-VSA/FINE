@@ -2031,9 +2031,8 @@ class EnergySystemModel:
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
         solverList = [
-            ImplementedSolvers.GUROBI.value,
             ImplementedSolvers.STANDARD_SOLVER.value,
-            ImplementedSolvers.HIGHS.value,
+            ImplementedSolvers.GLPK.value,
         ]
 
         if solver != "None":
