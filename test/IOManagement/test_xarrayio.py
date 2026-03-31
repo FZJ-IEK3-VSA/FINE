@@ -398,6 +398,7 @@ def test_shadow_price_data_exists_in_xarray(multi_node_test_esM_init):
             shadowPriceConstraintStr="non_existent_constraint",
         )
 
+
 def test_shadow_price_with_multiple_ip(perfectForesight_test_esM):
     """Test that shadow prices are written correctly for a model with multiple investment periods.
     Specifically exercises the xr.concat path in getShadowPriceXarray (hit from ip=1 onward).
