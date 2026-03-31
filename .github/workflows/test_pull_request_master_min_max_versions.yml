@@ -5,9 +5,9 @@ on:
 
 jobs:
     extract-versions:
-        uses: FZJ-IEK3-VSA/.github/.github/workflows/_extract_env_versions_matrix.yml@main
+        uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
         with:
-            libraries: "geopandas,glpk,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
+            libraries: "geopandas,glpk,gurobi,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
             version_type: both
             env_file: requirements_dev.yml
 
@@ -19,7 +19,8 @@ jobs:
             matrix:
                 runner_tag: ["self-hosted"]
                 dependencies: ${{ fromJSON(needs.extract-versions.outputs.matrix) }}
-        uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+        uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
+        secrets: inherit
         with:
             runner_tag: ${{ matrix.runner_tag }}
             requirements_file_name: requirements_dev.yml

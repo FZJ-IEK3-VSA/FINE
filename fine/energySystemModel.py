@@ -13,6 +13,7 @@ from pyomo import opt
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from fine import utils
+from fine.utils import ImplementedSolvers
 from fine.aggregations.spatialAggregation import manager as spagat
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
@@ -2029,7 +2030,11 @@ class EnergySystemModel:
 
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
-        solverList = ["gurobi", "glpk", "cbc"]
+        solverList = [
+            ImplementedSolvers.GUROBI.value,
+            ImplementedSolvers.STANDARD_SOLVER.value,
+            ImplementedSolvers.HIGHS.value,
+        ]
 
         if solver != "None":
             try:
@@ -2064,24 +2069,45 @@ class EnergySystemModel:
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
 
-        # Set which solver should solve the specified optimization problem
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
+            from gurobipy import Env  # noqa: PLC0415
+
             # Use the direct gurobi solver that uses the Python API.
-            optimizer = opt.SolverFactory(solver, solver_io="python")
+            wlsaccessid = os.environ.get("WLSACCESSID", "")
+            wlssecret = os.environ.get("WLSSECRET", "")
+            licenseid = os.environ.get("LICENSEID", "")
+            if wlsaccessid and wlssecret and licenseid:
+                params = {
+                    "WLSACCESSID": wlsaccessid,
+                    "WLSSECRET": wlssecret,
+                    "LICENSEID": int(licenseid),
+                }
+                with Env(params=params) as env:
+                    optimizer = opt.SolverFactory(solver, solver_io="python", env=env)
+
+            else:
+                optimizer = opt.SolverFactory(solver, solver_io="python")
+
         else:
             optimizer = opt.SolverFactory(solver)
 
         # Set, if specified, the time limit
-        if self.solverSpecs["timeLimit"] is not None and solver == "gurobi":
+        if (
+            self.solverSpecs["timeLimit"] is not None
+            and solver == ImplementedSolvers.GUROBI.value
+        ):
             optimizer.options["timelimit"] = timeLimit
 
         # Set the specified solver options
-        if "LogToConsole=" not in optimizationSpecs and solver == "gurobi":
+        if (
+            "LogToConsole=" not in optimizationSpecs
+            and solver == ImplementedSolvers.GUROBI.value
+        ):
             if self.verboseLogLevel == 2:
                 optimizationSpecs += " LogToConsole=0"
 
         # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
-        if solver == "gurobi":
+        if solver == ImplementedSolvers.GUROBI.value:
             optimizer.set_options(
                 "Threads="
                 + str(threads)
@@ -2090,12 +2116,13 @@ class EnergySystemModel:
                 + " "
                 + optimizationSpecs
             )
+
             solver_info = optimizer.solve(
                 self.pyM,
                 warmstart=warmstart,
                 tee=True,
             )
-        elif solver == "glpk":
+        elif solver == ImplementedSolvers.GLPK.value:
             optimizer.set_options(optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, tee=True)
         else:
