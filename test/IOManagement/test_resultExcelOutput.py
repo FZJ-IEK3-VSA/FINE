@@ -100,7 +100,7 @@ def test_compareResults_longClassNames():
                 f"Test for class: {possibleClass} not implemented. If a new subclass is added, also add a possible abbreviation in case the name is too long for saving to excel."
             )
 
-    esM.optimize()
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     # save to excel:
 
