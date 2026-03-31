@@ -877,25 +877,16 @@ def getShadowPriceXarray(esM, constraint_str="commodityBalanceConstraint"):
             print(msg)
             raise ValueError(msg)
 
-        try:
-            # Fetch shadow prices using FINE's utility function
-            # Note: This relies on 'fn' being imported as 'fine' in the outer scope
-            sp = fn.getShadowPrices(
-                esM,
-                getattr(esM.pyM, constraint_str),
-                ip=ip,
-                dualValues=None,
-                hasTimeSeries=True,
-                periodOccurrences=esM.periodOccurrences,
-                periodsOrder=esM.periodsOrder,
-            )
-            sp_xr = sp.to_xarray()
-
-        except Exception as e:
-            print(
-                f"Could not get shadow prices for {constraint_str} in investment period {ip}: {e}"
-            )
-            raise e
+        sp = fn.getShadowPrices(
+            esM,
+            getattr(esM.pyM, constraint_str),
+            ip=ip,
+            dualValues=None,
+            hasTimeSeries=True,
+            periodOccurrences=esM.periodOccurrences,
+            periodsOrder=esM.periodsOrder,
+        )
+        sp_xr = sp.to_xarray()
 
         if sp_xr is None:
             return None
