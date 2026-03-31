@@ -1,4 +1,69 @@
+import numpy as np
+import pandas as pd
+import pytest
+import fine as fn
+from copy import deepcopy
 from fine.utils import ImplementedSolvers
+
+
+def test_aggregation_zero_columns_do_not_affect_result(single_node_test_esM):
+    """Adding an all-zero time series column should not change the aggregation result.
+
+    Two equivalent models are built: one without any zero-only time series
+    (so TSAM receives all columns as-is), and one with an extra Source whose
+    operationRateMax is all zeros (triggering the zero-column drop in
+    aggregateTemporally). Since the extra Source cannot operate, both models
+    represent the same optimisation problem and must yield the same objective
+    after temporal aggregation. Covers both segmentation=False and
+    segmentation=True code paths.
+    """
+    tsa_kwargs_base = dict(
+        storeTSAinstance=False,
+        numberOfTypicalPeriods=2,
+        numberOfTimeStepsPerPeriod=2,
+        clusterMethod="hierarchical",
+        sortValues=False,
+        rescaleClusterPeriods=False,
+        representationMethod=None,
+    )
+
+    for segmentation, extra_kwargs in [
+        (False, {}),
+        (True, {"numberOfSegmentsPerPeriod": 2}),
+    ]:
+        # Model without zero columns — TSAM sees all columns
+        esM_base = deepcopy(single_node_test_esM)
+        esM_base.aggregateTemporally(
+            segmentation=segmentation, **tsa_kwargs_base, **extra_kwargs
+        )
+        esM_base.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
+
+        # Model with an extra Source whose operationRateMax is all zeros.
+        # The zero column must be dropped before TSAM and restored afterwards.
+        esM_with_zero = deepcopy(single_node_test_esM)
+        esM_with_zero.add(
+            fn.Source(
+                esM=esM_with_zero,
+                name="Zero source",
+                commodity="electricity",
+                hasCapacityVariable=False,
+                operationRateMax=pd.Series(np.zeros(4)),
+            )
+        )
+        esM_with_zero.aggregateTemporally(
+            segmentation=segmentation, **tsa_kwargs_base, **extra_kwargs
+        )
+        esM_with_zero.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
+
+        assert esM_base.pyM.Obj() == pytest.approx(esM_with_zero.pyM.Obj()), (
+            f"segmentation={segmentation}: objective differs when zero columns are present"
+        )
 
 
 def test_segmentation(minimal_test_esM):
