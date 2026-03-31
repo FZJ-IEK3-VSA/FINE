@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
     secrets: inherit
     with:
       runner_tag: ${{ matrix.runner_tag }}
@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test_uv_miniforge.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_pypi_test.yml@v1
     secrets: inherit
     with:
       runner_tag: ${{ matrix.runner_tag }}
@@ -36,3 +36,5 @@ jobs:
       multiprocessing_pytest_string: "-n auto"
       multiprocessing_example_string: "-n auto"
       additional_conda_channel: "gurobi"
+      coverage: true
+      coverage_package_name: fine

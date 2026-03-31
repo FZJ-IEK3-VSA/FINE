@@ -6,9 +6,9 @@ on:
 jobs:
   extract-python-versions:
     if: github.actor != 'renovate[bot]'
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_extract_env_versions.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
     with:
-      library_name: python
+      libraries: python
       env_file: requirements_dev.yml
 
   TestPullCondaForgeDev:
@@ -20,7 +20,7 @@ jobs:
       matrix:
         runner_tag: ["ubuntu-latest", "macos-latest", "windows-latest"]
         python_version: ${{ fromJSON(needs.extract-python-versions.outputs.versions) }}
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
     secrets: inherit
     with:
       runner_tag: ${{ matrix.runner_tag }}
@@ -31,6 +31,7 @@ jobs:
       dependency_position_env_file: ${{ needs.extract-python-versions.outputs.dependency_position }}
       multiprocessing_pytest_string: "-n auto"
       multiprocessing_example_string: "-n auto"
+
   TestPullPyPIDev:
     name: Test PyPI development version on ${{ matrix.runner_tag }}
     needs: extract-python-versions
@@ -39,7 +40,7 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["ubuntu-latest"]
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test_uv_miniforge.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_pypi_test.yml@v1
     secrets: inherit
     with:
       runner_tag: ${{ matrix.runner_tag }}
@@ -53,7 +54,7 @@ jobs:
 
   extract-min-versions:
     if: github.actor != 'renovate[bot]'
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_extract_env_versions_matrix.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
     with:
       libraries: "geopandas,glpk,gurobi,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
       version_type: min
@@ -67,7 +68,7 @@ jobs:
       matrix:
         runner_tag: ["self-hosted"]
         dependencies: ${{ fromJSON(needs.extract-min-versions.outputs.matrix) }}
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
     secrets: inherit
     with:
       runner_tag: ${{ matrix.runner_tag }}
