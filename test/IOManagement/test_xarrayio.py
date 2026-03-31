@@ -376,7 +376,9 @@ def test_shadow_price_data_exists_in_xarray(multi_node_test_esM_init):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver=ImplementedSolvers.STANDARD_SOLVER.value)
+    esM.optimize(
+        timeSeriesAggregation=True, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM, includeShadowPrices=True)
     assert "ShadowPrices" in xrds.keys()
