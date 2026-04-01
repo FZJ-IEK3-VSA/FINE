@@ -2180,7 +2180,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetName,
         opVarName,
         factorName=None,
-        isStateOfCharge=False,
+        *,
         isOperationCommisYearDepending=False,
     ):
         r"""Define operation mode 1. The operation [commodityUnit*h] is limited by the installed capacity in:\n
@@ -2200,7 +2200,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet1 = getattr(pyM, constrSetName + "1_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            factor1 = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            factor1 = esM.hoursPerTimeStep
             if isOperationCommisYearDepending:
 
                 def op1(pyM, loc, compName, commis, ip, p, t):
@@ -2213,7 +2213,6 @@ class ComponentModel(metaclass=ABCMeta):
                         opVar[loc, compName, commis, ip, p, t]
                         <= factor1 * factor2 * commisVar[loc, compName, commis]
                     )
-
             else:
 
                 def op1(pyM, loc, compName, ip, p, t):
@@ -2236,11 +2235,7 @@ class ComponentModel(metaclass=ABCMeta):
             if isOperationCommisYearDepending:
 
                 def op1(pyM, loc, compName, commis, ip, p, t):
-                    factor1 = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor1 = esM.hoursPerSegment[ip].to_dict()
                     factor2 = (
                         1
                         if factorName is None
@@ -2254,11 +2249,7 @@ class ComponentModel(metaclass=ABCMeta):
             else:
 
                 def op1(pyM, loc, compName, ip, p, t):
-                    factor1 = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor1 = esM.hoursPerSegment[ip].to_dict()
                     factor2 = (
                         1
                         if factorName is None
@@ -2283,7 +2274,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetName,
         opVarName,
         opRateName="processedOperationRateFix",
-        isStateOfCharge=False,
+        *,
         isOperationCommisYearDepending=False,
     ):
         r"""Define operation mode 2.
@@ -2307,7 +2298,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet2 = getattr(pyM, constrSetName + "2_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            factor = esM.hoursPerTimeStep
             if isOperationCommisYearDepending:
 
                 def op2(pyM, loc, compName, commis, ip, p, t):
@@ -2335,11 +2326,7 @@ class ComponentModel(metaclass=ABCMeta):
             if isOperationCommisYearDepending:
 
                 def op2(pyM, loc, compName, commis, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     return (
                         opVar[loc, compName, commis, ip, p, t]
@@ -2351,11 +2338,7 @@ class ComponentModel(metaclass=ABCMeta):
             else:
 
                 def op2(pyM, loc, compName, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     return (
                         opVar[loc, compName, ip, p, t]
@@ -2376,7 +2359,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetName,
         opVarName,
         opRateName="processedOperationRateMax",
-        isStateOfCharge=False,
+        *,
         isOperationCommisYearDepending=False,
         relevanceThreshold=None,
     ):
@@ -2403,7 +2386,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet3 = getattr(pyM, constrSetName + "3_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            factor = esM.hoursPerTimeStep
             if isOperationCommisYearDepending:
 
                 def op3(pyM, loc, compName, commis, ip, p, t):
@@ -2441,11 +2424,7 @@ class ComponentModel(metaclass=ABCMeta):
             if isOperationCommisYearDepending:
 
                 def op3(pyM, loc, compName, commis, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
@@ -2462,11 +2441,7 @@ class ComponentModel(metaclass=ABCMeta):
             else:
 
                 def op3(pyM, loc, compName, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
@@ -2492,7 +2467,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetName,
         opVarName,
         opRateName="processedOperationRateMin",
-        isStateOfCharge=False,
+        *,
         isOperationCommisYearDepending=False,
         relevanceThreshold=None,
     ):
@@ -2519,7 +2494,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet4 = getattr(pyM, constrSetName + "4_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            factor = esM.hoursPerTimeStep
             if isOperationCommisYearDepending:
 
                 def op4(pyM, loc, compName, commis, ip, p, t):
@@ -2557,11 +2532,7 @@ class ComponentModel(metaclass=ABCMeta):
             if isOperationCommisYearDepending:
 
                 def op4(pyM, loc, compName, commis, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
@@ -2578,11 +2549,7 @@ class ComponentModel(metaclass=ABCMeta):
             else:
 
                 def op4(pyM, loc, compName, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
