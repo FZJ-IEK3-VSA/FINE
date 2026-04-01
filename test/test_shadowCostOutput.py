@@ -1,12 +1,14 @@
 import fine as fn
 import numpy as np
 
+from fine.utils import ImplementedSolvers
+
 
 def test_shadowCostOutPut(minimal_test_esM):
     """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000."""
     esM = minimal_test_esM
 
-    esM.optimize(solver="glpk")
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     SP = fn.getShadowPrices(
         esM,
@@ -28,7 +30,10 @@ def test_shadowCostOutPut(minimal_test_esM):
         rescaleClusterPeriods=True,
     )
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     SP = fn.getShadowPrices(
         esM,

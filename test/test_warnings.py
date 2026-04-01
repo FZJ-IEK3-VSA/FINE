@@ -1,17 +1,7 @@
 import pytest
 from fine import utils
 
-
-def test_deprecation_warning_esm(minimal_test_esM):
-    """EnergySystemModel.cluster() is marked as deprecated. Calling the method should
-    results in a DeprecationWarning. We assert if a DeprecationWarning is raised.
-    """
-    with pytest.deprecated_call():
-        minimal_test_esM.cluster(
-            numberOfTypicalPeriods=3,
-            numberOfTimeStepsPerPeriod=1,
-            numberOfSegmentsPerPeriod=1,
-        )
+from fine.utils import ImplementedSolvers
 
 
 def test_userWarnings_esm(minimal_test_esM):
@@ -19,7 +9,10 @@ def test_userWarnings_esm(minimal_test_esM):
     with pytest.warns(
         UserWarning, match="Invalid input. An outputLevel parameter of 2 is assumed."
     ):
-        minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+        minimal_test_esM.optimize(
+            timeSeriesAggregation=False,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
         minimal_test_esM.getOptimizationSummary("SourceSinkModel", outputLevel=5)
 
     # TODO: test also if DeprecationWarning and FutureWarning are ignored

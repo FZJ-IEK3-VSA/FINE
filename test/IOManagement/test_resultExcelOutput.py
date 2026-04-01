@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 from fine import subclasses
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
@@ -52,13 +53,13 @@ def test_compareResults_longClassNames():
                     investPerCapacity=1,
                     hasCapacityVariable=True,
                     partLoadMin=0.2,
+                    hasIsBuiltBinaryVariable=True,
                     bigM=1000,
                     physicalUnit="TestUnit",
                     commodityConversionFactors={"TestCom": -1, "TargetCom": 0.6},
                 )
             )
         elif "ConversionPartLoad" in str(possibleClass):
-            continue  # conversionPartLoad has an "internal" problem not related to this test. Need to be fixed before this test works properly.
             Operation_level = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
             Efficiency = [0.1, 0.15, 0.5, 0.7, 0.7, 0.65, 0.63, 0.62, 0.61, 0.60]
             d = {"x": Operation_level, "y": Efficiency}
@@ -72,6 +73,7 @@ def test_compareResults_longClassNames():
                     physicalUnit="TestUnit",
                     commodityConversionFactors={"TestCom": -1, "TargetCom": 0.5},
                     partLoadMin=0.2,
+                    hasIsBuiltBinaryVariable=True,
                     bigM=1000,
                     commodityConversionFactorsPartLoad={
                         "TestCom": -1,
@@ -98,7 +100,7 @@ def test_compareResults_longClassNames():
                 f"Test for class: {possibleClass} not implemented. If a new subclass is added, also add a possible abbreviation in case the name is too long for saving to excel."
             )
 
-    esM.optimize()
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     # save to excel:
 
@@ -240,6 +242,7 @@ def compareTwoExcelFiles(path1, path2):
 
 
 def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
+    # No deeopycopy is necessary, because the model is not used afterwards and only for saving the results.
     # run and save model without segmentation
     multi_node_test_esM_init.aggregateTemporally(
         numberOfTypicalPeriods=3,
@@ -248,7 +251,10 @@ def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    multi_node_test_esM_init.optimize(timeSeriesAggregation=True, solver="glpk")
+    multi_node_test_esM_init.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     writeOptimizationOutputToExcel(
         multi_node_test_esM_init,
         outputFileName=savePathWithoutSegmentation,
@@ -273,7 +279,7 @@ def saveExcelResultsWithSegmentation(
     minimal_test_esM, savePathWithoutSegmentation, savePathWithSegmentation
 ):
     # run and save model without segmentation
-    minimal_test_esM.optimize(solver="glpk")
+    minimal_test_esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
     writeOptimizationOutputToExcel(
         minimal_test_esM,
         outputFileName=savePathWithoutSegmentation,
@@ -301,7 +307,10 @@ def saveExcelResultsWithSegmentation(
         sortValues=False,
         rescaleClusterPeriods=False,
     )
-    minimal_test_esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    minimal_test_esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     writeOptimizationOutputToExcel(
         minimal_test_esM,
         outputFileName=savePathWithSegmentation,

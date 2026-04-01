@@ -731,7 +731,7 @@ class Component(metaclass=ABCMeta):
         if self.name in esM.componentNames:
             if (
                 esM.componentNames[self.name] == self.modelingClass.__name__
-                and esM.verbose < 2
+                and esM.verboseLogLevel < 2
             ):
                 warnings.warn(
                     "Component identifier "
@@ -2182,7 +2182,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetName,
         opVarName,
         factorName=None,
-        isStateOfCharge=False,
+        *,
         isOperationCommisYearDepending=False,
     ):
         r"""Define operation mode 1. The operation [commodityUnit*h] is limited by the installed capacity in:\n
@@ -2202,7 +2202,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet1 = getattr(pyM, constrSetName + "1_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            factor1 = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            factor1 = esM.hoursPerTimeStep
             if isOperationCommisYearDepending:
 
                 def op1(pyM, loc, compName, commis, ip, p, t):
@@ -2215,7 +2215,6 @@ class ComponentModel(metaclass=ABCMeta):
                         opVar[loc, compName, commis, ip, p, t]
                         <= factor1 * factor2 * commisVar[loc, compName, commis]
                     )
-
             else:
 
                 def op1(pyM, loc, compName, ip, p, t):
@@ -2238,11 +2237,7 @@ class ComponentModel(metaclass=ABCMeta):
             if isOperationCommisYearDepending:
 
                 def op1(pyM, loc, compName, commis, ip, p, t):
-                    factor1 = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor1 = esM.hoursPerSegment[ip].to_dict()
                     factor2 = (
                         1
                         if factorName is None
@@ -2256,11 +2251,7 @@ class ComponentModel(metaclass=ABCMeta):
             else:
 
                 def op1(pyM, loc, compName, ip, p, t):
-                    factor1 = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor1 = esM.hoursPerSegment[ip].to_dict()
                     factor2 = (
                         1
                         if factorName is None
@@ -2285,7 +2276,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetName,
         opVarName,
         opRateName="processedOperationRateFix",
-        isStateOfCharge=False,
+        *,
         isOperationCommisYearDepending=False,
     ):
         r"""Define operation mode 2.
@@ -2309,7 +2300,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet2 = getattr(pyM, constrSetName + "2_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            factor = esM.hoursPerTimeStep
             if isOperationCommisYearDepending:
 
                 def op2(pyM, loc, compName, commis, ip, p, t):
@@ -2337,11 +2328,7 @@ class ComponentModel(metaclass=ABCMeta):
             if isOperationCommisYearDepending:
 
                 def op2(pyM, loc, compName, commis, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     return (
                         opVar[loc, compName, commis, ip, p, t]
@@ -2353,11 +2340,7 @@ class ComponentModel(metaclass=ABCMeta):
             else:
 
                 def op2(pyM, loc, compName, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     return (
                         opVar[loc, compName, ip, p, t]
@@ -2378,7 +2361,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetName,
         opVarName,
         opRateName="processedOperationRateMax",
-        isStateOfCharge=False,
+        *,
         isOperationCommisYearDepending=False,
         relevanceThreshold=None,
     ):
@@ -2405,7 +2388,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet3 = getattr(pyM, constrSetName + "3_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            factor = esM.hoursPerTimeStep
             if isOperationCommisYearDepending:
 
                 def op3(pyM, loc, compName, commis, ip, p, t):
@@ -2443,11 +2426,7 @@ class ComponentModel(metaclass=ABCMeta):
             if isOperationCommisYearDepending:
 
                 def op3(pyM, loc, compName, commis, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
@@ -2464,11 +2443,7 @@ class ComponentModel(metaclass=ABCMeta):
             else:
 
                 def op3(pyM, loc, compName, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
@@ -2494,7 +2469,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSetName,
         opVarName,
         opRateName="processedOperationRateMin",
-        isStateOfCharge=False,
+        *,
         isOperationCommisYearDepending=False,
         relevanceThreshold=None,
     ):
@@ -2521,7 +2496,7 @@ class ComponentModel(metaclass=ABCMeta):
         constrSet4 = getattr(pyM, constrSetName + "4_" + abbrvName)
 
         if not pyM.hasSegmentation:
-            factor = 1 if isStateOfCharge else esM.hoursPerTimeStep
+            factor = esM.hoursPerTimeStep
             if isOperationCommisYearDepending:
 
                 def op4(pyM, loc, compName, commis, ip, p, t):
@@ -2559,11 +2534,7 @@ class ComponentModel(metaclass=ABCMeta):
             if isOperationCommisYearDepending:
 
                 def op4(pyM, loc, compName, commis, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
@@ -2580,11 +2551,7 @@ class ComponentModel(metaclass=ABCMeta):
             else:
 
                 def op4(pyM, loc, compName, ip, p, t):
-                    factor = (
-                        (esM.hoursPerSegment[ip] / esM.hoursPerSegment[ip]).to_dict()
-                        if isStateOfCharge
-                        else esM.hoursPerSegment[ip].to_dict()
-                    )
+                    factor = esM.hoursPerSegment[ip].to_dict()
                     rate = getattr(compDict[compName], opRateName)[ip]
                     if relevanceThreshold is not None:
                         validTreshold = 0 < relevanceThreshold
@@ -2617,6 +2584,13 @@ class ComponentModel(metaclass=ABCMeta):
         Defines two constraints linking a continuous operation variable
         to its corresponding binary variable using the Big-M formulation.
         Handles both standard and commissioning year-dependent cases.
+
+        The binaryOperation1 constraint is used to force the binary variable
+        to one if the continuous variable is greater than zero.
+
+        The binaryOperation2 constraint ensures that the continuous
+        variable is greater than zero whenever the binary variable is one.
+        This is used for the upTimeMin and downTimeMin feature.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -2660,14 +2634,14 @@ class ComponentModel(metaclass=ABCMeta):
                 def binOperation2(pyM, loc, compName, commis, ip, p, t):
                     return (
                         opVar[loc, compName, commis, ip, p, t]
-                        >= opVarBin[loc, compName, commis, ip, p, t]
+                        >= opVarBin[loc, compName, commis, ip, p, t] * 1e-4
                     )
             else:
 
                 def binOperation2(pyM, loc, compName, ip, p, t):
                     return (
                         opVar[loc, compName, ip, p, t]
-                        >= opVarBin[loc, compName, ip, p, t]
+                        >= opVarBin[loc, compName, ip, p, t] * 1e-4
                     )
 
             setattr(
@@ -2780,7 +2754,6 @@ class ComponentModel(metaclass=ABCMeta):
         opVarName,
         isOperationCommisYearDepending=False,
     ):
-        # TODO: Add deprecation warning to sourceSink.yearlyLimitConstraint and call this function in it
         """Limit the annual full load hours to a minimum value.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -3997,7 +3970,7 @@ class ComponentModel(metaclass=ABCMeta):
                         comp.hasIsBuiltBinaryVariable
                         and (comp.processedCapacityMax is None)
                         and capOptVal.loc[compName].max() >= comp.bigM * 0.9
-                        and esM.verbose < 2
+                        and esM.verboseLogLevel < 2
                     ):
                         warnings.warn(
                             "the capacity of component "
@@ -4284,60 +4257,25 @@ class ComponentModel(metaclass=ABCMeta):
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        if name == "capacityVariablesOptimum":
+        timeDependentMapping = {
+            "capacityVariablesOptimum": False,
+            "isBuiltVariablesOptimum": False,
+            "operationVariablesOptimum": True,
+            "commissioningVariablesOptimum": False,
+            "decommissioningVariablesOptimum": False,
+        }
+
+        if name in timeDependentMapping:
             return {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "isBuiltVariablesOptimum":
-            return {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "operationVariablesOptimum":
-            return {
-                "values": self._operationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-        if name == "commissioningVariablesOptimum":
-            return {
-                "values": self._commissioningVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "decommissioningVariablesOptimum":
-            return {
-                "values": self._decommissioningVariablesOptimum[ip],
-                "timeDependent": False,
+                "values": getattr(self, f"_{name}")[ip],
+                "timeDependent": timeDependentMapping[name],
                 "dimension": self.dimension,
             }
         return {
-            "capacityVariablesOptimum": {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
+            valName: {
+                "values": getattr(self, f"_{valName}")[ip],
+                "timeDependent": timeDependentMapping[valName],
                 "dimension": self.dimension,
-            },
-            "commissioningVariablesOptimum": {
-                "values": self._commissioningVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "decommissioningVariablesOptimum": {
-                "values": self._decommissioningVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "isBuiltVariablesOptimum": {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "operationVariablesOptimum": {
-                "values": self._operationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            },
+            }
+            for valName in timeDependentMapping
         }

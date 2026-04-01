@@ -15,6 +15,7 @@ import pandas as pd
 
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 sys.path.append(
     str(
@@ -53,8 +54,7 @@ def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibil
     data = getData()
 
     esM = esM_init
-    # Wind (onshore)
-    # Delete operationRateMax and capacityMax data corresponding to cluster_0
+    # Wind (onshore): Delete operationRateMax and capacityMax data corresponding to cluster_0
     data["Wind (onshore), operationRateMax"].drop("cluster_0", axis=1, inplace=True)
     data["Wind (onshore), capacityMax"].drop("cluster_0", inplace=True)
 
@@ -221,4 +221,7 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
         rescaleClusterPeriods=True,
     )
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )

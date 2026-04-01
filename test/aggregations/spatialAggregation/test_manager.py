@@ -3,11 +3,12 @@ import pytest
 import numpy as np
 from fine import xarrayIO as xrIO
 import geopandas as gpd
+from fine.utils import ImplementedSolvers
 
 
 @pytest.mark.parametrize("use_saved_file", [False, True])
 def test_esm_to_xr_and_back_during_spatial_aggregation(
-    use_saved_file, test_esM_for_spagat
+    use_saved_file, test_esM_for_spagat, tmp_path
 ):
     """Resulting number of regions would be the same as the original number.
 
@@ -24,9 +25,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
         "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
-    PATH_TO_SAVE = os.path.join(  # noqa: PTH118
-        os.path.dirname(__file__)  # noqa: PTH120
-    )
+    PATH_TO_SAVE = str(tmp_path)
     netcdf_file_name = "my_xr.nc"
     shp_file_name = "my_shp"
 
@@ -37,7 +36,7 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
         aggregatedResultsPath=PATH_TO_SAVE,
         aggregated_xr_filename=netcdf_file_name,
         aggregated_shp_name=shp_file_name,
-        solver="glpk",
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     if use_saved_file:
@@ -91,7 +90,10 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
 
     # additionally, check if clustering and optimization run through
     aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=4)
-    aggregated_esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    aggregated_esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     # if there are no problems, delete the saved files
     os.remove(  # noqa: PTH107
@@ -123,13 +125,17 @@ def test_error_in_reading_shp(test_esM_for_spagat):
         )
 
         _ = test_esM_for_spagat.aggregateSpatially(
-            shapefile=SHAPEFILE_PATH, n_groups=2, solver="glpk"
+            shapefile=SHAPEFILE_PATH,
+            n_groups=2,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
 
     ## Case 2: invalid shapefile type
     with pytest.raises(TypeError):
         _ = test_esM_for_spagat.aggregateSpatially(
-            shapefile=test_esM_for_spagat, n_groups=2, solver="glpk"
+            shapefile=test_esM_for_spagat,
+            n_groups=2,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
 
     ## Case 3: invalid nRegionsForRepresentation for the shapefile
@@ -141,7 +147,9 @@ def test_error_in_reading_shp(test_esM_for_spagat):
         )
 
         _ = test_esM_for_spagat.aggregateSpatially(
-            shapefile=SHAPEFILE_PATH, n_groups=5, solver="glpk"
+            shapefile=SHAPEFILE_PATH,
+            n_groups=5,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
 
 
@@ -242,14 +250,17 @@ def test_spatial_aggregation_parameter_based(
         aggregatedResultsPath=None,
         aggregation_function_dict=aggregation_function_dict,
         var_weights={"1d_vars": 10},
-        solver="glpk",
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
     # ASSERTION
     assert len(aggregated_esM.locations) == n_regions
     #  Additional check - if the optimization runs through
     aggregated_esM.aggregateTemporally(numberOfTypicalPeriods=4)
-    aggregated_esM.optimize(timeSeriesAggregation=True)
+    aggregated_esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
 
 def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):

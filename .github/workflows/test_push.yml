@@ -10,11 +10,14 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
+    secrets: inherit
     with:
       runner_tag: ${{ matrix.runner_tag }}
       requirements_file_name: requirements_dev.yml
       ipynb_example_folder: "examples"
+      multiprocessing_pytest_string: "-n 3"
+      multiprocessing_example_string: "-n 3"
 
   TestPushPyPIDev:
     name: Test PyPi development version on ${{ matrix.runner_tag }}
@@ -22,10 +25,16 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_pypi_test.yml@v1
+    secrets: inherit
     with:
       runner_tag: ${{ matrix.runner_tag }}
       ipynb_example_folder: "examples"
       python_version: "3.13"
       optional_dependency_PyPI_tag: "[develop]"
-      additional_conda_forge_dependencies: "glpk"
+      additional_conda_forge_dependencies: "glpk gurobi"
+      multiprocessing_pytest_string: "-n auto"
+      multiprocessing_example_string: "-n auto"
+      additional_conda_channel: "gurobi"
+      coverage: true
+      coverage_package_name: fine

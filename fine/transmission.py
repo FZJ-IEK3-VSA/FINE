@@ -145,13 +145,18 @@ class Transmission(Component):
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
         """
-        # TODO add unit checks
-        self.capacityMax = capacityMax
-        self.capacityMin = capacityMin
-        self.capacityFix = capacityFix
-        self.commissioningMax = commissioningMax
-        self.commissioningMin = commissioningMin
-        self.commissioningFix = commissioningFix
+        self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
+        self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
+        self.capacityFix = utils.checkCapacityOrCommissioningTransmission(capacityFix)
+        self.commissioningMax = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMax
+        )
+        self.commissioningMin = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMin
+        )
+        self.commissioningFix = utils.checkCapacityOrCommissioningTransmission(
+            commissioningFix
+        )
 
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
@@ -437,8 +442,9 @@ class Transmission(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # set processed location eligibility # TODO implement check and set
-        self.processedLocationalEligibility = self.locationalEligibility
+        self.processedLocationalEligibility = (
+            self.locationalEligibility
+        )  # checks already during setting of locationalEligibility
 
     def setTimeSeriesData(self, hasTSA):
         """Set the maximum operation rate and fixed operation rate depending on whether a time series analysis is requested or not.
@@ -1005,12 +1011,13 @@ class TransmissionModel(ComponentModel):
             )
             self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
 
-            props = ["operation", "opexOp", "NPV_opexOp"]
+            props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
-                props[1]: ["[" + esM.costUnit + "/a]"],
+                props[0]: ["[-*h]"],
+                props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
+                props[3]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1028,7 +1035,7 @@ class TransmissionModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] == "operation"
+                        if x[1] == "operation" or "operation_annual"
                         else x
                     ),
                     tuples,
@@ -1046,18 +1053,23 @@ class TransmissionModel(ComponentModel):
 
                 optSummary.loc[
                     [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-                optSummary.loc[
-                    [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
                         for ix in opSum.index
                     ],
                     opSum.columns,
                 ] = opSum.values
+
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "operation_annual",
+                            "[" + compDict[ix].commodityUnit + "*h/a]",
+                        )
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values / esM.numberOfYears
 
                 tac_ox = resultsTAC_opexOp[ip]
                 optSummary.loc[
@@ -1118,7 +1130,7 @@ class TransmissionModel(ComponentModel):
             optSummary.index = pd.MultiIndex.from_tuples(indexNew)
             optSummary = optSummary.unstack(level=-1)
             names = list(optSummaryBasic[esM.investmentPeriodNames[ip]].index.names)
-            names.append("LocationIn")
+            names.append("locationIn")
             optSummary.index.set_names(names, inplace=True)
             self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 

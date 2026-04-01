@@ -945,10 +945,6 @@ class PiecewiseLinearCostFunctionModel:
                 mdlOptSummaryPwlcf = pd.DataFrame(
                     index=mIndex, columns=list(esM.locations)
                 ).sort_index()
-                # optSummaryPwlcf = {
-                #     ip: pd.DataFrame(index=mIndex, columns=list(esM.locations)).sort_index()
-                #     for ip in esM.investmentPeriodNames
-                # }
 
                 mdlOptSummaryPwlcf.loc[
                     moduleName, f"TAC_{curPWLCFtype}", "[" + esM.costUnit + "/a]"
