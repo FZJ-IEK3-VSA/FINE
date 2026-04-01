@@ -2592,8 +2592,9 @@ def checkNestedNanValues(obj):
 
 def checkAndSetCommodityConversionFactor(comp, esM):
     """Set up the full commodity conversion factor, if necessary depending on
-    commissioning year and investment period. Location-dependent constants
-    can be provided as pandas.Series indexed by locations.
+    commissioning year and investment period. Location-dependent parameter
+    can be provided as pandas.Series indexed by locations or pandas.DataFrame
+    with locations as columns and timesteps as index.
     """
     iterationList = esM.investmentPeriodNames
     commodityConversionFactors = comp.commodityConversionFactors.copy()

@@ -124,9 +124,11 @@ class Conversion(Component):
         :type commodityConversionFactors:
 
             * dictionary, assigns commodities (string) to a conversion factors
-              (float/int, pandas.Series indexed by locations, or pandas.DataFrame time series)
+                (float/int, pandas.Series indexed by locations, or pandas.DataFrame 
+                with locations as columns and time steps as index)
             * dictionary with investment periods as key and one of the first option  as value
-            * dictionary with tuple of (commissioning year, investment period) as key and one of the first option above as value
+            * dictionary with tuple of (commissioning year, investment period) as key and one 
+                of the first option above as value
 
         Example:
                 {
@@ -1519,7 +1521,6 @@ class ConversionModel(ComponentModel):
             if isinstance(commodCommodityConversionFactors, pd.Series):
                 return commodCommodityConversionFactors.loc[loc]
             if isinstance(commodCommodityConversionFactors, pd.DataFrame):
-                # IMPORTANT: internal index is (Period, TimeStep)
                 return float(commodCommodityConversionFactors.at[(p, t), loc])
             return commodCommodityConversionFactors[loc][p, t]
 

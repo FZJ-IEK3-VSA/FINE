@@ -52,44 +52,6 @@ def create_core_esm():
     return esM
 
 
-def create_two_loc_esm():
-    """We create a core esm with two locations, one source and one sink."""
-    numberOfTimeSteps = 1
-    hoursPerTimeStep = 1
-    esM = fn.EnergySystemModel(
-        locations={"Loc1", "Loc2"},
-        commodities={"electricity", "hydrogen"},
-        numberOfTimeSteps=numberOfTimeSteps,
-        commodityUnitsDict={
-            "electricity": r"kW$_{el}$",
-            "hydrogen": r"kW$_{H_{2},LHV}$",
-        },
-        hoursPerTimeStep=hoursPerTimeStep,
-        costUnit="1 Euro",
-        lengthUnit="km",
-        verboseLogLevel=2,
-    )
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Electricity market",
-            commodity="electricity",
-            hasCapacityVariable=False,
-        )
-    )
-    demand = pd.DataFrame({"Loc1": [10.0], "Loc2": [10.0]}, index=esM.totalTimeSteps)
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="Industry site",
-            commodity="hydrogen",
-            hasCapacityVariable=False,
-            operationRateFix=demand,
-        )
-    )
-    return esM
-
-
 def test_conversion_factors_as_series():
     """Input as pandas.Series for one location."""
     esM = create_core_esm()
