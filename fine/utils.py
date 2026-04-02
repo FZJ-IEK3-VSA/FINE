@@ -2089,7 +2089,17 @@ def output(output, verbose, val):
     :type val: int
     """
     if verbose == val:
+        logger = logging.getLogger(__name__)
+        if val == 0:
+            logger.info(output)
+        else:
+            logger.debug(output)
 
+
+def checkModelClassEquality(esM, file):
+    """Missing."""
+    mdlListFromModel = list(esM.componentModelingDict.keys())
+    mdlListFromExcel = []
     for sheet in file.sheet_names:
         mdlListFromExcel += [
             cl
