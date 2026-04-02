@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 import fine as fn
 import copy
-import fine.IOManagement.xarrayIO as xrIO
 
 def test_perfectForesight_variableConversions_input(
     perfectForesight_test_esM,
@@ -273,11 +272,6 @@ def test_perfectForesight_variableConversions_input(
         )
     )
     
-    xrds = xrIO.writeEnergySystemModelToDatasets(esM)
-    print("test")
-    esM.optimize()
-    xrds_results = xrIO.writeEnergySystemModelToDatasets(esM)
-    print("test")
     assert esM.getComponent("Electrolyzers5").isCommisDepending is False
 
 
