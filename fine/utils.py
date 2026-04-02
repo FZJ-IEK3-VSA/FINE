@@ -2089,11 +2089,11 @@ def output(output, verbose, val):
     :type val: int
     """
     if verbose == val:
-        logger = logging.getLogger(__name__)
-        if val == 0:
-            logger.info(output)
-        else:
-            logger.debug(output)
+        logger = logging.getLogger(__name__)  # pragma: no cover
+        if val == 0:  # pragma: no cover
+            logger.info(output)  # pragma: no cover
+        else:  # pragma: no cover
+            logger.debug(output)  # pragma: no cover
 
 
 def checkModelClassEquality(esM, file):

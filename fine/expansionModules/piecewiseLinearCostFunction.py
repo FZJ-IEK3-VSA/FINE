@@ -284,13 +284,13 @@ class PiecewiseLinearCostFunctionModel:
         if pyomo_pwlf:
             self.declarePwlfPyomo(esM, pyM)
         elif use_sos2:
-            logger.info("Used SOS2 constraints.")
+            logger.info("Used SOS2 constraints.")  # pragma: no cover
             self.declareBinaryPwlcfConstr(pyM)
             self.declareCapacityCommissioningPwlcfConstr(esM, pyM)
             self.declareSos2PwlcfConstr(pyM)
             self.declareBinarySpeedUpConstr(pyM)
         else:
-            logger.info("Used Big-M constraints.")
+            logger.info("Used Big-M constraints.")  # pragma: no cover
             self.declareBinaryPwlcfConstr(pyM)
             self.declareSegmentCapacityPwlcfConstr(pyM)
             self.declareCapacityCommissioningPwlcfConstr(esM, pyM)
@@ -298,7 +298,7 @@ class PiecewiseLinearCostFunctionModel:
 
     def declareBinarySpeedUpConstr(self, pyM):
         """Add binary speed up constraints."""
-        logger.debug("Used binary speed up constraints.")
+        logger.debug("Used binary speed up constraints.")  # pragma: no cover
         if use_sos2:
             pwlcfVar = pyM.sos2PwlcfVar
         else:

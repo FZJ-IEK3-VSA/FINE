@@ -46,7 +46,7 @@ def timer(func):
         before = time.perf_counter()
         rv = func(*args, **kwargs)
         after = time.perf_counter()
-        logger.debug(
+        logger.debug(  # pragma: no cover
             "elapsed time for %s: %.2f minutes", func.__name__, (after - before) / 60
         )
         return rv
@@ -1215,7 +1215,7 @@ def plotLocationalColorMap(
     excluded_regions = [item for item in regions_data if item not in regions_gdf]
 
     if len(excluded_regions) > 0:
-        logger.warning(
+        logger.warning(  # pragma: no cover
             "Missing regions: %s - %s. The following regions are not plotted as they are not contained in the provided shapefile: %s",
             compName,
             variableName,

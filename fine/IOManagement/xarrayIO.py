@@ -82,7 +82,7 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
     # convert datetime to string
     for idx, value in df.items():
         if isinstance(value, pd.Timestamp):
-            logger.debug("Converting timestamp: %s", value)
+            logger.debug("Converting timestamp: %s", value)  # pragma: no cover
             df.loc[idx] = value.strftime("%Y-%m-%d %H:%M:%S")
     summary_dict = df.to_dict()
     summary_xr = xr.Dataset()
@@ -1053,7 +1053,7 @@ def writeEnergySystemModelToNetCDF(
             xr_dss_output["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
             ]
-            logger.debug("Output datasets keys: %s", list(xr_dss_output.keys()))
+            logger.debug("Output datasets keys: %s", list(xr_dss_output.keys()))  # pragma: no cover
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0)

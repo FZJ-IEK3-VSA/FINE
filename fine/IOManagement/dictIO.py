@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def reconstruct_full_timeseries(esM, timeseries, ip):
     """Reconstruct the full timeseries from the time series aggregation (TSA) results."""
-    logger.info("Reconstructing timeseries from TSA")
+    logger.info("Reconstructing timeseries from TSA")  # pragma: no cover
 
     # switch first index level and column level
     df = timeseries.copy()

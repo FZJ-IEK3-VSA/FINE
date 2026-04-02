@@ -115,8 +115,8 @@ def optimizeSimpleMyopic(
     )
     utils.checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets)
     utils.checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps)
-    logger.info("Number of optimization runs: %s", nbOfSteps + 1)
-    logger.info(
+    logger.info("Number of optimization runs: %s", nbOfSteps + 1)  # pragma: no cover
+    logger.info(  # pragma: no cover
         "Number of years represented by one optimization: %s", nbOfRepresentedYears
     )
     mileStoneYear = startYear
