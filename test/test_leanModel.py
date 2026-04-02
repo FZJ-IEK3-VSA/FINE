@@ -156,7 +156,8 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
 
     if "Pumped hydro storage" in esM.componentNames:
         with pytest.warns(
-            UserWarning, match="Component identifier Pumped hydro storage already exists"
+            UserWarning,
+            match="Component identifier Pumped hydro storage already exists",
         ):
             esM.updateComponent(
                 componentName="Pumped hydro storage",
