@@ -30,37 +30,44 @@ classifiers = [
 ]
 keywords = ["energy assessment", "energy system", "optimization"]
 dependencies = [
-    "geopandas>=1.0.0,<=1.1.2",
+    "geopandas>=1.0.0,<=1.1.3",
     "openpyxl<=3.1.5",
     "matplotlib<=3.10.8",
     "xlrd>=1.2.0,<=2.0.2",
     "pyomo>=6.8,<=6.10.0",
     "numpy>=1.22,<=2.4.2",
-    "pandas>=1.4,<=2.3.3",
+    "pandas>=2.2.0,<=2.3.3",
     "scipy>=1.7.2,<=1.17.1",
-    "scikit-learn>=1.2,<=1.8.0",
-    "xarray>=2022.3.0,<=2026.2.0,!=2024.10.0,!=2024.11.0,!=2025.1.*,!=2025.3.*,!=2025.9.*",
+    "scikit-learn>=1.3.0,<=1.8.0",
+    "xarray>=2023.4.1,<=2026.2.0,!=2024.10.0,!=2024.11.0,!=2025.1.*,!=2025.3.*,!=2025.9.*",
     "rasterio>=1.3.7,<=1.5.0,!=1.3.0.post1",
     "netcdf4>1.5.8,<=1.7.4",
-    "tsam>=2.0.1,<=2.3.9",
+    "tsam>=3.1.2,<=3.1.2",
     "pwlf>=2.0.4,<=2.5.2",
     "psutil>=5.8.0,<=7.2.2",
     "gurobi-logtools>=3.0.0,<=3.2.0",
     "ipykernel<=7.2.0",
+    "gurobipy<=13.0.1",
 ]
 # <=3.13 translates to <=3.13.0, why the <3.14 is used
 requires-python = ">=3.10,<3.15"
 
 [project.optional-dependencies]
 develop = [
-    "sphinx<=7.4.4",
-    "sphinx_rtd_theme<=2.0.0",
-    "myst-parser<=2.0.0",
+    "mkdocs>=1.6,<=1.6.1",
+    "mkdocs-material>=9.5,<=9.7.6",
+    "mkdocstrings>=0.25,<=1.0.3",
+    "mkdocstrings-python>=1.10,<=2.0.3",
+    "mkdocs-jupyter>=0.25,<=0.25.1",
+    "mkdocs-gen-files>=0.5,<=0.6.0",
+    "mkdocs-literate-nav>=0.6,<=0.6.2",
+    "mkdocs-section-index>=0.3,<=0.3.10",
+    "griffe>=0.45,<=2.0.2",
     "pytest<=9.0.2",
-    "pytest-cov<=7.0.0",
+    "pytest-cov<=7.1.0",
     "pytest-xdist<=3.8.0",
     "nbval<=0.11.0",
-    "ruff<0.7.0",
+    "ruff<=0.13.1",
 ]
 
 # Configuration options
@@ -74,7 +81,19 @@ console_output_style = "progress"
 # Omit a field by adding ":" for each omitted field
 # Actions are: "default"
 # "error", "ignore", "always", "module", "once"
-filterwarnings = []
+filterwarnings = ["default::Warning:fine.*", "ignore::Warning:matplotlib"]
+
+[tool.coverage.run]
+source_pkgs = ["fine"]
+omit = ["fine/tests/*", "examples/*", "docs/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]
 
 [project.urls]
 homepage = "https://www.fz-juelich.de/en/ice/ice-2/research-1/open_source/fine"
@@ -114,7 +133,9 @@ ignore = [
     "PLR2004", # Magic value used in comparison, consider replacing `2` with a constant variable
     "ARG001",
     "ARG002",
-    "E501",    # Lines to long 
+    "E501",    # Lines to long
+    "D203",    # Incompatible with D211 (no blank line before class docstring)
+    "D213",    # Incompatible with D212 (multi-line summary on first line)
 ]
 
 [tool.ruff.lint.per-file-ignores]

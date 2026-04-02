@@ -13,6 +13,7 @@ from pyomo import opt
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from fine import utils
+from fine.utils import ImplementedSolvers
 from fine.aggregations.spatialAggregation import manager as spagat
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
@@ -1033,6 +1034,13 @@ class EnergySystemModel:
             timeSeriesData = timeSeriesData.reindex(
                 sorted(timeSeriesData.columns), axis=1
             )
+            # find data with only zeros
+            zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
+            # drop columns with only zeros
+            timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
+            weightDict = {
+                k: v for k, v in weightDict.items() if k not in zero_data_cols
+            }
             if segmentation:
                 clusterClass = TimeSeriesAggregation(
                     timeSeries=timeSeriesData,
@@ -1072,6 +1080,9 @@ class EnergySystemModel:
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as time step number per typical period.
                 data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+
+            # add zeros data back to data
+            data[zero_data_cols] = 0.0
 
             # Store the respective clustered time series data in the associated components
             for mdlName, mdl in self.componentModelingDict.items():
@@ -2029,7 +2040,10 @@ class EnergySystemModel:
 
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
-        solverList = ["gurobi", "glpk", "cbc"]
+        solverList = [
+            ImplementedSolvers.STANDARD_SOLVER.value,
+            ImplementedSolvers.GLPK.value,
+        ]
 
         if solver != "None":
             try:
@@ -2064,24 +2078,45 @@ class EnergySystemModel:
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
 
-        # Set which solver should solve the specified optimization problem
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
+            from gurobipy import Env  # noqa: PLC0415
+
             # Use the direct gurobi solver that uses the Python API.
-            optimizer = opt.SolverFactory(solver, solver_io="python")
+            wlsaccessid = os.environ.get("WLSACCESSID", "")
+            wlssecret = os.environ.get("WLSSECRET", "")
+            licenseid = os.environ.get("LICENSEID", "")
+            if wlsaccessid and wlssecret and licenseid:
+                params = {
+                    "WLSACCESSID": wlsaccessid,
+                    "WLSSECRET": wlssecret,
+                    "LICENSEID": int(licenseid),
+                }
+                with Env(params=params) as env:
+                    optimizer = opt.SolverFactory(solver, solver_io="python", env=env)
+
+            else:
+                optimizer = opt.SolverFactory(solver, solver_io="python")
+
         else:
             optimizer = opt.SolverFactory(solver)
 
         # Set, if specified, the time limit
-        if self.solverSpecs["timeLimit"] is not None and solver == "gurobi":
+        if (
+            self.solverSpecs["timeLimit"] is not None
+            and solver == ImplementedSolvers.GUROBI.value
+        ):
             optimizer.options["timelimit"] = timeLimit
 
         # Set the specified solver options
-        if "LogToConsole=" not in optimizationSpecs and solver == "gurobi":
+        if (
+            "LogToConsole=" not in optimizationSpecs
+            and solver == ImplementedSolvers.GUROBI.value
+        ):
             if self.verboseLogLevel == 2:
                 optimizationSpecs += " LogToConsole=0"
 
         # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
-        if solver == "gurobi":
+        if solver == ImplementedSolvers.GUROBI.value:
             optimizer.set_options(
                 "Threads="
                 + str(threads)
@@ -2090,12 +2125,13 @@ class EnergySystemModel:
                 + " "
                 + optimizationSpecs
             )
+
             solver_info = optimizer.solve(
                 self.pyM,
                 warmstart=warmstart,
                 tee=True,
             )
-        elif solver == "glpk":
+        elif solver == ImplementedSolvers.GLPK.value:
             optimizer.set_options(optimizationSpecs)
             solver_info = optimizer.solve(self.pyM, tee=True)
         else:

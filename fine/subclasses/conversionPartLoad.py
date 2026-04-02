@@ -86,7 +86,11 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
         ydiff = yTemp - yBar
         sst = np.dot(ydiff, ydiff)
 
-        R2values[i] = 1.0 - (ssr / sst)
+        for j in range(nSegments):
+            if sst == 0:
+                R2values[j] = np.nan
+            else:
+                R2values[j] = 1.0 - (ssr / sst)
 
     return {
         "xSegments": xSegments,
@@ -363,9 +367,9 @@ class ConversionPartLoadModel(ConversionModel):
         self.abbrvName = "partLoad"
         self.dimension = "1dim"
         self._operationVariablesOptimum = {}
-        self.discretizationPointVariablesOptimum = {}
-        self.discretizationSegmentConVariablesOptimum = {}
-        self.discretizationSegmentBinVariablesOptimum = {}
+        self._discretizationPointVariablesOptimum = {}
+        self._discretizationSegmentConVariablesOptimum = {}
+        self._discretizationSegmentBinVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -896,13 +900,13 @@ class ConversionPartLoadModel(ConversionModel):
                 esM=esM,
             )
 
-            self.discretizationPointVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+            self._discretizationPointVariablesOptimum[esM.investmentPeriodNames[ip]] = (
                 discretizationPointVariablesOptVal_
             )
-            self.discretizationSegmentConVariablesOptimum[
+            self._discretizationSegmentConVariablesOptimum[
                 esM.investmentPeriodNames[ip]
             ] = discretizationSegmentConVariablesOptVal_
-            self.discretizationSegmentBinVariablesOptimum[
+            self._discretizationSegmentBinVariablesOptimum[
                 esM.investmentPeriodNames[ip]
             ] = discretizationSegmentBinVariablesOptVal_
 
