@@ -1053,7 +1053,9 @@ def writeEnergySystemModelToNetCDF(
             xr_dss_output["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
             ]
-            logger.debug("Output datasets keys: %s", list(xr_dss_output.keys()))  # pragma: no cover
+            logger.debug(
+                "Output datasets keys: %s", list(xr_dss_output.keys())
+            )  # pragma: no cover
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0)
