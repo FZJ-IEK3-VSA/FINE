@@ -373,7 +373,7 @@ def test_coordinates(multi_node_test_esM_init):
     """
     esM = multi_node_test_esM_init
     esM.aggregateTemporally(
-        numberOfTypicalPeriods=3,
+        numberOfTypicalPeriods=5,
         segmentation=False,
         sortValues=True,
         representationMethod=None,
