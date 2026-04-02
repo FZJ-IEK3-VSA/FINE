@@ -2078,9 +2078,23 @@ def map2dimData(data, mapC):
 
 
 def output(output, verbose, val):
-    """Missing."""
+    """Output a message using logging instead of print.
+
+    :param output: The message to output
+    :type output: str
+    :param verbose: The current verbosity level
+    :type verbose: int
+    :param val: The verbosity threshold for this message (0 = INFO, >0 = DEBUG)
+    :type val: int
+    """
     if verbose == val:
-        print(output)
+        import logging
+
+        logger = logging.getLogger(__name__)
+        if val == 0:
+            logger.info(output)
+        else:
+            logger.debug(output)
 
 
 def checkModelClassEquality(esM, file):

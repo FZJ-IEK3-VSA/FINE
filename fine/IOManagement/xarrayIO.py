@@ -3,9 +3,12 @@ from pathlib import Path
 import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
+import logging
 
 from fine import utils
 from fine.IOManagement import dictIO, utilsIO
+
+logger = logging.getLogger(__name__)
 
 
 def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
@@ -79,7 +82,7 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
     # convert datetime to string
     for idx, value in df.items():
         if isinstance(value, pd.Timestamp):
-            print(value)
+            logger.debug("Converting timestamp: %s", value)
             df.loc[idx] = value.strftime("%Y-%m-%d %H:%M:%S")
     summary_dict = df.to_dict()
     summary_xr = xr.Dataset()
@@ -1050,7 +1053,7 @@ def writeEnergySystemModelToNetCDF(
             xr_dss_output["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
             ]
-            print(xr_dss_output.keys())
+            logger.debug("Output datasets keys: %s", list(xr_dss_output.keys()))
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0)

@@ -1,4 +1,5 @@
 import inspect
+import logging
 
 import fine as fn
 from fine.IOManagement import utilsIO
@@ -6,10 +7,12 @@ from fine.utils import buildFullTimeSeries
 import pandas as pd
 from fine import utils
 
+logger = logging.getLogger(__name__)
+
 
 def reconstruct_full_timeseries(esM, timeseries, ip):
     """Reconstruct the full timeseries from the time series aggregation (TSA) results."""
-    print("Reconstructing timeseries from TSA")
+    logger.info("Reconstructing timeseries from TSA")
 
     # switch first index level and column level
     df = timeseries.copy()
