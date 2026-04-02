@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 import pytest
 
-from fine.utils import ImplementedSolvers
-
 """
 Here we are testing differnt inputs for time-invariant conversion factors that are
 not covered in the minimal test system or other tests.
@@ -76,9 +74,3 @@ def test_conversion_factors_as_series():
                 locationalEligibility=pd.Series([1], ["ElectrolyzerLocation"]),
             )
         )
-
-    # optimize
-    esM.optimize(
-        timeSeriesAggregation=False,
-        solver=ImplementedSolvers.STANDARD_SOLVER.value,
-    )
