@@ -98,5 +98,3 @@ def test_lopf_full_workflow():
     # 4) Check reference node angle is zero
     # In the current implementation the alphabetically first node is the reference node.
     assert abs(angles.loc[("DC cables", "cluster_1"), 0]) < 1e-6
-
-test_lopf_full_workflow()
