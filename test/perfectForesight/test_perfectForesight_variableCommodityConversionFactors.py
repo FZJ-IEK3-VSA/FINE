@@ -4,7 +4,6 @@ import pytest
 import fine as fn
 import math
 from fine.utils import ImplementedSolvers
-import math
 
 
 def test_perfectForesight_variableConversions_input(
