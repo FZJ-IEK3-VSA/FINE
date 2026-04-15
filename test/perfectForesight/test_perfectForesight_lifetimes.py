@@ -1,6 +1,8 @@
 import fine as fn
 import numpy as np
 import pandas as pd
+from fine.utils import annuityPresentValueFactor, discountFactor
+from fine.utils import ImplementedSolvers
 
 
 def create_test_esM(techLifetime, economicLifetime, floorTechnicalLifetime):
@@ -278,7 +280,10 @@ def test_TAC_netPresentValueContributions():
     esM = create_test_esM(technicalLifetime, economicLifetime, floorTechnicalLifetime)
     esM.optimize()
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     # the sum of all npv contributions in the optimization summary must equal
     # the objective value
@@ -291,7 +296,6 @@ def test_TAC_netPresentValueContributions():
     np.testing.assert_almost_equal(esM.pyM.Obj(), npv_sum_optSummary)
 
     # the sum of discounted TAC must be equal to the NPV
-    from fine.utils import annuityPresentValueFactor, discountFactor
 
     discounted_tac_sum = 0
     for ip in esM.investmentPeriodNames:

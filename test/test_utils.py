@@ -4,11 +4,11 @@ import fine as fn
 import numpy as np
 import pytest
 
+from fine.utils import ImplementedSolvers
+
 
 def test_checkSimultaneousChargeDischarge():
-    """
-    Test a minimal example, with two regions and 10 days, where simultaneous charge and discharge occurs.
-    """
+    """Test a minimal example, with two regions and 10 days, where simultaneous charge and discharge occurs."""
     locations = {"Region1", "Region2"}
     commodityUnitDict = {"electricity": r"MW$_{el}$"}
     commodities = {"electricity"}
@@ -142,7 +142,12 @@ def test_checkSimultaneousChargeDischarge():
             economicLifetime=economicLifetime,
         )
     )
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+
+    with pytest.warns(UserWarning, match="Charge and discharge at the same time"):
+        esM.optimize(
+            timeSeriesAggregation=False,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
     # Get the charge and discharge time series of the Batteries and use the check in the utils.
     tsCharge = esM.componentModelingDict[
         "StorageModel"
@@ -154,15 +159,13 @@ def test_checkSimultaneousChargeDischarge():
         tsCharge, tsDischarge
     )
 
-    assert (
-        simultaneousChargeDischarge
-    ), "Check for simultaneous charge & discharge should have returned True"
+    assert simultaneousChargeDischarge, (
+        "Check for simultaneous charge & discharge should have returned True"
+    )
 
 
 def test_functionality_checkSimultaneousChargeDischarge():
-    """
-    Simple functionality test for utils.checkSimultaneousChargeDischarge
-    """
+    """Simple functionality test for utils.checkSimultaneousChargeDischarge."""
     # Define charge and discharge time series for one region
     tsCharge = pd.DataFrame(columns=["Region1"])
     tsCharge["Region1"] = 3 * [1] + 1 * [0]
@@ -172,10 +175,9 @@ def test_functionality_checkSimultaneousChargeDischarge():
         tsCharge, tsDischarge
     )
 
-    assert (
-        simultaneousChargeDischarge
-    ), "Check for simultaneous charge & discharge should have returned True"
-
+    assert simultaneousChargeDischarge, (
+        "Check for simultaneous charge & discharge should have returned True"
+    )
 
 
 def test_check_and_set_cost_parameter():
@@ -195,26 +197,27 @@ def test_check_and_set_cost_parameter():
         lengthUnit="km",
         verboseLogLevel=2,
     )
- 
+
     # Test with valid integer data (1dim)
     assert utils.checkAndSetCostParameter(esM, "testParam", 10, "1dim", None).equals(
         pd.Series([10.0], index=esM.locations)
     )
- 
+
     # Test with valid series data (1dim)
     valid_series_1dim = pd.Series([10], index=esM.locations)
-    assert utils.checkAndSetCostParameter(esM, "testParam", valid_series_1dim, "1dim", None).equals(
-        valid_series_1dim.astype(float)
-    )
- 
+    assert utils.checkAndSetCostParameter(
+        esM, "testParam", valid_series_1dim, "1dim", None
+    ).equals(valid_series_1dim.astype(float))
+
     # Test with NaN in integer data (1dim)
     with pytest.raises(AssertionError):
-        assert utils.checkAndSetCostParameter(esM, "testParam", np.nan, "1dim", None).equals(
-            pd.Series([np.nan], index=esM.locations)
-        )
- 
+        assert utils.checkAndSetCostParameter(
+            esM, "testParam", np.nan, "1dim", None
+        ).equals(pd.Series([np.nan], index=esM.locations))
+
     # Test with NaN in series data (2dim)
     with pytest.raises(AssertionError):
         invalid_series_with_nan = pd.Series([10, np.nan], index=["loc1", "loc2"])
-        assert utils.checkAndSetCostParameter(esM, "testParam", invalid_series_with_nan, "2dim", None).equals(
-            invalid_series_with_nan, index=esM.locations)
+        assert utils.checkAndSetCostParameter(
+            esM, "testParam", invalid_series_with_nan, "2dim", None
+        ).equals(invalid_series_with_nan, index=esM.locations)

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 
 def test_Stock_wrongStockYears():
@@ -267,7 +268,8 @@ def stock_esM():
 
 
 def test_stock():
-    esM = stock_esM()
+    with pytest.warns(UserWarning, match="Stock of component Pressure tank"):
+        esM = stock_esM()
 
     # Check input of optimization
     # electrolyzers
@@ -465,7 +467,7 @@ def test_stock():
     )
 
     # check optimization output and pym model -> check commissioning and stock
-    esM.optimize(solver="glpk")
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     # pipelines
     np.testing.assert_allclose(

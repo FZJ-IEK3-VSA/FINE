@@ -1,13 +1,15 @@
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 
 def test_fullloadhours_above(minimal_test_esM):
-    """
-    Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000.
-    """
+    """Get the minimal test system, and check if the fulllload hours of electrolyzer are above 4000."""
     esM = minimal_test_esM
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     # Plot the operational heat map
     fig, ax = fn.plotOperationColorMap(

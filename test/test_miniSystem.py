@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 # # Workflow for a multi-regional energy system
 #
@@ -23,10 +22,14 @@
 
 import numpy as np
 import pandas as pd
+from fine.utils import ImplementedSolvers
 
 
 def test_miniSystem(minimal_test_esM):
-    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    minimal_test_esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     # test if solve fits to the original results
     testresults = minimal_test_esM.componentModelingDict[

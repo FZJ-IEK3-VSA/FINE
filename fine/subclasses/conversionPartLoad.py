@@ -6,15 +6,12 @@ import pandas as pd
 import numpy as np
 import pwlf
 
-# ruff: noqa
 
 def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
-    """
-    Determine xSegments, ySegments.
+    """Determine xSegments, ySegments.
     If nSegments is not specified by the user it is either set (e.g. nSegments=5) or nSegements is determined by
     a bayesian optimization algorithm.
     """
-
     if callable(functionOrRaw):
         nPointsForInputData = 1000
         x = np.linspace(xLowerBound, xUpperBound, nPointsForInputData)
@@ -89,7 +86,11 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
         ydiff = yTemp - yBar
         sst = np.dot(ydiff, ydiff)
 
-        R2values[i] = 1.0 - (ssr / sst)
+        for j in range(nSegments):
+            if sst == 0:
+                R2values[j] = np.nan
+            else:
+                R2values[j] = 1.0 - (ssr / sst)
 
     return {
         "xSegments": xSegments,
@@ -101,7 +102,7 @@ def pieceWiseLinearization(functionOrRaw, xLowerBound, xUpperBound, nSegments):
 
 
 def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
-    """Preprocess the conversion factors passed by the user"""
+    """Preprocess the conversion factors passed by the user."""
     discretizedPartLoad = {
         commod: None for commod in commodityConversionFactorsPartLoad.keys()
     }
@@ -117,7 +118,7 @@ def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
             )
             functionOrRawCommod = commod
             nSegments = discretizedPartLoad[commod]["nSegments"]
-        elif conversionFactor == 1 or conversionFactor == -1:
+        elif conversionFactor in (1, -1):
             discretizedPartLoad[commod] = {
                 "xSegments": None,
                 "ySegments": None,
@@ -138,8 +139,7 @@ def getDiscretizedPartLoad(commodityConversionFactorsPartLoad, nSegments):
 
 
 def checkAndCorrectDiscretizedPartloads(discretizedPartLoad):
-    """Check if the discretized points are >=0 and <=100%"""
-
+    """Check if the discretized points are >=0 and <=100% ."""
     for commod, conversionFactor in discretizedPartLoad.items():
         # ySegments
         if not np.all(
@@ -150,90 +150,86 @@ def checkAndCorrectDiscretizedPartloads(discretizedPartLoad):
                     raise ValueError(
                         "There is at least two partLoad efficiency values that are < 0. Please check your partLoadEfficiency data or function visually."
                     )
-                else:
-                    # First element
-                    if np.where(conversionFactor["ySegments"] < 0)[0][0] == 0:
-                        # Correct efficiency < 0 for index = 0 -> construct line
-                        coefficients = np.polyfit(
-                            conversionFactor["xSegments"][0:2],
-                            conversionFactor["ySegments"][0:2],
-                            1,
-                        )
-                        discretizedPartLoad[commod]["ySegments"][0] = 0
-                        discretizedPartLoad[commod]["xSegments"][0] = (
-                            -coefficients[1] / coefficients[0]
-                        )
+                # First element
+                if np.where(conversionFactor["ySegments"] < 0)[0][0] == 0:
+                    # Correct efficiency < 0 for index = 0 -> construct line
+                    coefficients = np.polyfit(
+                        conversionFactor["xSegments"][0:2],
+                        conversionFactor["ySegments"][0:2],
+                        1,
+                    )
+                    discretizedPartLoad[commod]["ySegments"][0] = 0
+                    discretizedPartLoad[commod]["xSegments"][0] = (
+                        -coefficients[1] / coefficients[0]
+                    )
 
-                    # Last element
-                    elif (
-                        np.where(conversionFactor["ySegments"] < 0)[0][0]
-                        == len(conversionFactor["ySegments"]) - 1
-                    ):
-                        # Correct efficiency < for index = 0 -> construct line
-                        coefficients = np.polyfit(
-                            conversionFactor["xSegments"][-2:],
-                            conversionFactor["ySegments"][-2:],
-                            1,
-                        )
-                        discretizedPartLoad[commod]["ySegments"][-1] = 0
-                        discretizedPartLoad[commod]["xSegments"][-1] = (
-                            -coefficients[1] / coefficients[0]
-                        )
-                    else:
-                        raise ValueError(
-                            "PartLoad efficiency value < 0 detected where slope cannot be constructed. Please check your partLoadEfficiency data or function visually."
-                        )
+                # Last element
+                elif (
+                    np.where(conversionFactor["ySegments"] < 0)[0][0]
+                    == len(conversionFactor["ySegments"]) - 1
+                ):
+                    # Correct efficiency < for index = 0 -> construct line
+                    coefficients = np.polyfit(
+                        conversionFactor["xSegments"][-2:],
+                        conversionFactor["ySegments"][-2:],
+                        1,
+                    )
+                    discretizedPartLoad[commod]["ySegments"][-1] = 0
+                    discretizedPartLoad[commod]["xSegments"][-1] = (
+                        -coefficients[1] / coefficients[0]
+                    )
+                else:
+                    raise ValueError(
+                        "PartLoad efficiency value < 0 detected where slope cannot be constructed. Please check your partLoadEfficiency data or function visually."
+                    )
         # xSegments
         if any(conversionFactor["xSegments"] < 0):
             if sum(conversionFactor["xSegments"] < 0) > 1:
                 raise ValueError(
                     "There is at least two partLoad efficiency values that are < 0. Please check your partLoadEfficiency data or function visually."
                 )
+            # First element
+            if np.where(conversionFactor["xSegments"] < 0)[0][0] == 0:
+                coefficients = np.polyfit(
+                    conversionFactor["xSegments"][0:2],
+                    conversionFactor["ySegments"][0:2],
+                    1,
+                )
+                discretizedPartLoad[commod]["xSegments"][0] = 0
+                discretizedPartLoad[commod]["ySegments"][0] = coefficients[1]
             else:
-                # First element
-                if np.where(conversionFactor["xSegments"] < 0)[0][0] == 0:
-                    coefficients = np.polyfit(
-                        conversionFactor["xSegments"][0:2],
-                        conversionFactor["ySegments"][0:2],
-                        1,
-                    )
-                    discretizedPartLoad[commod]["xSegments"][0] = 0
-                    discretizedPartLoad[commod]["ySegments"][0] = coefficients[1]
-                else:
-                    raise ValueError(
-                        "PartLoad efficiency value < 0 detected where slope cannot be constructed. Please check your partLoadEfficiency data or function visually."
-                    )
+                raise ValueError(
+                    "PartLoad efficiency value < 0 detected where slope cannot be constructed. Please check your partLoadEfficiency data or function visually."
+                )
         if any(conversionFactor["xSegments"] > 1):
             if sum(conversionFactor["xSegments"] > 1) > 1:
                 raise ValueError(
                     "There is at least two partLoad efficiency values that are > 1. Please check your partLoadEfficiency data or function visually."
                 )
+            # Last element
+            if (
+                np.where(conversionFactor["xSegments"] > 1)[0][0]
+                == len(conversionFactor["xSegments"]) - 1
+            ):
+                coefficients = np.polyfit(
+                    conversionFactor["xSegments"][-2:],
+                    conversionFactor["ySegments"][-2:],
+                    1,
+                )
+                discretizedPartLoad[commod]["xSegments"][0] = 1
+                discretizedPartLoad[commod]["ySegments"][0] = (
+                    coefficients[0] + coefficients[1]
+                )
             else:
-                # Last element
-                if (
-                    np.where(conversionFactor["xSegments"] > 1)[0][0]
-                    == len(conversionFactor["xSegments"]) - 1
-                ):
-                    coefficients = np.polyfit(
-                        conversionFactor["xSegments"][-2:],
-                        conversionFactor["ySegments"][-2:],
-                        1,
-                    )
-                    discretizedPartLoad[commod]["xSegments"][0] = 1
-                    discretizedPartLoad[commod]["ySegments"][0] = (
-                        coefficients[0] + coefficients[1]
-                    )
-                else:
-                    raise ValueError(
-                        "PartLoad efficiency value > 1 detected where slope cannot be constructed. Please check your partLoadEfficiency data or function visually."
-                    )
+                raise ValueError(
+                    "PartLoad efficiency value > 1 detected where slope cannot be constructed. Please check your partLoadEfficiency data or function visually."
+                )
 
     return discretizedPartLoad
 
 
 def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
-    """
-    Check if one of the commodity conversion factors equals 1 and another is either a lambda function or a set of data points.
+    """Check if one of the commodity conversion factors equals 1 and another is either a lambda function or a set of data points.
     Additionally check if the conversion factor that depicts part load behavior
         (1) covers part loads from 0 to 1 and
         (2) includes only conversion factors greater than 0 in the relevant part load range.
@@ -248,20 +244,19 @@ def checkCommodityConversionFactorsPartLoad(commodityConversionFactorsPartLoad):
         elif callable(conversionFactor):
             checkCallableConversionFactor(conversionFactor)
             partLoadCommodPresent = True
-        elif conversionFactor == 1 or conversionFactor == -1:
+        elif conversionFactor in (1, -1):
             nonPartLoadCommodPresent = True
 
-    if nonPartLoadCommodPresent == False:
+    if not nonPartLoadCommodPresent:
         raise TypeError("One conversion factor needs to be either 1 or -1.")
-    if partLoadCommodPresent == False:
+    if not partLoadCommodPresent:
         raise TypeError(
             "One conversion factor needs to be either a callable function or a list of two-dimensional data points."
         )
 
 
 class ConversionPartLoad(Conversion):
-    """
-    A ConversionPartLoad component maps the (nonlinear) part-load behavior of a Conversion component.
+    """A ConversionPartLoad component maps the (nonlinear) part-load behavior of a Conversion component.
     It uses the open source module PWLF to generate piecewise linear functions upon a continuous function or
     discrete data points.
     The formulation of the optimization is done by using special ordered sets (SOS) constraints.
@@ -280,8 +275,7 @@ class ConversionPartLoad(Conversion):
         nSegments=None,
         **kwargs,
     ):
-        """
-        Constructor for creating an ConversionPartLoad class instance. Capacities are given in the physical unit
+        """Create an ConversionPartLoad class instance. Capacities are given in the physical unit
         of the plants.
         The ConversionPartLoad component specific input arguments are described below.
         Other specific input arguments are described in the Conversion class
@@ -299,21 +293,21 @@ class ConversionPartLoad(Conversion):
         corresponding conversion factor (efficiency) at the corresponding operation level. A negative value indicates that the
         commodity is consumed. A positive value indicates that the commodity is produced.
 
-            Example:
-                * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
-                    depending on the operation level. The physicalUnit is given as GW_electric, the unit for the 'electricity'
-                    commodity isgiven in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue.
-                    Here, electricity consumption is represented by a negative value (-1), and hydrogen production efficiency
-                    is detailed in a DataFrame with operation levels and corresponding efficiencies.
+        Example:
+            * An electrolyzer converts, simply put, electricity into hydrogen with an electrical efficiency
+                depending on the operation level. The physicalUnit is given as GW_electric, the unit for the 'electricity'
+                commodity isgiven in GW_electric and the 'hydrogen' commodity is given in GW_hydrogen_lowerHeatingValue.
+                Here, electricity consumption is represented by a negative value (-1), and hydrogen production efficiency
+                is detailed in a DataFrame with operation levels and corresponding efficiencies.
 
-                    # Efficiency Curve of Electrolyzer
-                    Operation_level = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
-                    Efficiency = [0.1, 0.15, 0.5, 0.7, 0.7, 0.65, 0.63, 0.62, 0.61, 0.60]
-                    d = {"x": Operation_level, "y": Efficiency}
-                    partLoadData = pd.DataFrame(d)
+                # Efficiency Curve of Electrolyzer
+                Operation_level = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+                Efficiency = [0.1, 0.15, 0.5, 0.7, 0.7, 0.65, 0.63, 0.62, 0.61, 0.60]
+                d = {"x": Operation_level, "y": Efficiency}
+                partLoadData = pd.DataFrame(d)
 
-                    # Definition of commodityConversionFactorsPartLoad
-                    -> the commodityConversionFactorsPartLoad are defined as {'electricity':-1,'hydrogen':partLoadData}.
+                # Definition of commodityConversionFactorsPartLoad
+                -> the commodityConversionFactorsPartLoad are defined as {'electricity':-1,'hydrogen':partLoadData}.
 
         **Default arguments:**
 
@@ -330,8 +324,8 @@ class ConversionPartLoad(Conversion):
         :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
         :type **kwargs:
             * Check Conversion Class documentation.
-        """
 
+        """
         Conversion.__init__(
             self, esM, name, physicalUnit, commodityConversionFactors, **kwargs
         )
@@ -341,7 +335,7 @@ class ConversionPartLoad(Conversion):
         # TODO: Make compatible with conversion
         utils.checkNumberOfConversionFactors(commodityConversionFactors)
 
-        if type(commodityConversionFactorsPartLoad) == dict:
+        if isinstance(commodityConversionFactorsPartLoad, dict):
             # TODO: Multiple conversionPartLoads
             utils.checkNumberOfConversionFactors(commodityConversionFactorsPartLoad)
             utils.checkCommodities(esM, set(commodityConversionFactorsPartLoad.keys()))
@@ -353,7 +347,7 @@ class ConversionPartLoad(Conversion):
                 commodityConversionFactorsPartLoad, nSegments
             )
 
-        elif type(commodityConversionFactorsPartLoad) == tuple:
+        elif isinstance(commodityConversionFactorsPartLoad, tuple):
             utils.checkNumberOfConversionFactors(
                 commodityConversionFactorsPartLoad[0].keys()
             )
@@ -362,8 +356,7 @@ class ConversionPartLoad(Conversion):
 
 
 class ConversionPartLoadModel(ConversionModel):
-    """
-    A ConversionPartLoad class instance will be instantly created if a ConversionPartLoad class instance is initialized.
+    """A ConversionPartLoad class instance will be instantly created if a ConversionPartLoad class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the Conversion class
     instance. These declarations are necessary for the modeling and optimization of the energy system model.
     The ConversionPartLoad class inherits from the ConversionModel class.
@@ -374,17 +367,16 @@ class ConversionPartLoadModel(ConversionModel):
         self.abbrvName = "partLoad"
         self.dimension = "1dim"
         self._operationVariablesOptimum = {}
-        self.discretizationPointVariablesOptimun = {}
-        self.discretizationSegmentConVariablesOptimun = {}
-        self.discretizationSegmentBinVariablesOptimun = {}
+        self._discretizationPointVariablesOptimum = {}
+        self._discretizationSegmentConVariablesOptimum = {}
+        self._discretizationSegmentBinVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
     ####################################################################################################################
 
     def initDiscretizationPointVarSet(self, pyM):
-        """
-        Declare discretization variable set of type 1 in the pyomo object for for each node.
+        """Declare discretization variable set of type 1 in the pyomo object for for each node.
         Type 1 represents every start, end, and intermediate point in the piecewise linear function.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -409,8 +401,7 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def initDiscretizationSegmentVarSet(self, pyM):
-        """
-        Declare discretization variable set of type 2 in the pyomo object for for each node.
+        """Declare discretization variable set of type 2 in the pyomo object for for each node.
         Type 2 represents every segment in the piecewise linear function.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -435,8 +426,7 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareSets(self, esM, pyM):
-        """
-        Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
+        """Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
         linked components dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -445,7 +435,6 @@ class ConversionPartLoadModel(ConversionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-
         super().declareSets(esM, pyM)
 
         # Declare operation variable sets
@@ -457,8 +446,7 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
 
     def declareDiscretizationPointVariables(self, pyM):
-        """
-        Declare discretization point variables.
+        """Declare discretization point variables.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -474,8 +462,7 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareDiscretizationSegmentBinVariables(self, pyM):
-        """
-        Declare discretization segment variables.
+        """Declare discretization segment variables.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -491,8 +478,7 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareDiscretizationSegmentConVariables(self, pyM):
-        """
-        Declare discretization segment variables.
+        """Declare discretization segment variables.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -508,8 +494,7 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
-        """
-        Declare design and operation variables.
+        """Declare design and operation variables.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -540,8 +525,7 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
 
     def segmentSOS1(self, pyM):
-        """
-        Ensure that the binary segment variables are in sum equal to 1.
+        """Ensure that the binary segment variables are in sum equal to 1.
         Enforce that only one binary is set to 1, while all other are fixed 0.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -569,13 +553,11 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def segmentBigM(self, pyM):
-        """
-        Ensure that the continuous segment variables are zero if the respective binary variable is zero and unlimited otherwise.
+        """Ensure that the continuous segment variables are zero if the respective binary variable is zero and unlimited otherwise.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationSegmentConVar = getattr(
             pyM, "discretizationSegmentCon_" + self.abbrvName
@@ -603,13 +585,11 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def segmentCapacityConstraint(self, pyM, esM):
-        """
-        Ensure that the continuous segment variables are in sum equal to the installed capacity of the component.
+        """Ensure that the continuous segment variables are in sum equal to the installed capacity of the component.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationSegmentConVar = getattr(
             pyM, "discretizationSegmentCon_" + self.abbrvName
@@ -656,7 +636,7 @@ class ConversionPartLoadModel(ConversionModel):
                 pyomo.Constraint(opVarSet, pyM.timeSet, rule=segmentCapacityConstraint),
             )
 
-            def segmentCapacityConstraint(pyM, loc, compName, p, t):
+            def segmentCapacityConstraint(pyM, loc, compName, p, t, ip):
                 return (
                     sum(
                         discretizationSegmentConVar[loc, compName, discretStep, p, t]
@@ -672,13 +652,11 @@ class ConversionPartLoadModel(ConversionModel):
             )
 
     def pointCapacityConstraint(self, pyM, esM):
-        """
-        Ensure that the continuous point variables are in sum equal to the installed capacity of the component.
+        """Ensure that the continuous point variables are in sum equal to the installed capacity of the component.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationPointConVar = getattr(
             pyM, "discretizationPoint_" + self.abbrvName
@@ -724,13 +702,11 @@ class ConversionPartLoadModel(ConversionModel):
             )
 
     def pointSOS2(self, pyM):
-        """
-        Ensure that only two consecutive point variables are non-zero while all other point variables are fixed to zero.
+        """Ensure that only two consecutive point variables are non-zero while all other point variables are fixed to zero.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationPointConVar = getattr(
             pyM, "discretizationPoint_" + self.abbrvName
@@ -751,21 +727,18 @@ class ConversionPartLoadModel(ConversionModel):
                     discretizationPointConVar[loc, compName, points[0], ip, p, t]
                     <= discretizationSegmentConVar[loc, compName, segments[0], ip, p, t]
                 )
-            elif discretStep == points[-1]:
+            if discretStep == points[-1]:
                 return (
                     discretizationPointConVar[loc, compName, points[-1], ip, p, t]
                     <= discretizationSegmentConVar[
                         loc, compName, segments[-1], ip, p, t
                     ]
                 )
-            else:
-                return (
-                    discretizationPointConVar[loc, compName, discretStep, ip, p, t]
-                    <= discretizationSegmentConVar[
-                        loc, compName, discretStep - 1, ip, p, t
-                    ]
-                    + discretizationSegmentConVar[loc, compName, discretStep, ip, p, t]
-                )
+            return (
+                discretizationPointConVar[loc, compName, discretStep, ip, p, t]
+                <= discretizationSegmentConVar[loc, compName, discretStep - 1, ip, p, t]
+                + discretizationSegmentConVar[loc, compName, discretStep, ip, p, t]
+            )
 
         setattr(
             pyM,
@@ -774,13 +747,11 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def partLoadOperationOutput(self, pyM):
-        """
-        Set the required input of a conversion process dependent on the part load efficency.
+        """Set the required input of a conversion process dependent on the part load efficency.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-
         compDict, abbrvName = self.componentsDict, self.abbrvName
         discretizationPointConVar = getattr(
             pyM, "discretizationPoint_" + self.abbrvName
@@ -810,8 +781,7 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def declareComponentConstraints(self, esM, pyM):
-        """
-        Declare time independent and dependent constraints.
+        """Declare time independent and dependent constraints.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -837,8 +807,7 @@ class ConversionPartLoadModel(ConversionModel):
     ####################################################################################################################
 
     def hasOpVariablesForLocationCommodity(self, esM, loc, commod):
-        """
-        Check if the commodity´s transfer between a given location and the other locations of the energy system model
+        """Check if the commodity´s transfer between a given location and the other locations of the energy system model
         is eligible.
 
         :param esM: EnergySystemModel in which the LinearOptimalPowerFlow components have been added to.
@@ -876,8 +845,7 @@ class ConversionPartLoadModel(ConversionModel):
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):
-        """
-        Get contribution to the objective function.
+        """Get contribution to the objective function.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -888,8 +856,7 @@ class ConversionPartLoadModel(ConversionModel):
         return super().getObjectiveFunctionContribution(esM, pyM)
 
     def setOptimalValues(self, esM, pyM):
-        """
-        Set the optimal values of the components.
+        """Set the optimal values of the components.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -933,19 +900,18 @@ class ConversionPartLoadModel(ConversionModel):
                 esM=esM,
             )
 
-            self.discretizationPointVariablesOptimun[esM.investmentPeriodNames[ip]] = (
+            self._discretizationPointVariablesOptimum[esM.investmentPeriodNames[ip]] = (
                 discretizationPointVariablesOptVal_
             )
-            self.discretizationSegmentConVariablesOptimun[
+            self._discretizationSegmentConVariablesOptimum[
                 esM.investmentPeriodNames[ip]
             ] = discretizationSegmentConVariablesOptVal_
-            self.discretizationSegmentBinVariablesOptimun[
+            self._discretizationSegmentBinVariablesOptimum[
                 esM.investmentPeriodNames[ip]
             ] = discretizationSegmentBinVariablesOptVal_
 
     def getOptimalValues(self, name="all", ip=0):
-        """
-        Return optimal values of the components.
+        """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 
@@ -965,72 +931,27 @@ class ConversionPartLoadModel(ConversionModel):
         :rtype: dict
         """
         # return super().getOptimalValues(name)
-        if name == "capacityVariablesOptimum":
+
+        timeDependentMapping = {
+            "capacityVariablesOptimum": False,
+            "isBuiltVariablesOptimum": False,
+            "operationVariablesOptimum": True,
+            "discretizationPointVariablesOptimum": True,
+            "discretizationSegmentConVariablesOptimum": True,
+            "discretizationSegmentBinVariablesOptimum": True,
+        }
+
+        if name in timeDependentMapping:
             return {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
+                "values": getattr(self, f"_{name}")[ip],
+                "timeDependent": timeDependentMapping[name],
                 "dimension": self.dimension,
             }
-        elif name == "isBuiltVariablesOptimum":
-            return {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
+        return {
+            valName: {
+                "values": getattr(self, f"_{valName}")[ip],
+                "timeDependent": timeDependentMapping[valName],
                 "dimension": self.dimension,
             }
-        elif name == "operationVariablesOptimum":
-            return {
-                "values": self._operationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-        elif name == "discretizationPointVariablesOptimun":
-            return {
-                "values": self._discretizationPointVariablesOptimun[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-        elif name == "discretizationSegmentConVariablesOptimun":
-            return {
-                "values": self._discretizationSegmentConVariablesOptimun[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-        elif name == "discretizationSegmentBinVariablesOptimun":
-            return {
-                "values": self._discretizationSegmentBinVariablesOptimun[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-        else:
-            return {
-                "capacityVariablesOptimum": {
-                    "values": self._capacityVariablesOptimum[ip],
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "isBuiltVariablesOptimum": {
-                    "values": self._isBuiltVariablesOptimum[ip],
-                    "timeDependent": False,
-                    "dimension": self.dimension,
-                },
-                "operationVariablesOptimum": {
-                    "values": self._operationVariablesOptimum[ip],
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-                "discretizationPointVariablesOptimun": {
-                    "values": self._discretizationPointVariablesOptimun[ip],
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-                "discretizationSegmentConVariablesOptimun": {
-                    "values": self._discretizationSegmentConVariablesOptimun[ip],
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-                "discretizationSegmentBinVariablesOptimun": {
-                    "values": self._discretizationSegmentBinVariablesOptimun[ip],
-                    "timeDependent": True,
-                    "dimension": self.dimension,
-                },
-            }
+            for valName in timeDependentMapping
+        }

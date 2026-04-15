@@ -1,5 +1,4 @@
-#https://unix.stackexchange.com/questions/74571/vim-shortcut-to-open-a-file-under-cursor-in-an-already-opened-window!/usr/bin/env python
-# coding: utf-8
+# https://unix.stackexchange.com/questions/74571/vim-shortcut-to-open-a-file-under-cursor-in-an-already-opened-window!/usr/bin/env python
 
 # # Workflow for a multi-regional energy system
 #
@@ -24,6 +23,8 @@
 import fine as fn
 import pandas as pd
 import numpy as np
+
+from fine.utils import ImplementedSolvers
 
 
 def test_miniSystem():
@@ -78,7 +79,10 @@ def test_miniSystem():
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
     np.testing.assert_almost_equal(
@@ -103,7 +107,10 @@ def test_miniSystem():
         rescaleClusterPeriods=True,
     )
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
     np.testing.assert_almost_equal(

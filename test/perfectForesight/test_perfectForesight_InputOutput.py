@@ -1,25 +1,30 @@
 import numpy as np
 import pandas as pd
-import os
 import shutil
 
+
 import fine as fn
+from pandas.testing import assert_frame_equal
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
+from fine.utils import ImplementedSolvers
 from pathlib import Path
 
 
 def test_perfectForesight_excel(perfectForesight_test_esM):
     # optimize perfect foresight model
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    perfectForesight_test_esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     # create empty directory to save results
     parent__directory = Path(__file__).parent.absolute()
-    dataPath = os.path.join(parent__directory, "data")
-    resultPath = os.path.join(dataPath, "perfect_foresight_results")
-    os.makedirs(resultPath, exist_ok=True)
+    dataPath = parent__directory / "data"
+    resultPath = dataPath / "perfect_foresight_results"
+    resultPath.mkdir(parents=True, exist_ok=True)
 
     # write excel output to results folder
-    files = os.path.join(resultPath, "pf_results")
+    files = str(resultPath / "pf_results")
     writeOptimizationOutputToExcel(
         perfectForesight_test_esM,
         outputFileName=files,
@@ -44,13 +49,13 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
         filePath = files + f"_{ip}.xlsx"
 
         # check if all files are in folder
-        if not os.path.isfile(filePath):
+        if not Path(filePath).is_file():
             raise ValueError(f"Result excel missing for {ip}.")
 
         # check if results (which are different between the ips) are correctly saved
         expected_PV_operation = perfectForesight_test_esM.getOptimizationSummary(
             "SourceSinkModel", ip=ip
-        ).loc["PV", "operation", "[kW$_{el}$*h/a]"]["ForesightLand"]
+        ).loc["PV", "operation_annual", "[kW$_{el}$*h/a]"]["ForesightLand"]
         expected_PV_opexCap = perfectForesight_test_esM.getOptimizationSummary(
             "SourceSinkModel", ip=ip
         ).loc["PV", "opexCap", "[1 Euro/a]"]["ForesightLand"]
@@ -60,9 +65,9 @@ def test_perfectForesight_excel(perfectForesight_test_esM):
         savedExcel = pd.read_excel(
             filePath, sheet_name="SourceSinkOptSummary_1dim", index_col=[0, 1, 2]
         )
-        output_PV_operation = savedExcel.loc["PV", "operation", "[kW$_{el}$*h/a]"][
-            "ForesightLand"
-        ]
+        output_PV_operation = savedExcel.loc[
+            "PV", "operation_annual", "[kW$_{el}$*h/a]"
+        ]["ForesightLand"]
         output_PV_opexCap = savedExcel.loc["PV", "opexCap", "[1 Euro/a]"][
             "ForesightLand"
         ]
@@ -98,7 +103,10 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
         )
     )
 
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    perfectForesight_test_esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     expected_obj = perfectForesight_test_esM.pyM.Obj().copy()
 
     # DICT-IO
@@ -106,12 +114,16 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
     esm_dict, comp_dict = fn.dictIO.exportToDict(perfectForesight_test_esM)
     output_esM_dict = fn.dictIO.importFromDict(esm_dict, comp_dict)
     # run with the reloaded esM
-    output_esM_dict.optimize(timeSeriesAggregation=False, solver="glpk")
+    output_esM_dict.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     output_obj_dict = output_esM_dict.pyM.Obj()
     # test if objective values are the same
-    np.testing.assert_almost_equal(
-        expected_obj, output_obj_dict
-    ), "The expected objective value and the output objective value differ"
+    (
+        np.testing.assert_almost_equal(expected_obj, output_obj_dict),
+        "The expected objective value and the output objective value differ",
+    )
 
     # XARRAY-IO
     esm_datasets = fn.xrIO.writeEnergySystemModelToDatasets(perfectForesight_test_esM)
@@ -128,17 +140,19 @@ def test_perfectForesight_netcdf_ipConversionFactors(perfectForesight_test_esM):
             expected_OptSum = expected_OptSum.astype(float).round(2).sort_index()
             output_OptSum = output_OptSum.astype(float).round(2).sort_index()
 
-            from pandas.testing import assert_frame_equal
-
             assert_frame_equal(expected_OptSum, output_OptSum, check_dtype=False)
 
     # 2.check result for reloaded esM from netcdf
-    output_esM_xarray.optimize(timeSeriesAggregation=False, solver="glpk")
+    output_esM_xarray.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     output_obj_xarray = output_esM_xarray.pyM.Obj()
     # test if objective values are the same
-    np.testing.assert_almost_equal(
-        expected_obj, output_obj_xarray
-    ), "The expected objective value and the output objective value differ"
+    (
+        np.testing.assert_almost_equal(expected_obj, output_obj_xarray),
+        "The expected objective value and the output objective value differ",
+    )
 
 
 def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_esM):
@@ -166,7 +180,10 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
         )
     )
 
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    perfectForesight_test_esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     expected_obj = perfectForesight_test_esM.pyM.Obj()
 
     # DICT-IO
@@ -174,12 +191,16 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
     esm_dict, comp_dict = fn.dictIO.exportToDict(perfectForesight_test_esM)
     output_esM_dict = fn.dictIO.importFromDict(esm_dict, comp_dict)
     # run with the reloaded esM
-    output_esM_dict.optimize(timeSeriesAggregation=False, solver="glpk")
+    output_esM_dict.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     output_obj_dict = output_esM_dict.pyM.Obj()
     # test if objective values are the same
-    np.testing.assert_almost_equal(
-        expected_obj, output_obj_dict
-    ), "The expected objective value and the output objective value differ"
+    (
+        np.testing.assert_almost_equal(expected_obj, output_obj_dict),
+        "The expected objective value and the output objective value differ",
+    )
 
     # XARRAY-IO
     esm_datasets = fn.xrIO.writeEnergySystemModelToDatasets(perfectForesight_test_esM)
@@ -196,17 +217,19 @@ def test_perfectForesight_netcdf_commisConversionFactors(perfectForesight_test_e
             expected_OptSum = expected_OptSum.astype(float).round(2).sort_index()
             output_OptSum = output_OptSum.astype(float).round(2).sort_index()
 
-            from pandas.testing import assert_frame_equal
-
             assert_frame_equal(expected_OptSum, output_OptSum, check_dtype=False)
 
     # 2.check result for reloaded esM from netcdf
-    output_esM_xarray.optimize(timeSeriesAggregation=False, solver="glpk")
+    output_esM_xarray.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     output_obj_xarray = output_esM_xarray.pyM.Obj()
     # test if objective values are the same
-    np.testing.assert_almost_equal(
-        expected_obj, output_obj_xarray
-    ), "The expected objective value and the output objective value differ"
+    (
+        np.testing.assert_almost_equal(expected_obj, output_obj_xarray),
+        "The expected objective value and the output objective value differ",
+    )
 
     # 3. check consistency in commodity conversion factors
     assert (

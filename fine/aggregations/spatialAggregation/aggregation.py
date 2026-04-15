@@ -1,5 +1,4 @@
-"""
-Functions to aggregate region data for a reduced set
+"""Functions to aggregate region data for a reduced set
 of regions obtained as a result of spatial grouping of regions.
 """
 
@@ -16,8 +15,7 @@ logger_representation = logging.getLogger("spatial_representation")
 
 
 def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
-    """
-    For each region group, aggregates their geometries to form one super geometry.
+    r"""For each region group, aggregates their geometries to form one super geometry.
 
     :param xr_data_array_in: subset of the xarray dataset data that corresponds to geometry variable
     :type xr_data_array_in: xr.DataArray
@@ -37,7 +35,6 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
-
     space = list(sub_to_sup_region_id_dict.keys())
 
     shape_list = []
@@ -46,7 +43,7 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         temp_shape_list = list(xr_data_array_in.sel(space=sub_region_id_list).values)
 
         shape_union = unary_union(temp_shape_list)
-        
+
         shape_list.append(shape_union)
 
     if len(shape_list) == 1:
@@ -55,10 +52,8 @@ def aggregate_geometries(xr_data_array_in, sub_to_sup_region_id_dict):
         )
 
     shape_list = np.array(shape_list, dtype=object)
-    
-    xr_data_array_out = xr.DataArray(shape_list, coords=[space], dims=["space"])
 
-    return xr_data_array_out
+    return xr.DataArray(shape_list, coords=[space], dims=["space"])
 
 
 def aggregate_time_series_spatially(
@@ -67,8 +62,7 @@ def aggregate_time_series_spatially(
     mode="mean",
     xr_weight_array=None,
 ):
-    """
-    For each region group, aggregates the given time series variable.
+    r"""For each region group, aggregates the given time series variable.
 
     :param xr_data_array_in: subset of the xarray dataset data that corresponds to a time series variable
     :type xr_data_array_in: xr.DataArray
@@ -160,8 +154,7 @@ def aggregate_time_series_spatially(
 def aggregate_values_spatially(
     xr_data_array_in, sub_to_sup_region_id_dict, mode="mean"
 ):
-    """
-    For each region group, aggregates the given 1d variable.
+    r"""For each region group, aggregates the given 1d variable.
 
     :param xr_data_array_in: subset of the xarray dataset data that corresponds to a 1d variable
     :type xr_data_array_in: xr.DataArray
@@ -187,7 +180,6 @@ def aggregate_values_spatially(
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
-
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
     aggregated_coords = {
@@ -226,13 +218,11 @@ def aggregate_values_spatially(
                     'Please select one of the modes "mean", "bool" or "sum"'
                 )
 
-    xr_data_array_out = xr_data_array_out.fillna(0)
-    return xr_data_array_out
+    return xr_data_array_out.fillna(0)
 
 
 def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="bool"):
-    """
-    For each region group, aggregates the given 2d variable.
+    r"""For each region group, aggregates the given 2d variable.
 
     :param xr_data_array_in: subset of the xarray dataset that corresponds to a 2d variable
     :type xr_data_array_in: xr.DataArray
@@ -258,7 +248,6 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
         (In the above example, '01_reg_02_reg', '03_reg_04_reg' form new coordinates)
     :rtype: xr.DataArray
     """
-
     space_coords = list(sub_to_sup_region_id_dict.keys())
 
     aggregated_coords = {
@@ -312,15 +301,13 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
                     dict(space=sup_region_id, space_2=sup_region_id_2)
                 ] = 0
 
-    xr_data_array_out = xr_data_array_out.fillna(0)
-    return xr_data_array_out
+    return xr_data_array_out.fillna(0)
 
 
 def aggregate_esm_parameters_spatially(
     param_df_in, old_locations, sub_to_sup_region_id_dict, mode="mean"
 ):
-    """
-    For each region group, aggregates the given esm init parameter data.
+    r"""For each region group, aggregates the given esm init parameter data.
 
     :param param_df_in: the dataframe with parameter data
     :type param_df_in: pd.DataFrame
@@ -345,7 +332,6 @@ def aggregate_esm_parameters_spatially(
         * Contains aggregated data
     :rtype: pd.DataFrame
     """
-
     new_col_names = list(sub_to_sup_region_id_dict.keys())
 
     new_col_names.extend([x for x in param_df_in.columns if x not in old_locations])
@@ -364,8 +350,7 @@ def aggregate_esm_parameters_spatially(
 def aggregate_based_on_sub_to_sup_region_id_dict(
     xarray_datasets, sub_to_sup_region_id_dict, aggregation_function_dict
 ):
-    """
-    After spatial grouping, for each region group, spatially aggregates the data.
+    r"""After spatial grouping, for each region group, spatially aggregates the data.
 
     :param xarray_datasets: The dictionary of xarray datasets holding esM's info
     :type xarray_datasets: Dict[str, xr.Dataset]
@@ -414,7 +399,7 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                         "Weights must be passed in order to perform weighted mean"
                     )
                 ## get corresponding weight data if another variable is supposed to be the weight
-                elif isinstance(aggregation_weight, str):
+                if isinstance(aggregation_weight, str):
                     if varname[:3] == "2d_":
                         try:
                             aggregation_weight = comp_ds[f"2d_{aggregation_weight}"]
@@ -512,9 +497,8 @@ def aggregate_based_on_sub_to_sup_region_id_dict(
                         raise NotImplementedError(
                             "Spatial aggregation currently does not support multiple investment periods."
                         )
-                    else:
-                        ## drop the period coordinate
-                        da = da.reset_coords("Period", drop=True)
+                    ## drop the period coordinate
+                    da = da.reset_coords("Period", drop=True)
 
                 ## Time series
                 if var_dim == "ts_":

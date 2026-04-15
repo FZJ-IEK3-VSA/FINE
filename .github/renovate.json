@@ -1,0 +1,66 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended"
+    ],
+    "schedule": [
+        "after 10pm on tuesday",
+        "before 6am on wednesday"
+    ],
+    "rangeStrategy": "widen",
+    "vulnerabilityAlerts": {
+        "enabled": false
+    },
+    "osvVulnerabilityAlerts": false,
+    "enabledManagers": [
+        "pep621",
+        "custom.regex"
+    ],
+    "pep621": {
+        "managerFilePatterns": [
+            "/(^|/)pyproject\\.toml$/"
+        ]
+    },
+    "customManagers": [
+        {
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/(^|/)requirements_dev\\.yml$/"
+            ],
+            "matchStrings": [
+                "- (?<depName>geopandas|glpk|openpyxl|matplotlib|xlrd|pyomo|numpy|pandas|scipy|scikit-learn|xarray|rasterio|netcdf4|tsam|pwlf|psutil|gurobi-logtools|ipykernel|pytest|pytest-cov|pytest-xdist|nbval|ruff|mkdocs|mkdocs-material|mkdocstrings|mkdocstrings-python|mkdocs-jupyter|mkdocs-gen-files|mkdocs-literate-nav|mkdocs-section-index|griffe)[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
+            ],
+            "packageNameTemplate": "conda-forge/{{{depName}}}",
+            "datasourceTemplate": "conda",
+            "versioningTemplate": "pep440"
+        },
+        {
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/(^|/)requirements_dev\\.yml$/"
+            ],
+            "matchStrings": [
+                "- (?<depName>gurobi)[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
+            ],
+            "packageNameTemplate": "gurobi/{{{depName}}}",
+            "datasourceTemplate": "conda",
+            "versioningTemplate": "pep440"
+        }
+    ],
+    "ignoreDeps": [
+        "sphinx",
+        "sphinx_rtd_theme",
+        "myst-parser",
+        "sphinx-rtd-theme",
+        "ruff",
+    ],
+    "packageRules": [
+        {
+            "matchManagers": [
+                "pep621",
+                "custom.regex"
+            ],
+            "groupName": "{{depName}}"
+        }
+    ]
+}

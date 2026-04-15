@@ -44,7 +44,6 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
             name="dummy_storage_2",
             commodity="hydrogen",
             hasCapacityVariable=True,
-            chargeOpRateMax=dummy_time_series,
             chargeOpRateFix=dummy_time_series,
             capacityVariableDomain="continuous",
             stateOfChargeMin=0.33,
@@ -58,7 +57,9 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
     if TSA:
         ## function call
         minimal_test_esM.aggregateTemporally(
-            numberOfTypicalPeriods=2, numberOfTimeStepsPerPeriod=1
+            numberOfTypicalPeriods=2,
+            numberOfTimeStepsPerPeriod=1,
+            numberOfSegmentsPerPeriod=1,
         )
         minimal_test_esM.declareOptimizationProblem(timeSeriesAggregation=True)
 
@@ -83,18 +84,6 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
         assert np.array_equal(processed_max_stg1.values, aggregated_max_stg1.values)
 
         ### dummy_storage_2
-        original_max_stg2 = minimal_test_esM.getComponentAttribute(
-            "dummy_storage_2", "chargeOpRateMax"
-        )
-        full_max_stg2 = minimal_test_esM.getComponentAttribute(
-            "dummy_storage_2", "fullChargeOpRateMax"
-        )
-        processed_max_stg2 = minimal_test_esM.getComponentAttribute(
-            "dummy_storage_2", "processedChargeOpRateMax"
-        )
-        aggregated_max_stg2 = minimal_test_esM.getComponentAttribute(
-            "dummy_storage_2", "aggregatedChargeOpRateMax"
-        )
 
         original_fix_stg2 = minimal_test_esM.getComponentAttribute(
             "dummy_storage_2", "chargeOpRateFix"
@@ -108,11 +97,6 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
         aggregated_fix_stg2 = minimal_test_esM.getComponentAttribute(
             "dummy_storage_2", "aggregatedChargeOpRateFix"
         )
-
-        assert np.array_equal(original_max_stg2.values, dummy_time_series.values)
-        assert full_max_stg2 is None
-        assert processed_max_stg2 is None
-        assert aggregated_max_stg2 is None
 
         assert np.array_equal(original_fix_stg2.values, dummy_time_series.values)
         assert np.array_equal(full_fix_stg2.values, original_fix_stg2.values)
@@ -145,18 +129,6 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
         assert aggregated_max_stg1 is None
 
         ### dummy_storage_2
-        original_max_stg2 = minimal_test_esM.getComponentAttribute(
-            "dummy_storage_2", "chargeOpRateMax"
-        )
-        full_max_stg2 = minimal_test_esM.getComponentAttribute(
-            "dummy_storage_2", "fullChargeOpRateMax"
-        )
-        processed_max_stg2 = minimal_test_esM.getComponentAttribute(
-            "dummy_storage_2", "processedChargeOpRateMax"
-        )
-        aggregated_max_stg2 = minimal_test_esM.getComponentAttribute(
-            "dummy_storage_2", "aggregatedChargeOpRateMax"
-        )
 
         original_fix_stg2 = minimal_test_esM.getComponentAttribute(
             "dummy_storage_2", "chargeOpRateFix"
@@ -170,11 +142,6 @@ def test_storageTimeseriesSetup(TSA, minimal_test_esM):
         aggregated_fix_stg2 = minimal_test_esM.getComponentAttribute(
             "dummy_storage_2", "aggregatedChargeOpRateFix"
         )
-
-        assert np.array_equal(original_max_stg2.values, dummy_time_series.values)
-        assert full_max_stg2 is None
-        assert processed_max_stg2 is None
-        assert aggregated_max_stg2 is None
 
         assert np.array_equal(original_fix_stg2.values, dummy_time_series.values)
         assert np.array_equal(full_fix_stg2.values, original_fix_stg2.values)

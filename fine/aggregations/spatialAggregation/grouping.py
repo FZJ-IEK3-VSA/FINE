@@ -1,9 +1,6 @@
-"""
-Grouping algorithms determine how to reduce the number of input regions to 
+"""Grouping algorithms determine how to reduce the number of input regions to
 fewer regions while minimizing information loss.
 """
-
-# ruff: noqa
 
 import logging
 import numpy as np
@@ -11,14 +8,15 @@ import sklearn.cluster as skc
 from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
 from fine.aggregations.spatialAggregation import groupingUtils as gprUtils
 from fine.IOManagement.standardIO import timer
-from functools import partial
+
+# ruff: noqa: D301
+# ruff: noqa: RET504
 
 logger_grouping = logging.getLogger("spatial_grouping")
 
 
 def perform_string_based_grouping(regions, separator=None, position=None):
-    """
-    Groups regions based on their names/ids.
+    """Group regions based on their names/ids.
 
     :param regions: List or array of region names.\n
         Ex.: ['01_es', '02_es', '01_de', '02_de', '03_de']
@@ -45,13 +43,12 @@ def perform_string_based_grouping(regions, separator=None, position=None):
 
     :rtype: Dict[str, List[str]]
     """
-
     sub_to_sup_region_id_dict = {}
 
     if isinstance(position, int):
         position = (0, position)
 
-    if separator != None and position == None:
+    if separator is not None and position is None:
         for region in regions:
             sup_region = region.split(separator)[1]
 
@@ -60,7 +57,7 @@ def perform_string_based_grouping(regions, separator=None, position=None):
             else:
                 sub_to_sup_region_id_dict[sup_region].append(region)
 
-    elif separator == None and position != None:
+    elif separator is None and position is not None:
         for region in regions:
             sup_region = region[position[0] : position[1]]
 
@@ -84,8 +81,7 @@ def perform_distance_based_grouping(
     enforced_groups=None,
     distance_threshold=None,
 ):
-    """
-    Groups regions based on the regions' centroid distances, using sklearn's hierarchical clustering.
+    """Group regions based on the regions' centroid distances, using sklearn's hierarchical clustering.
 
     :param geom_xr: The xarray dataset holding the geom info
     :type geom_xr: xr.Dataset
@@ -168,20 +164,19 @@ def perform_distance_based_grouping(
         )
         return aggregation_dict
 
-    else:
-        aggregation_dict = {}
-        for key, group in enforced_groups.items():
-            print("Grouping: ", key)
-            output = _perform_distance_based_grouping(
-                geom_xr=geom_xr,
-                skip_regions=skip_regions,
-                enforced_group=group,
-                n_groups=n_groups,
-                distance_threshold=distance_threshold,
-            )
-            aggregation_dict.update(output)
+    aggregation_dict = {}
+    for key, group in enforced_groups.items():
+        print("Grouping: ", key)
+        output = _perform_distance_based_grouping(
+            geom_xr=geom_xr,
+            skip_regions=skip_regions,
+            enforced_group=group,
+            n_groups=n_groups,
+            distance_threshold=distance_threshold,
+        )
+        aggregation_dict.update(output)
 
-        return aggregation_dict
+    return aggregation_dict
 
 
 # %%
@@ -197,15 +192,12 @@ def perform_parameter_based_grouping(
     weights=None,
     solver="gurobi",
 ):
-    """
-    Groups regions based on the Energy System Model instance's data.
+    """Group regions based on the Energy System Model instance's data.
     This data may consist of
-
         a. regional time series variables such as operationRateMax of PVs
         b. regional values such as capacityMax of PVs
         c. connection values such as distances of DC Cables
         d. values constant across all regions such as CommodityConversionFactors
-
     All variables that vary across regions (a,b, and c) belonging to different
     ESM components are considered while determining similarity between regions.
 
@@ -259,7 +251,6 @@ def perform_parameter_based_grouping(
 
     :rtype: Dict[int, Dict[str, List[str]]]
     """
-
     # Original region list
     regions_list = xarray_datasets.get("Geometry")["space"].values
     n_regions = len(regions_list)
