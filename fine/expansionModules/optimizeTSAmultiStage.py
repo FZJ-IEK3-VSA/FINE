@@ -167,7 +167,7 @@ def optimizeTSAmultiStage(
         gap = delta / upperBound
         esM.lowerBound, esM.upperBound = lowerBound, upperBound
         esM.gap = gap
-        logger.info(  # pragma: no cover
+        logger.info(
             "The real optimal value lies between %s and %s with a gap of %s%%.",
             round(lowerBound, 2),
             round(upperBound, 2),
