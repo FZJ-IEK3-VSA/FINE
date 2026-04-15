@@ -16,9 +16,7 @@ def test_lopf_full_workflow():
     )
 
     # Source only in cluster_1
-    operation_rate_max = pd.DataFrame(
-        {"cluster_1": [1000.0], "cluster_2": [0.0]}
-    )
+    operation_rate_max = pd.DataFrame({"cluster_1": [1000.0], "cluster_2": [0.0]})
 
     esM.add(
         fn.Source(
@@ -32,9 +30,7 @@ def test_lopf_full_workflow():
     )
 
     # Demand only in cluster_2
-    demand = pd.DataFrame(
-        {"cluster_1": [0.0], "cluster_2": [100.0]}
-    )
+    demand = pd.DataFrame({"cluster_1": [0.0], "cluster_2": [100.0]})
 
     esM.add(
         fn.Sink(
