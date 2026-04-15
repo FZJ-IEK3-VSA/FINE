@@ -522,13 +522,12 @@ class Component(metaclass=ABCMeta):
         self.hasCapacityVariable = hasCapacityVariable
         self.capacityVariableDomain = capacityVariableDomain
         self.capacityPerPlantUnit = capacityPerPlantUnit
-        self.processedCapacityPerPlantUnit = (
-            utils.checkAndSetInvestmentPeriodParameters(
-                "capacityPerPlantUnit",
-                capacityPerPlantUnit,
-                esM,
-            )
+        self.processedCapacityPerPlantUnit = utils.checkAndSetInvestmentPeriodParameters(
+            "capacityPerPlantUnit",
+            capacityPerPlantUnit,
+            esM,
         )
+
         self.hasIsBuiltBinaryVariable = hasIsBuiltBinaryVariable
         self.bigM = bigM
 
