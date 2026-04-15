@@ -1,6 +1,5 @@
 import fine as fn
 import pandas as pd
-import numpy as np
 
 
 def test_lopf_full_workflow():
