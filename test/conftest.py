@@ -468,6 +468,28 @@ def test_esM_for_spagat(esM_init, get_data_fixture):
         )
     )
 
+    ### Lithium ion batteries
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Li-ion batteries",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            chargeEfficiency=0.95,
+            cyclicLifetime=10000,
+            dischargeEfficiency=0.95,
+            selfDischarge=1 - (1 - 0.03) ** (1 / (30 * 24)),
+            chargeRate=1,
+            dischargeRate=1,
+            doPreciseTsaModeling=False,
+            investPerCapacity=0.151,
+            opexPerCapacity=0.002,
+            interestRate=0.08,
+            economicLifetime=22,
+            opexPerChargeOperation=0.0001,
+        )
+    )
+
     return esM
 
 
