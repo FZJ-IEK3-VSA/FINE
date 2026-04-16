@@ -1237,6 +1237,8 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             isinstance(data, int)
             or isinstance(data, float)
             or isinstance(data, pd.Series)
+# earlier datframes and dicts were not allowed, but now they are accepted because commodityCostTimeSeries are either df, dict or none
+# Todo: None values should be also accepted
             or isinstance(data, pd.DataFrame)
             or isinstance(data, dict)
         ):
@@ -1275,6 +1277,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             )
         if isinstance(data, pd.Series):
             data = checkConnectionIndex(data, locationalEligibility)        
+# if a df or a dict is added, checkAndSetInvestmentPeriodCostTimeSeries is called
         elif isinstance(data, pd.DataFrame) or isinstance(data, dict):
             data = checkAndSetInvestmentPeriodCostTimeSeries(
                 esM, name, data, locationalEligibility
