@@ -461,9 +461,10 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
     :rtype: np.ndarray
     """
     if (skip_regions is not None) & (enforced_group is None):
-        assert isinstance(skip_regions, list), (
-            "A list containing the region ID's to be skipped should be provided."
-        )
+        if not isinstance(skip_regions, list):
+            raise TypeError(
+                "skip_regions must be a list"
+            )
 
         # get all regions
         regions_list = geom_xr["space"].values
@@ -475,9 +476,10 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
         skipped_dict = {reg: [reg] for reg in skip_regions}
 
     elif (skip_regions is None) & (enforced_group is not None):
-        assert isinstance(enforced_group, list), (
-            "A dictionary containing the super-regions as keys and sub-regions values should be provided."
-        )
+        if not isinstance(enforced_group, list):
+            raise TypeError(
+                "enforced_group must be a list"
+            )
 
         # get subset of regions
         regions_list = np.array(list(enforced_group))
@@ -486,12 +488,14 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
         skipped_dict = {}
 
     elif (skip_regions is not None) & (enforced_group is not None):
-        assert isinstance(skip_regions, list), (
-            "A list containing the region ID's to be skipped should be provided."
-        )
-        assert isinstance(enforced_group, list), (
-            "A dictionary containing the super-regions as keys and sub-regions values should be provided."
-        )
+        if not isinstance(skip_regions, list):
+            raise TypeError(
+                "skip_regions must be a list"
+            )
+        if not isinstance(enforced_group, list):
+            raise TypeError(
+                "enforced_group must be a list"
+            )
 
         # get region subset based on enfored_group
         skip_regions, enforced_group = list(map(set, [skip_regions, enforced_group]))
