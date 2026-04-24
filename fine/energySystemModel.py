@@ -1820,7 +1820,9 @@ class EnergySystemModel:
                     continue  # skip if srcName not in componentsDict
 
                 # Look for manually created scrap sources (material=True and '_scrap' in name)
-                if comp.__class__.__name__ == "Source" and getattr(comp, "material", False):
+                if comp.__class__.__name__ == "Source" and getattr(
+                    comp, "material", False
+                ):
                     if "_scrap" in comp.commodity:
                         try:
                             if comp.commodity.startswith("SLbatteries"):
