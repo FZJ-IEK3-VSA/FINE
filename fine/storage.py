@@ -1017,7 +1017,7 @@ class StorageModel(ComponentModel):
             return (
                 sum(
                     chargeOp[loc, compName, ip, p, t] * esM.periodOccurrences[ip][p]
-                    for ip, p, t in pyM.timeSet
+                    for p, t in pyM.intraYearTimeSet
                 )
                 / esM.numberOfYears
                 <= capVar[loc, compName, ip]
