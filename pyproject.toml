@@ -60,7 +60,7 @@ develop = [
     "mkdocstrings-python>=1.10,<=2.0.3",
     "mkdocs-jupyter>=0.25,<=0.25.1",
     "mkdocs-gen-files>=0.5,<=0.6.1",
-    "mkdocs-literate-nav>=0.6,<=0.6.2",
+    "mkdocs-literate-nav>=0.6,<=0.6.3",
     "mkdocs-section-index>=0.3,<=0.3.10",
     "griffe>=0.45,<=2.0.2",
     "pytest<=9.0.2",
