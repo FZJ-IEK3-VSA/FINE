@@ -2079,7 +2079,7 @@ def map2dimData(data, mapC):
 
 
 def output(output, verbose, val):
-    """Output a message using logging instead of print.
+    """Output a message using logging.
 
     :param output: The message to output
     :type output: str
