@@ -443,7 +443,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
                 try:
                     xr_ds[this_class][this_comp] = xr.merge(
-                        [xr_ds[this_class][this_comp], this_ds_component]
+                        [xr_ds[this_class][this_comp], this_ds_component],
+                        compat="no_conflicts",
                     )
                 except Exception:
                     pass
@@ -467,7 +468,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
 
                 try:
                     xr_ds[this_class][this_comp] = xr.merge(
-                        [xr_ds[this_class][this_comp], this_ds_component]
+                        [xr_ds[this_class][this_comp], this_ds_component],
+                        compat="no_conflicts",
                     )
                 except Exception:
                     pass

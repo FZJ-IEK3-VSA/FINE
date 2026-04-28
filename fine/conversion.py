@@ -114,12 +114,35 @@ class Conversion(Component):
                 When electricity is produced the conversion factor is 0.2 and for heat 0.5:
                 {'gas': -1, 'out': {electricity: 0.2, heat: 0.5}}
 
+            Location-dependent (time-invariant) conversion factors can be provided as pandas.Series
+            indexed by the energy system model locations.
+
+        Example:
+               {'electricity': -1,
+                'heat': pd.Series({'DE': 0.9, 'FR': 0.8})}
+
         :type commodityConversionFactors:
 
             * dictionary, assigns commodities (string) to a conversion factors
-              (float, pandas.Series or pandas.DataFrame)
+                (float/int, pandas.Series indexed by locations, or pandas.DataFrame
+                with locations as columns and time steps as index)
             * dictionary with investment periods as key and one of the first option  as value
-            * dictionary with tuple of (commissioning year, investment period) as key and one of the first option above as value
+            * dictionary with tuple of (commissioning year, investment period) as key and one
+                of the first option above as value
+
+        Example:
+                {
+                    2025: {'electricity': -1,
+                        'hydrogen': pd.DataFrame(
+                            {'ElectrolyzerLocation': [0.5, 0.6, 0.7, ...],
+                                'IndustryLocation':     [1.0, 0.9, 0.8, ...]},
+                            index=esM.totalTimeSteps)},
+                    2030: {'electricity': -1,
+                        'hydrogen': pd.DataFrame(
+                            {'ElectrolyzerLocation': [0.6, 0.7, 0.8, ...],
+                                'IndustryLocation':     [0.9, 0.8, 0.7, ...]},
+                            index=esM.totalTimeSteps)}
+                }
 
         **Default arguments:**
 
@@ -1495,6 +1518,10 @@ class ConversionModel(ComponentModel):
         def getFactor(commodCommodityConversionFactors, loc, p, t):
             if isinstance(commodCommodityConversionFactors, int | float):
                 return commodCommodityConversionFactors
+            if isinstance(commodCommodityConversionFactors, pd.Series):
+                return commodCommodityConversionFactors.loc[loc]
+            if isinstance(commodCommodityConversionFactors, pd.DataFrame):
+                return float(commodCommodityConversionFactors.at[(p, t), loc])
             return commodCommodityConversionFactors[loc][p, t]
 
         # 1.a get balance for components, which do not have commodity conversions varying with the commissioning year
