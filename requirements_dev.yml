@@ -30,8 +30,8 @@ dependencies:
   - ipykernel <=7.2.0
   # develop
   - pytest <=9.0.2
-  - pytest-cov <=7.0.0
-  - pytest-xdist <=3.8.0
+  - pytest-cov <=9.0.3
+  - pytest-xdist <=9.0.3
   - nbval <=0.11.0
   - ruff <=0.13.1
   # Documentation
