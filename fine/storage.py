@@ -111,7 +111,7 @@ class Storage(Component):
 
         :param cyclicLifetime: if specified, the total number of full cycle equivalents that are supported
             by the technology.
-            
+
             Setting this parameter introduces a commissioning-dependent charge operation
             variable with one entry per *(loc, compName, commis, ip, p, t)* tuple.
             This can significantly increase the number of optimization variables and
@@ -122,7 +122,7 @@ class Storage(Component):
             per commissioning year. As a result, the optimizer may allocate charge to a
             single commissioning year beyond what its commissioned capacity could
             physically hold, as long as the aggregate SoC constraint is satisfied.
-            
+
             |br| * the default value is None
         :type cyclicLifetime: None or positive float
 
@@ -707,7 +707,7 @@ class StorageModel(ComponentModel):
             "processedDischargeOpRateFix",
         )
 
-        # Set of (loc, compName, commis, ip) for the commissioning-dependent charge operation 
+        # Set of (loc, compName, commis, ip) for the commissioning-dependent charge operation
         # mode-1 constraint. Only includes (commis, ip) pairs where the vintage is still active.
         def initChargeOpCommisConstrSet(pyM):
             return (
@@ -718,7 +718,9 @@ class StorageModel(ComponentModel):
                 if comp.processedLocationalEligibility[loc] == 1
                 for commis in comp.processedStockYears + esM.investmentPeriods
                 for ip in esM.investmentPeriods
-                if commis <= ip and ip - commis < (
+                if commis <= ip
+                and ip - commis
+                < (
                     math.floor(comp.ipTechnicalLifetime[loc])
                     if comp.floorTechnicalLifetime
                     else math.ceil(comp.ipTechnicalLifetime[loc])
