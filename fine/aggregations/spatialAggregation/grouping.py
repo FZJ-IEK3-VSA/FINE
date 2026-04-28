@@ -166,7 +166,7 @@ def perform_distance_based_grouping(
 
     aggregation_dict = {}
     for key, group in enforced_groups.items():
-        print("Grouping: ", key)
+        logger_grouping.debug("Grouping: %s", key)
         output = _perform_distance_based_grouping(
             geom_xr=geom_xr,
             skip_regions=skip_regions,
