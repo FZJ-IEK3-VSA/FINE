@@ -61,6 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.query-versions.outputs.matrix_json) }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
     secrets: inherit
     with:

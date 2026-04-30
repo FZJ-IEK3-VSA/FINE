@@ -21,6 +21,8 @@ jobs:
             matrix:
                 runner_tag: ["self-hosted"]
                 dependencies: ${{ fromJSON(needs.extract-versions.outputs.matrix) }}
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
         secrets: inherit
         with:
@@ -52,6 +54,8 @@ jobs:
             matrix:
                 runner_tag: ["ubuntu-latest", "macos-latest", "windows-latest"]
                 python: ${{ fromJSON(needs.filter-python-versions.outputs.matrix) }}
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
         secrets: inherit
         with:
