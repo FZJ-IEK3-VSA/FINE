@@ -5,9 +5,6 @@ on:
     pull_request:
         branches: ["master"]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
     extract-versions:
         uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1

@@ -3,9 +3,6 @@ on:
   push:
     branches: ["**"]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   TestPushCondaForgeDev:
     name: Test conda-forge development version on ${{ matrix.runner_tag }}

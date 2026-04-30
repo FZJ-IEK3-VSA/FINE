@@ -31,9 +31,6 @@ on:
         type: string
         default: ""
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   # Resolve the line position of the library inside requirements_dev.yml so
   # the test workflow knows which entry to override.

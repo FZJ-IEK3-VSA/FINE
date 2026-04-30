@@ -7,9 +7,6 @@ on:
   pull_request:
     branches: ["develop"]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   ruff:
     uses: FZJ-IEK3-VSA/.github/.github/workflows/lint.yml@v1
