@@ -2152,6 +2152,12 @@ class EnergySystemModel:
                 self.verboseLogLevel,
                 0,
             )
+        elif termCondition == opt.TerminationCondition.other:
+            utils.output(
+                "No solution was found (TerminationCondition: other). No output is generated.",
+                self.verboseLogLevel,
+                0,
+            )
         else:
             # If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
             # status), show a warning message.
