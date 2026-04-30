@@ -17,7 +17,6 @@ SKIP_DIRS = {
     "aggregations",
     "expansionModules",
     "IOManagement",
-    "subclasses",
 }
 
 # Modules already documented in the User Guide > Python Package Description section
