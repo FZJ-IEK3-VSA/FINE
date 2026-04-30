@@ -3,6 +3,9 @@ on:
   push:
     branches: ["**"]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   TestPushCondaForgeDev:
     name: Test conda-forge development version on ${{ matrix.runner_tag }}
@@ -10,8 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
     secrets: inherit
     with:
@@ -27,8 +28,6 @@ jobs:
       fail-fast: false
       matrix:
         runner_tag: ["self-hosted"]
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     uses: FZJ-IEK3-VSA/.github/.github/workflows/run_pypi_test.yml@v1
     secrets: inherit
     with:
