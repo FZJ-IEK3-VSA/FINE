@@ -81,10 +81,10 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
     assert expected_0d.sort_index().equals(output_0d)
 
     expected_0d_bool = test_esM_for_spagat.getComponentAttribute(
-        "CO2 from enviroment", "hasCapacityVariable"
+        "CO2 from environment", "hasCapacityVariable"
     )
     output_0d_bool = aggregated_esM.getComponentAttribute(
-        "CO2 from enviroment", "hasCapacityVariable"
+        "CO2 from environment", "hasCapacityVariable"
     )
     assert output_0d_bool == expected_0d_bool
 

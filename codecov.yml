@@ -2,7 +2,7 @@ coverage:
   status:
     project:
       default:
-        target: auto      # allow up to 1% drop from base
+        target: auto     
         threshold: 0%
 
 comment:

@@ -7,7 +7,10 @@ import inspect
 import time
 import warnings
 from functools import wraps
+import logging
 import matplotlib.patches as mpatches
+
+logger = logging.getLogger(__name__)
 
 
 # abbreviated class names necessary for saving into excel files as sheet names are restricted by string length
@@ -43,7 +46,9 @@ def timer(func):
         before = time.perf_counter()
         rv = func(*args, **kwargs)
         after = time.perf_counter()
-        print(f"elapsed time for {func.__name__}: {(after - before) / 60:.2f} minutes")
+        logger.debug(
+            "elapsed time for %s: %.2f minutes", func.__name__, (after - before) / 60
+        )
         return rv
 
     return f
@@ -1210,10 +1215,11 @@ def plotLocationalColorMap(
     excluded_regions = [item for item in regions_data if item not in regions_gdf]
 
     if len(excluded_regions) > 0:
-        print(
-            f"Missing regions: {compName} - {variableName} \n",
-            "The following regions are not plotted as they are not contained in the provided shapefile: \n",
-            f"{excluded_regions} \n",
+        logger.warning(
+            "Missing regions: %s - %s. The following regions are not plotted as they are not contained in the provided shapefile: %s",
+            compName,
+            variableName,
+            excluded_regions,
         )
 
     if perArea:

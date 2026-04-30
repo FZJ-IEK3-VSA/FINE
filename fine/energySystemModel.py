@@ -143,7 +143,7 @@ class EnergySystemModel:
             The goal of the stochastic optimization is to find a more robust energy system by considering different
             requirements to find a single energy system design (e.g. various weather years or demand forecasts). These requirements
             are represented in different investment periods of the model. In contrast to the classical perfect foresight
-            optimization the investment periods do not represent steps of a tranformation pathway but possible boundary
+            optimization the investment periods do not represent steps of a transformation pathway but possible boundary
             conditions for the energy system, which need to be considered for the system design and operation
             |br| * the default value is False
         :type mode: bool
@@ -631,7 +631,7 @@ class EnergySystemModel:
         :rtype: depends on the specified attribute
         """
         # if there is only data for one investment period, the function
-        # directely returns the value instead of {0:value}. This allows old
+        # directly returns the value instead of {0:value}. This allows old
         # models to run without modification
         attr = getattr(self.getComponent(componentName), attributeName)
         if isinstance(attr, dict) and list(attr.keys()) == [0]:
@@ -721,7 +721,7 @@ class EnergySystemModel:
             |br| * the default value is 'geometry'
         :type geom_col_name: string
 
-        :param geom_id_col_name: The colum in `shapefile` consisting geom IDs
+        :param geom_id_col_name: The column in `shapefile` consisting geom IDs
             |br| * the default value is 'index'
         :type geom_id_col_name: string
 
@@ -773,7 +773,7 @@ class EnergySystemModel:
                     kmedoids clustering with added contiguity constraint.
                     Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
                 - 'hierarchical':
-                    sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
+                    sklearn's agglomerative clustering with complete linkage, with a connectivity matrix to ensure contiguity.
                     Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
 
             |br| * the default value is 'kmedoids_contiguity'
@@ -1463,7 +1463,7 @@ class EnergySystemModel:
             setattr(pyM, "pathwayBalanceLimitDict", pathwayBalanceLimitDict)
 
             def pathwayBalanceLimitConstraint(pyM, ID, loc, lowerBound, value):
-                # pathway restricition
+                # pathway restriction
                 balanceSum = sum(
                     mdl.getBalanceLimitContribution(
                         esM=self,
