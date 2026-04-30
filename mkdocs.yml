@@ -166,6 +166,10 @@ nav:
           - "09 Stochastic Optimization": "examples/09_Stochastic_Optimization/09_Stochastic Optimization.ipynb"
           - "10 Perfect Foresight": examples/10_PerfectForesight/10_perfectForesight_example.ipynb
           - "11 Partload": examples/11_Partload/11_Partload_Example.ipynb
+          
+    - Modular Examples:
+          - Overview: examples/index.md
+          - "Basic ESM": examples/Examples/_1_initialize_ESM.ipynb
 
     - Integrated Software: integrated_software.md
     - Further Reading: further_reading.md
