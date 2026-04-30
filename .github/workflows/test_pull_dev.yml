@@ -56,7 +56,7 @@ jobs:
     if: github.actor != 'renovate[bot]'
     uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
     with:
-      libraries: "geopandas,glpk,gurobi,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
+      libraries: "geopandas,glpk,gurobi,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools,highspy"
       version_type: min
       env_file: requirements_dev.yml
 
