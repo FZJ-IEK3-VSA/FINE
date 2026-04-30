@@ -9,7 +9,7 @@ jobs:
     extract-versions:
         uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
         with:
-            libraries: "python,geopandas,glpk,gurobi,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
+            libraries: "python,geopandas,glpk,gurobi,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools,highspy"
             version_type: both
             env_file: requirements_dev.yml
 
