@@ -1,6 +1,8 @@
 import fine as fn
+import fine.IOManagement.xarrayIO as xrIO
 import pandas as pd
 import numpy as np
+from pathlib import Path
 np.random.seed(42)  # Sets a "seed" to produce the same random input data in each model run
 
 esM = fn.EnergySystemModel(
@@ -96,13 +98,33 @@ esM.add(
     )
 
 esM.add(
+    fn.Transmission(
+        esM = esM,
+        name = "NG pipelines",
+        commodity = "naturalGas",
+        hasCapacityVariable = True,
+        capacityFix = pd.DataFrame(
+            [[0, 100], [100, 0]],
+            columns=["regionN", "regionS"],
+            index=["regionN", "regionS"]
+        ),
+        distances = pd.DataFrame(
+            [[0, 400], [400, 0]],
+            columns=["regionN", "regionS"],
+            index=["regionN", "regionS"]
+        ),
+        losses = 0.00002,
+    )
+)
+
+esM.add(
     fn.Conversion(
         esM=esM,
-        name="CCGT plants (methane)",
+        name="CCGT plants (naturalGas)",
         physicalUnit=r"GW$_{el}$",
         commodityConversionFactors={
             "electricity": 1,
-            "methane": -1 / 0.6,
+            "naturalGas": -1 / 0.6,
             "CO2": 201 * 1e-6 / 0.6,
         },
         hasCapacityVariable=True,
@@ -132,3 +154,12 @@ esM.add(
         economicLifetime=22,
     )
 )
+
+path = Path("examples") / "Examples" / "NetCDF" / "basic_esm.nc"
+
+xrIO.writeEnergySystemModelToNetCDF(
+    esM, outputFilePath=path, overwriteExisting=True
+)
+
+
+
