@@ -260,7 +260,8 @@ def test_esm_to_datasets_with_processed_values(minimal_test_esM):
     assert (
         xr_dss.get("Input")
         .get("Transmission")
-        .get("Pipelines")["0d_investPerCapacity.0"]
+        .get("Pipelines")["0d_investPerCapacity"]
+        .sel(ip="0")
         .item()
         == 0.177
     )

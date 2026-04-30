@@ -58,16 +58,18 @@ def getKeyHierarchyOfNestedDict(
 
     return key_list  # noqa: RET504
 
+
 def _get_base_name_and_ip(variable_description):
     key_list = getKeyHierarchyOfNestedDict(variable_description)
 
     if len(key_list) > 1 and isinstance(key_list[1], int):
         ip = key_list[1]
-        base_key_list = [key_list[0]] + key_list[2:]        # strip ip from middle
-        base_name = ".".join(str(k) for k in base_key_list) # rejoin remainder
+        base_key_list = [key_list[0]] + key_list[2:]  # strip ip from middle
+        base_name = ".".join(str(k) for k in base_key_list)  # rejoin remainder
         return base_name, ip
 
     return variable_description, None
+
 
 def getListsOfKeyPathsInNestedDict(data_dict, variable_name):
     """Get a list of all paths in a nested dict, starting after the variable_name,
@@ -255,89 +257,187 @@ def addDFVariablesToXarray(
 
     :return: xr_ds
     """
-    for variable_description, description_tuple_list in df_iteration_dict.items():
-        df_dict = {}
-        df_dict_3dim = {}
+    # Group all variable descriptions by base name (stripping ip suffix if present)
+    grouped = {}
+    for variable_description in df_iteration_dict:
+        base_name, ip_value = _get_base_name_and_ip(variable_description)
+        if base_name not in grouped:
+            grouped[base_name] = {}
+        grouped[base_name][ip_value] = variable_description
 
-        for description_tuple in description_tuple_list:
-            classname, component = description_tuple
+    def _add_ip_independent_to_xarray(xr_ds, df_dict, base_name):
+        df_variable = pd.concat(df_dict)
+        df_variable.index.set_names("component", level=0, inplace=True)
+        ds_component = xr.Dataset()
+        ds_component[f"ts_{base_name}"] = df_variable.sort_index().to_xarray()
+        for comp in df_variable.index.get_level_values(0).unique():
+            this_class = comp.split("; ")[0]
+            this_comp = comp.split("; ")[1]
+            this_ds_component = ds_component.sel(component=comp).drop_vars("component")
+            try:
+                xr_ds[this_class][this_comp] = xr.merge(
+                    [xr_ds[this_class][this_comp], this_ds_component]
+                )
+            except Exception:
+                pass
+        return xr_ds
 
-            df_description = f"{classname}; {component}"
+    for base_name, description_by_ip in grouped.items():
+        ip_independent_description = description_by_ip.get(None)
+        ip_dependent_descriptions = {
+            k: v for k, v in description_by_ip.items() if k is not None
+        }
 
-            # If a . is present in variable name, then the data would be
-            # another level further in the component_dict
-            if "." in variable_description:
-                key_list = getKeyHierarchyOfNestedDict(variable_description)
-                value = component_dict[classname][component]
+        # ── ip-independent path ──────────────────────────────────────────────
+        if ip_independent_description is not None:
+            df_dict = {}
+            df_dict_3dim = {}
+
+            for classname, component in df_iteration_dict[ip_independent_description]:
+                df_description = f"{classname}; {component}"
+                key_list = getKeyHierarchyOfNestedDict(ip_independent_description)
+                data = component_dict[classname][component]
                 for key in key_list:
-                    value = value[key]
-                data = value
-            else:
-                data = component_dict[classname][component][variable_description]
+                    data = data[key]
 
-            multi_index_dataframe = data.stack()
-            if "Period" in multi_index_dataframe.index.names:
-                multi_index_dataframe = multi_index_dataframe.droplevel(0)
+                multi_index_dataframe = data.stack()
+                if "Period" in multi_index_dataframe.index.names:
+                    multi_index_dataframe = multi_index_dataframe.droplevel(0)
+                multi_index_dataframe.index.set_names("time", level=0, inplace=True)
+                multi_index_dataframe.index.set_names("space", level=1, inplace=True)
 
-            multi_index_dataframe.index.set_names("time", level=0, inplace=True)
-            multi_index_dataframe.index.set_names("space", level=1, inplace=True)
-
-            if classname in ["Transmission", "LinearOptimalPowerFlow"]:
-                # use _mapC to split via location names
-                space_index = multi_index_dataframe.index.get_level_values("space")
-                time_index = multi_index_dataframe.index.get_level_values("time")
-                # reconstruct multiindex
-                space_index_split = []
-                for idx in space_index:
-                    loc1, loc2 = _mapC_dict[component][idx]
-                    space_index_split.append((loc1, loc2))
-                multi_index_dataframe.index = pd.MultiIndex.from_tuples(
-                    [
-                        (
-                            time_index[i],
-                            space_index_split[i][0],
-                            space_index_split[i][1],
-                        )
-                        for i in range(len(space_index_split))
-                    ],
-                    names=["time", "space", "space_2"],
-                )
-                df_dict_3dim[df_description] = multi_index_dataframe
-            else:
-                df_dict[df_description] = multi_index_dataframe
-
-        def add_to_xarray(xr_ds, df_dict, variable_description):
-            df_variable = pd.concat(df_dict)
-            df_variable.index.set_names("component", level=0, inplace=True)
-
-            ds_component = xr.Dataset()
-            ds_component[f"ts_{variable_description}"] = (
-                df_variable.sort_index().to_xarray()
-            )
-
-            for comp in df_variable.index.get_level_values(0).unique():
-                this_class = comp.split("; ")[0]
-                this_comp = comp.split("; ")[1]
-
-                this_ds_component = (
-                    ds_component.sel(component=comp)
-                    .squeeze()
-                    .reset_coords(names=["component"], drop=True)
-                )
-
-                try:
-                    xr_ds[this_class][this_comp] = xr.merge(
-                        [xr_ds[this_class][this_comp], this_ds_component]
+                if classname in ["Transmission", "LinearOptimalPowerFlow"]:
+                    # use _mapC to split via location names
+                    space_index = multi_index_dataframe.index.get_level_values("space")
+                    time_index = multi_index_dataframe.index.get_level_values("time")
+                    # reconstruct multiindex
+                    space_index_split = []
+                    for idx in space_index:
+                        loc1, loc2 = _mapC_dict[component][idx]
+                        space_index_split.append((loc1, loc2))
+                    multi_index_dataframe.index = pd.MultiIndex.from_tuples(
+                        [
+                            (
+                                time_index[i],
+                                space_index_split[i][0],
+                                space_index_split[i][1],
+                            )
+                            for i in range(len(space_index_split))
+                        ],
+                        names=["time", "space", "space_2"],
                     )
-                except Exception:
-                    pass
-            return xr_ds
+                    df_dict_3dim[df_description] = multi_index_dataframe
+                else:
+                    df_dict[df_description] = multi_index_dataframe
 
-        # check if there is data
-        if len(df_dict) > 0:
-            xr_ds = add_to_xarray(xr_ds, df_dict, variable_description)
-        if len(df_dict_3dim) > 0:
-            xr_ds = add_to_xarray(xr_ds, df_dict_3dim, variable_description)
+            if df_dict:
+                xr_ds = _add_ip_independent_to_xarray(xr_ds, df_dict, base_name)
+            if df_dict_3dim:
+                xr_ds = _add_ip_independent_to_xarray(xr_ds, df_dict_3dim, base_name)
+
+        # ── ip-dependent path ────────────────────────────────────────────────
+        if ip_dependent_descriptions:
+            comp_ip_dict = {}  # {comp_desc: {ip_str: Series}} for (time, space)
+            comp_ip_dict_3dim = {}  # {comp_desc: {ip_str: Series}} for (time, space, space_2)
+
+            for ip_value, variable_description in ip_dependent_descriptions.items():
+                ip_str = str(ip_value)
+                for classname, component in df_iteration_dict[variable_description]:
+                    df_description = f"{classname}; {component}"
+                    key_list = getKeyHierarchyOfNestedDict(variable_description)
+                    data = component_dict[classname][component]
+                    for key in key_list:
+                        data = data[key]
+
+                    multi_index_dataframe = data.stack()
+                    if "Period" in multi_index_dataframe.index.names:
+                        multi_index_dataframe = multi_index_dataframe.droplevel(0)
+                    multi_index_dataframe.index.set_names("time", level=0, inplace=True)
+                    multi_index_dataframe.index.set_names(
+                        "space", level=1, inplace=True
+                    )
+
+                    if classname in ["Transmission", "LinearOptimalPowerFlow"]:
+                        space_index = multi_index_dataframe.index.get_level_values(
+                            "space"
+                        )
+                        time_index = multi_index_dataframe.index.get_level_values(
+                            "time"
+                        )
+                        space_index_split = []
+                        for idx in space_index:
+                            loc1, loc2 = _mapC_dict[component][idx]
+                            space_index_split.append((loc1, loc2))
+                        multi_index_dataframe.index = pd.MultiIndex.from_tuples(
+                            [
+                                (
+                                    time_index[i],
+                                    space_index_split[i][0],
+                                    space_index_split[i][1],
+                                )
+                                for i in range(len(space_index_split))
+                            ],
+                            names=["time", "space", "space_2"],
+                        )
+                        comp_ip_dict_3dim.setdefault(df_description, {})[ip_str] = (
+                            multi_index_dataframe
+                        )
+                    else:
+                        comp_ip_dict.setdefault(df_description, {})[ip_str] = (
+                            multi_index_dataframe
+                        )
+
+            if comp_ip_dict:
+                frames = {
+                    comp_desc: pd.DataFrame(ip_dict).rename_axis(columns="ip")
+                    for comp_desc, ip_dict in comp_ip_dict.items()
+                }
+                combined = pd.concat(frames)
+                combined.index.set_names(["component", "time", "space"], inplace=True)
+                stacked = combined.stack().rename_axis(
+                    ["component", "time", "space", "ip"]
+                )
+                ds_component = xr.Dataset()
+                ds_component[f"ts_{base_name}"] = stacked.to_xarray()
+                for comp in ds_component[f"ts_{base_name}"].coords["component"].values:
+                    this_class = comp.split("; ")[0]
+                    this_comp = comp.split("; ")[1]
+                    this_ds_component = ds_component.sel(component=comp).drop_vars(
+                        "component"
+                    )
+                    try:
+                        xr_ds[this_class][this_comp] = xr.merge(
+                            [xr_ds[this_class][this_comp], this_ds_component]
+                        )
+                    except Exception:
+                        pass
+
+            if comp_ip_dict_3dim:
+                frames = {
+                    comp_desc: pd.DataFrame(ip_dict).rename_axis(columns="ip")
+                    for comp_desc, ip_dict in comp_ip_dict_3dim.items()
+                }
+                combined = pd.concat(frames)
+                combined.index.set_names(
+                    ["component", "time", "space", "space_2"], inplace=True
+                )
+                stacked = combined.stack().rename_axis(
+                    ["component", "time", "space", "space_2", "ip"]
+                )
+                ds_component = xr.Dataset()
+                ds_component[f"ts_{base_name}"] = stacked.to_xarray()
+                for comp in ds_component[f"ts_{base_name}"].coords["component"].values:
+                    this_class = comp.split("; ")[0]
+                    this_comp = comp.split("; ")[1]
+                    this_ds_component = ds_component.sel(component=comp).drop_vars(
+                        "component"
+                    )
+                    try:
+                        xr_ds[this_class][this_comp] = xr.merge(
+                            [xr_ds[this_class][this_comp], this_ds_component]
+                        )
+                    except Exception:
+                        pass
 
     return xr_ds
 
@@ -376,19 +476,23 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             grouped[base_name] = {}
         grouped[base_name][ip_value] = variable_description
 
-    for base_name, ip_to_desc in grouped.items():
-        none_desc = ip_to_desc.get(None)
-        int_ip_to_desc = {k: v for k, v in ip_to_desc.items() if k is not None}
+    for base_name, description_by_ip in grouped.items():
+        ip_independent_description = description_by_ip.get(None)
+        ip_dependent_descriptions = {
+            k: v for k, v in description_by_ip.items() if k is not None
+        }
 
         # ── ip-independent path ──────────────────────────────────────────────
-        if none_desc is not None:
+        if ip_independent_description is not None:
             space_space_dict = {}
             space_dict = {}
             time_dict = {}
 
-            for classname, component in series_iteration_dict[none_desc]:
+            for classname, component in series_iteration_dict[
+                ip_independent_description
+            ]:
                 df_description = f"{classname}; {component}"
-                key_list = getKeyHierarchyOfNestedDict(none_desc)
+                key_list = getKeyHierarchyOfNestedDict(ip_independent_description)
                 data = component_dict[classname][component]
                 for item in key_list:
                     data = data[item]
@@ -407,9 +511,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                     time_dict[df_description] = pd.concat(
                         {locations[0]: time_dict[df_description]}, names=["space"]
                     )
-                    time_dict[df_description] = time_dict[df_description].reorder_levels(
-                        ["time", "space"]
-                    )
+                    time_dict[df_description] = time_dict[
+                        df_description
+                    ].reorder_levels(["time", "space"])
 
             if len(space_space_dict) > 0:
                 df_variable = pd.concat(space_space_dict)
@@ -419,10 +523,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 for comp in df_variable.index.get_level_values(0).unique():
                     this_class = comp.split("; ")[0]
                     this_comp = comp.split("; ")[1]
-                    this_ds_component = (
-                        ds_component.sel(component=comp)
-                        .squeeze()
-                        .reset_coords(names=["component"], drop=True)
+                    this_ds_component = ds_component.sel(component=comp).drop_vars(
+                        "component"
                     )
                     try:
                         xr_ds[this_class][this_comp] = xr.merge(
@@ -439,10 +541,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 for comp in df_variable.index.get_level_values(0).unique():
                     this_class = comp.split("; ")[0]
                     this_comp = comp.split("; ")[1]
-                    this_ds_component = (
-                        ds_component.sel(component=comp)
-                        .squeeze()
-                        .reset_coords(names=["component"], drop=True)
+                    this_ds_component = ds_component.sel(component=comp).drop_vars(
+                        "component"
                     )
                     try:
                         xr_ds[this_class][this_comp] = xr.merge(
@@ -459,10 +559,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 for comp in df_variable.index.get_level_values(0).unique():
                     this_class = comp.split("; ")[0]
                     this_comp = comp.split("; ")[1]
-                    this_ds_component = (
-                        ds_component.sel(component=comp)
-                        .squeeze()
-                        .reset_coords(names=["component"], drop=True)
+                    this_ds_component = ds_component.sel(component=comp).drop_vars(
+                        "component"
                     )
                     try:
                         xr_ds[this_class][this_comp] = xr.merge(
@@ -472,13 +570,13 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                         pass
 
         # ── ip-dependent path ────────────────────────────────────────────────
-        if int_ip_to_desc:
+        if ip_dependent_descriptions:
             # Collect {comp_desc: {ip_str: Series}} for each data type
             space_space_comp_ip = {}
             space_comp_ip = {}
             time_comp_ip = {}
 
-            for ip_value, variable_description in int_ip_to_desc.items():
+            for ip_value, variable_description in ip_dependent_descriptions.items():
                 ip_str = str(ip_value)
                 for classname, component in series_iteration_dict[variable_description]:
                     df_description = f"{classname}; {component}"
@@ -491,7 +589,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                         df = transform1dSeriesto2dDataFrame(data, locations)
                         mi_s = df.stack()
                         mi_s.index.set_names(["space", "space_2"], inplace=True)
-                        space_space_comp_ip.setdefault(df_description, {})[ip_str] = mi_s
+                        space_space_comp_ip.setdefault(df_description, {})[ip_str] = (
+                            mi_s
+                        )
                     elif set(data.index.values).issubset(set(locations)):
                         space_comp_ip.setdefault(df_description, {})[ip_str] = (
                             data.rename_axis("space")
@@ -517,10 +617,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 for comp in ds_component[f"1d_{base_name}"].coords["component"].values:
                     this_class = comp.split("; ")[0]
                     this_comp = comp.split("; ")[1]
-                    this_ds_component = (
-                        ds_component.sel(component=comp)
-                        .squeeze()
-                        .reset_coords(names=["component"], drop=True)
+                    this_ds_component = ds_component.sel(component=comp).drop_vars(
+                        "component"
                     )
                     try:
                         xr_ds[this_class][this_comp] = xr.merge(
@@ -535,7 +633,9 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                     for comp_desc, ip_dict in space_space_comp_ip.items()
                 }
                 combined = pd.concat(frames)
-                combined.index.set_names(["component", "space", "space_2"], inplace=True)
+                combined.index.set_names(
+                    ["component", "space", "space_2"], inplace=True
+                )
                 stacked = combined.stack().rename_axis(
                     ["component", "space", "space_2", "ip"]
                 )
@@ -544,10 +644,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 for comp in ds_component[f"2d_{base_name}"].coords["component"].values:
                     this_class = comp.split("; ")[0]
                     this_comp = comp.split("; ")[1]
-                    this_ds_component = (
-                        ds_component.sel(component=comp)
-                        .squeeze()
-                        .reset_coords(names=["component"], drop=True)
+                    this_ds_component = ds_component.sel(component=comp).drop_vars(
+                        "component"
                     )
                     try:
                         xr_ds[this_class][this_comp] = xr.merge(
@@ -571,10 +669,8 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                 for comp in ds_component[f"ts_{base_name}"].coords["component"].values:
                     this_class = comp.split("; ")[0]
                     this_comp = comp.split("; ")[1]
-                    this_ds_component = (
-                        ds_component.sel(component=comp)
-                        .squeeze()
-                        .reset_coords(names=["component"], drop=True)
+                    this_ds_component = ds_component.sel(component=comp).drop_vars(
+                        "component"
                     )
                     try:
                         xr_ds[this_class][this_comp] = xr.merge(
@@ -612,18 +708,22 @@ def addConstantsToXarray(
             grouped[base_name] = {}
         grouped[base_name][ip_value] = variable_description
 
-    for base_name, ip_to_desc in grouped.items():
-        none_desc = ip_to_desc.get(None)
-        int_ip_to_desc = {k: v for k, v in ip_to_desc.items() if k is not None}
+    for base_name, description_by_ip in grouped.items():
+        ip_independent_description = description_by_ip.get(None)
+        ip_dependent_descriptions = {
+            k: v for k, v in description_by_ip.items() if k is not None
+        }
 
         datasets_to_merge = []
 
-        if none_desc is not None:
+        if ip_independent_description is not None:
             # ip-independent: gather data into a Series, write as scalar DataArray
             df_dict = {}
-            for classname, component in constants_iteration_dict[none_desc]:
+            for classname, component in constants_iteration_dict[
+                ip_independent_description
+            ]:
                 df_description = f"{classname}; {component}"
-                key_list = getKeyHierarchyOfNestedDict(none_desc)
+                key_list = getKeyHierarchyOfNestedDict(ip_independent_description)
                 data = component_dict[classname][component]
                 for item in key_list:
                     data = data[item]
@@ -636,12 +736,14 @@ def addConstantsToXarray(
             ds_none[f"0d_{base_name}"] = xr.DataArray.from_series(df_variable)
             datasets_to_merge.append(ds_none)
 
-        if int_ip_to_desc:
+        if ip_dependent_descriptions:
             # ip-dependent: gather one Series per ip, combine into DataFrame, write with ip dim
             ip_series = {}
-            for ip_value, variable_description in int_ip_to_desc.items():
+            for ip_value, variable_description in ip_dependent_descriptions.items():
                 df_dict = {}
-                for classname, component in constants_iteration_dict[variable_description]:
+                for classname, component in constants_iteration_dict[
+                    variable_description
+                ]:
                     df_description = f"{classname}; {component}"
                     key_list = getKeyHierarchyOfNestedDict(variable_description)
                     data = component_dict[classname][component]
@@ -667,10 +769,8 @@ def addConstantsToXarray(
             for comp in ds_component[f"0d_{base_name}"].coords["component"].values:
                 this_class = comp.split("; ")[0]
                 this_comp = comp.split("; ")[1]
-                this_ds_component = (
-                    ds_component.sel(component=comp)
-                    .squeeze()
-                    .reset_coords(names=["component"], drop=True)
+                this_ds_component = ds_component.sel(component=comp).drop_vars(
+                    "component"
                 )
 
                 try:
@@ -826,6 +926,44 @@ def addTimeSeriesVariableToDict(
 
     :return: component_dict
     """
+    # ip-dependent: one DataFrame per ip stored along the "ip" dimension
+    if "ip" in comp_var_xr.dims:
+        class_name = component.split("; ")[0]
+        comp_name = component.split("; ")[1]
+        key_list = getKeyHierarchyOfNestedDict(variable)
+        key_list[0] = key_list[0][3:]
+        for ip_str in comp_var_xr.coords["ip"].values:
+            da_ip = comp_var_xr.sel(ip=ip_str).drop_vars("ip")
+            if "space_2" in da_ip.dims:
+                ip_df = da_ip.to_dataframe().squeeze()
+                space_index = ip_df.index.get_level_values("space")
+                space_2_index = ip_df.index.get_level_values("space_2")
+                new_space_index = [
+                    f"{space_index[i]}_{space_2_index[i]}"
+                    for i in range(len(space_index))
+                ]
+                ip_df.index = pd.MultiIndex.from_tuples(
+                    [
+                        (ip_df.index.get_level_values("time")[i], new_space_index[i])
+                        for i in range(len(new_space_index))
+                    ],
+                    names=["time", "space"],
+                )
+                ip_df = ip_df.unstack()
+                ip_df = ip_df.dropna(axis=1, how="all")
+            elif len(da_ip.space.dims) == 0:
+                ip_df = da_ip.to_series()
+            else:
+                ip_df = da_ip.to_dataframe().unstack(level=1)
+                if isinstance(ip_df, pd.DataFrame):
+                    if len(ip_df.columns) > 1:
+                        ip_df.columns = ip_df.columns.droplevel(0)
+            ip_key_list = [key_list[0], int(ip_str)] + key_list[1:]
+            setInDict(
+                component_dict[class_name][comp_name], ip_key_list, ip_df.sort_index()
+            )
+        return component_dict
+
     if len(comp_var_xr.space.dims) == 0:
         df = comp_var_xr.to_series()
     elif drop_component:
@@ -939,7 +1077,9 @@ def add1dVariableToDict(
         for ip_str in comp_var_xr.coords["ip"].values:
             series = comp_var_xr.sel(ip=ip_str).to_series()
             ip_key_list = [key_list[0], int(ip_str)] + key_list[1:]
-            setInDict(component_dict[class_name][comp_name], ip_key_list, series.sort_index())
+            setInDict(
+                component_dict[class_name][comp_name], ip_key_list, series.sort_index()
+            )
         return component_dict
 
     # ip-independent: original logic unchanged
@@ -993,7 +1133,9 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
             if var_value.dtype == "int8":
                 var_value = var_value.astype("bool")
             ip_key_list = [key_list[0], int(ip_str)] + key_list[1:]
-            setInDict(component_dict[class_name][comp_name], ip_key_list, var_value.item())
+            setInDict(
+                component_dict[class_name][comp_name], ip_key_list, var_value.item()
+            )
         return component_dict
 
     # ip-independent: original logic unchanged

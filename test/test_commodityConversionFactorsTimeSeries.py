@@ -345,8 +345,9 @@ def test_variable_conversion_export_to_xarray():
         [np.array([-0.1, -1, -10, -100])], index=["ElectrolyzerLocation"]
     ).T
 
-    series = input_ds["ts_commodityConversionFactors.0.electricity"].to_pandas()
-    actual_df = series.to_frame(name="ElectrolyzerLocation")
+    actual_df = (
+        input_ds["ts_commodityConversionFactors.electricity"].sel(ip="0").to_pandas()
+    )
 
     # Normalize index/column names
     number_of_index_level_expected = expected_df.index.nlevels
@@ -367,6 +368,6 @@ def test_variable_conversion_export_to_xarray():
     )
 
     # === Check exported hydrogen scalar ===
-    hydrogen_val = input_ds["0d_commodityConversionFactors.0.hydrogen"].item()
+    hydrogen_val = input_ds["0d_commodityConversionFactors.hydrogen"].sel(ip="0").item()
 
     assert hydrogen_val == 1

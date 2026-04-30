@@ -271,7 +271,7 @@ def test_perfectForesight_variableConversions_input(
             stockCommissioning={2015: pd.Series(index=esM.locations, data=[0, 1])},
         )
     )
-    
+
     assert esM.getComponent("Electrolyzers5").isCommisDepending is False
 
 

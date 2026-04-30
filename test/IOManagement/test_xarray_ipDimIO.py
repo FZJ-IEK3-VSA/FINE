@@ -5,14 +5,9 @@ import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture
 def ip_dim_esM(perfectForesight_test_esM):
-    """esM with ip-dependent and ip-independent 0d and 1d input parameters."""
+    """Create an esM with ip-dependent and ip-independent 0d and 1d input parameters."""
     esM = copy.deepcopy(perfectForesight_test_esM)
 
     # ip-dependent 0d: investPerCapacity varies per investment period
@@ -119,7 +114,13 @@ def test_0d_ip_dep_no_per_ip_split_vars(ip_dim_datasets):
 def test_0d_ip_dep_values_correct(ip_dim_datasets):
     """Each ip slice of the 0d DataArray matches the input value."""
     da = ip_dim_datasets["Input"]["Conversion"]["Electrolyzer"]["0d_investPerCapacity"]
-    expected = {"2020": 600.0, "2025": 550.0, "2030": 500.0, "2035": 450.0, "2040": 400.0}
+    expected = {
+        "2020": 600.0,
+        "2025": 550.0,
+        "2030": 500.0,
+        "2035": 450.0,
+        "2040": 400.0,
+    }
     for ip_str, val in expected.items():
         assert float(da.sel(ip=ip_str).values) == pytest.approx(val), (
             f"ip={ip_str}: expected {val}, got {float(da.sel(ip=ip_str).values)}"
@@ -176,21 +177,18 @@ def test_1d_ip_independent_has_no_ip_dim(ip_dim_datasets):
     assert "space" in da.dims
 
 
-# ---------------------------------------------------------------------------
-# Round-trip tests (write → read → write)
-#
-# Strategy: write ip_dim_esM to datasets, read back to esM_rt, write esM_rt
-# again to datasets_rt, then assert structure and values are preserved.
-# This exercises both add0dVariableToDict and add1dVariableToDict read-back.
-# ---------------------------------------------------------------------------
-
-
 def test_0d_ip_dep_roundtrip(ip_dim_esM_rt):
     """After read-back, 0d ip-dep variable is still ip-dimensioned with correct values."""
     datasets_rt = xrIO.writeEnergySystemModelToDatasets(ip_dim_esM_rt)
     da = datasets_rt["Input"]["Conversion"]["Electrolyzer"]["0d_investPerCapacity"]
     assert "ip" in da.dims
-    expected = {"2020": 600.0, "2025": 550.0, "2030": 500.0, "2035": 450.0, "2040": 400.0}
+    expected = {
+        "2020": 600.0,
+        "2025": 550.0,
+        "2030": 500.0,
+        "2035": 450.0,
+        "2040": 400.0,
+    }
     for ip_str, val in expected.items():
         assert float(da.sel(ip=ip_str).values) == val, (
             f"Roundtrip ip={ip_str}: expected {val}, got {float(da.sel(ip=ip_str).values)}"
@@ -228,4 +226,3 @@ def test_1d_ip_independent_roundtrip(ip_dim_esM_rt):
     assert "ip" not in da.dims
     assert float(da.sel(space="PerfectLand").values) == 100.0
     assert float(da.sel(space="ForesightLand").values) == 80.0
-
