@@ -1,3 +1,4 @@
+import logging
 import math
 import warnings
 
@@ -637,7 +638,7 @@ def checkInvestmentPeriodParameters(name, param, years):
             )
 
 
-def checkAndSetInvestmentPeriodParamters(name, param, esM):
+def checkAndSetInvestmentPeriodParameters(name, param, esM):
     """MISSING."""
     checkInvestmentPeriodParameters(name, param, esM.investmentPeriodNames)
     processedParam = {}
@@ -2080,9 +2081,21 @@ def map2dimData(data, mapC):
 
 
 def output(output, verbose, val):
-    """Missing."""
+    """Output a message using logging.
+
+    :param output: The message to output
+    :type output: str
+    :param verbose: The current verbosity level
+    :type verbose: int
+    :param val: The verbosity threshold for this message (0 = INFO, >0 = DEBUG)
+    :type val: int
+    """
     if verbose == val:
-        print(output)
+        logger = logging.getLogger(__name__)
+        if val == 0:
+            logger.info(output)
+        else:
+            logger.debug(output)
 
 
 def checkModelClassEquality(esM, file):
@@ -2391,7 +2404,7 @@ def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
     if CO2ReductionTargets is not None:
         if len(CO2ReductionTargets) != nbOfSteps + 1:
             raise ValueError(
-                "CO2ReductionTargets has to be None, or the lenght of the given list must equal the number \
+                "CO2ReductionTargets has to be None, or the length of the given list must equal the number \
  of optimization steps."
             )
 
@@ -2492,7 +2505,7 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
     # 0. get a copy of the commodityConversionFactors
     commodityConversionFactors = comp.commodityConversionFactors.copy()
 
-    # 1. check if the commodity conversion variates
+    # 1. check if the commodity conversion varies
     # a) not at all over transformation pathway
     # b) per investment period -> weather dependency
     # c) per commissioning year and investment period
