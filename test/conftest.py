@@ -400,7 +400,7 @@ def test_esM_for_spagat(esM_init, get_data_fixture):
     esM.add(
         fn.Source(
             esM=esM,
-            name="CO2 from enviroment",
+            name="CO2 from environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",
@@ -644,7 +644,7 @@ def multi_node_test_esM_init(get_data_fixture):
     esM.add(
         fn.Source(
             esM=esM,
-            name="CO2 from enviroment",
+            name="CO2 from environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",
@@ -967,7 +967,7 @@ def multi_node_test_esM_init(get_data_fixture):
     esM.add(
         fn.Sink(
             esM=esM,
-            name="CO2 to enviroment",
+            name="CO2 to environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",
@@ -1124,7 +1124,7 @@ def multi_node_test_esM_optimized(get_data_fixture):
     esM.add(
         fn.Source(
             esM=esM,
-            name="CO2 from enviroment",
+            name="CO2 from environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",
@@ -1433,7 +1433,7 @@ def multi_node_test_esM_optimized(get_data_fixture):
     esM.add(
         fn.Sink(
             esM=esM,
-            name="CO2 to enviroment",
+            name="CO2 to environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",

@@ -2,6 +2,9 @@ from fine import utils
 from fine.IOManagement import standardIO
 import pandas as pd
 import copy
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def optimizeSimpleMyopic(
@@ -112,8 +115,10 @@ def optimizeSimpleMyopic(
     )
     utils.checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets)
     utils.checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps)
-    print("Number of optimization runs: ", nbOfSteps + 1)
-    print("Number of years represented by one optimization: ", nbOfRepresentedYears)
+    logger.info("Number of optimization runs: %s", nbOfSteps + 1)
+    logger.info(
+        "Number of years represented by one optimization: %s", nbOfRepresentedYears
+    )
     mileStoneYear = startYear
     if trackESMs:
         myopicResults = dict()
