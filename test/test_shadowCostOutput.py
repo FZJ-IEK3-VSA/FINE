@@ -49,7 +49,7 @@ def test_shadowCostOutPut(minimal_test_esM):
     assert len(SP.loc["hydrogen", "IndustryLocation"]) == 4
 
 
-def test_shadow_price_with_multiple_ip(perfectForesight_test_esM):
+def test_get_shadow_price_xarray_with_multiple_ip(perfectForesight_test_esM):
     esM = perfectForesight_test_esM
 
     esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
