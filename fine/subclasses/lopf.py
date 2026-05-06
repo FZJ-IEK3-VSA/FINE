@@ -272,7 +272,6 @@ class LOPFModel(TransmissionModel):
         )
 
     def basePhaseAngle(self, pyM):
-        # TODO Check if this function is still required due to new added bounds
         """Declare the constraint that the reference phase angle is set to zero for all time steps.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
