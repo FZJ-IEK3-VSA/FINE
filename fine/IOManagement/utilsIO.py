@@ -3,7 +3,7 @@ import pandas as pd
 import xarray as xr
 from functools import reduce  # forward compatibility for Python 3
 import operator
-import fine as fn
+from fine.IOManagement.standardIO import getShadowPrices
 
 
 def getFromDict(dataDict, mapList):
@@ -875,11 +875,9 @@ def getShadowPriceXarray(esM, constraint_str="commodityBalanceConstraint"):
 
         # Verify constraint existence in the Pyomo model
         if not hasattr(esM.pyM, constraint_str):
-            msg = f"Constraint '{constraint_str}' not found in model."
-            print(msg)
-            raise ValueError(msg)
+            raise ValueError(f"Constraint '{constraint_str}' not found in model.")
 
-        sp = fn.getShadowPrices(
+        sp = getShadowPrices(
             esM,
             getattr(esM.pyM, constraint_str),
             ip=ip,
@@ -889,9 +887,6 @@ def getShadowPriceXarray(esM, constraint_str="commodityBalanceConstraint"):
             periodsOrder=esM.periodsOrder,
         )
         sp_xr = sp.to_xarray()
-
-        if sp_xr is None:
-            return None
 
         # Rename dimensions from pandas default (level_0, ...) to meaningful names.
         # This mapping assumes the constraint index structure is (Component, Location, Time).
