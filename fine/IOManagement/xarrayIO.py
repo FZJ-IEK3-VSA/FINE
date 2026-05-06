@@ -1068,7 +1068,7 @@ def writeEnergySystemModelToNetCDF(
                 esM, constraint_str=shadowPriceConstraintStr
             )
             xr_dss_output["ShadowPrices"] = xr_dss_shadowPrices
-            logger.debug("Output datasets keys: %s", list(xr_dss_output.keys()))
+        logger.debug("Output datasets keys: %s", list(xr_dss_output.keys()))
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0)
