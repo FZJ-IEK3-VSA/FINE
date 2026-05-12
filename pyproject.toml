@@ -47,7 +47,7 @@ dependencies = [
     "psutil>=5.8.0,<=7.2.2",
     "gurobi-logtools>=3.0.0,<=3.2.0",
     "ipykernel<=7.2.0",
-    "gurobipy<=13.0.1",
+    "gurobipy<=13.0.2",
 ]
 # <=3.13 translates to <=3.13.0, why the <3.14 is used
 requires-python = ">=3.10,<3.15"
