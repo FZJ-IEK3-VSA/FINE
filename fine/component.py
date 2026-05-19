@@ -505,6 +505,8 @@ class Component(metaclass=ABCMeta):
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
               energy system model specified locations (dimension=1dim) or connections between these locations
               in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
+            * a dictionary with investment periods as keys and one of the two options above as values
+
 
         :param pwlcfParameters: parameters used for piecewise linear cost function module. Can be used to approximate non-linear cost functions for endogenous technology learning (etl) or economies of scale (eos).
                 Enables a standardized endogenous technological learning approach with a fixed learning rate. In that case, the learning is conducted in each investment period and connected throughout.
@@ -589,14 +591,30 @@ class Component(metaclass=ABCMeta):
                 "leadTime is only implemented for perfect foresight/pathway models."
         )
 
-        self.leadTime = utils.checkAndSetCostParameter(
-            esM, name, leadTime, dimension, locationalEligibility
-        )
-
-        self.ipLeadTime = utils.checkAndSetLifetimeInvestmentPeriod(
-            esM, name, self.leadTime
-        )
-        self.roundedIpLeadTime = self.ipLeadTime.apply(math.ceil)
+        if isinstance(leadTime, dict):
+            self.leadTime = {}
+            self.ipLeadTime = {}
+            self.roundedIpLeadTime = {}
+            # print(leadTime)
+            for ip in leadTime.keys():
+                # print(leadTime[ip])
+                self.leadTime[ip] = utils.checkAndSetCostParameter(
+                    esM, name, leadTime[ip], dimension, locationalEligibility)
+                # print(self.leadTime)
+                self.ipLeadTime[ip] = utils.checkAndSetLifetimeInvestmentPeriod(
+                    esM, name, self.leadTime[ip]
+                )
+                if isinstance(self.ipLeadTime[ip], pd.Series):
+                    self.roundedIpLeadTime[ip] = self.ipLeadTime[ip].apply(math.ceil)
+                else:
+                    self.roundedIpLeadTime[ip] = math.ceil(self.ipLeadTime[ip])
+        else:
+            self.leadTime = utils.checkAndSetCostParameter(
+                    esM, name, leadTime, dimension, locationalEligibility)
+            self.ipLeadTime = utils.checkAndSetLifetimeInvestmentPeriod(
+                    esM, name, self.leadTime
+                )
+            self.roundedIpLeadTime = self.ipLeadTime.apply(math.ceil)
 
         self.stockYears, self.processedStockYears = utils.checkStockYears(
             stockCommissioning,
@@ -2043,14 +2061,17 @@ class ComponentModel(metaclass=ABCMeta):
             decommisVar = getattr(pyM, "decommis_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                lead = self.componentsDict[compName].roundedIpLeadTime[loc]
+                if isinstance(self.componentsDict[compName].roundedIpLeadTime, dict):
+                    lead = self.componentsDict[compName].roundedIpLeadTime[ip][loc]
+                else:
+                    lead = self.componentsDict[compName].roundedIpLeadTime[loc]
                 comm_ip = ip + 1 - lead
-                
+
                 if comm_ip in esM.investmentPeriods:
                     availableCommis = commisVar[loc, compName, comm_ip]
                 else:
                     availableCommis = 0
-                
+
                 return (
                     capVar[loc, compName, ip + 1]
                     == capVar[loc, compName, ip]
@@ -2114,13 +2135,14 @@ class ComponentModel(metaclass=ABCMeta):
 
             def initialYear(pyM, loc, compName):
                 stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
-                lead = self.componentsDict[compName].roundedIpLeadTime[loc]
-                
+                if isinstance(self.componentsDict[compName].roundedIpLeadTime, dict):
+                    lead = self.componentsDict[compName].roundedIpLeadTime[0][loc]
+                else:
+                    lead = self.componentsDict[compName].roundedIpLeadTime[loc]
                 if 0 - lead in esM.investmentPeriods:
                     availableCommis = commisVar[loc, compName, 0 - lead]
                 else:
                     availableCommis = 0
-                        
                 return (
                     capVar[loc, compName, 0]
                     == stock_cap
@@ -2209,10 +2231,12 @@ class ComponentModel(metaclass=ABCMeta):
         #             ][loc]
         #         )
         #     return decommisVar[loc, compName, ip] == 0
-        
         def capacityDecommissioning(pyM, loc, compName, ip):
             tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
-            lead = self.componentsDict[compName].roundedIpLeadTime[loc]
+            if isinstance(self.componentsDict[compName].roundedIpLeadTime, dict):
+                    lead = self.componentsDict[compName].roundedIpLeadTime[ip][loc]
+            else:
+                lead = self.componentsDict[compName].roundedIpLeadTime[loc]
 
             # technical lifetime is rounded according to floorTechnicalLifetime
             if self.componentsDict[compName].floorTechnicalLifetime:
