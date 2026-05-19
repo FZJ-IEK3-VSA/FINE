@@ -494,12 +494,17 @@ class Component(metaclass=ABCMeta):
         :param floorTechnicalLifetime: if a technical lifetime is not a multiple of the interval, this
             parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval,
             by default True. The costs will then be applied to the corrected interval.
-            
+
         :param leadTime: time between the investment/commissioning decision and the physical availability
             of the capacity. If set to 0, capacity is available immediately as in the original FINE
             formulation. The value is given in years and is later converted to investment-period units
             using the investmentPeriodInterval.
-        :type leadTime: non-negative number   
+        :type leadTime:
+            * None or
+            * non-negative number
+            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
+              energy system model specified locations (dimension=1dim) or connections between these locations
+              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
 
         :param pwlcfParameters: parameters used for piecewise linear cost function module. Can be used to approximate non-linear cost functions for endogenous technology learning (etl) or economies of scale (eos).
                 Enables a standardized endogenous technological learning approach with a fixed learning rate. In that case, the learning is conducted in each investment period and connected throughout.
@@ -577,17 +582,17 @@ class Component(metaclass=ABCMeta):
 
         # Lead time: delay between investment decision and physical availability
         leadTime = utils.checkLeadTime(leadTime)
-        
+
         # prevent for stochastic models
         if esM.stochasticModel and leadTime != 0:
             raise NotImplementedError(
                 "leadTime is only implemented for perfect foresight/pathway models."
         )
-        
+
         self.leadTime = utils.checkAndSetCostParameter(
             esM, name, leadTime, dimension, locationalEligibility
         )
-        
+
         self.ipLeadTime = utils.checkAndSetLifetimeInvestmentPeriod(
             esM, name, self.leadTime
         )

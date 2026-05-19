@@ -1270,9 +1270,15 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
     return floorTechnicalLifetime
 
 def checkLeadTime(leadTime):
-    """Check and set the lead time of a component"""
+    """Check and set the lead time of a component."""
     if leadTime is None:
         leadTime = 0
+    if isinstance(leadTime, pd.Series):
+        if leadTime.isnull().any():
+            leadTime = leadTime.fillna(0)
+        if (leadTime < 0).any():
+            raise ValueError("leadTime Series must only contain non-negative values.")
+        return leadTime
 
     isPositiveNumber(leadTime)
 
