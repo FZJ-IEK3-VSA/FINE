@@ -56,6 +56,7 @@ class Storage(Component):
         economicLifetime=10,
         technicalLifetime=None,
         floorTechnicalLifetime=True,
+        leadTime=0,
         socOffsetDown=-1,
         socOffsetUp=-1,
         stockCommissioning=None,
@@ -280,6 +281,7 @@ class Storage(Component):
             technicalLifetime=technicalLifetime,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            leadTime=leadTime,
             pwlcfParameters=pwlcfParameters,
         )
 

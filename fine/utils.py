@@ -1269,6 +1269,15 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
         )
     return floorTechnicalLifetime
 
+def checkLeadTime(leadTime):
+    """Check and set the lead time of a component"""
+    if leadTime is None:
+        leadTime = 0
+
+    isPositiveNumber(leadTime)
+
+    return leadTime
+
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     """MISSING."""

@@ -45,6 +45,7 @@ class Transmission(Component):
         economicLifetime=10,
         technicalLifetime=None,
         floorTechnicalLifetime=True,
+        leadTime=0,
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
@@ -298,6 +299,7 @@ class Transmission(Component):
             economicLifetime=self.economicLifetime,
             technicalLifetime=self.technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            leadTime=leadTime,
             stockCommissioning=self.stockCommissioning,
             pwlcfParameters=pwlcfParameters,
         )
