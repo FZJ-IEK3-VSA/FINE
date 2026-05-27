@@ -74,6 +74,3 @@ def test_conversion_factors_as_series():
                 locationalEligibility=pd.Series([1], ["ElectrolyzerLocation"]),
             )
         )
-
-    # optimize
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")

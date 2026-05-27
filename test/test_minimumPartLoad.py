@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 import pytest
 
+from fine.utils import ImplementedSolvers
+
 
 HEAT_GRID_PRICE = 0.5
 GAS_PRICE = 0.1
@@ -203,7 +205,10 @@ def test_minimumPartLoad():
             operationRateFix=data_demand_df,
         )
     )
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     print("restricted dispatch:\n")
     print(

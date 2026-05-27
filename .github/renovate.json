@@ -28,9 +28,21 @@
                 "/(^|/)requirements_dev\\.yml$/"
             ],
             "matchStrings": [
-                "- (?<depName>[a-zA-Z0-9_.-]+)[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
+                "- (?<depName>geopandas|glpk|openpyxl|matplotlib|xlrd|pyomo|numpy|pandas|scikit-learn|scipy|xarray|rasterio|netcdf4|tsam|pwlf|psutil|gurobi-logtools|ipykernel|pytest-cov|pytest-xdist|pytest|nbval|ruff|mkdocs-material|mkdocs-jupyter|mkdocs-gen-files|mkdocs-literate-nav|mkdocs-section-index|mkdocstrings-python|mkdocstrings|mkdocs|griffe)\\s[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
             ],
             "packageNameTemplate": "conda-forge/{{{depName}}}",
+            "datasourceTemplate": "conda",
+            "versioningTemplate": "pep440"
+        },
+        {
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/(^|/)requirements_dev\\.yml$/"
+            ],
+            "matchStrings": [
+                "- (?<depName>gurobi)\\s[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
+            ],
+            "packageNameTemplate": "gurobi/{{{depName}}}",
             "datasourceTemplate": "conda",
             "versioningTemplate": "pep440"
         }

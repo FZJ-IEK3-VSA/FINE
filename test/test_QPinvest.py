@@ -2,12 +2,11 @@ import fine as fn
 import pandas as pd
 import pytest
 
-from pyomo.opt import SolverFactory
+from fine.utils import ImplementedSolvers
 
 
 @pytest.mark.skipif(
-    not SolverFactory("gurobi").available(),
-    reason="QP solver required (check for license",
+    not ImplementedSolvers._gurobi_available(), reason="Gurobi not available"
 )
 @pytest.mark.parametrize("capacityMin", [0, 5])
 def test_QPinvest(capacityMin):

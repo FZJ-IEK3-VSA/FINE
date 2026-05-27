@@ -7,7 +7,10 @@ import inspect
 import time
 import warnings
 from functools import wraps
+import logging
 import matplotlib.patches as mpatches
+
+logger = logging.getLogger(__name__)
 
 
 # abbreviated class names necessary for saving into excel files as sheet names are restricted by string length
@@ -43,7 +46,9 @@ def timer(func):
         before = time.perf_counter()
         rv = func(*args, **kwargs)
         after = time.perf_counter()
-        print(f"elapsed time for {func.__name__}: {(after - before) / 60:.2f} minutes")
+        logger.debug(
+            "elapsed time for %s: %.2f minutes", func.__name__, (after - before) / 60
+        )
         return rv
 
     return f
@@ -439,6 +444,19 @@ def getShadowPrices(
 
     :return: Pandas Series with the dual values of the specified constraint
     """
+    if esM.numberOfInvestmentPeriods > 1:
+        warnings.warn(
+            "Shadow prices obtained via getShadowPrices() are in present-value (NPV) units when "
+            "multiple investment periods are used. The LP objective is the sum of discounted costs "
+            "across all investment periods, so the dual value of the commodity balance for period "
+            f"ip={ip} reflects [currency_present_value / commodity_unit], not the "
+            "[currency_in_period_ip / commodity_unit] a user would typically expect. "
+            "Converting to per-period units is not straightforward because the discount factor is "
+            "component-specific (each component may have a different interest rate).",
+            UserWarning,
+            stacklevel=2,
+        )
+
     if dualValues is None:
         dualValues = getDualValues(esM.pyM)
 
@@ -1210,10 +1228,11 @@ def plotLocationalColorMap(
     excluded_regions = [item for item in regions_data if item not in regions_gdf]
 
     if len(excluded_regions) > 0:
-        print(
-            f"Missing regions: {compName} - {variableName} \n",
-            "The following regions are not plotted as they are not contained in the provided shapefile: \n",
-            f"{excluded_regions} \n",
+        logger.warning(
+            "Missing regions: %s - %s. The following regions are not plotted as they are not contained in the provided shapefile: %s",
+            compName,
+            variableName,
+            excluded_regions,
         )
 
     if perArea:

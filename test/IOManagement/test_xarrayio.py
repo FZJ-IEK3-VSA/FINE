@@ -1,13 +1,14 @@
-from copy import deepcopy
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
 
+from fine.utils import ImplementedSolvers
 import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
 from fine.IOManagement.dictIO import exportToDict
+import xarray as xr
 
 
 def compare_values(value_1, value_2):
@@ -106,7 +107,7 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
 
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
     esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_datasets)
@@ -115,7 +116,7 @@ def test_esm_input_to_dataset_and_back(minimal_test_esM):
 
 
 def test_esm_output_to_dataset_and_back(minimal_test_esM):
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
     esm_original.optimize()
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
     esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_datasets)
@@ -136,7 +137,7 @@ def test_input_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     """
     test_esM = str(tmp_path / "test_esM.nc")
 
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
     xrIO.writeEnergySystemModelToNetCDF(
         esm_original, outputFilePath=test_esM, overwriteExisting=True
     )
@@ -152,7 +153,7 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     """
     test_esM = str(tmp_path / "test_esM.nc")
 
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
     esm_original.optimize()
     xrIO.writeEnergySystemModelToNetCDF(
         esm_original, outputFilePath=test_esM, overwriteExisting=True
@@ -172,7 +173,7 @@ def test_output_esm_to_netcdf_and_back_perfectForesight(
     """
     test_esM = str(tmp_path / "test_esM_pf.nc")
 
-    esm_original_pf = deepcopy(perfectForesight_test_esM)
+    esm_original_pf = perfectForesight_test_esM
     esm_original_pf.optimize()
 
     xrIO.writeEnergySystemModelToNetCDF(esm_original_pf, outputFilePath=test_esM)
@@ -212,7 +213,7 @@ def test_capacityFix_subset(multi_node_test_esM_init, tmp_path):
 
 
 def test_esm_to_datasets_with_processed_values(minimal_test_esM):
-    esm_original = deepcopy(minimal_test_esM)
+    esm_original = minimal_test_esM
 
     xr_dss = xrIO.convertOptimizationInputToDatasets(
         esm_original, useProcessedValues=True
@@ -276,7 +277,7 @@ def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM, tmp_pa
     Compare if both esMs are identical. Inputs are compared with exportToDict,
     outputs are compared with optimizationSummary.
     """
-    esm_original_pf = deepcopy(perfectForesight_test_esM)
+    esm_original_pf = perfectForesight_test_esM
     esm_original_pf.aggregateTemporally(
         numberOfTypicalPeriods=1, numberOfTimeStepsPerPeriod=2
     )
@@ -311,7 +312,10 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
     optSum = esM.getOptimizationSummary("TransmissionModel").loc[
@@ -334,13 +338,16 @@ def test_coordinates(multi_node_test_esM_init):
     """
     esM = multi_node_test_esM_init
     esM.aggregateTemporally(
-        numberOfTypicalPeriods=3,
+        numberOfTypicalPeriods=5,
         segmentation=False,
         sortValues=True,
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
 
@@ -355,3 +362,55 @@ def test_coordinates(multi_node_test_esM_init):
     assert set(xrRes.coords) == required_coord_2dim, (
         f"Expected {required_coord_2dim}; got {set(xrRes.coords)}"
     )
+
+
+def test_shadow_price_data_exists_in_xarray(multi_node_test_esM_init):
+    """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
+    Check that the shadow price data is part of the xarray datasets.
+    """
+    esM = multi_node_test_esM_init
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
+    esM.optimize(
+        timeSeriesAggregation=True, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+
+    xrds = xrIO.writeEnergySystemModelToDatasets(esM, includeShadowPrices=True)
+    assert "ShadowPrices" in xrds.keys()
+    assert isinstance(xrds["ShadowPrices"], xr.DataArray)
+    # assert that "ip", "component", "space" and "time" are dimensions of the ShadowPrices DataArray
+    assert set(["ip", "component", "space", "time"]).issubset(
+        set(xrds["ShadowPrices"].dims)
+    )
+
+    # Test fail behaviour if nonexistent constraint is given: msg = f"Constraint '{constraint_str}' not found in model."
+    with pytest.raises(
+        ValueError, match="Constraint 'non_existent_constraint' not found in model."
+    ):
+        xrIO.writeEnergySystemModelToDatasets(
+            esM,
+            includeShadowPrices=True,
+            shadowPriceConstraintStr="non_existent_constraint",
+        )
+
+
+def test_shadow_price_with_multiple_ip(perfectForesight_test_esM):
+    """Test that shadow prices are written correctly for a model with multiple investment periods.
+    Specifically exercises the xr.concat path in getShadowPriceXarray (hit from ip=1 onward).
+    """
+    esM = perfectForesight_test_esM
+
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
+
+    xrds = xrIO.writeEnergySystemModelToDatasets(esM, includeShadowPrices=True)
+
+    assert "ShadowPrices" in xrds.keys()
+    sp = xrds["ShadowPrices"]
+    assert isinstance(sp, xr.DataArray)
+    assert set(["ip", "component", "space", "time"]).issubset(set(sp.dims))
+    assert list(sp.coords["ip"].values) == esM.investmentPeriodNames

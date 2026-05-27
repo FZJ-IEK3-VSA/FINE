@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 
 def create_esm(balanceLimit=False):
@@ -78,7 +79,10 @@ def test_capacityCommissioningMinMaxFix():
 
     assert esM.getComponent("electricity cheap").processedCapacityMax[0] is None
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     ops = {
         ip: esM.getOptimizationSummary("SourceSinkModel", ip=ip)
@@ -164,7 +168,10 @@ def test_fullLoadHoursMinMax():
             )
         )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     ops_srcSnk = {
         ip: esM.getOptimizationSummary("SourceSinkModel", ip=ip)
@@ -223,7 +230,10 @@ def test_storageAndBalanceLimit():
             interestRate=0,
         )
     )
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     assert (
         esM.pyM.chargeOp_stor.get_values()[("loc1", "storage", 0, 0, 0)] == 438000 / 2

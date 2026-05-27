@@ -25,27 +25,33 @@ on:
         required: false
         type: string
         default: "develop"
+      additional_conda_channel:
+        description: "Additional conda channel to search for packages (e.g. 'gurobi'). When provided, it is passed to the test workflow via -c flag."
+        required: false
+        type: string
+        default: ""
 
 jobs:
   # Resolve the line position of the library inside requirements_dev.yml so
   # the test workflow knows which entry to override.
   extract-position:
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_extract_env_versions.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
     with:
-      library_name: ${{ inputs.library }}
+      libraries: ${{ inputs.library }}
       env_file: requirements_dev.yml
 
   # Query conda-forge for all versions of the library within the given bounds
-  # and produce a matrix ready for _run_single_conda_forge_test.yml.
+  # and produce a matrix ready for run_conda_forge_test.yml.
   query-versions:
     needs: extract-position
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_query_conda_forge_versions.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/query_conda_versions.yml@v1
     with:
       package_name: ${{ inputs.library }}
       min_version: ${{ inputs.min_version }}
       max_version: ${{ inputs.max_version }}
       dependency_position_env_file: ${{ needs.extract-position.outputs.dependency_position }}
       requirements_file_name: requirements_dev.yml
+      conda_channel: ${{ inputs.additional_conda_channel || 'conda-forge' }}
 
   TestManualVersions:
     name: "Test ${{ matrix.library_name }} ${{ matrix.library_version }}"
@@ -55,7 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.query-versions.outputs.matrix_json) }}
-    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
+    secrets: inherit
     with:
       runner_tag: ${{ inputs.runner_tag }}
       requirements_file_name: ${{ matrix.requirements_file_name }}
@@ -65,3 +72,4 @@ jobs:
       dependency_position_env_file: ${{ matrix.dependency_position_env_file }}
       multiprocessing_pytest_string: "-n auto"
       multiprocessing_example_string: "-n auto"
+      additional_conda_channel: ${{ inputs.additional_conda_channel }}

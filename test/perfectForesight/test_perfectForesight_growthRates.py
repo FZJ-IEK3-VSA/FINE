@@ -1,6 +1,7 @@
 import pandas as pd
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 
 def test_commissioningMinMaxFix(perfectForesight_test_esM):
@@ -62,7 +63,10 @@ def test_commissioningMinMaxFix(perfectForesight_test_esM):
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     commissioning_Pipe = esM.getOptimizationSummary("TransmissionModel", ip=2020).loc[
         "Pipelines", "commissioning", "[kW$_{H_{2},LHV}$]", "ForesightLand"
     ]["PerfectLand"]

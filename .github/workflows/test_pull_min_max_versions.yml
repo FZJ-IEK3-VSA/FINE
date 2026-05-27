@@ -1,0 +1,65 @@
+on:
+    schedule:
+        - cron: "0 2 * * 1"
+    workflow_dispatch:
+    pull_request:
+        branches: ["master"]
+
+jobs:
+    extract-versions:
+        uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
+        with:
+            libraries: "python,geopandas,glpk,gurobi,xlrd,pyomo,numpy,pandas,scipy,scikit-learn,xarray,rasterio,netcdf4,tsam,pwlf,psutil,gurobi-logtools"
+            version_type: both
+            env_file: requirements_dev.yml
+
+    TestDependencyVersions:
+        name: Test ${{ matrix.dependencies.library_name }} ${{ matrix.dependencies.version }} (${{ matrix.dependencies.version_type }})
+        needs: extract-versions
+        strategy:
+            fail-fast: false
+            matrix:
+                runner_tag: ["self-hosted"]
+                dependencies: ${{ fromJSON(needs.extract-versions.outputs.matrix) }}
+        uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
+        secrets: inherit
+        with:
+            runner_tag: ${{ matrix.runner_tag }}
+            requirements_file_name: requirements_dev.yml
+            ipynb_example_folder: "examples"
+            library_version: ${{ matrix.dependencies.version }}
+            dependency_position_env_file: ${{ matrix.dependencies.yaml_position }}
+            library_name: ${{ matrix.dependencies.library_name }}
+            multiprocessing_pytest_string: "-n auto"
+            multiprocessing_example_string: "-n auto"
+
+    filter-python-versions:
+        needs: extract-versions
+        runs-on: ubuntu-latest
+        outputs:
+            matrix: ${{ steps.filter.outputs.matrix }}
+        steps:
+            - id: filter
+              run: |
+                  echo "matrix=$(echo '${{ needs.extract-versions.outputs.matrix }}' | jq -c '[.[] | select(.library_name == "python")]')" >> $GITHUB_OUTPUT
+
+    TestPythonOSMatrix:
+        name: Test Python ${{ matrix.python.version }} on ${{ matrix.runner_tag }}
+        needs: filter-python-versions
+        if: github.actor != 'renovate[bot]'
+        strategy:
+            fail-fast: false
+            matrix:
+                runner_tag: ["ubuntu-latest", "macos-latest", "windows-latest"]
+                python: ${{ fromJSON(needs.filter-python-versions.outputs.matrix) }}
+        uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
+        secrets: inherit
+        with:
+            runner_tag: ${{ matrix.runner_tag }}
+            requirements_file_name: requirements_dev.yml
+            ipynb_example_folder: "examples"
+            library_name: "python"
+            library_version: ${{ matrix.python.version }}
+            dependency_position_env_file: ${{ matrix.python.yaml_position }}
+            multiprocessing_pytest_string: "-n auto"
+            multiprocessing_example_string: "-n auto"
