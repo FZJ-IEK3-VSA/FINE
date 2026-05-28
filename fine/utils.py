@@ -436,23 +436,10 @@ def checkLocationSpecficDesignInputParams(comp, esM):
     if sharedPotentialID is not None:
         isString(sharedPotentialID)
 
-    if sharedPotentialID is not None and capacityMax is None:
-        raise ValueError(
-            "A capacityMax parameter is required if a sharedPotentialID is considered."
-        )
-
-    if locationalEligibility is not None:
-        # Check if values are either one or zero
-        if ((locationalEligibility != 0) & (locationalEligibility != 1)).any():
+        if capacityMax is None:
             raise ValueError(
-                "The locationalEligibility entries have to be either 0 or 1."
+                "A capacityMax parameter is required if a sharedPotentialID is considered."
             )
-        if isBuiltFix is not None:
-            if (isBuiltFix != locationalEligibility).any():
-                raise ValueError(
-                    "The locationalEligibility and isBuiltFix parameters indicate different"
-                    + "eligibilities."
-                )
 
     for ip in esM.investmentPeriods:
         capacityMin[ip] = checkAndSet(capacityMin[ip], comp, esM)
@@ -535,6 +522,60 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError(
                     "QPcostScale is given but lower or upper capacity bounds are not specified."
                 )
+            
+    for ip in esM.investmentPeriods:
+        if capacityFix[ip] is None or capacityMax[ip] is None:
+            continue
+
+        for loc in capacityFix[ip].index:
+            fixedShareSum = capacityFix[ip].loc[loc] / capacityMax[ip].loc[loc]
+
+            for mdl in esM.componentModelingDict.values():
+                for otherComp in mdl.componentsDict.values():
+                    if otherComp.sharedPotentialID != sharedPotentialID:
+                        continue
+
+                    if otherComp.name == comp.name:
+                        continue
+
+                    otherCapacityFix = otherComp.processedCapacityFix[ip]
+                    otherCapacityMax = otherComp.processedCapacityMax[ip]
+
+                    if otherCapacityFix is None or otherCapacityMax is None:
+                        continue
+
+                    if loc not in otherCapacityFix.index:
+                        continue
+
+                    fixedShareSum += (
+                        otherCapacityFix.loc[loc] / otherCapacityMax.loc[loc]
+                    )
+
+            print("DEBUG")
+            print(sharedPotentialID)
+            print(capacityFix)
+            print(capacityMax)
+            print(fixedShareSum)
+
+            if fixedShareSum > 1:
+                raise ValueError(
+                    "The sum of fixed capacities of components with "
+                    f"sharedPotentialID '{sharedPotentialID}' exceeds the "
+                    f"available shared potential in location '{loc}'."
+                )
+
+    if locationalEligibility is not None:
+        # Check if values are either one or zero
+        if ((locationalEligibility != 0) & (locationalEligibility != 1)).any():
+            raise ValueError(
+                "The locationalEligibility entries have to be either 0 or 1."
+            )
+        if isBuiltFix is not None:
+            if (isBuiltFix != locationalEligibility).any():
+                raise ValueError(
+                    "The locationalEligibility and isBuiltFix parameters indicate different"
+                    + "eligibilities."
+                )            
     for ip in esM.investmentPeriods:
         if capacityMax is None or capacityMin is None:
             if (QPcostScale[ip] > 0).any():
