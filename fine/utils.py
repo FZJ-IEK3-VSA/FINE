@@ -2096,7 +2096,6 @@ def output(output, verbose, val):
             logger.debug(output)
 
 
-
 def checkNumberOfConversionFactors(commods):
     """Missing."""
     if len(commods) > 2:
