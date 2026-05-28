@@ -920,24 +920,28 @@ class PiecewiseLinearCostFunctionModel:
                 tuples = list(
                     map(
                         lambda x: (
-                            x[0],
-                            x[1],
-                            "["
-                            + getattr(
-                                self.modulesDict[x[0]].comp,
-                                unitDict[
+                            (
+                                x[0],
+                                x[1],
+                                "["
+                                + getattr(
+                                    self.modulesDict[x[0]].comp,
+                                    unitDict[
+                                        self.modulesDict[x[0]]
+                                        .comp.modelingClass()
+                                        .abbrvName
+                                    ][0],
+                                )
+                                + unitDict[
                                     self.modulesDict[x[0]]
                                     .comp.modelingClass()
                                     .abbrvName
-                                ][0],
+                                ][1]
+                                + "]",
                             )
-                            + unitDict[
-                                self.modulesDict[x[0]].comp.modelingClass().abbrvName
-                            ][1]
-                            + "]",
-                        )
-                        if x[1] == "knowledgeStock_ETL"
-                        else x,
+                            if x[1] == "knowledgeStock_ETL"
+                            else x
+                        ),
                         tuples,
                     )
                 )

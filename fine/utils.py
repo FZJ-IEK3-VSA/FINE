@@ -522,7 +522,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError(
                     "QPcostScale is given but lower or upper capacity bounds are not specified."
                 )
-            
+
     for ip in esM.investmentPeriods:
         if capacityFix[ip] is None or capacityMax[ip] is None:
             continue
@@ -575,7 +575,7 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 raise ValueError(
                     "The locationalEligibility and isBuiltFix parameters indicate different"
                     + "eligibilities."
-                )            
+                )
     for ip in esM.investmentPeriods:
         if capacityMax is None or capacityMin is None:
             if (QPcostScale[ip] > 0).any():

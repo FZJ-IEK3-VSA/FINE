@@ -2,9 +2,9 @@ import pandas as pd
 import pytest
 import fine as fn
 
+
 def test_shared_potential_capacity_fix_exceeds_capacity_max():
-    """
-    Test whether a ValueError is raised if the sum of fixed capacities
+    """Test whether a ValueError is raised if the sum of fixed capacities
     of components with the same sharedPotentialID exceeds the available
     shared potential.
 
@@ -21,17 +21,57 @@ def test_shared_potential_capacity_fix_exceeds_capacity_max():
     )
 
     dailyProfilePV = [
-        0, 0, 0, 0, 0, 0, 0,
-        0.05, 0.15, 0.2, 0.4, 0.8,
-        0.7, 0.4, 0.2, 0.15, 0.05,
-        0, 0, 0, 0, 0, 0, 0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.05,
+        0.15,
+        0.2,
+        0.4,
+        0.8,
+        0.7,
+        0.4,
+        0.2,
+        0.15,
+        0.05,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
     ]
 
     dailyProfileWind = [
-        0.6, 0.55, 0.5, 0.45, 0.4, 0.5,
-        0.6, 0.7, 0.75, 0.8, 0.7, 0.65,
-        0.6, 0.55, 0.5, 0.45, 0.5, 0.6,
-        0.7, 0.75, 0.8, 0.75, 0.7, 0.65,
+        0.6,
+        0.55,
+        0.5,
+        0.45,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.75,
+        0.8,
+        0.7,
+        0.65,
+        0.6,
+        0.55,
+        0.5,
+        0.45,
+        0.5,
+        0.6,
+        0.7,
+        0.75,
+        0.8,
+        0.75,
+        0.7,
+        0.65,
     ]
 
     operationRateMaxPV = pd.DataFrame(
