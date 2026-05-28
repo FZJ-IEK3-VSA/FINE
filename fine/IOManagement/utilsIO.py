@@ -1026,6 +1026,27 @@ def add2dVariableToDict(
 
     :return: component_dict
     """
+    # ip-dependent: one Series per ip stored along the "ip" dimension
+    if "ip" in comp_var_xr.dims:
+        class_name = component.split("; ")[0]
+        comp_name = component.split("; ")[1]
+        key_list = getKeyHierarchyOfNestedDict(variable)
+        key_list[0] = key_list[0][3:]
+        for ip_str in comp_var_xr.coords["ip"].values:
+            da_ip = comp_var_xr.sel(ip=ip_str).drop_vars("ip")
+            series = da_ip.to_dataframe().stack(level=0)
+            series.index = series.index.droplevel(level=2).map("_".join)
+            series = series[series > 0]
+            if not len(series.index) == 0:
+                ip_key_list = [key_list[0], int(ip_str)] + key_list[1:]
+                setInDict(
+                    component_dict[class_name][comp_name],
+                    ip_key_list,
+                    series.sort_index(),
+                )
+        return component_dict
+
+    # ip-independent: original logic unchanged
     if drop_component:
         series = comp_var_xr.drop("component").to_dataframe().stack(level=0)
     else:

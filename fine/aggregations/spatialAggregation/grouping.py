@@ -266,6 +266,8 @@ def perform_parameter_based_grouping(
     ) = gprUtils.preprocess_dataset(xarray_datasets.get("Input"))
 
     # STEP 2. Calculate the overall distance between each region pair (uses custom distance)
+    # Hier schauen, wies ankommen muss, dementsprechend mit ip anpassen
+
     precomputed_dist_matrix = gprUtils.get_custom_distance_matrix(
         processed_ts_dict, processed_1d_dict, processed_2d_dict, n_regions, weights
     )

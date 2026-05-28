@@ -156,15 +156,28 @@ def preprocess_dataset(xarray_dataset):
             for varname, da in comp_ds.data_vars.items():
                 ## Time series
                 if varname[:3] == "ts_":
-                    vars_ts[varname][comp] = da
-
+                    # hotfix for issue #528
+                    if "ip" in da.dims:
+                        for ip_val in da.coords["ip"].values:
+                            vars_ts[f"{varname}.{ip_val}"][comp] = da.sel(ip=ip_val)
+                    else:
+                        vars_ts[varname][comp] = da
                 ## 1d variables
                 elif varname[:3] == "1d_":
-                    vars_1d[varname][comp] = da
-
+                    # hotfix for issue #528
+                    if "ip" in da.dims:
+                        for ip_val in da.coords["ip"].values:
+                            vars_1d[f"{varname}.{ip_val}"][comp] = da.sel(ip=ip_val)
+                    else:
+                        vars_1d[varname][comp] = da
                 ## 2d variables
                 elif varname[:3] == "2d_":
-                    vars_2d[varname][comp] = da
+                    # hotfix for issue #528
+                    if "ip" in da.dims:
+                        for ip_val in da.coords["ip"].values:
+                            vars_2d[f"{varname}.{ip_val}"][comp] = da.sel(ip=ip_val)
+                    else:
+                        vars_2d[varname][comp] = da
 
     # STEP 1. Preprocess Time Series
     processed_ts_dict = preprocess_time_series(vars_ts)
@@ -431,9 +444,16 @@ def get_connectivity_matrix(xarray_datasets):
         for comp, comp_ds in comp_dict.items():
             for varname, da in comp_ds.data_vars.items():
                 if varname[:3] == "2d_":
-                    connectivity_matrix[da.values > 0] = (
-                        1  # if a pos, non-zero value exits, make a connection!
-                    )
+                    # hotfix for issue #528
+                    if "ip" in da.dims:
+                        for ip_val in da.coords["ip"].values:
+                            connectivity_matrix[da.sel(ip=ip_val).values > 0] = (
+                                1  # if a pos, non-zero value exits, make a connection!
+                            )
+                    else:
+                        connectivity_matrix[da.values > 0] = (
+                            1  # if a pos, non-zero value exits, make a connection!
+                        )
 
     return connectivity_matrix
 
