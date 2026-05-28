@@ -462,9 +462,7 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
     """
     if (skip_regions is not None) & (enforced_group is None):
         if not isinstance(skip_regions, list):
-            raise TypeError(
-                "skip_regions must be a list"
-            )
+            raise TypeError("skip_regions must be a list")
 
         # get all regions
         regions_list = geom_xr["space"].values
@@ -477,9 +475,7 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
 
     elif (skip_regions is None) & (enforced_group is not None):
         if not isinstance(enforced_group, list):
-            raise TypeError(
-                "enforced_group must be a list"
-            )
+            raise TypeError("enforced_group must be a list")
 
         # get subset of regions
         regions_list = np.array(list(enforced_group))
@@ -489,13 +485,9 @@ def get_region_list(geom_xr, skip_regions, enforced_group):
 
     elif (skip_regions is not None) & (enforced_group is not None):
         if not isinstance(skip_regions, list):
-            raise TypeError(
-                "skip_regions must be a list"
-            )
+            raise TypeError("skip_regions must be a list")
         if not isinstance(enforced_group, list):
-            raise TypeError(
-                "enforced_group must be a list"
-            )
+            raise TypeError("enforced_group must be a list")
 
         # get region subset based on enfored_group
         skip_regions, enforced_group = list(map(set, [skip_regions, enforced_group]))
