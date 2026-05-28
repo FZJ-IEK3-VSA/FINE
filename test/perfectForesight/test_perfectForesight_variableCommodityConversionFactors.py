@@ -4,6 +4,7 @@ import pytest
 import fine as fn
 import copy
 
+
 def test_perfectForesight_variableConversions_input(
     perfectForesight_test_esM,
 ):
