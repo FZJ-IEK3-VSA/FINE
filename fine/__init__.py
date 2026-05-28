@@ -7,7 +7,14 @@ from .component import Component, ComponentModel
 from . import subclasses, utils
 from .subclasses import ConversionDynamic, ConversionPartLoad, LinearOptimalPowerFlow
 from .IOManagement import dictIO, xarrayIO
-from .IOManagement.standardIO import getShadowPrices, plotOperationColorMap
+from .IOManagement.standardIO import (
+    getShadowPrices,
+    plotLocationalColorMap,
+    plotLocations,
+    plotOperation,
+    plotOperationColorMap,
+    plotTransmission,
+)
 from .expansionModules.optimizeTSAmultiStage import (
     fixBinaryVariables,
     optimizeTSAmultiStage,
@@ -35,7 +42,11 @@ __all__ = [
     "getShadowPrices",
     "optimizeSimpleMyopic",
     "optimizeTSAmultiStage",
+    "plotLocationalColorMap",
+    "plotLocations",
+    "plotOperation",
     "plotOperationColorMap",
+    "plotTransmission",
     "subclasses",
     "utils",
     "xarrayIO",
