@@ -30,17 +30,17 @@ ETHOS.FINE is used for the modelling of a diverse group of optimization problems
 If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://joss.theoj.org/papers/10.21105/joss.06274). The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
 
 ## Installation 
-There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge. In all of the following variants it is recommended to install your dependencies from conda-forge as the ecosystem is better tested and maintained. For more information on installation specifics and comparison between the different options, have a look at the [installation documentation](https://vsa-fine.readthedocs.io/en/develop/installation.html). In the following first the [preqrequisites](#Preqrequisites) for the installation are presented. Then the recommended [installation](#Installation from conda-forge (Recomended)) is shown. If you want to work on the source code of FINE, see [Editable install from conda-forge](#editable-install-from-conda-forge).
+There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge. In all of the following variants it is recommended to install your dependencies from conda-forge as the ecosystem is better tested and maintained. For more information on installation specifics and comparison between the different options, have a look at the [installation documentation](https://vsa-fine.readthedocs.io/en/develop/installation.html). In the following first the [preqrequisites](#Preqrequisites) for the installation are presented. Then the recommended [installation](#Installation from conda-forge (Recommended)) is shown. If you want to work on the source code of FINE, see [Editable install from conda-forge](#editable-install-from-conda-forge).
 
 
 
-### Preqrequisites
+### Prerequisites
 
-You either need a mamba or conda installation (recommended), but any Python installation will do. However, if you are unfamiliar with using environment manager (like mamba), you should [consider using one](https://realpython.com/python-virtual-environments-a-primer/). Fine has many dependencies and will likely interfere with other software projects on your machine in case you dont isolate them with an environment
+You either need a mamba or conda installation (recommended), but any Python installation will do. However, if you are unfamiliar with using environment manager (like mamba), you should [consider using one](https://realpython.com/python-virtual-environments-a-primer/). Fine has many dependencies and will likely interfere with other software projects on your machine in case you don't isolate them with an environment
 
 You need conda or mamba installer on your machine, which are mostly interchangeable. The code is tested for Linux, Windows and Macos. We recommend to use [mamba](https://mamba.readthedocs.io/en/latest/) and install it using the [miniforge installer](https://github.com/conda-forge/miniforge). Please be aware that having multiple conda and mamba installation (for example from the [miniforge installer](https://github.com/conda-forge/miniforge) and the [anaconda installer](https://www.anaconda.com/download)) can cause serious problems during the installation. Please remove the other installer and any old environment on your machine if you decide to switch. 
 
-### Installation from conda-forge (Recomended)
+### Installation from conda-forge (Recommended)
 
 ```bash
 mamba create --name fine_env --channel conda-forge fine
@@ -99,11 +99,11 @@ A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples
   - In this application, a small district is modeled and optimized. This example also includes binary decision variables.
 - [06_Water_Supply_System](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/06_Water_Supply_System)
   - The application cases of ETHOS.FINE are not limited. This application shows how to model the water supply system.
-- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/dmaster/examples/07_NetCDF_to_save_and_set_up_model_instance)
+- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/07_NetCDF_to_save_and_set_up_model_instance)
   - This example shows how to save the input and optimized results of an energy system Model instance to netCDF files to allow reproducibility.
 - [08_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/08_Spatial_and_technology_aggregation)
   - These two examples show how to reduce the model complexity. Model regions can be aggregated to reduce the number of regions (spatial aggregation). Input parameters are automatically adapted. Furthermore, technologies can be aggregated to reduce complexity, e.g. reducing the number of different PV components (technology aggregation). Input parameters are automatically adapted.
-- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/9_Stochastic_Optimizatio)
+- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/09_Stochastic_Optimization)
   - In this application, a stochastic optimization is performed. It is possible to perform the optimization of an energy system model with different input parameter sets to receive a more robust solution.
 - [10_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/10_PerfectForesight)
   - In this application, a transformation pathway of an energy system is modeled and optimized showing how to handle several investment periods with time-dependent assumptions for costs and operation.
@@ -129,7 +129,7 @@ python -m pip install --no-deps --editable .
 
 ### Editable install from pypi
 
-If you do not want to use conda-forge consider the steps in section [Installation from PyPI](#Installation-from-pipy) and install ETHOS.FINE as editable install and with developer dependencies with
+If you do not want to use conda-forge consider the steps in section [Installation from PyPI](#Installation-from-PyPI) and install ETHOS.FINE as editable install and with developer dependencies with
 
 ```bash
 python -m venv .venv

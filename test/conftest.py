@@ -5,9 +5,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from fine.utils import ImplementedSolvers
-
 import fine as fn
+
 from copy import deepcopy
+
 
 sys.path.append(
     str(
@@ -399,7 +400,7 @@ def test_esM_for_spagat(esM_init, get_data_fixture):
     esM.add(
         fn.Source(
             esM=esM,
-            name="CO2 from enviroment",
+            name="CO2 from environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",
@@ -464,6 +465,28 @@ def test_esM_for_spagat(esM_init, get_data_fixture):
             hasCapacityVariable=False,
             operationRateFix=data["Hydrogen demand, operationRateFix"]
             * FCEV_penetration,
+        )
+    )
+
+    ### Lithium ion batteries
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Li-ion batteries",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            chargeEfficiency=0.95,
+            cyclicLifetime=10000,
+            dischargeEfficiency=0.95,
+            selfDischarge=1 - (1 - 0.03) ** (1 / (30 * 24)),
+            chargeRate=1,
+            dischargeRate=1,
+            doPreciseTsaModeling=False,
+            investPerCapacity=0.151,
+            opexPerCapacity=0.002,
+            interestRate=0.08,
+            economicLifetime=22,
+            opexPerChargeOperation=0.0001,
         )
     )
 
@@ -621,7 +644,7 @@ def multi_node_test_esM_init(get_data_fixture):
     esM.add(
         fn.Source(
             esM=esM,
-            name="CO2 from enviroment",
+            name="CO2 from environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",
@@ -944,7 +967,7 @@ def multi_node_test_esM_init(get_data_fixture):
     esM.add(
         fn.Sink(
             esM=esM,
-            name="CO2 to enviroment",
+            name="CO2 to environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",
@@ -1101,7 +1124,7 @@ def multi_node_test_esM_optimized(get_data_fixture):
     esM.add(
         fn.Source(
             esM=esM,
-            name="CO2 from enviroment",
+            name="CO2 from environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",
@@ -1410,7 +1433,7 @@ def multi_node_test_esM_optimized(get_data_fixture):
     esM.add(
         fn.Sink(
             esM=esM,
-            name="CO2 to enviroment",
+            name="CO2 to environment",
             commodity="CO2",
             hasCapacityVariable=False,
             balanceLimitID="CO2 limit",

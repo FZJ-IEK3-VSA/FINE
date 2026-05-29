@@ -3,6 +3,9 @@ import math
 import pyomo.environ as pyomo
 from pyomo.core import Piecewise
 import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
 
 pyomo_pwlf = False
 use_sos2 = False
@@ -281,13 +284,13 @@ class PiecewiseLinearCostFunctionModel:
         if pyomo_pwlf:
             self.declarePwlfPyomo(esM, pyM)
         elif use_sos2:
-            print("Used SOS2 constraints.", flush=True)
+            logger.info("Used SOS2 constraints.")
             self.declareBinaryPwlcfConstr(pyM)
             self.declareCapacityCommissioningPwlcfConstr(esM, pyM)
             self.declareSos2PwlcfConstr(pyM)
             self.declareBinarySpeedUpConstr(pyM)
         else:
-            print("Used Big-M constraints.", flush=True)
+            logger.info("Used Big-M constraints.")
             self.declareBinaryPwlcfConstr(pyM)
             self.declareSegmentCapacityPwlcfConstr(pyM)
             self.declareCapacityCommissioningPwlcfConstr(esM, pyM)
@@ -295,7 +298,7 @@ class PiecewiseLinearCostFunctionModel:
 
     def declareBinarySpeedUpConstr(self, pyM):
         """Add binary speed up constraints."""
-        print("Used binary speed up constraints.", flush=True)
+        logger.debug("Used binary speed up constraints.")
         if use_sos2:
             pwlcfVar = pyM.sos2PwlcfVar
         else:

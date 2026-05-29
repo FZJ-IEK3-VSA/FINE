@@ -1,6 +1,9 @@
 from fine import utils
 import fine as fn
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def optimizeTSAmultiStage(
@@ -164,14 +167,11 @@ def optimizeTSAmultiStage(
         gap = delta / upperBound
         esM.lowerBound, esM.upperBound = lowerBound, upperBound
         esM.gap = gap
-        print(
-            "The real optimal value lies between "
-            + str(round(lowerBound, 2))
-            + " and "
-            + str(round(upperBound, 2))
-            + " with a gap of "
-            + str(round(gap * 100, 2))
-            + "%."
+        logger.info(
+            "The real optimal value lies between %s and %s with a gap of %s%%.",
+            round(lowerBound, 2),
+            round(upperBound, 2),
+            round(gap * 100, 2),
         )
 
 
