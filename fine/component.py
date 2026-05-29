@@ -3920,6 +3920,10 @@ class ComponentModel(metaclass=ABCMeta):
             "[" + esM.costUnit + "]",
             "[" + esM.costUnit + "]",
         ]
+        if esM.rollingHorizonStartYear is not None:
+            props.append("NPVcontributionRH")
+            units.append("[" + esM.costUnit + "]")
+
         tuples = [
             (compName, prop, unit)
             for compName in compDict.keys()
@@ -4351,6 +4355,14 @@ class ComponentModel(metaclass=ABCMeta):
                 npv.columns,
             ] = npv.values
             optSummary[esM.investmentPeriodNames[ip]] = optSummary_ip
+            if esM.rollingHorizonStartYear is not None:
+                for comp in npv.index:
+                    for loc in npv.columns:
+                        optSummary_ip.loc[
+                            (comp, "NPVcontributionRH", "[" + esM.costUnit + "]")
+                        ][loc] = npv.loc[comp][loc] / (
+                            1 + compDict[comp].interestRate[loc]
+                        ) ** (esM.startYear - esM.rollingHorizonStartYear)
 
         return optSummary
 
