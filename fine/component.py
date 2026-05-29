@@ -595,26 +595,31 @@ class Component(metaclass=ABCMeta):
             self.leadTime = {}
             self.ipLeadTime = {}
             self.roundedIpLeadTime = {}
-            # print(leadTime)
+            print(leadTime)
             for ip in leadTime.keys():
                 # print(leadTime[ip])
                 self.leadTime[ip] = utils.checkAndSetCostParameter(
                     esM, name, leadTime[ip], dimension, locationalEligibility)
-                # print(self.leadTime)
+                print(f"self.leadTime[ip] at {ip}: {self.leadTime[ip]}")
                 self.ipLeadTime[ip] = utils.checkAndSetLifetimeInvestmentPeriod(
                     esM, name, self.leadTime[ip]
                 )
+                print(f"self.ipLeadTime[ip] at {ip}: {self.ipLeadTime[ip]}")
                 if isinstance(self.ipLeadTime[ip], pd.Series):
                     self.roundedIpLeadTime[ip] = self.ipLeadTime[ip].apply(math.ceil)
+                    print(f"self.roundedIpLeadTime[ip] first case at {ip}: {self.roundedIpLeadTime[ip]}")
                 else:
                     self.roundedIpLeadTime[ip] = math.ceil(self.ipLeadTime[ip])
+                    print(f"self.roundedIpLeadTime[ip] second case at {ip}: {self.roundedIpLeadTime[ip]}")
         else:
             self.leadTime = utils.checkAndSetCostParameter(
                     esM, name, leadTime, dimension, locationalEligibility)
+            print(f"self.leadTime: {self.leadTime}")
             self.ipLeadTime = utils.checkAndSetLifetimeInvestmentPeriod(
                     esM, name, self.leadTime
                 )
             self.roundedIpLeadTime = self.ipLeadTime.apply(math.ceil)
+            print(f"self.ipLeadTime: {self.ipLeadTime}")
 
         self.stockYears, self.processedStockYears = utils.checkStockYears(
             stockCommissioning,
@@ -2062,15 +2067,17 @@ class ComponentModel(metaclass=ABCMeta):
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
                 if isinstance(self.componentsDict[compName].roundedIpLeadTime, dict):
-                    lead = self.componentsDict[compName].roundedIpLeadTime[ip][loc]
+                    comm_ip = next(
+                        (c for c in esM.investmentPeriods if c + self.componentsDict[compName].roundedIpLeadTime[c][loc] == ip + 1),
+                        None
+                        ) # This will not work properly if there are two such c's. It will only pick the first one.
                 else:
-                    lead = self.componentsDict[compName].roundedIpLeadTime[loc]
-                comm_ip = ip + 1 - lead
+                    comm_ip = ip + 1 - self.componentsDict[compName].roundedIpLeadTime[loc]
 
-                if comm_ip in esM.investmentPeriods:
-                    availableCommis = commisVar[loc, compName, comm_ip]
-                else:
+                if comm_ip is None or comm_ip not in esM.investmentPeriods:
                     availableCommis = 0
+                else:
+                    availableCommis = commisVar[loc, compName, comm_ip]
 
                 return (
                     capVar[loc, compName, ip + 1]
@@ -2136,13 +2143,18 @@ class ComponentModel(metaclass=ABCMeta):
             def initialYear(pyM, loc, compName):
                 stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
                 if isinstance(self.componentsDict[compName].roundedIpLeadTime, dict):
-                    lead = self.componentsDict[compName].roundedIpLeadTime[0][loc]
+                    comm_ip = next(
+                        (c for c in esM.investmentPeriods if c + self.componentsDict[compName].roundedIpLeadTime[c][loc] == 0),
+                        None
+                        ) # This will not work properly if there are two such c's. It will only pick the first one.
                 else:
-                    lead = self.componentsDict[compName].roundedIpLeadTime[loc]
-                if 0 - lead in esM.investmentPeriods:
-                    availableCommis = commisVar[loc, compName, 0 - lead]
-                else:
+                    comm_ip = 0 - self.componentsDict[compName].roundedIpLeadTime[loc]
+
+                if comm_ip is None or comm_ip not in esM.investmentPeriods:
                     availableCommis = 0
+                else:
+                    availableCommis = commisVar[loc, compName, comm_ip]
+
                 return (
                     capVar[loc, compName, 0]
                     == stock_cap
