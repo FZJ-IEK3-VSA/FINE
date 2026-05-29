@@ -444,6 +444,19 @@ def getShadowPrices(
 
     :return: Pandas Series with the dual values of the specified constraint
     """
+    if esM.numberOfInvestmentPeriods > 1:
+        warnings.warn(
+            "Shadow prices obtained via getShadowPrices() are in present-value (NPV) units when "
+            "multiple investment periods are used. The LP objective is the sum of discounted costs "
+            "across all investment periods, so the dual value of the commodity balance for period "
+            f"ip={ip} reflects [currency_present_value / commodity_unit], not the "
+            "[currency_in_period_ip / commodity_unit] a user would typically expect. "
+            "Converting to per-period units is not straightforward because the discount factor is "
+            "component-specific (each component may have a different interest rate).",
+            UserWarning,
+            stacklevel=2,
+        )
+
     if dualValues is None:
         dualValues = getDualValues(esM.pyM)
 
