@@ -144,6 +144,7 @@ nav:
                 - Overview: user_guide/python_package/index.md
                 - EnergySystemModel: user_guide/python_package/energy_system_model.md
                 - Components: user_guide/python_package/components.md
+                - Subclasses: user_guide/python_package/subclasses.md
                 - Expansion Modules: user_guide/python_package/expansion_modules.md
                 - Output Manager: user_guide/python_package/output_manager.md
                 - Aggregations: user_guide/python_package/aggregations.md

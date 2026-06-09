@@ -3,6 +3,7 @@ import pandas as pd
 import xarray as xr
 from functools import reduce  # forward compatibility for Python 3
 import operator
+from fine.IOManagement.standardIO import getShadowPrices
 
 
 def getFromDict(dataDict, mapList):
@@ -845,3 +846,74 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
         setInDict(component_dict[class_name][comp_name], key_list, var_value.item())
 
     return component_dict
+
+
+def getShadowPriceXarray(esM, constraint_str="commodityBalanceConstraint"):
+    """Retrieve shadow prices (dual values) for a specified constraint from the energy system model
+    and return them as an xarray DataArray.
+
+    The function handles fetching dual values for each investment period, processing them
+    (including expanding time series if aggregated), and combining them into a single
+    DataArray with dimensions for component, space, time, and investment period.
+
+    :param esM: considered energy system model
+    :type esM: EnergySystemModel class instance
+
+    :param constraint_str: The name of the constraint in the Pyomo model (esM.pyM) to retrieve.
+                           Defaults to "commodityBalanceConstraint".
+    :type constraint_str: str, optional
+
+    :return: An xarray DataArray containing the shadow prices, or None if retrieval fails.
+             Typical dimensions: (component, space, time, ip).
+
+    :rtype: xarray.DataArray or None
+    :raises ValueError: If the constraint_str does not exist in the model.
+    """
+
+    def get_sp_xr(esM, ip=0, constraint_str="commodityBalanceConstraint"):
+        # Helper function to process a single investment period
+
+        # Verify constraint existence in the Pyomo model
+        if not hasattr(esM.pyM, constraint_str):
+            raise ValueError(f"Constraint '{constraint_str}' not found in model.")
+
+        sp = getShadowPrices(
+            esM,
+            getattr(esM.pyM, constraint_str),
+            ip=ip,
+            dualValues=None,
+            hasTimeSeries=True,
+            periodOccurrences=esM.periodOccurrences,
+            periodsOrder=esM.periodsOrder,
+        )
+        sp_xr = sp.to_xarray()
+
+        # Rename dimensions from pandas default (level_0, ...) to meaningful names.
+        # This mapping assumes the constraint index structure is (Component, Location, Time).
+        rename_dict = {"level_0": "component", "level_1": "space", "level_2": "time"}
+        # Only rename dimensions that actually exist in the result to avoid KeyErrors
+        rename_dict = {k: v for k, v in rename_dict.items() if k in sp_xr.dims}
+
+        sp_xr = sp_xr.rename(rename_dict)
+
+        # Expand with investment period dimension. Here we use the investmentPeriodNames instead of the internal ip index.
+        sp_xr = sp_xr.expand_dims(ip=[esM.investmentPeriodNames[ip]])
+        return sp_xr
+
+    sp_xr = None
+    # Loop over investment periods to gather data for all periods
+    for ip in range(len(esM.investmentPeriods)):
+        sp_xr_ip = get_sp_xr(esM, ip=ip, constraint_str=constraint_str)
+
+        if sp_xr_ip is not None:
+            if sp_xr is None:
+                # Initialize result with the first period found
+                sp_xr = sp_xr_ip
+            else:
+                # Concatenate subsequent periods
+                sp_xr = xr.concat([sp_xr, sp_xr_ip], dim="ip")
+    # add constraint_str as attribute
+    if sp_xr is not None:
+        sp_xr.attrs["constraint"] = constraint_str
+
+    return sp_xr
