@@ -748,6 +748,14 @@ class Component(metaclass=ABCMeta):
             esM.componentModelingDict.update({mdl: self.modelingClass()})
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
+        if self.sharedPotentialID is not None:
+            for ip in esM.investmentPeriods:
+                for loc in self.processedLocationalEligibility.index:
+                    if self.processedCapacityMax[ip][loc] != 0:
+                        esM.sharedPotentialDict.setdefault(
+                            (self.sharedPotentialID, loc, ip), []
+                        ).append(self.name)
+
         if self.pwlcf is not None:
             pwlcfModel = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModel
             if not hasattr(esM, "pwlcfModel"):

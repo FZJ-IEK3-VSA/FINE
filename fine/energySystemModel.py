@@ -411,6 +411,7 @@ class EnergySystemModel:
         # The costUnit parameter (string) is the parameter in which all cost input parameter have to be specified.
         self.componentNames = {}
         self.componentModelingDict = {}
+        self.sharedPotentialDict = {}
         self.costUnit = costUnit
 
         ################################################################################################################
@@ -497,6 +498,18 @@ class EnergySystemModel:
                 + str(self.componentNames.keys())
             )
         modelingClass = self.componentNames[componentName]
+
+        # Remove component from sharedPotentialDict if present
+        keys_to_delete = [
+            key
+            for key, comps in self.sharedPotentialDict.items()
+            if componentName in comps
+        ]
+        for key in keys_to_delete:
+            self.sharedPotentialDict[key].remove(componentName)
+            if not self.sharedPotentialDict[key]:
+                del self.sharedPotentialDict[key]
+
         removedComp = dict()
         # If track: Return a dictionary including the name of the removed component and the component instance
         if track:
@@ -1509,22 +1522,6 @@ class EnergySystemModel:
             "Declaring shared potential constraint...", self.verboseLogLevel, 0
         )
 
-        # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
-        # potential)
-        potentialDict = {}
-        for ip in self.investmentPeriods:
-            for mdl in self.componentModelingDict.values():
-                for compName, comp in mdl.componentsDict.items():
-                    if comp.sharedPotentialID is not None:
-                        [
-                            potentialDict.setdefault(
-                                (comp.sharedPotentialID, loc, ip), []
-                            ).append(compName)
-                            for loc in comp.processedLocationalEligibility.index
-                            if comp.processedCapacityMax[ip][loc] != 0
-                        ]
-        pyM.sharedPotentialDict = potentialDict
-
         # Define and initialize constraints for each instance and location where components have to share an available
         # potential. Sum up the relative contributions to the shared potential and ensure that the total share is
         # <= 100%. For this, get the contributions to the shared potential for the corresponding ID and
@@ -1539,7 +1536,7 @@ class EnergySystemModel:
             )
 
         pyM.ConstraintSharedPotentials = pyomo.Constraint(
-            pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
+            self.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
         )
 
     def declareComponentLinkedQuantityConstraints(self, pyM):

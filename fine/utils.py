@@ -530,32 +530,23 @@ def checkLocationSpecficDesignInputParams(comp, esM):
         for loc in capacityFix[ip].index:
             fixedShareSum = capacityFix[ip].loc[loc] / capacityMax[ip].loc[loc]
 
-            for mdl in esM.componentModelingDict.values():
-                for otherComp in mdl.componentsDict.values():
-                    if otherComp.sharedPotentialID != sharedPotentialID:
-                        continue
+            for otherCompName in esM.sharedPotentialDict.get(
+                (sharedPotentialID, loc, ip), []
+            ):
+                if otherCompName == comp.name:
+                    continue
 
-                    if otherComp.name == comp.name:
-                        continue
+                otherComp = esM.getComponent(otherCompName)
+                otherCapacityFix = otherComp.processedCapacityFix[ip]
+                otherCapacityMax = otherComp.processedCapacityMax[ip]
 
-                    otherCapacityFix = otherComp.processedCapacityFix[ip]
-                    otherCapacityMax = otherComp.processedCapacityMax[ip]
+                if otherCapacityFix is None or otherCapacityMax is None:
+                    continue
 
-                    if otherCapacityFix is None or otherCapacityMax is None:
-                        continue
+                if loc not in otherCapacityFix.index:
+                    continue
 
-                    if loc not in otherCapacityFix.index:
-                        continue
-
-                    fixedShareSum += (
-                        otherCapacityFix.loc[loc] / otherCapacityMax.loc[loc]
-                    )
-
-            print("DEBUG")
-            print(sharedPotentialID)
-            print(capacityFix)
-            print(capacityMax)
-            print(fixedShareSum)
+                fixedShareSum += otherCapacityFix.loc[loc] / otherCapacityMax.loc[loc]
 
             if fixedShareSum > 1:
                 raise ValueError(
