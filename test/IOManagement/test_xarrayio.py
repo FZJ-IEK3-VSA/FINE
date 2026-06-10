@@ -318,9 +318,11 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
-    optSum = esM.getOptimizationSummary("TransmissionModel").loc[
-        "DC cables", "operation", "[GW$_{el}$*h]"
-    ].dropna(how="all")
+    optSum = (
+        esM.getOptimizationSummary("TransmissionModel")
+        .loc["DC cables", "operation", "[GW$_{el}$*h]"]
+        .dropna(how="all")
+    )
     xrRes = (
         xrds["Results"][0]["TransmissionModel"]["DC cables"]
         .operation.to_series()
