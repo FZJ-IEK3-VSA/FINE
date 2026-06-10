@@ -3033,7 +3033,7 @@ class ImplementedSolvers:
     GLPK = _Solver("glpk")
     GUROBI = _Solver("gurobi")
     HIGHS = _Solver("highs")
-    STANDARD_SOLVER = _Solver("gurobi")  # Use Gurobi if available, otherwise use GLPK
+    STANDARD_SOLVER = _Solver("gurobi")  # Use Gurobi if available, otherwise use highs
 
     @staticmethod
     def _gurobi_available():
@@ -3072,4 +3072,4 @@ class ImplementedSolvers:
         if cls._gurobi_available():
             cls.STANDARD_SOLVER.value = cls.GUROBI.value
         else:
-            cls.STANDARD_SOLVER.value = cls.GLPK.value
+            cls.STANDARD_SOLVER.value = cls.HIGHS.value
