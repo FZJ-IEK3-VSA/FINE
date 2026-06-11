@@ -147,41 +147,26 @@ def test_compareResults_miniSystem(minimal_test_esM):
     compareTwoExcelFiles(pathWithSegmentation_expected, pathWithSegmentation_output)
 
 
-# def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
-#     module_directory = Path(__file__).parent.absolute()
-#     dataPath = os.path.join(module_directory, "..", "data") # noqa: PTH118
+def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
+    module_directory = Path(__file__).parent.absolute()
+    dataPath = os.path.join(module_directory, "..", "data") # noqa: PTH118
 
-#     # create new result excel files
-#     pathMultiNode_output = os.path.join(dataPath, "output_result_multinode") # noqa: PTH118
-#     saveExcelResults(
-#         multi_node_test_esM_init,
-#         pathMultiNode_output,
-#     )
+    # create new result excel files
+    pathMultiNode_output = os.path.join(dataPath, "output_result_multinode") # noqa: PTH118
+    saveExcelResults(
+        multi_node_test_esM_init,
+        pathMultiNode_output,
+    )
 
-#     # compare to correct result excel files
-#     # In the change from Pandas 1.X to 2.X there have been changes in how excel
-#     # files are treated.  We could not identify the underlying changes yet.
-#     # Therfore we include different references which only differ in the total
-#     # operation for location 1 by a very small percentage: PV Operation Sum:
-#     # 1.X: 69472.8, 2.X: 69471.2 Wind (onshore) Operation Sum: 1.X: 282041.2,
-#     # 2.X: 282042.9
-#     # -- KK
-#     pathMultiNodeExcel_output = pathMultiNode_output + ".xlsx"
-#     pathMultiNodeExcel_expected = os.path.join( # noqa: PTH118
-#         dataPath, "expected_result_multinode.xlsx"
-#     )
-#     pathMultiNodeExcel_expected_pandas1 = os.path.join( # noqa: PTH118
-#         dataPath, "expected_result_multinode_pandas1.xlsx"
-#     )  # An adaptation of the expected output was necessary due to the changes in MR 368 / Issue 367 which affected the storage (if there is self-discharge and no precise TSA)
-
-#     try:
-#         compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)
-#     except ValueError:
-#         compareTwoExcelFiles(
-#             pathMultiNodeExcel_expected_pandas1, pathMultiNodeExcel_output
-#         )
-
-
+    pathMultiNodeExcel_output = pathMultiNode_output + ".xlsx"
+    
+    pathMultiNodeExcel_expected = os.path.join( # noqa: PTH118
+        dataPath, "expected_result_multinode.xlsx"
+    )
+    
+    compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)
+    
+    
 def compareTwoExcelFiles(path1, path2):
     xl = pd.ExcelFile(path1)
 
