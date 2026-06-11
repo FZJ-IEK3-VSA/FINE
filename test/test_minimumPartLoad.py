@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 import pytest
 
+from fine.utils import ImplementedSolvers
+
 
 HEAT_GRID_PRICE = 0.5
 GAS_PRICE = 0.1
@@ -124,7 +126,7 @@ def test_minimumPartLoad():
     restricted component should not run under 4 GW.
     """
     # read in original results
-    results = [4.0, 4.0, 0.0, 0.0, 4.0]
+    results = [5.0, 5.0, 0.0, 0.0, 4.0]
 
     # 2. Create an energy system model instance
     locations = {"example_region"}
@@ -168,7 +170,7 @@ def test_minimumPartLoad():
             hasCapacityVariable=True,
             investPerCapacity=0.65,
             opexPerCapacity=0.021,
-            opexPerOperation=0.01 / 8760,
+            opexPerOperation=0.03 / 8760,
             interestRate=0.08,
             economicLifetime=33,
         )
@@ -182,6 +184,7 @@ def test_minimumPartLoad():
             name="restricted",
             physicalUnit=r"GW$_{el}$",
             commodityConversionFactors={"electricity": 1, "methane": -1 / 0.625},
+            hasIsBuiltBinaryVariable=True,
             capacityFix=data_cap,
             partLoadMin=0.4,
             bigM=10000,
@@ -202,7 +205,10 @@ def test_minimumPartLoad():
             operationRateFix=data_demand_df,
         )
     )
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     print("restricted dispatch:\n")
     print(

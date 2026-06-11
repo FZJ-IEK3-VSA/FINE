@@ -3,9 +3,12 @@ from pathlib import Path
 import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
+import logging
 
 from fine import utils
 from fine.IOManagement import dictIO, utilsIO
+
+logger = logging.getLogger(__name__)
 
 
 def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
@@ -27,44 +30,18 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     # STEP 1. Get the esm and component dicts
     esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
 
-    # STEP 2. Get the iteration dicts
-    ip = esM.investmentPeriods
-    (
-        df_iteration_dict,
-        series_iteration_dict,
-        constants_iteration_dict,
-    ) = utilsIO.generateIterationDicts(component_dict, ip)
-
-    # STEP 3. Initiate xarray dataset
-    xr_dss = dict.fromkeys(component_dict.keys())
-    for classname in component_dict:
-        xr_dss[classname] = {
-            component: xr.Dataset() for component in component_dict[classname]
-        }
-
-    # STEP 3.1 get _mapC for all transmission components
+    # STEP 2. get _mapC for all transmission components
     _mapC_dict = {}
     for transmission_class in ["LinearOptimalPowerFlow", "Transmission"]:
         for tech in component_dict[transmission_class].keys():
             _mapC_dict[tech] = esM.getComponent(tech)._mapC
 
-    # STEP 4. Add all df variables to xr_ds
-    xr_dss = utilsIO.addDFVariablesToXarray(
-        xr_dss, component_dict, df_iteration_dict, _mapC_dict, list(esM.locations)
+    # STEP 3. Convert component_dict into per-component xarray datasets
+    xr_dss = utilsIO.convertComponentDictToXarrayDict(
+        component_dict, _mapC_dict, sorted(esm_dict["locations"])
     )
 
-    # STEP 5. Add all series variables to xr_ds
-    locations = sorted(esm_dict["locations"])
-    xr_dss = utilsIO.addSeriesVariablesToXarray(
-        xr_dss, component_dict, series_iteration_dict, locations
-    )
-
-    # STEP 6. Add all constant value variables to xr_ds
-    xr_dss = utilsIO.addConstantsToXarray(
-        xr_dss, component_dict, constants_iteration_dict, useProcessedValues
-    )
-
-    # STEP 7. Add the data present in esm_dict as xarray attributes
+    # STEP 4. Add the data present in esm_dict as xarray attributes
     # (These attributes contain esM init info).
     attributes_xr = xr.Dataset()
     attributes_xr.attrs = esm_dict
@@ -79,7 +56,7 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
     # convert datetime to string
     for idx, value in df.items():
         if isinstance(value, pd.Timestamp):
-            print(value)
+            logger.debug("Converting timestamp: %s", value)
             df.loc[idx] = value.strftime("%Y-%m-%d %H:%M:%S")
     summary_dict = df.to_dict()
     summary_xr = xr.Dataset()
@@ -142,6 +119,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
                             combine_attrs="drop_conflicts",
+                            join="outer",
                         )
             elif esM.componentModelingDict[name].dimension == "2dim":
                 for component in optSum.index.get_level_values(0).unique():
@@ -174,6 +152,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
                             combine_attrs="drop_conflicts",
+                            join="outer",
                         )
 
             # Write output from esM.esM.componentModelingDict[name].getOptimalValues() to datasets
@@ -204,7 +183,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df.index.rename(["time", "location"], inplace=True)
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da]
+                            [xr_dss[ip][name][component], xr_da],
+                            join="outer",
                         )
             # Two dimensional time dependent data
             if dataTD2dim:
@@ -224,7 +204,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df.index = df.index.reorder_levels([2, 0, 1])
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da]
+                            [xr_dss[ip][name][component], xr_da], join="outer"
                         )
             # Time independent data
             if dataTI:
@@ -242,7 +222,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df.index.rename("location", inplace=True)
                             xr_da = df.to_xarray()
                             xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da]
+                                [xr_dss[ip][name][component], xr_da], join="outer"
                             )
                 # Two dimensional
                 elif esM.componentModelingDict[name].dimension == "2dim":
@@ -258,7 +238,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             df.index.rename(["locationIn", "locationOut"], inplace=True)
                             xr_da = df.to_xarray()
                             xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da]
+                                [xr_dss[ip][name][component], xr_da], join="outer"
                             )
 
         for name in esM.componentModelingDict.keys():
@@ -1000,6 +980,8 @@ def writeEnergySystemModelToNetCDF(
     overwriteExisting=False,
     optSumOutputLevel=0,
     groupPrefix=None,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
 ):
     """Write energySystemModel (input and if exists, output) to netCDF file.
 
@@ -1027,6 +1009,14 @@ def writeEnergySystemModelToNetCDF(
         |br| * the default value is None
     :type group_prefix: string
 
+    :param includeShadowPrices: Whether to include shadow prices in the output netCDF file.
+        |br| * the default value is False
+    :type includeShadowPrices: boolean
+
+    :param shadowPriceConstraintStr: The string to identify the constraints for which shadow prices should be included.
+        |br| * the default value is "commodityBalanceConstraint"
+    :type shadowPriceConstraintStr: string
+
     :return: Nested dictionary containing xr.Dataset with all result values
         for each component.
     :rtype: Dict[str, Dict[str, xr.Dataset]]
@@ -1047,17 +1037,34 @@ def writeEnergySystemModelToNetCDF(
             xr_dss_output["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
             ]
-            print(xr_dss_output.keys())
+        if includeShadowPrices:
+            xr_dss_shadowPrices = utilsIO.getShadowPriceXarray(
+                esM, constraint_str=shadowPriceConstraintStr
+            )
+            xr_dss_output["ShadowPrices"] = xr_dss_shadowPrices
+        logger.debug("Output datasets keys: %s", list(xr_dss_output.keys()))
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0)
 
 
-def writeEnergySystemModelToDatasets(esM):
+def writeEnergySystemModelToDatasets(
+    esM,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
+):
     """Convert esM instance (input and output) into a xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
+
+    :param includeShadowPrices: Whether to include shadow prices in the output xarray dataset.
+        |br| * the default value is False
+    :type includeShadowPrices: boolean
+
+    :param shadowPriceConstraintStr: The string to identify the constraints for which shadow prices should be included.
+        |br| * the default value is "commodityBalanceConstraint"
+    :type shadowPriceConstraintStr: string
 
     :return: xr_dss_results - esM instance (input and output) data in xarray
         dataset format
@@ -1066,21 +1073,23 @@ def writeEnergySystemModelToDatasets(esM):
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
         xr_dss_input = convertOptimizationInputToDatasets(esM)
+
+        xr_dss_results = {
+            "Results": xr_dss_output["Results"],
+            "Input": xr_dss_input["Input"],
+            "Parameters": xr_dss_input["Parameters"],
+        }
         if hasattr(esM, "performanceSummary"):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
+            xr_dss_results["PerformanceSummary"] = xr_dss_performance[
+                "PerformanceSummary"
+            ]
 
-            xr_dss_results = {
-                "Results": xr_dss_output["Results"],
-                "Input": xr_dss_input["Input"],
-                "Parameters": xr_dss_input["Parameters"],
-                "PerformanceSummary": xr_dss_performance["PerformanceSummary"],
-            }
-        else:
-            xr_dss_results = {
-                "Results": xr_dss_output["Results"],
-                "Input": xr_dss_input["Input"],
-                "Parameters": xr_dss_input["Parameters"],
-            }
+        if includeShadowPrices:
+            xr_dss_shadowPrices = utilsIO.getShadowPriceXarray(
+                esM, constraint_str=shadowPriceConstraintStr
+            )
+            xr_dss_results["ShadowPrices"] = xr_dss_shadowPrices
     else:
         xr_dss_input = convertOptimizationInputToDatasets(esM)
         xr_dss_results = {

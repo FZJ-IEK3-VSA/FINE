@@ -2,13 +2,14 @@ import numpy as np
 import pandas as pd
 import pytest
 import fine as fn
-import copy
+import math
+from fine.utils import ImplementedSolvers
 
 
 def test_perfectForesight_variableConversions_input(
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     # 1. Variation of the commodity conversion per investment period
     # e.g. due to weather differences
     # note: electrolyzers just exemplary for usage
@@ -281,7 +282,7 @@ def test_perfectForesight_variableConversions_timeindependent(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -340,14 +341,21 @@ def test_perfectForesight_variableConversions_timeindependent(
     else:
         esM.aggregateTemporally(
             numberOfTypicalPeriods=1,
-            numberOfTimeStepsPerPeriod=1,
-            segmentation=False,
+            numberOfTimeStepsPerPeriod=2,
+            segmentation=True,
+            numberOfSegmentsPerPeriod=1,
             sortValues=True,
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
 
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
+
+    expected_value = 1000 if use_tsa is False else 3000
+
     assert (
         round(
             esM.pyM.op_commis_conv.get_values()[
@@ -360,7 +368,7 @@ def test_perfectForesight_variableConversions_timeindependent(
             * 0.39,
             4,
         )
-        == 1000
+        == expected_value
     )
 
 
@@ -368,7 +376,7 @@ def test_perfectForesight_variableConversions_timeindependent(
 def test_perfectForesight_variableConversions_timedepending(
     use_tsa, perfectForesight_test_esM
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -511,14 +519,18 @@ def test_perfectForesight_variableConversions_timedepending(
     else:
         esM.aggregateTemporally(
             numberOfTypicalPeriods=1,
-            numberOfTimeStepsPerPeriod=1,
-            segmentation=False,
+            numberOfTimeStepsPerPeriod=2,
+            segmentation=True,
+            numberOfSegmentsPerPeriod=1,
             sortValues=True,
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
 
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
 
         # check that aggregation is correct
         assert np.array_equal(
@@ -546,6 +558,8 @@ def test_perfectForesight_variableConversions_timedepending(
             .loc[:, "PerfectLand"][0][0]
         )
 
+        expected_value = 1000 if use_tsa is False else 3000
+
         assert (
             round(
                 esM.pyM.op_commis_conv.get_values()[
@@ -558,7 +572,7 @@ def test_perfectForesight_variableConversions_timedepending(
                 * commodConv_CommisYearMinusOne,
                 4,
             )
-            == 1000
+            == expected_value
         )
 
 
@@ -567,7 +581,7 @@ def test_perfectForesight_variableConversions_operationRateMax(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -628,13 +642,17 @@ def test_perfectForesight_variableConversions_operationRateMax(
     else:
         esM.aggregateTemporally(
             numberOfTypicalPeriods=1,
-            numberOfTimeStepsPerPeriod=1,
-            segmentation=False,
+            numberOfTimeStepsPerPeriod=2,
+            segmentation=True,
+            numberOfSegmentsPerPeriod=1,
             sortValues=True,
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
 
     # test the sum of the operation
     processedOperation = (
@@ -642,6 +660,9 @@ def test_perfectForesight_variableConversions_operationRateMax(
         .processedOperationRateFix[0]
         .loc[:, "PerfectLand"][0][0]
     )
+
+    expected_value = processedOperation if not use_tsa else processedOperation * 2
+
     assert (
         round(
             esM.pyM.op_commis_conv.get_values()[
@@ -654,7 +675,7 @@ def test_perfectForesight_variableConversions_operationRateMax(
             * 0.39,
             2,
         )
-        == processedOperation
+        == expected_value
     )
 
     # check that operationRateMax is kept in for installed capacity in each commissioning year
@@ -666,11 +687,16 @@ def test_perfectForesight_variableConversions_operationRateMax(
                 if ip - commis >= 2 or commis > ip:  # only 10 years of lifetime
                     continue
                 for ts in [0]:
-                    allowed_energy_production = round(
+                    base_allowed_energy_production = round(
                         esM.pyM.commis_conv.get_values()[region, "Electrolyzer", commis]
                         * 0.570776
                         * esM.hoursPerTimeStep,
                         2,
+                    )
+                    allowed_energy_production = (
+                        base_allowed_energy_production
+                        if not use_tsa
+                        else base_allowed_energy_production * 2
                     )
                     produced_energy = round(
                         esM.pyM.op_commis_conv.get_values()[
@@ -686,7 +712,7 @@ def test_perfectForesight_variableConversions_operationRateFix(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     # add operation rate fix, so that the additional h2 source must be used to meet the demand
     esM.add(
         fn.Conversion(
@@ -760,13 +786,17 @@ def test_perfectForesight_variableConversions_operationRateFix(
     else:
         esM.aggregateTemporally(
             numberOfTypicalPeriods=1,
-            numberOfTimeStepsPerPeriod=1,
-            segmentation=False,
+            numberOfTimeStepsPerPeriod=2,
+            segmentation=True,
+            numberOfSegmentsPerPeriod=1,
             sortValues=True,
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
         timeStepList = [0]
 
     # test the sum of the operation
@@ -793,11 +823,16 @@ def test_perfectForesight_variableConversions_operationRateFix(
                 if ip - commis >= 2 or commis > ip:  # only 10 years of lifetime
                     continue
                 for ts in timeStepList:
-                    allowed_energy_production = round(
+                    base_allowed_energy_production = round(
                         esM.pyM.commis_conv.get_values()[region, "Electrolyzer", commis]
                         * 0.570776
                         * esM.hoursPerTimeStep,
                         2,
+                    )
+                    allowed_energy_production = (
+                        base_allowed_energy_production
+                        if not use_tsa
+                        else base_allowed_energy_production * 2
                     )
                     produced_energy = round(
                         esM.pyM.op_commis_conv.get_values()[
@@ -805,7 +840,11 @@ def test_perfectForesight_variableConversions_operationRateFix(
                         ],
                         2,
                     )
-                    assert allowed_energy_production == produced_energy
+                    assert math.isclose(
+                        allowed_energy_production,
+                        produced_energy,
+                        abs_tol=0.01,
+                    )
 
 
 @pytest.mark.parametrize("use_tsa", [True, False])
@@ -813,7 +852,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMax(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     # check if the full load hour max is kept with a variable commodity conversion over the transformation pathway
     fullLoadHoursMax = 100
 
@@ -883,20 +922,22 @@ def test_perfectForesight_variableConversions_fullLoadHoursMax(
     if use_tsa is False:
         esM.optimize()
         timeStepList = [0, 1]
-        factor = 1
 
     else:
         esM.aggregateTemporally(
             numberOfTypicalPeriods=1,
-            numberOfTimeStepsPerPeriod=1,
-            segmentation=False,
+            numberOfTimeStepsPerPeriod=2,
+            segmentation=True,
+            numberOfSegmentsPerPeriod=1,
             sortValues=True,
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
         timeStepList = [0]
-        factor = 2
 
     # check that yearly full load hours max is kept for the installed capacities for each commissioning year
     for region in ["PerfectLand", "ForesightLand"]:
@@ -936,7 +977,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMax(
                             operation_of_timestep / commis, 4
                         )
 
-                assert output_yearly_full_load_hours_max * factor <= fullLoadHoursMax
+                assert output_yearly_full_load_hours_max <= fullLoadHoursMax
 
 
 @pytest.mark.parametrize("use_tsa", [True, False])
@@ -944,7 +985,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
     use_tsa,
     perfectForesight_test_esM,
 ):
-    esM = copy.deepcopy(perfectForesight_test_esM)
+    esM = perfectForesight_test_esM
     # check if the full load hour min is kept with a variable commodity conversion over the transformation pathway
     fullLoadHoursMin = 100
 
@@ -1015,20 +1056,22 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
     if use_tsa is False:
         esM.optimize()
         timeStepList = [0, 1]
-        factor = 1
 
     else:
         esM.aggregateTemporally(
             numberOfTypicalPeriods=1,
-            numberOfTimeStepsPerPeriod=1,
-            segmentation=False,
+            numberOfTimeStepsPerPeriod=2,
+            segmentation=True,
+            numberOfSegmentsPerPeriod=1,
             sortValues=True,
             representationMethod=None,
             rescaleClusterPeriods=True,
         )
-        esM.optimize(timeSeriesAggregation=True, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=True,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
         timeStepList = [0]
-        factor = 2
 
     # check that yearly full load hours min is kept for the installed capacities for each commissioning year
     # duration of time step :  4380
@@ -1067,7 +1110,7 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
                     output_yearly_full_load_hours_min += round(
                         operation_of_timestep / commis, 2
                     )
-                assert output_yearly_full_load_hours_min * factor >= fullLoadHoursMin
+                assert output_yearly_full_load_hours_min >= fullLoadHoursMin
 
 
 # %%

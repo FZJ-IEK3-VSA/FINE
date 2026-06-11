@@ -1,8 +1,10 @@
+import logging
 import math
 import warnings
 
 import numpy as np
 import pandas as pd
+import gurobipy as gp
 
 import fine as fn
 
@@ -636,7 +638,7 @@ def checkInvestmentPeriodParameters(name, param, years):
             )
 
 
-def checkAndSetInvestmentPeriodParamters(name, param, esM):
+def checkAndSetInvestmentPeriodParameters(name, param, esM):
     """MISSING."""
     checkInvestmentPeriodParameters(name, param, esM.investmentPeriodNames)
     processedParam = {}
@@ -1270,14 +1272,16 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     """MISSING."""
-    assert not (isinstance(data, pd.Series) and data.isnull().any()), (
-        f"Initialization error in {name} detected.\n"
-        "Economic parameters contain NaN values which are not allowed."
-    )
-    assert not (isinstance(data, (int, float)) and pd.isnull(data)), (
-        f"Initialization error in {name} detected.\n"
-        "Economic parameters contain NaN values which are not allowed."
-    )
+    if isinstance(data, pd.Series) and data.isnull().any():
+        raise ValueError(
+            f"Initialization error in {name} detected.\n"
+            "Economic parameters contain NaN values which are not allowed."
+        )
+    if isinstance(data, (int, float)) and pd.isnull(data):
+        raise ValueError(
+            f"Initialization error in {name} detected.\n"
+            "Economic parameters contain NaN values which are not allowed."
+        )
     if dimension == "1dim":
         if not (
             isinstance(data, int)
@@ -2077,37 +2081,21 @@ def map2dimData(data, mapC):
 
 
 def output(output, verbose, val):
-    """Missing."""
+    """Output a message using logging.
+
+    :param output: The message to output
+    :type output: str
+    :param verbose: The current verbosity level
+    :type verbose: int
+    :param val: The verbosity threshold for this message (0 = INFO, >0 = DEBUG)
+    :type val: int
+    """
     if verbose == val:
-        print(output)
-
-
-def checkModelClassEquality(esM, file):
-    """Missing."""
-    mdlListFromModel = list(esM.componentModelingDict.keys())
-    mdlListFromExcel = []
-    for sheet in file.sheet_names:
-        mdlListFromExcel += [
-            cl
-            for cl in mdlListFromModel
-            if (cl[0:-5] in sheet and cl not in mdlListFromExcel)
-        ]
-    if set(mdlListFromModel) != set(mdlListFromExcel):
-        raise ValueError("Loaded Output does not match the given energy system model.")
-
-
-def checkComponentsEquality(esM, file):
-    """Missing."""
-    compListFromExcel = []
-    compListFromModel = list(esM.componentNames.keys())
-    for mdl in esM.componentModelingDict.keys():
-        dim = esM.componentModelingDict[mdl].dimension
-        readSheet = pd.read_excel(
-            file, sheet_name=mdl[0:-5] + "OptSummary_" + dim, index_col=[0, 1, 2, 3]
-        )
-        compListFromExcel += list(readSheet.index.levels[0])
-    if not set(compListFromExcel) <= set(compListFromModel):
-        raise ValueError("Loaded Output does not match the given energy system model.")
+        logger = logging.getLogger(__name__)
+        if val == 0:
+            logger.info(output)
+        else:
+            logger.debug(output)
 
 
 def checkNumberOfConversionFactors(commods):
@@ -2388,7 +2376,7 @@ def checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps):
     if CO2ReductionTargets is not None:
         if len(CO2ReductionTargets) != nbOfSteps + 1:
             raise ValueError(
-                "CO2ReductionTargets has to be None, or the lenght of the given list must equal the number \
+                "CO2ReductionTargets has to be None, or the length of the given list must equal the number \
  of optimization steps."
             )
 
@@ -2489,7 +2477,7 @@ def checkConversionFactorProperties(comp, esM, commisDependingCcf):
     # 0. get a copy of the commodityConversionFactors
     commodityConversionFactors = comp.commodityConversionFactors.copy()
 
-    # 1. check if the commodity conversion variates
+    # 1. check if the commodity conversion varies
     # a) not at all over transformation pathway
     # b) per investment period -> weather dependency
     # c) per commissioning year and investment period
@@ -2591,7 +2579,9 @@ def checkNestedNanValues(obj):
 
 def checkAndSetCommodityConversionFactor(comp, esM):
     """Set up the full commodity conversion factor, if necessary depending on
-    commissioning year and investment period.
+    commissioning year and investment period. Location-dependent parameter
+    can be provided as pandas.Series indexed by locations or pandas.DataFrame
+    with locations as columns and timesteps as index.
     """
     iterationList = esM.investmentPeriodNames
     commodityConversionFactors = comp.commodityConversionFactors.copy()
@@ -2622,7 +2612,11 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                     if item[0] in esM.commodities:
                         raise ValueError(
                             "Commodity group names must be different from commodity names. "
-                            f"Group name '{item[0]}' is not valid."
+                            f"Group name '{item[0]}' is not valid.\n"
+                            "Hint: If you want investment-period-dependent conversion factors, use:\n"
+                            "  {YEAR: {'electricity': ..., 'hydrogen': ...}, ...}\n"
+                            "and not:\n"
+                            "  {'hydrogen': {YEAR: ...}}"
                         )
                     commodities += list(item[1].keys())
                     commodTypes += [
@@ -2634,14 +2628,13 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                         raise ValueError(
                             f"Commodity conversion factors for '{item[0]}' contain NaN values."
                         )
-                    if not (
-                        all(ccf > 0 for ccf in item[1].values())
-                        or all(ccf < 0 for ccf in item[1].values())
-                    ):
-                        raise ValueError(
-                            f"All commodity conversion factors of {comp.name}"
-                            f" in commodity group '{item[0]}' must have the same sign."
-                        )
+                    vals = list(item[1].values())
+                    if not any(isinstance(v, (pd.Series, pd.DataFrame)) for v in vals):
+                        if not (all(v > 0 for v in vals) or all(v < 0 for v in vals)):
+                            raise ValueError(
+                                f"All commodity conversion factors of {comp.name}"
+                                f" in commodity group '{item[0]}' must have the same sign."
+                            )
                 else:
                     commodities.append(item[0])
                     commodTypes.append(type(item[1]))
@@ -2654,6 +2647,15 @@ def checkAndSetCommodityConversionFactor(comp, esM):
             ]
 
             for key, value in ccf.items():
+                if isinstance(value, dict):
+                    raise ValueError(
+                        f"{comp.name}: Invalid commodityConversionFactors format: found a nested dict under key '{key}'. "
+                        "If you want investment-period-dependent conversion factors, use:\n"
+                        "  {YEAR: {'electricity': ..., 'hydrogen': ...}, ...}\n"
+                        "and not:\n"
+                        "  {'hydrogen': {YEAR: ...}}"
+                    )
+
                 if isinstance(value, float) and math.isnan(value):
                     raise ValueError(f"NaN found at key '{key}'")
 
@@ -2666,6 +2668,9 @@ def checkAndSetCommodityConversionFactor(comp, esM):
 
         checkCommodities(esM, set(commodities))
         return commodTypes
+
+    def isLocationSeries(series):
+        return set(series.index) <= set(esM.locations)
 
     if comp.isIpDepending or comp.isCommisDepending:
         commodTypesList = []
@@ -2681,8 +2686,7 @@ def checkAndSetCommodityConversionFactor(comp, esM):
     else:
         checkFactorCommod(commodityConversionFactors)
 
-    # 3. Setup of fullCommodityConversionFactor, processedConversionFactor
-    # and preprocessedConversionFactor
+    # 3. Setup of fullCommodityConversionFactor, processedConversionFactor and preprocessedConversionFactor
     fullCommodityConversionFactor = {}
     processedCommodityConversionFactor = {}
     preprocessedCommodityConversionFactor = {}
@@ -2745,21 +2749,36 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                         )
             else:
                 commod = key
-                if isinstance(
-                    _commodityConversionFactors[commod], (pd.Series, pd.DataFrame)
-                ):
+                _factor = _commodityConversionFactors[commod]
+                if isinstance(_factor, pd.Series):
+                    if isLocationSeries(_factor):
+                        processedCommodityConversionFactor[newKeyName][commod] = (
+                            checkRegionalIndex(
+                                esM, _factor.copy(), comp.locationalEligibility
+                            )
+                        )
+                        preprocessedCommodityConversionFactor[newKeyName][commod] = (
+                            processedCommodityConversionFactor[newKeyName][commod]
+                        )
+                    else:
+                        fullCommodityConversionFactor[newKeyName][commod] = (
+                            checkAndSetTimeSeriesConversionFactors(
+                                esM, _factor, comp.locationalEligibility
+                            )
+                        )
+                        preprocessedCommodityConversionFactor[newKeyName][commod] = (
+                            fullCommodityConversionFactor[newKeyName][commod]
+                        )
+                elif isinstance(_factor, pd.DataFrame):
                     fullCommodityConversionFactor[newKeyName][commod] = (
                         checkAndSetTimeSeriesConversionFactors(
-                            esM,
-                            _commodityConversionFactors[commod],
-                            comp.locationalEligibility,
+                            esM, _factor, comp.locationalEligibility
                         )
                     )
                     preprocessedCommodityConversionFactor[newKeyName][commod] = (
                         fullCommodityConversionFactor[newKeyName][commod]
                     )
-
-                elif isinstance(_commodityConversionFactors[commod], (int, float)):
+                elif isinstance(_factor, (int, float)):
                     # fix values do not need a time-series aggregation and are written
                     # directly to processedCommodityConversion
                     processedCommodityConversionFactor[newKeyName][commod] = (
@@ -2999,3 +3018,58 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
         hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval,
         hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval,
     )
+
+
+class _Solver:
+    """Solver identifier with mutable value."""
+
+    def __init__(self, value):
+        self.value = value
+
+
+class ImplementedSolvers:
+    """Implemented solvers."""
+
+    GLPK = _Solver("glpk")
+    GUROBI = _Solver("gurobi")
+    HIGHS = _Solver("highs")
+    STANDARD_SOLVER = _Solver("gurobi")  # Use Gurobi if available, otherwise use highs
+
+    @staticmethod
+    def _gurobi_available():
+        """Check if Gurobi is installed with a valid full (non-size-limited) license.
+
+        Creates a Gurobi model that exceeds the 2000-variable limit of the
+        restricted license bundled with the gurobipy pip package, then tries
+        to optimize it.  If creating the environment fails, no license is
+        available at all; if optimize fails, only the restricted license is
+        present.  Model and environment are properly disposed of so that
+        license tokens are released.
+
+        See https://support.gurobi.com/hc/en-us/articles/4424054948881
+        """
+        env = None
+        model = None
+        try:
+            env = gp.Env(empty=True)
+            env.setParam("OutputFlag", 0)
+            env.start()
+            model = gp.Model(env=env)
+            model.addVars(2001)
+            model.optimize()
+            return True
+        except gp.GurobiError:
+            return False
+        finally:
+            if model is not None:
+                model.close()
+            if env is not None:
+                env.close()
+
+    @classmethod
+    def set_standard_solver(cls):
+        """Detect available solver and set STANDARD_SOLVER accordingly."""
+        if cls._gurobi_available():
+            cls.STANDARD_SOLVER.value = cls.GUROBI.value
+        else:
+            cls.STANDARD_SOLVER.value = cls.HIGHS.value

@@ -1,0 +1,49 @@
+/* FINE brand colors based on FZ Jülich / ETHOS palette */
+[data-md-color-scheme="default"] {
+    --md-primary-fg-color: #003865;
+    --md-primary-fg-color--light: #1a5490;
+    --md-primary-fg-color--dark: #002244;
+    --md-accent-fg-color: #e87722;
+}
+
+[data-md-color-scheme="slate"] {
+    --md-primary-fg-color: #1a5490;
+    --md-primary-fg-color--light: #2d6fb5;
+    --md-primary-fg-color--dark: #003865;
+    --md-accent-fg-color: #e87722;
+}
+
+/* Improve table styling */
+.md-typeset table:not([class]) {
+    font-size: 0.85rem;
+}
+
+/* Math equation spacing */
+.arithmatex {
+    overflow-x: auto;
+}
+
+/* Expand header to fit larger logo */
+.md-header {
+    height: auto !important;
+}
+
+.md-header__inner {
+    height: auto !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+}
+
+/* Logo size matching README display (180px wide) */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+    width: 180px !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+/* README logo in dark mode: invert the dark-blue logo to white so it
+   remains legible on the dark page background */
+[data-md-color-scheme="slate"] .md-content img[alt="ETHOS.FINE logo"] {
+    filter: brightness(0) invert(1);
+}
