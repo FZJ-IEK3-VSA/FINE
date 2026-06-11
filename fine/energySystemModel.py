@@ -9,6 +9,7 @@ import gurobi_logtools as glt
 import pandas as pd
 import psutil
 import pyomo.environ as pyomo
+from pyomo.common.errors import ApplicationError
 from pyomo import opt
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
@@ -2048,7 +2049,7 @@ class EnergySystemModel:
         if solver != "None":
             try:
                 opt.SolverFactory(solver).available()
-            except Exception:
+            except (ApplicationError, ValueError, OSError):
                 solver = "None"
 
         if solver == "None":
@@ -2064,7 +2065,7 @@ class EnergySystemModel:
                                 self.verboseLogLevel,
                                 0,
                             )
-                    except Exception:
+                    except (ApplicationError, ValueError, OSError):
                         pass
 
         if solver == "None":

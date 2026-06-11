@@ -320,7 +320,7 @@ def addDFVariablesToXarray(
                     xr_ds[this_class][this_comp] = xr.merge(
                         [xr_ds[this_class][this_comp], this_ds_component]
                     )
-                except Exception:
+                except KeyError:
                     pass
             return xr_ds
 
@@ -421,7 +421,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                     xr_ds[this_class][this_comp] = xr.merge(
                         [xr_ds[this_class][this_comp], this_ds_component]
                     )
-                except Exception:
+                except KeyError:
                     pass
 
         if len(space_dict) > 0:
@@ -446,7 +446,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                         [xr_ds[this_class][this_comp], this_ds_component],
                         compat="no_conflicts",
                     )
-                except Exception:
+                except KeyError:
                     pass
 
         if len(time_dict) > 0:
@@ -471,7 +471,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
                         [xr_ds[this_class][this_comp], this_ds_component],
                         compat="no_conflicts",
                     )
-                except Exception:
+                except KeyError:
                     pass
 
     return xr_ds
@@ -534,7 +534,7 @@ def addConstantsToXarray(
                 xr_ds[this_class][this_comp] = xr.merge(
                     [xr_ds[this_class][this_comp], this_ds_component]
                 )
-            except Exception:
+            except KeyError:
                 pass
 
     return xr_ds
