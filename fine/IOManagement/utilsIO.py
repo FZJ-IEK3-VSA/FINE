@@ -271,7 +271,12 @@ def convertComponentDictToXarrayDict(component_dict, _mapC_dict, locations):
     for classname in component_dict:
         xr_dss[classname] = {}
         for component in component_dict[classname]:
-            data_arrays = []
+            # Collect leaves grouped by base variable name.
+            # For ip-dependent variables (integer at key-path position 1),
+            # all ip slices share the same base_name and are later merged into one
+            # DataArray with an "ip" coordinate dimension.
+            # leaf_groups: base_name -> [(prefix, indexed_data, ip_or_None)]
+            leaf_groups = {}
             for variable_description in component_dict[classname][component].keys():
                 # a single variable may expand into several leaves (e.g. ip- or
                 # commodity-dependent commodityConversionFactors)
@@ -287,15 +292,56 @@ def convertComponentDictToXarrayDict(component_dict, _mapC_dict, locations):
                         data, classname, component, _mapC_dict, locations
                     )
 
+                    base_name, ip = _get_base_name_and_ip(variable_name)
+                    if base_name not in leaf_groups:
+                        leaf_groups[base_name] = []
+                    leaf_groups[base_name].append((prefix, indexed_data, ip))
+
+            # Convert grouped leaves to named DataArrays
+            data_arrays = []
+            for base_name, leaves in leaf_groups.items():
+                ips = [ip for _, _, ip in leaves]
+                prefix = leaves[0][0]
+
+                if len(leaves) == 1 and ips[0] is None:
+                    # Non-ip-dependent leaf
+                    _, indexed_data, _ = leaves[0]
                     if isinstance(indexed_data, pd.Series):
-                        data_array = indexed_data.sort_index().to_xarray()
+                        da = indexed_data.sort_index().to_xarray()
                     else:
-                        data_array = xr.DataArray(indexed_data)
+                        da = xr.DataArray(indexed_data)
                     # collapse length-1 dimensions (e.g. space for single-location
                     # components) into scalar coordinates, as the read side expects
-                    data_array = data_array.squeeze()
-                    data_array.name = f"{prefix}{variable_name}"
-                    data_arrays.append(data_array)
+                    da = da.squeeze()
+                    da.name = f"{prefix}{base_name}"
+                    data_arrays.append(da)
+
+                elif all(ip is not None for ip in ips):
+                    # ip-dependent: combine all ip slices into one DataArray with ip dim
+                    ip_das = []
+                    for p, indexed_data, ip in sorted(leaves, key=lambda x: x[2]):
+                        if isinstance(indexed_data, pd.Series):
+                            da = indexed_data.sort_index().to_xarray()
+                        else:
+                            da = xr.DataArray(indexed_data)
+                        da = da.squeeze()
+                        da = da.expand_dims(ip=[str(ip)])
+                        ip_das.append(da)
+                    combined = xr.concat(ip_das, dim="ip")
+                    combined.name = f"{prefix}{base_name}"
+                    data_arrays.append(combined)
+
+                else:
+                    # Mixed (some ip, some not) - write with full variable name
+                    for p, indexed_data, ip in leaves:
+                        if isinstance(indexed_data, pd.Series):
+                            da = indexed_data.sort_index().to_xarray()
+                        else:
+                            da = xr.DataArray(indexed_data)
+                        da = da.squeeze()
+                        var_name = f"{base_name}.{ip}" if ip is not None else base_name
+                        da.name = f"{p}{var_name}"
+                        data_arrays.append(da)
 
             # outer-join all per-variable DataArrays into the component dataset
             xr_dss[classname][component] = xr.merge(data_arrays, compat="no_conflicts")
