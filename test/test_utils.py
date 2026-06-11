@@ -225,22 +225,22 @@ def test_check_and_set_cost_parameter():
 
 
 def positive_factor(x):
-    """Always positive in the interval [0, 1]."""
+    """Return a positive value in the interval [0, 1]."""
     return 0.5 + x
 
 
 def zero_factor(_):
-    """Always zero."""
+    """Return zero."""
     return 0
 
 
 def negative_factor(_):
-    """Always negative."""
+    """Return a negative value."""
     return -1
 
 
 def crossing_factor(x):
-    """Crosses zero within the interval [0, 1]."""
+    """Return values crossing zero within the interval [0, 1]."""
     return x - 0.5
 
 
@@ -253,13 +253,8 @@ def crossing_factor(x):
         (crossing_factor, True),
     ],
 )
-def test_checkCallableConversionFactor(
-    conversion_factor,
-    should_raise,
-):
-    """
-    Test checkCallableConversionFactor for valid and invalid callable
-    conversion factors.
+def test_checkCallableConversionFactor(conversion_factor, should_raise):
+    """Test checkCallableConversionFactor for valid and invalid callables.
 
     The function should accept conversion factors that are strictly positive
     over the entire part-load range [0, 1] and raise a ValueError if the
