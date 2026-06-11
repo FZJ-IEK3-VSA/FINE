@@ -22,6 +22,7 @@ class Storage(Component):
         cyclicLifetime=None,
         stateOfChargeMin=0,
         stateOfChargeMax=1,
+        stateOfChargeBoundary="cyclic",
         hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -133,6 +134,15 @@ class Storage(Component):
               to match the in the energy system model  specified time steps. The column indices have to match the
               in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
+
+        :param stateOfChargeBoundary: determines how the state of charge is linked at temporal boundaries.
+            If "cyclic", the state of charge at the beginning and end of each investment period is equal.
+            If "interInvestmentPeriod", the state of charge at the end of each investment period is equal
+            to the state of charge at the beginning of the next investment period; the last investment
+            period is linked back to the first one.
+            This option is currently only supported without time series aggregation.
+            |br| * the default value is "cyclic"
+        :type stateOfChargeBoundary: string
 
         :param doPreciseTsaModeling: determines whether the state of charge is limited precisely (True) or
             with a simplified method (False). The error is small if the selfDischarge is small.
@@ -306,6 +316,12 @@ class Storage(Component):
         self.cyclicLifetime = cyclicLifetime
         self.stateOfChargeMin = stateOfChargeMin
         self.stateOfChargeMax = stateOfChargeMax
+        if stateOfChargeBoundary not in ["cyclic", "interInvestmentPeriod"]:
+            raise ValueError(
+                "The stateOfChargeBoundary parameter must be either 'cyclic' "
+                "or 'interInvestmentPeriod'."
+            )
+        self.stateOfChargeBoundary = stateOfChargeBoundary
         self.isPeriodicalStorage = isPeriodicalStorage
         self.doPreciseTsaModeling = doPreciseTsaModeling
         self.socOffsetUp = socOffsetUp
@@ -938,7 +954,7 @@ class StorageModel(ComponentModel):
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
         """
-        abbrvName = self.abbrvName
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
         SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
         offsetUp = getattr(pyM, "stateOfChargeOffsetUp_" + abbrvName)
@@ -947,6 +963,8 @@ class StorageModel(ComponentModel):
         if not pyM.hasTSA:
 
             def cyclicState(pyM, loc, compName, ip, p):
+                if compDict[compName].stateOfChargeBoundary != "cyclic":
+                    return pyomo.Constraint.Skip
                 offsetUp_ = (
                     offsetUp[loc, compName, 0] if (loc, compName, 0) in offsetUp else 0
                 )
@@ -964,6 +982,8 @@ class StorageModel(ComponentModel):
 
             # tests for testing the storage class with ip and TSAM
             def cyclicState(pyM, loc, compName, ip, p):
+                if compDict[compName].stateOfChargeBoundary != "cyclic":
+                    return pyomo.Constraint.Skip
                 # tLast = esM.interPeriodTimeSteps[-1]
                 tLast = esM.numberOfInterPeriodTimeSteps
                 offsetUp_ = (
@@ -986,6 +1006,32 @@ class StorageModel(ComponentModel):
             pyomo.Constraint(
                 opVarSet, pyM.investPeriodInterPeriodSet, rule=cyclicState
             ),
+        )
+
+    def interInvestmentPeriodState(self, pyM, esM):
+        """Declare the non-TSA constraint for connecting storage SOC between investment periods."""
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
+        SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
+
+        def interInvestmentPeriodState(pyM, loc, compName, ip):
+            if compDict[compName].stateOfChargeBoundary != "interInvestmentPeriod":
+                return pyomo.Constraint.Skip
+
+            ip_index = esM.investmentPeriods.index(ip)
+            next_ip = esM.investmentPeriods[
+                (ip_index + 1) % len(esM.investmentPeriods)
+            ]
+            last_t = esM.timeStepsPerPeriod[-1] + 1
+
+            return SOC[loc, compName, ip, 0, last_t] == SOC[
+                loc, compName, next_ip, 0, 0
+            ]
+
+        setattr(
+            pyM,
+            "ConstrInterInvestmentPeriodSOC_" + abbrvName,
+            pyomo.Constraint(opVarSet, rule=interInvestmentPeriodState),
         )
 
     def cyclicLifetime(self, pyM, esM):
@@ -1650,7 +1696,19 @@ class StorageModel(ComponentModel):
 
         # Cyclic constraint enforcing that all storages have the same state of charge at the the beginning of the first
         # and the end of the last time step
+        if pyM.hasTSA and any(
+            comp.stateOfChargeBoundary == "interInvestmentPeriod"
+            for comp in self.componentsDict.values()
+        ):
+            raise ValueError(
+                "stateOfChargeBoundary='interInvestmentPeriod' is currently only "
+                "supported without time series aggregation."
+            )
+
         self.cyclicState(pyM, esM)
+
+        if not pyM.hasTSA:
+            self.interInvestmentPeriodState(pyM, esM)
 
         # Constraint for limiting the number of full cycle equivalents to stay below cyclic lifetime
         self.cyclicLifetime(pyM, esM)
