@@ -1203,7 +1203,9 @@ def checkAndSetTimeSeries(
     return None
 
 
-def checkOperationRateForCapacityVariable(name, hasCapacityVariable, *operationRateDicts):
+def checkOperationRateForCapacityVariable(
+    name, hasCapacityVariable, *operationRateDicts
+):
     """Warn when hasCapacityVariable=True but operationRate values exceed 1.0."""
     if not hasCapacityVariable:
         return
