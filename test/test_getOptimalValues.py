@@ -109,3 +109,4 @@ def test_getOptimalValues_returns_all_variables_from_esm(minimal_test_esM, name)
             assert not entry["values"].empty
         else:
             assert entry["values"] is None
+

@@ -249,3 +249,4 @@ def test_plotLocationalColorMap(minimal_test_esM, per_area, area_factor):
         assert len(fig.axes) == 2
 
         plt.close(fig)
+
