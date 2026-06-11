@@ -422,13 +422,13 @@ class EnergySystemModel:
         # pooledCommodities defines commodities whose balance is enforced over a group of locations
         # rather than per individual location. Format: {commodity: {pool_name: [locations]}}
         self.pooledCommodities = pooledCommodities or {}
-        #check if pooled commodities are part of the model
+        # check if pooled commodities are part of the model
         for commod, pools in self.pooledCommodities.items():
             if commod not in self.commodities:
                 raise ValueError(
                     f"Pooled commodity '{commod}' is not in the commodities set."
                 )
-        #check if locations  listed in the pool are part of the model - if not list all unkown locations
+            # check if locations  listed in the pool are part of the model - if not list all unkown locations
             for pool_name, locs in pools.items():
                 unknown = set(locs) - self.locations
                 if unknown:
@@ -745,7 +745,6 @@ class EnergySystemModel:
         df = self.componentModelingDict[modelingClass]._optSummary[ip].dropna(how="all")
         return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-
     def getPoolNetPositions(self, commodity, poolName, ip=None):
         """Return the net commodity flow per location for a pooled commodity, summed over all time steps.
 
@@ -770,7 +769,7 @@ class EnergySystemModel:
             raise ValueError(
                 f"Pool '{poolName}' not found for commodity '{commodity}'."
             )
-        
+
         locs = self.pooledCommodities[commodity][poolName]
         result = {}
         for loc in locs:
@@ -785,7 +784,7 @@ class EnergySystemModel:
                     total += pyomo.value(contrib)
             result[loc] = total
         return pd.Series(result, name=f"{commodity}_{poolName}_net_flow")
-    
+
     def aggregateSpatially(
         self,
         shapefile,
@@ -1775,14 +1774,14 @@ class EnergySystemModel:
                 (pool_name, commod)
                 for commod, pools in self.pooledCommodities.items()
                 for pool_name, locs in pools.items()
-                #include only pools with valid operation variable
+                # include only pools with valid operation variable
                 if any(
                     mdl.hasOpVariablesForLocationCommodity(self, loc, commod)
                     for loc in locs
                     for mdl in self.componentModelingDict.values()
                 )
             )
-        
+
         pyM.poolCommoditySet = pyomo.Set(dimen=2, initialize=initPoolCommoditySet)
 
         def poolCommodityBalanceConstraint(pyM, pool_name, commod, ip, p, t):
