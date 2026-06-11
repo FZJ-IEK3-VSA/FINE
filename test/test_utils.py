@@ -224,20 +224,41 @@ def test_check_and_set_cost_parameter():
         ).equals(invalid_series_with_nan, index=esM.locations)
 
 
+def positive_factor(x):
+    """Always positive in the interval [0, 1]."""
+    return 0.5 + x
+
+
+def zero_factor(_):
+    """Always zero."""
+    return 0
+
+
+def negative_factor(_):
+    """Always negative."""
+    return -1
+
+
+def crossing_factor(x):
+    """Crosses zero within the interval [0, 1]."""
+    return x - 0.5
+
+
 @pytest.mark.parametrize(
     "conversion_factor, should_raise",
     [
-        (lambda x: 0.5 + x, False),
-        (lambda x: 0, True),
-        (lambda x: -1, True),
-        (lambda x: x - 0.5, True),
+        (positive_factor, False),
+        (zero_factor, True),
+        (negative_factor, True),
+        (crossing_factor, True),
     ],
 )
 def test_checkCallableConversionFactor(
     conversion_factor,
     should_raise,
 ):
-    """Test checkCallableConversionFactor for valid and invalid callable
+    """
+    Test checkCallableConversionFactor for valid and invalid callable
     conversion factors.
 
     The function should accept conversion factors that are strictly positive
