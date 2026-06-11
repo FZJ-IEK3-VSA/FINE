@@ -176,4 +176,3 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
         assert body_value == pytest.approx(upper_value)
 
     assert constraint.equality is False
-
