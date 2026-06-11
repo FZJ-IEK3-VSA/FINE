@@ -269,9 +269,7 @@ def convertComponentDictToXarrayDict(component_dict, _mapC_dict, locations):
                 )
                 for key_list in key_lists:
                     variable_name = ".".join(map(str, key_list))
-                    data = getFromDict(
-                        component_dict[classname][component], key_list
-                    )
+                    data = getFromDict(component_dict[classname][component], key_list)
 
                     prefix, indexed_data = _leafToIndexedData(
                         data, classname, component, _mapC_dict, locations
@@ -288,9 +286,7 @@ def convertComponentDictToXarrayDict(component_dict, _mapC_dict, locations):
                     data_arrays.append(data_array)
 
             # outer-join all per-variable DataArrays into the component dataset
-            xr_dss[classname][component] = xr.merge(
-                data_arrays, compat="no_conflicts"
-            )
+            xr_dss[classname][component] = xr.merge(data_arrays, compat="no_conflicts")
 
     return xr_dss
 
