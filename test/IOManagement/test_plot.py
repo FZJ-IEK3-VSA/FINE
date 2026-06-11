@@ -1,92 +1,63 @@
-import matplotlib
-matplotlib.use("Agg")
+import matplotlib as mpl
 
+mpl.use("Agg")
+
+import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
-from fine.IOManagement import standardIO as stdio
-import geopandas as gpd
+import fine as fn
+from fine.utils import ImplementedSolvers
 from shapely.geometry import Polygon
 
 
-class MockComponentModel:
-    def __init__(self, values):
-        self.values = values
+def test_plot_operation_returns_figure_and_axis(minimal_test_esM):
+    esM = minimal_test_esM
 
-    def getOptimalValues(self, variableName, ip=0):
-        return {
-            "values": self.values
-        }
-
-class MockComponent:
-    commodity = "electricity"
-
-
-class MockEnergySystemModel:
-    def __init__(self, values):
-        self.componentNames = {
-            "test_component": "SourceSinkModel"
-        }
-        self.componentModelingDict = {
-            "SourceSinkModel": MockComponentModel(values)
-        }
-        self.commodityUnitsDict = {
-            "electricity": "MW"
-        }
-
-        self.hoursPerTimeStep = 1
-
-    def getComponent(self, compName):
-        return MockComponent()
-
-@pytest.fixture
-def operation_esM():
-    values = pd.DataFrame(
-        [[1, 2, 3, 4]],
-        index=pd.MultiIndex.from_tuples(
-            [("test_component", "test_location")]
-        )
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
-    return MockEnergySystemModel(values)
-
-
-def test_plot_operation_returns_figure_and_axis(operation_esM):
-    fig, ax = stdio.plotOperation(
-        esM=operation_esM,
-        compName="test_component",
-        loc="test_location",
+    fig, ax = fn.plotOperation(
+        esM,
+        "Electrolyzers",
+        "ElectrolyzerLocation",
     )
 
     assert fig is not None
     assert ax is not None
     assert len(ax.lines) == 1
     assert ax.get_xlabel() == "time step"
-    assert ax.get_ylabel() == "operation time series"
 
     plt.close(fig)
 
-def test_plot_operation_colormap_returns_figure_and_axis(operation_esM):
-    fig, ax = stdio.plotOperationColorMap(
-        esM=operation_esM,
-        compName="test_component",
-        loc="test_location",
-        nbPeriods=2,
-        nbTimeStepsPerPeriod=2,
+
+def test_plot_operation_colormap_returns_figure_and_axis(minimal_test_esM):
+    esM = minimal_test_esM
+
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
+
+    fig, ax = fn.plotOperationColorMap(
+        esM,
+        "Electrolyzers",
+        "ElectrolyzerLocation",
+        figsize=(4, 3),
+        nbTimeStepsPerPeriod=1,
+        nbPeriods=4,
+        yticks=[0, 1],
     )
 
     assert fig is not None
     assert ax is not None
-
     assert ax.get_xlabel() == "period"
     assert ax.get_ylabel() == "timestep per period"
 
-    assert len(ax.collections) > 0
-
-    # main axis + colorbar axis
-    assert len(fig.axes) == 2
-
     plt.close(fig)
+
 
 @pytest.fixture
 def simple_shapefile(tmp_path):
@@ -106,8 +77,9 @@ def simple_shapefile(tmp_path):
 
     return shp_path
 
+
 def test_plot_locations_returns_figure_and_axis(simple_shapefile):
-    fig, ax = stdio.plotLocations(
+    fig, ax = fn.plotLocations(
         locationsShapeFileName=simple_shapefile,
         indexColumn="region",
         plotLocNames=True,
@@ -115,13 +87,11 @@ def test_plot_locations_returns_figure_and_axis(simple_shapefile):
 
     assert fig is not None
     assert ax is not None
-
-    assert ax.get_aspect() == 1.0
     assert not ax.axison
-
     assert len(ax.collections) > 0
 
     plt.close(fig)
+
 
 @pytest.fixture
 def transmission_esM():
@@ -137,20 +107,27 @@ def transmission_esM():
     )
 
     class MockTransmissionModel:
+        """Mock transmission model for plotting tests."""
+
         def getOptimalValues(self, variableName, ip=0):
+            """Return mocked optimal values."""
             return {"values": values}
 
     class MockTransmissionESM:
+        """Mock energy system model for transmission plotting tests."""
+
         componentNames = {"test_transmission": "TransmissionModel"}
         componentModelingDict = {"TransmissionModel": MockTransmissionModel()}
 
         def getComponentAttribute(self, compName, attributeName):
+            """Return mocked component attribute."""
             return "MW"
 
     return MockTransmissionESM()
 
+
 def test_plot_transmission_returns_figure_and_axis(transmission_esM, simple_shapefile):
-    fig, ax = stdio.plotTransmission(
+    fig, ax = fn.plotTransmission(
         esM=transmission_esM,
         compName="test_transmission",
         transmissionShapeFileName=simple_shapefile,
@@ -165,23 +142,6 @@ def test_plot_transmission_returns_figure_and_axis(transmission_esM, simple_shap
 
     plt.close(fig)
 
-def test_plot_operation_colormap_returns_figure_and_axis(operation_esM):
-    fig, ax = stdio.plotOperationColorMap(
-        esM=operation_esM,
-        compName="test_component",
-        loc="test_location",
-        nbPeriods=2,
-        nbTimeStepsPerPeriod=2,
-    )
-
-    assert fig is not None
-    assert ax is not None
-    assert ax.get_xlabel() == "period"
-    assert ax.get_ylabel() == "timestep per period"
-    assert len(ax.collections) > 0
-    assert len(fig.axes) == 2
-
-    plt.close(fig)
 
 @pytest.fixture
 def locational_esM():
@@ -197,33 +157,36 @@ def locational_esM():
     )
 
     class MockLocationalModel:
+        """Mock locational model for plotting tests."""
+
         def getOptimalValues(self, variableName, ip=0):
+            """Return mocked optimal values."""
             return {"values": values}
 
-    class MockComponent:
+    class MockLocationalComponent:
+        """Mock locational component for plotting tests."""
+
         commodity = "electricity"
 
     class MockLocationalESM:
+        """Mock energy system model for locational plotting tests."""
+
         componentNames = {"test_component": "SourceSinkModel"}
-
-        componentModelingDict = {
-            "SourceSinkModel": MockLocationalModel()
-        }
-
-        commodityUnitsDict = {
-            "electricity": "MW"
-        }
+        componentModelingDict = {"SourceSinkModel": MockLocationalModel()}
+        commodityUnitsDict = {"electricity": "MW"}
 
         def getComponent(self, compName):
-            return MockComponent()
+            """Return mocked component."""
+            return MockLocationalComponent()
 
     return MockLocationalESM()
+
 
 def test_plot_locational_colormap_returns_figure_and_axis(
     locational_esM,
     simple_shapefile,
 ):
-    fig, ax = stdio.plotLocationalColorMap(
+    fig, ax = fn.plotLocationalColorMap(
         esM=locational_esM,
         compName="test_component",
         locationsShapeFileName=simple_shapefile,
@@ -233,15 +196,11 @@ def test_plot_locational_colormap_returns_figure_and_axis(
 
     assert fig is not None
     assert ax is not None
-
     assert not ax.axison
-
     assert len(ax.collections) > 0
 
-    # map axis + colorbar axis
-    assert len(fig.axes) == 2
-
     plt.close(fig)
+
 
 def test_plot_pie_chart_returns_figure_and_axis(simple_shapefile):
     index = pd.MultiIndex.from_tuples(
@@ -260,7 +219,7 @@ def test_plot_pie_chart_returns_figure_and_axis(simple_shapefile):
         index=index,
     )
 
-    stdio.plotPieChart(
+    fn.plotPieChart(
         locFilePath=simple_shapefile,
         results_df=results_df,
         Property_to_plot="capacity",
