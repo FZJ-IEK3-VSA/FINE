@@ -149,10 +149,10 @@ def test_compareResults_miniSystem(minimal_test_esM):
 
 def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
     module_directory = Path(__file__).parent.absolute()
-    dataPath = os.path.join(module_directory, "..", "data") # noqa: PTH118
+    dataPath = os.path.join(module_directory, "..", "data")  # noqa: PTH118
 
     # create new result excel files
-    pathMultiNode_output = os.path.join(dataPath, "output_result_multinode") # noqa: PTH118
+    pathMultiNode_output = os.path.join(dataPath, "output_result_multinode")  # noqa: PTH118
     saveExcelResults(
         multi_node_test_esM_init,
         pathMultiNode_output,
@@ -160,7 +160,7 @@ def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
 
     pathMultiNodeExcel_output = pathMultiNode_output + ".xlsx"
 
-    pathMultiNodeExcel_expected = os.path.join( # noqa: PTH118
+    pathMultiNodeExcel_expected = os.path.join(  # noqa: PTH118
         dataPath, "expected_result_multinode.xlsx"
     )
 
@@ -228,8 +228,7 @@ def compareTwoExcelFiles(path1, path2):
             if not sum_diff.empty:
                 # 3. ignore state of charge
                 comparison_errors.append(
-                    f"Sheet {sheet}: wrong exported results\n"
-                    f"{sum_diff.to_string()}"
+                    f"Sheet {sheet}: wrong exported results\n{sum_diff.to_string()}"
                 )
     if comparison_errors:
         raise ValueError(
