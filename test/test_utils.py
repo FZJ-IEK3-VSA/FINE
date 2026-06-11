@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from fine.utils import ImplementedSolvers
+from fine.utils import checkCallableConversionFactor
 
 
 def test_checkSimultaneousChargeDischarge():
@@ -221,3 +222,36 @@ def test_check_and_set_cost_parameter():
         assert utils.checkAndSetCostParameter(
             esM, "testParam", invalid_series_with_nan, "2dim", None
         ).equals(invalid_series_with_nan, index=esM.locations)
+
+
+@pytest.mark.parametrize(
+    "conversion_factor, should_raise",
+    [
+        (lambda x: 0.5 + x, False),
+        (lambda x: 0, True),
+        (lambda x: -1, True),
+        (lambda x: x - 0.5, True),
+    ],
+)
+def test_checkCallableConversionFactor(
+    conversion_factor,
+    should_raise,
+):
+    """Test checkCallableConversionFactor for valid and invalid callable
+    conversion factors.
+
+    The function should accept conversion factors that are strictly positive
+    over the entire part-load range [0, 1] and raise a ValueError if the
+    conversion factor becomes zero or negative at least once.
+    """
+    if should_raise:
+        with pytest.raises(
+            ValueError,
+            match=(
+                "The callable part load conversion factor is smaller or equal "
+                "to 0 at least once within \\[0,1\\]."
+            ),
+        ):
+            checkCallableConversionFactor(conversion_factor)
+    else:
+        checkCallableConversionFactor(conversion_factor)

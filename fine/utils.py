@@ -713,7 +713,6 @@ def checkCapacityDevelopmentWithStock(
                             + "commissioning and the technical lifetime) and "
                             + "capacityFix"
                         )
-
     if capacityFix is not None:
         if all(x is None for x in capacityFix.values()):
             return
