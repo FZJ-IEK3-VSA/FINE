@@ -1338,7 +1338,9 @@ def plotPieChart(
     Total_degree = 360
 
     for region in shapefile[indexColumn_in_shp]:  # LOOP OVER REGIONS
-        centroid = shapefile.loc[shapefile[indexColumn_in_shp] == region, "centroid"].iloc[0]
+        centroid = shapefile.loc[
+            shapefile[indexColumn_in_shp] == region, "centroid"
+        ].iloc[0]
 
         xValue = float(centroid.x)
         yValue = float(centroid.y)
