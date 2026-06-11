@@ -1,58 +1,20 @@
 import pytest
 
-import fine as fn
 from fine.utils import ImplementedSolvers
-
-
-def build_test_system():
-    """Create a minimal EnergySystemModel for testing getOptimalValues."""
-    esM = fn.EnergySystemModel(
-        locations={"test"},
-        commodities={"electricity"},
-        commodityUnitsDict={"electricity": "GW"},
-        numberOfTimeSteps=2,
-        hoursPerTimeStep=1,
-        costUnit="EUR",
-        lengthUnit="km",
-        verboseLogLevel=0,
-    )
-
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="electricity_source",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            capacityMax=10.0,
-            investPerCapacity=1.0,
-            opexPerOperation=0.0,
-        )
-    )
-
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="electricity_sink",
-            commodity="electricity",
-            hasCapacityVariable=False,
-            operationRateFix=1.0,
-        )
-    )
-
-    return esM
 
 
 @pytest.mark.parametrize(
     "name, expected_time_dependent, expected_has_values",
     [
-        ("capacityVariablesOptimum", False, True),
+        ("capacityVariablesOptimum", False, False),
         ("isBuiltVariablesOptimum", False, False),
         ("operationVariablesOptimum", True, True),
-        ("commissioningVariablesOptimum", False, True),
-        ("decommissioningVariablesOptimum", False, True),
+        ("commissioningVariablesOptimum", False, False),
+        ("decommissioningVariablesOptimum", False, False),
     ],
 )
 def test_getOptimalValues_returns_requested_variable_from_esm(
+    minimal_test_esM,
     name,
     expected_time_dependent,
     expected_has_values,
@@ -60,27 +22,22 @@ def test_getOptimalValues_returns_requested_variable_from_esm(
     """Test getOptimalValues for a requested optimum variable on a real optimized
     EnergySystemModel.
 
-    The test builds a minimal EnergySystemModel with one source and one sink,
-    optimizes it, and calls getOptimalValues on the real component modeling
-    class stored in esM.componentModelingDict.
+    The test uses the minimal_test_esM fixture from conftest.py, optimizes it,
+    and calls getOptimalValues on the real component modeling class stored in
+    esM.componentModelingDict.
 
     It verifies that getOptimalValues returns the expected dictionary structure,
     the correct time-dependency flag, the component model dimension, and real
-    values for the result categories that are active in this minimal model.
-
-    Some result categories, such as isBuilt, commissioning, and decommissioning
-    variables, may be None because the corresponding model features are not
-    active in this simple single-period test system.
+    values for result categories that are active for the selected component.
     """
-    esM = build_test_system()
+    esM = minimal_test_esM
 
     esM.optimize(
         solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
-    component_model = esM.componentModelingDict[
-        esM.componentNames["electricity_source"]
-    ]
+    comp_name = "Electricity market"
+    component_model = esM.componentModelingDict[esM.componentNames[comp_name]]
 
     result = component_model.getOptimalValues(name=name, ip=0)
 
@@ -96,26 +53,21 @@ def test_getOptimalValues_returns_requested_variable_from_esm(
 
 
 @pytest.mark.parametrize("name", ["all", "unknownVariableName"])
-def test_getOptimalValues_returns_all_variables_from_esm(name):
+def test_getOptimalValues_returns_all_variables_from_esm(minimal_test_esM, name):
     """Test getOptimalValues when all optimum variables are requested on a real
     optimized EnergySystemModel.
 
     If name is 'all' or not part of the supported variable mapping,
     getOptimalValues should return all supported result categories.
-
-    The test verifies that every expected result category is present, that each
-    entry contains values, time-dependency information, and the component model
-    dimension, and that active result categories contain real values.
     """
-    esM = build_test_system()
+    esM = minimal_test_esM
 
     esM.optimize(
         solver=ImplementedSolvers.STANDARD_SOLVER.value,
     )
 
-    component_model = esM.componentModelingDict[
-        esM.componentNames["electricity_source"]
-    ]
+    comp_name = "Electricity market"
+    component_model = esM.componentModelingDict[esM.componentNames[comp_name]]
 
     result = component_model.getOptimalValues(name=name, ip=0)
 
@@ -138,11 +90,11 @@ def test_getOptimalValues_returns_all_variables_from_esm(name):
     }
 
     expected_has_values = {
-        "capacityVariablesOptimum": True,
+        "capacityVariablesOptimum": False,
         "isBuiltVariablesOptimum": False,
         "operationVariablesOptimum": True,
-        "commissioningVariablesOptimum": True,
-        "decommissioningVariablesOptimum": True,
+        "commissioningVariablesOptimum": False,
+        "decommissioningVariablesOptimum": False,
     }
 
     for variable_name in expected_variable_names:

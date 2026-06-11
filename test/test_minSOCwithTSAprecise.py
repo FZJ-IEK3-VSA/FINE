@@ -2,48 +2,6 @@ import pandas as pd
 import pyomo.environ as pyomo
 import pytest
 
-import fine as fn
-
-
-def build_storage_test_esm(
-    has_capacity_variable,
-    self_discharge,
-    min_soc_value,
-):
-    """Create a real EnergySystemModel with a real Storage component."""
-    esM = fn.EnergySystemModel(
-        locations={"loc1"},
-        commodities={"electricity"},
-        commodityUnitsDict={"electricity": "kWh"},
-        numberOfTimeSteps=3,
-        hoursPerTimeStep=1,
-        costUnit="EUR",
-        lengthUnit="km",
-        verboseLogLevel=0,
-    )
-
-    storage_kwargs = dict(
-        esM=esM,
-        name="storage",
-        commodity="electricity",
-        hasCapacityVariable=has_capacity_variable,
-        selfDischarge=self_discharge,
-        chargeEfficiency=1,
-        dischargeEfficiency=1,
-        cyclicLifetime=None,
-        stateOfChargeMin=min_soc_value,
-    )
-
-    if has_capacity_variable:
-        storage_kwargs.update(
-            capacityMax=100,
-            investPerCapacity=0,
-        )
-
-    esM.add(fn.Storage(**storage_kwargs))
-
-    return esM
-
 
 @pytest.mark.parametrize(
     "has_capacity_variable, has_segmentation",
@@ -55,12 +13,12 @@ def build_storage_test_esm(
     ],
 )
 def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
+    single_node_test_esM,
     has_capacity_variable,
     has_segmentation,
 ):
     """Test the minimum state-of-charge constraint created by
-    StorageModel.minSOCwithTSAprecise() using a real EnergySystemModel and a
-    real Storage component.
+    StorageModel.minSOCwithTSAprecise() using the conftest EnergySystemModel.
 
     The test verifies the boundary case where the storage starts exactly at its
     minimum allowed state of charge. Due to self-discharge, the effective state
@@ -69,8 +27,10 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
 
     The resulting minimum SOC constraint must be exactly binding.
     """
-    loc = "loc1"
-    comp_name = "storage"
+    esM = single_node_test_esM
+
+    loc = "Location"
+    comp_name = "Pressure tank"
 
     ip = 0
     p_inter = 0
@@ -78,16 +38,10 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
     t = 2
 
     cap_value = 100
-    min_soc_value = 0.2
+    min_soc_value = 0.33
     self_discharge = 0.1
     hours_per_time_step = 1
     segment_start_time = 4
-
-    esM = build_storage_test_esm(
-        has_capacity_variable=has_capacity_variable,
-        self_discharge=self_discharge,
-        min_soc_value=min_soc_value,
-    )
 
     esM.hoursPerTimeStep = hours_per_time_step
     esM.periods = [p_inter]

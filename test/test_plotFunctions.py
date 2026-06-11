@@ -6,13 +6,13 @@ import geopandas as gpd
 import matplotlib as mpl
 
 mpl.use("Agg")
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 from matplotlib.collections import LineCollection
 from shapely.geometry import LineString, Polygon
 
-import fine as fn
 from fine.IOManagement.standardIO import (
     plotTransmission,
     plotOperation,
@@ -21,80 +21,22 @@ from fine.IOManagement.standardIO import (
 )
 
 
-def build_plot_test_system():
-    """Create a small real EnergySystemModel for plot tests."""
-    esM = fn.EnergySystemModel(
-        locations={"North", "South"},
-        commodities={"electricity"},
-        commodityUnitsDict={"electricity": "GW"},
-        numberOfTimeSteps=5,
-        hoursPerTimeStep=1,
-        costUnit="EUR",
-        lengthUnit="km",
-        verboseLogLevel=0,
-    )
+def test_plotTransmission(minimal_test_esM):
+    esM = minimal_test_esM
 
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="electricity_source",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            capacityMax=10.0,
-            investPerCapacity=1.0,
-            opexPerOperation=0.0,
-        )
-    )
+    comp_name = "Pipelines"
+    loc0 = "ElectrolyzerLocation"
+    loc1 = "IndustryLocation"
 
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="electricity_sink",
-            commodity="electricity",
-            hasCapacityVariable=False,
-            operationRateFix=1.0,
-        )
-    )
-
-    esM.add(
-        fn.Transmission(
-            esM=esM,
-            name="grid",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            capacityMax=10.0,
-            investPerCapacity=1.0,
-            opexPerOperation=0.0,
-            distances=pd.Series(
-                {
-                    "North_South": 1.0,
-                    "South_North": 1.0,
-                }
-            ),
-            losses=pd.Series(
-                {
-                    "North_South": 0.0,
-                    "South_North": 0.0,
-                }
-            ),
-        )
-    )
-
-    return esM
-
-
-def test_plotTransmission():
-    esM = build_plot_test_system()
-
-    component_model = esM.componentModelingDict[esM.componentNames["grid"]]
+    component_model = esM.componentModelingDict[esM.componentNames[comp_name]]
 
     transmission_values = pd.DataFrame(
         [[10.0, 5.0]],
-        index=["grid"],
+        index=[comp_name],
         columns=pd.MultiIndex.from_tuples(
             [
-                ("North", "South"),
-                ("South", "North"),
+                (loc0, loc1),
+                (loc1, loc0),
             ]
         ),
     )
@@ -112,8 +54,8 @@ def test_plotTransmission():
 
         gdf = gpd.GeoDataFrame(
             {
-                "loc0": ["North", "South"],
-                "loc1": ["South", "North"],
+                "loc0": [loc0, loc1],
+                "loc1": [loc1, loc0],
                 "geometry": [
                     LineString([(0, 1), (0, 0)]),
                     LineString([(0, 0), (0, 1)]),
@@ -125,7 +67,7 @@ def test_plotTransmission():
 
         fig, ax = plotTransmission(
             esM=esM,
-            compName="grid",
+            compName=comp_name,
             transmissionShapeFileName=str(shp_path),
             loc0="loc0",
             loc1="loc1",
@@ -149,16 +91,17 @@ def test_plotTransmission():
         plt.close(fig)
 
 
-def test_plotOperation():
-    esM = build_plot_test_system()
+def test_plotOperation(minimal_test_esM):
+    esM = minimal_test_esM
 
-    component_model = esM.componentModelingDict[
-        esM.componentNames["electricity_source"]
-    ]
+    comp_name = "Electricity market"
+    loc = "ElectrolyzerLocation"
+
+    component_model = esM.componentModelingDict[esM.componentNames[comp_name]]
 
     operation_values = pd.DataFrame(
-        data=[[1, 2, 3, 4, 5]],
-        index=pd.MultiIndex.from_tuples([("electricity_source", "North")]),
+        data=[[1, 2, 3, 4]],
+        index=pd.MultiIndex.from_tuples([(comp_name, loc)]),
     )
 
     def get_optimal_values(self, variableName, ip=0):
@@ -171,8 +114,8 @@ def test_plotOperation():
 
     fig, ax = plotOperation(
         esM=esM,
-        compName="electricity_source",
-        loc="North",
+        compName=comp_name,
+        loc=loc,
         tMin=1,
         tMax=4,
         xlabel="test x label",
@@ -196,7 +139,7 @@ def test_plotOperation():
     "plot_loc_names, index_column, expected_labels",
     [
         (False, "name", []),
-        (True, "name", ["North", "South"]),
+        (True, "name", ["ElectrolyzerLocation", "IndustryLocation"]),
         (True, "", ["0", "1"]),
     ],
 )
@@ -206,7 +149,7 @@ def test_plotLocations(plot_loc_names, index_column, expected_labels):
 
         gdf = gpd.GeoDataFrame(
             {
-                "name": ["North", "South"],
+                "name": ["ElectrolyzerLocation", "IndustryLocation"],
                 "geometry": [
                     Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]),
                     Polygon([(2, 2), (3, 2), (3, 3), (2, 3)]),
@@ -246,19 +189,19 @@ def test_plotLocations(plot_loc_names, index_column, expected_labels):
         (True, 1e3),
     ],
 )
-def test_plotLocationalColorMap(per_area, area_factor):
-    esM = build_plot_test_system()
+def test_plotLocationalColorMap(minimal_test_esM, per_area, area_factor):
+    esM = minimal_test_esM
 
-    component_model = esM.componentModelingDict[
-        esM.componentNames["electricity_source"]
-    ]
+    comp_name = "Electrolyzers"
+
+    component_model = esM.componentModelingDict[esM.componentNames[comp_name]]
 
     capacity_values = pd.Series(
         data=[10.0, 20.0],
         index=pd.MultiIndex.from_tuples(
             [
-                ("electricity_source", "North"),
-                ("electricity_source", "South"),
+                (comp_name, "ElectrolyzerLocation"),
+                (comp_name, "IndustryLocation"),
             ]
         ),
     )
@@ -276,7 +219,7 @@ def test_plotLocationalColorMap(per_area, area_factor):
 
         gdf = gpd.GeoDataFrame(
             {
-                "region": ["North", "South"],
+                "region": ["ElectrolyzerLocation", "IndustryLocation"],
                 "geometry": [
                     Polygon([(0, 0), (1000, 0), (1000, 1000), (0, 1000)]),
                     Polygon([(2000, 0), (3000, 0), (3000, 1000), (2000, 1000)]),
@@ -288,7 +231,7 @@ def test_plotLocationalColorMap(per_area, area_factor):
 
         fig, ax = plotLocationalColorMap(
             esM=esM,
-            compName="electricity_source",
+            compName=comp_name,
             locationsShapeFileName=str(shp_path),
             indexColumn="region",
             perArea=per_area,
