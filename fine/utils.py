@@ -1272,14 +1272,16 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     """MISSING."""
-    assert not (isinstance(data, pd.Series) and data.isnull().any()), (
-        f"Initialization error in {name} detected.\n"
-        "Economic parameters contain NaN values which are not allowed."
-    )
-    assert not (isinstance(data, (int, float)) and pd.isnull(data)), (
-        f"Initialization error in {name} detected.\n"
-        "Economic parameters contain NaN values which are not allowed."
-    )
+    if isinstance(data, pd.Series) and data.isnull().any():
+        raise ValueError(
+            f"Initialization error in {name} detected.\n"
+            "Economic parameters contain NaN values which are not allowed."
+        )
+    if isinstance(data, (int, float)) and pd.isnull(data):
+        raise ValueError(
+            f"Initialization error in {name} detected.\n"
+            "Economic parameters contain NaN values which are not allowed."
+        )
     if dimension == "1dim":
         if not (
             isinstance(data, int)
@@ -2094,34 +2096,6 @@ def output(output, verbose, val):
             logger.info(output)
         else:
             logger.debug(output)
-
-
-def checkModelClassEquality(esM, file):
-    """Missing."""
-    mdlListFromModel = list(esM.componentModelingDict.keys())
-    mdlListFromExcel = []
-    for sheet in file.sheet_names:
-        mdlListFromExcel += [
-            cl
-            for cl in mdlListFromModel
-            if (cl[0:-5] in sheet and cl not in mdlListFromExcel)
-        ]
-    if set(mdlListFromModel) != set(mdlListFromExcel):
-        raise ValueError("Loaded Output does not match the given energy system model.")
-
-
-def checkComponentsEquality(esM, file):
-    """Missing."""
-    compListFromExcel = []
-    compListFromModel = list(esM.componentNames.keys())
-    for mdl in esM.componentModelingDict.keys():
-        dim = esM.componentModelingDict[mdl].dimension
-        readSheet = pd.read_excel(
-            file, sheet_name=mdl[0:-5] + "OptSummary_" + dim, index_col=[0, 1, 2, 3]
-        )
-        compListFromExcel += list(readSheet.index.levels[0])
-    if not set(compListFromExcel) <= set(compListFromModel):
-        raise ValueError("Loaded Output does not match the given energy system model.")
 
 
 def checkNumberOfConversionFactors(commods):
@@ -3059,7 +3033,7 @@ class ImplementedSolvers:
     GLPK = _Solver("glpk")
     GUROBI = _Solver("gurobi")
     HIGHS = _Solver("highs")
-    STANDARD_SOLVER = _Solver("gurobi")  # Use Gurobi if available, otherwise use GLPK
+    STANDARD_SOLVER = _Solver("gurobi")  # Use Gurobi if available, otherwise use highs
 
     @staticmethod
     def _gurobi_available():
@@ -3098,4 +3072,4 @@ class ImplementedSolvers:
         if cls._gurobi_available():
             cls.STANDARD_SOLVER.value = cls.GUROBI.value
         else:
-            cls.STANDARD_SOLVER.value = cls.GLPK.value
+            cls.STANDARD_SOLVER.value = cls.HIGHS.value

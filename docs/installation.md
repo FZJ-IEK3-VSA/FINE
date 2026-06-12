@@ -81,7 +81,7 @@ python -m pip install --editable .[develop]
 ## Optimization solver
 
 ### Selection of an Optimization Solver
-At its core, ETHOS.FINE creates an optimisation problem via the [PYOMO](https://pyomo.readthedocs.io/) interface. In theory, any MILP solver supported by Pyomo can be used with ETHOS.FINE, but it has only been tested with [GUROBI](http://www.gurobi.com/) and with [GLPK](https://www.gnu.org/software/glpk/). If you want to solve large problems, it is highly recommended that you use [GUROBI](http://www.gurobi.com/) due to its superior performance. However, a proprietary licence is required to use GUROBI for larger optimisation problems, but this is available free of charge to academics. If you do not want or cannot use a GUROBI licence, you can use the GLPK solver, which does not require an additional licence. The solver [HiGHS](https://github.com/ERGO-Code/HiGHS), which has better performance than GLPK but worse performance than Gurobi, has been tested. However, not all problems can be solved with it yet. You can check the progress of compatibility with this issue: https://github.com/FZJ-IEK3-VSA/FINE/issues/103.
+At its core, ETHOS.FINE creates an optimisation problem via the [PYOMO](https://pyomo.readthedocs.io/) interface. In theory, any MILP solver supported by Pyomo can be used with ETHOS.FINE, but it has only been tested with [GUROBI](http://www.gurobi.com/), [HiGHS](https://highs.dev/) and [GLPK](https://www.gnu.org/software/glpk/). If you want to solve large problems, it is highly recommended that you use [GUROBI](http://www.gurobi.com/) due to its superior performance. However, a proprietary licence is required to use GUROBI for larger optimisation problems, but this is available free of charge to academics. If you do not want or cannot use a GUROBI licence, you can use HiGHS (which is slower than GUROBI but faster than GLPK) or GLPK, which do not require paid licences.
 
 ### GUROBI
 
@@ -123,7 +123,7 @@ A full Gurobi installation comes with the Conda Forge installation, while a redu
     If the check fails, the function prints the detected license type and actionable hints to resolve
     the issue.
 
-### GLPK
+### HiGHS and GLPK
 
-The conda-forge installation of Fine comes with the [GLPK](https://www.gnu.org/software/glpk/) solver preinstalled and be used without any further steps. If you installed it successfully using PyPI, you will need to search for binaries compatible with your operating system, or compile the solver yourself. This can be a complex task. If you don't feel ready for that, please consider switching to the Conda installation.
+The conda-forge installation of Fine comes with the [HiGHS](https://highs.dev/) and [GLPK](https://www.gnu.org/software/glpk/) solvers preinstalled, which can be used without any further steps. If you installed it successfully using PyPI, you will need to search for binaries compatible with your operating system, or compile the solver yourself. This can be a complex task. If you don't feel ready for that, please consider switching to the Conda installation.
 

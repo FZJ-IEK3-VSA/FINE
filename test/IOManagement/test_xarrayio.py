@@ -8,6 +8,7 @@ from fine.utils import ImplementedSolvers
 import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
 from fine.IOManagement.dictIO import exportToDict
+import xarray as xr
 
 
 def compare_values(value_1, value_2):
@@ -317,9 +318,11 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     )
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
-    optSum = esM.getOptimizationSummary("TransmissionModel").loc[
-        "DC cables", "operation", "[GW$_{el}$*h]"
-    ]
+    optSum = (
+        esM.getOptimizationSummary("TransmissionModel")
+        .loc["DC cables", "operation", "[GW$_{el}$*h]"]
+        .dropna(how="all")
+    )
     xrRes = (
         xrds["Results"][0]["TransmissionModel"]["DC cables"]
         .operation.to_series()
@@ -361,3 +364,55 @@ def test_coordinates(multi_node_test_esM_init):
     assert set(xrRes.coords) == required_coord_2dim, (
         f"Expected {required_coord_2dim}; got {set(xrRes.coords)}"
     )
+
+
+def test_shadow_price_data_exists_in_xarray(multi_node_test_esM_init):
+    """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
+    Check that the shadow price data is part of the xarray datasets.
+    """
+    esM = multi_node_test_esM_init
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
+    esM.optimize(
+        timeSeriesAggregation=True, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+
+    xrds = xrIO.writeEnergySystemModelToDatasets(esM, includeShadowPrices=True)
+    assert "ShadowPrices" in xrds.keys()
+    assert isinstance(xrds["ShadowPrices"], xr.DataArray)
+    # assert that "ip", "component", "space" and "time" are dimensions of the ShadowPrices DataArray
+    assert set(["ip", "component", "space", "time"]).issubset(
+        set(xrds["ShadowPrices"].dims)
+    )
+
+    # Test fail behaviour if nonexistent constraint is given: msg = f"Constraint '{constraint_str}' not found in model."
+    with pytest.raises(
+        ValueError, match="Constraint 'non_existent_constraint' not found in model."
+    ):
+        xrIO.writeEnergySystemModelToDatasets(
+            esM,
+            includeShadowPrices=True,
+            shadowPriceConstraintStr="non_existent_constraint",
+        )
+
+
+def test_shadow_price_with_multiple_ip(perfectForesight_test_esM):
+    """Test that shadow prices are written correctly for a model with multiple investment periods.
+    Specifically exercises the xr.concat path in getShadowPriceXarray (hit from ip=1 onward).
+    """
+    esM = perfectForesight_test_esM
+
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
+
+    xrds = xrIO.writeEnergySystemModelToDatasets(esM, includeShadowPrices=True)
+
+    assert "ShadowPrices" in xrds.keys()
+    sp = xrds["ShadowPrices"]
+    assert isinstance(sp, xr.DataArray)
+    assert set(["ip", "component", "space", "time"]).issubset(set(sp.dims))
+    assert list(sp.coords["ip"].values) == esM.investmentPeriodNames

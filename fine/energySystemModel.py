@@ -10,6 +10,8 @@ import pandas as pd
 import psutil
 import pyomo.environ as pyomo
 from pyomo import opt
+from pyomo.contrib.appsi.base import LegacySolverInterface
+from pyomo.contrib.appsi.solvers import Highs
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from fine import utils
@@ -780,7 +782,7 @@ class EnergySystemModel:
         :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
             The optimization solver to be chosen.
             |br| * the default value is 'gurobi'
-        :type solver: string, Options: 'gurobi', 'glpk'
+        :type solver: string, Options: 'gurobi', 'highs', 'glpk'
 
         :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable.
 
@@ -2042,7 +2044,7 @@ class EnergySystemModel:
         # Order of possible solvers in solverList defines the priority of chosen default solver.
         solverList = [
             ImplementedSolvers.STANDARD_SOLVER.value,
-            ImplementedSolvers.GLPK.value,
+            ImplementedSolvers.HIGHS.value,
         ]
 
         if solver != "None":
@@ -2096,7 +2098,24 @@ class EnergySystemModel:
 
             else:
                 optimizer = opt.SolverFactory(solver, solver_io="python")
+        elif solver == ImplementedSolvers.HIGHS.value:
+            # Handle cases with no duals without exceptions in highs
+            class LegacyHighs(LegacySolverInterface, Highs):
+                def get_duals(self, cons_to_load=None):
+                    if self._sol is None or not self._sol.dual_valid:
+                        return {}
+                    return super().get_duals(cons_to_load)
 
+            optimizer = LegacyHighs()
+            if optimizationSpecs is not None:
+                solver_options = opt.OptSolver._options_string_to_dict(
+                    optimizationSpecs
+                )
+
+                for k, v in solver_options.items():
+                    optimizer.highs_options[k] = v
+            if timeLimit is not None:
+                optimizer.highs_options["time_limit"] = timeLimit
         else:
             optimizer = opt.SolverFactory(solver)
 
@@ -2185,6 +2204,12 @@ class EnergySystemModel:
                 "Optimization problem is "
                 + str(termCondition)
                 + ". No output is generated.",
+                self.verboseLogLevel,
+                0,
+            )
+        elif termCondition == opt.TerminationCondition.other:
+            utils.output(
+                "No solution was found (TerminationCondition: other). No output is generated.",
                 self.verboseLogLevel,
                 0,
             )
