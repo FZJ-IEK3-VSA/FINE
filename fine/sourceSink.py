@@ -368,6 +368,14 @@ class Source(Component):
                         + f"'{esM.investmentPeriodNames[ip]}' was set to None."
                     )
 
+        utils.checkOperationRateForCapacityVariable(
+            name,
+            self.hasCapacityVariable,
+            self.fullOperationRateMin,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+        )
+
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
             esM,
