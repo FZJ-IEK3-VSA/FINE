@@ -186,7 +186,29 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
             )
         )
 
-    # 4. DC cables
+    # 4. Lithium ion batteries
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Li-ion batteries",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            chargeEfficiency=0.95,
+            cyclicLifetime=10000,
+            dischargeEfficiency=0.95,
+            selfDischarge=1 - (1 - 0.03) ** (1 / (30 * 24)),
+            chargeRate=1,
+            dischargeRate=1,
+            doPreciseTsaModeling=False,
+            investPerCapacity=0.151,
+            opexPerCapacity=0.002,
+            interestRate=0.08,
+            economicLifetime=22,
+            opexPerChargeOperation=0.0001,
+        )
+    )
+
+    # 5. DC cables
     # NOTE: looks like for transmission components, this is already handled
     ## pass pd.Series instead of pd.DataFrame to test if it works fine
     losses = {}
@@ -223,7 +245,7 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
             )
         )
 
-    # 5. Hydrogen sinks
+    # 6. Hydrogen sinks
     # Delete operationRateFix data corresponding to cluster_3
     data["Hydrogen demand, operationRateFix"].drop("cluster_3", axis=1, inplace=True)
 

@@ -30,44 +30,18 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     # STEP 1. Get the esm and component dicts
     esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
 
-    # STEP 2. Get the iteration dicts
-    ip = esM.investmentPeriods
-    (
-        df_iteration_dict,
-        series_iteration_dict,
-        constants_iteration_dict,
-    ) = utilsIO.generateIterationDicts(component_dict, ip)
-
-    # STEP 3. Initiate xarray dataset
-    xr_dss = dict.fromkeys(component_dict.keys())
-    for classname in component_dict:
-        xr_dss[classname] = {
-            component: xr.Dataset() for component in component_dict[classname]
-        }
-
-    # STEP 3.1 get _mapC for all transmission components
+    # STEP 2. get _mapC for all transmission components
     _mapC_dict = {}
     for transmission_class in ["LinearOptimalPowerFlow", "Transmission"]:
         for tech in component_dict[transmission_class].keys():
             _mapC_dict[tech] = esM.getComponent(tech)._mapC
 
-    # STEP 4. Add all df variables to xr_ds
-    xr_dss = utilsIO.addDFVariablesToXarray(
-        xr_dss, component_dict, df_iteration_dict, _mapC_dict, list(esM.locations)
+    # STEP 3. Convert component_dict into per-component xarray datasets
+    xr_dss = utilsIO.convertComponentDictToXarrayDict(
+        component_dict, _mapC_dict, sorted(esm_dict["locations"])
     )
 
-    # STEP 5. Add all series variables to xr_ds
-    locations = sorted(esm_dict["locations"])
-    xr_dss = utilsIO.addSeriesVariablesToXarray(
-        xr_dss, component_dict, series_iteration_dict, locations
-    )
-
-    # STEP 6. Add all constant value variables to xr_ds
-    xr_dss = utilsIO.addConstantsToXarray(
-        xr_dss, component_dict, constants_iteration_dict, useProcessedValues
-    )
-
-    # STEP 7. Add the data present in esm_dict as xarray attributes
+    # STEP 4. Add the data present in esm_dict as xarray attributes
     # (These attributes contain esM init info).
     attributes_xr = xr.Dataset()
     attributes_xr.attrs = esm_dict
