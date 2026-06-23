@@ -1132,13 +1132,12 @@ def plotPieChart(
     Total_degree = 360
 
     for region in shapefile[indexColumn_in_shp]:  # LOOP OVER REGIONS
-        xValue = float(
-            shapefile.loc[shapefile[indexColumn_in_shp] == region].centroid.x.values
-        )
-        yValue = float(
-            shapefile.loc[shapefile[indexColumn_in_shp] == region].centroid.y.values
-        )
+        centroid = shapefile.loc[
+            shapefile[indexColumn_in_shp] == region, "centroid"
+        ].iloc[0]
 
+        xValue = float(centroid.x)
+        yValue = float(centroid.y)
         total_property_value = regional_property_sum[region]
 
         theta1 = 0
