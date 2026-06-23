@@ -360,6 +360,14 @@ class Conversion(Component):
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
 
+        utils.checkOperationRateForCapacityVariable(
+            name,
+            self.hasCapacityVariable,
+            self.fullOperationRateMin,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+        )
+
         self.rampUpMax = rampUpMax
         self.rampDownMax = rampDownMax
         self.useTemporalCyclicConstraints = useTemporalCyclicConstraints
