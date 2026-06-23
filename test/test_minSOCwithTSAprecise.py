@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 import pyomo.environ as pyomo
 import pytest
@@ -27,7 +29,7 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
 
     The resulting minimum SOC constraint must be exactly binding.
     """
-    esM = single_node_test_esM
+    esM = copy.deepcopy(single_node_test_esM)
 
     loc = "Location"
     comp_name = "Pressure tank"
