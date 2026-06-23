@@ -105,7 +105,7 @@ class LinearOptimalPowerFlow(Transmission):
             self.reactances = pd.Series(self._mapC).apply(
                 lambda loc: self.reactances2dim[loc[0]][loc[1]]
             )
-        except Exception:
+        except (KeyError, TypeError, IndexError):
             self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
 
