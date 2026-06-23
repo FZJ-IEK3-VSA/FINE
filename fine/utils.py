@@ -1203,6 +1203,26 @@ def checkAndSetTimeSeries(
     return None
 
 
+def checkOperationRateForCapacityVariable(
+    name, hasCapacityVariable, *operationRateDicts
+):
+    """Warn when hasCapacityVariable=True but operationRate values exceed 1.0."""
+    if not hasCapacityVariable:
+        return
+    for opDict in operationRateDicts:
+        if opDict is None:
+            continue
+        for ts in opDict.values():
+            if ts is not None and (ts > 1.0).any().any():
+                warnings.warn(
+                    f"'{name}': hasCapacityVariable is True, so operationRate values are"
+                    " expected to be relative capacity factors in [0, 1]. Values > 1.0 were"
+                    " detected. If this is unintentional, check that absolute values are not"
+                    " being passed as capacity factors."
+                )
+                return
+
+
 def checkDesignVariableModelingParameters(
     esM,
     capacityVariableDomain,

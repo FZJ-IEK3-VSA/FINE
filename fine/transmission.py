@@ -428,6 +428,13 @@ class Transmission(Component):
         self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
 
+        utils.checkOperationRateForCapacityVariable(
+            name,
+            self.hasCapacityVariable,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+        )
+
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
             esM,
