@@ -1,5 +1,9 @@
+import os
+from pathlib import Path
+
 import pytest
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.testing import assert_frame_equal, assert_series_equal
@@ -9,6 +13,144 @@ import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
 from fine.IOManagement.dictIO import exportToDict
 import xarray as xr
+
+
+GOLDEN_DIR = Path(__file__).resolve().parents[1] / "data" / "golden"
+UPDATE_GOLDEN = os.environ.get("UPDATE_GOLDEN", "").lower() in {"1", "true", "yes"}
+
+
+def _assert_same_keys(actual, expected, path):
+    actual_keys = set(actual.keys())
+    expected_keys = set(expected.keys())
+    assert actual_keys == expected_keys, (
+        f"{path}: different keys\n"
+        f"Only in actual: {sorted(actual_keys - expected_keys)}\n"
+        f"Only in expected: {sorted(expected_keys - actual_keys)}"
+    )
+
+
+def _assert_attrs_equal(actual_attrs, expected_attrs, path):
+    assert dict(actual_attrs) == dict(expected_attrs), (
+        f"{path}: different attrs\n"
+        f"Actual attrs: {dict(actual_attrs)}\n"
+        f"Expected attrs: {dict(expected_attrs)}"
+    )
+
+
+def _assert_data_array_matches(actual, expected, path):
+    assert actual.dims == expected.dims, (
+        f"{path}: different dimensions\n"
+        f"Actual dims: {actual.dims}\n"
+        f"Expected dims: {expected.dims}"
+    )
+
+    assert actual.dtype == expected.dtype, (
+        f"{path}: different dtype\n"
+        f"Actual dtype: {actual.dtype}\n"
+        f"Expected dtype: {expected.dtype}"
+    )
+
+    _assert_attrs_equal(actual.attrs, expected.attrs, f"{path}.attrs")
+
+    if np.issubdtype(actual.dtype, np.number):
+        xr.testing.assert_allclose(actual, expected, rtol=1e-7, atol=1e-9)
+    else:
+        xr.testing.assert_identical(actual, expected)
+
+
+def assert_xarray_dataset_matches(actual, expected, path):
+    """Compare two xarray datasets including structure, attrs, dtypes, coords, and values."""
+    assert isinstance(actual, xr.Dataset)
+    assert isinstance(expected, xr.Dataset)
+
+    assert dict(actual.sizes) == dict(expected.sizes), (
+        f"{path}: different sizes\n"
+        f"Actual sizes: {dict(actual.sizes)}\n"
+        f"Expected sizes: {dict(expected.sizes)}"
+    )
+
+    _assert_attrs_equal(actual.attrs, expected.attrs, f"{path}.attrs")
+
+    assert set(actual.coords) == set(expected.coords), (
+        f"{path}: different coordinates\n"
+        f"Actual coords: {set(actual.coords)}\n"
+        f"Expected coords: {set(expected.coords)}"
+    )
+
+    for coord in actual.coords:
+        _assert_data_array_matches(
+            actual.coords[coord],
+            expected.coords[coord],
+            f"{path}.coords[{coord}]",
+        )
+
+    assert set(actual.data_vars) == set(expected.data_vars), (
+        f"{path}: different data variables\n"
+        f"Actual data variables: {set(actual.data_vars)}\n"
+        f"Expected data variables: {set(expected.data_vars)}"
+    )
+
+    for variable in actual.data_vars:
+        _assert_data_array_matches(
+            actual[variable],
+            expected[variable],
+            f"{path}.data_vars[{variable}]",
+        )
+
+
+def assert_nested_xarray_dict_matches(actual, expected, path="Results"):
+    """Recursively compare the nested xarray dictionary returned by readNetCDFToDatasets()."""
+    _assert_same_keys(actual, expected, path)
+
+    for key in actual:
+        key_path = f"{path}/{key}"
+        actual_value = actual[key]
+        expected_value = expected[key]
+
+        if isinstance(actual_value, dict):
+            assert isinstance(expected_value, dict), f"{key_path}: expected a dict"
+            assert_nested_xarray_dict_matches(actual_value, expected_value, key_path)
+        else:
+            assert_xarray_dataset_matches(actual_value, expected_value, key_path)
+
+
+def assert_optimization_results_match_golden(esM, golden_file_name, tmp_path):
+    """Write optimized esM results to netCDF and compare them with a committed golden file.
+
+    Set UPDATE_GOLDEN=1 to regenerate the committed golden file intentionally.
+    """
+    GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
+    golden_path = GOLDEN_DIR / golden_file_name
+
+    if UPDATE_GOLDEN:
+        xrIO.writeEnergySystemModelToNetCDF(
+            esM,
+            outputFilePath=str(golden_path),
+            overwriteExisting=True,
+        )
+        return
+
+    assert golden_path.exists(), (
+        f"Missing golden file: {golden_path}\n"
+        "Generate it intentionally with:\n"
+        f"UPDATE_GOLDEN=1 pytest {Path(__file__).as_posix()} "
+        "-k golden_minimal_optimization_results"
+    )
+
+    actual_path = tmp_path / golden_file_name
+    xrIO.writeEnergySystemModelToNetCDF(
+        esM,
+        outputFilePath=str(actual_path),
+        overwriteExisting=True,
+    )
+
+    actual = xrIO.readNetCDFToDatasets(str(actual_path))
+    expected = xrIO.readNetCDFToDatasets(str(golden_path))
+
+    assert "Results" in actual
+    assert "Results" in expected
+    assert_nested_xarray_dict_matches(actual["Results"], expected["Results"])
+
 
 
 def compare_values(value_1, value_2):
@@ -104,6 +246,18 @@ def compare_esm_outputs(esm_1: fn.EnergySystemModel, esm_2: fn.energySystemModel
             assert_frame_equal(
                 model_results_1_sorted, model_results_2_sorted, check_dtype=False
             )
+
+
+def test_golden_minimal_optimization_results(minimal_test_esM, tmp_path):
+    """Regression test for committed golden optimization output of the minimal esM."""
+    esM = minimal_test_esM
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
+
+    assert_optimization_results_match_golden(
+        esM,
+        "minimal_test_esM.nc",
+        tmp_path,
+    )
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
