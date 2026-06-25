@@ -55,7 +55,13 @@ def rollingHorizonOptimization(
     print("Starting rolling horizon optimization.")
 
     esM_results = {}
-
+    persistedStock = {
+        classname: {
+            comp: copy.deepcopy(compDict[classname][comp]["stockCommissioning"])
+            for comp in compDict[classname]
+        }
+        for classname in compDict
+    }
     for rollingHorizonYears in rollingHorizonIntervals:
         print(
             f"Initizializing rolling horizon optimization for {rollingHorizonYears}..."
@@ -64,6 +70,10 @@ def rollingHorizonOptimization(
         rollingHorizonCompDict = copy.deepcopy(dict(compDict))
         for classname in rollingHorizonCompDict:
             for comp in rollingHorizonCompDict[classname]:
+                # restore accumulated stock from previous iterations
+                rollingHorizonCompDict[classname][comp]["stockCommissioning"] = (
+                    copy.deepcopy(persistedStock[classname][comp])
+                )
                 # 1.1 update stockCommissioning
                 # first rolling horizon requires no changes, just external stock,
                 # further years needs internal optimization results
@@ -120,6 +130,11 @@ def rollingHorizonOptimization(
                             rollingHorizonCompDict[classname][comp][
                                 "stockCommissioning"
                             ].pop(outdatedStockYear)
+
+                # persist updated stock for next iteration
+                persistedStock[classname][comp] = copy.deepcopy(
+                    rollingHorizonCompDict[classname][comp]["stockCommissioning"]
+                )
 
                 if (
                     rollingHorizonCompDict[classname][comp]["stockCommissioning"]
