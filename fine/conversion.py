@@ -1859,6 +1859,34 @@ class ConversionModel(ComponentModel):
 
         return optSummaryDict
 
+    def _summaryPlantUnit(self):
+        return "physicalUnit", ""
+
+    def _subclassSummaryFrames(self, esM, ip):
+        """Conversion operation summary rows derived from ``self._rawResults`` (see
+        :meth:`fine.component.Component.getResultSummaryDict`).
+        """
+        compDict = self.componentsDict
+        results_ip = self._rawResults[ip]
+        perA = "[" + esM.costUnit + "/a]"
+
+        optVal = results_ip.get("operation")
+        if optVal is not None:
+            optVal = optVal.loc[pd.IndexSlice[:, :], :]
+            opSum = optVal.sum(axis=1).unstack(-1)
+            annual = opSum / esM.numberOfYears
+        else:
+            opSum = annual = None
+        return [
+            ("operation", opSum, lambda c: "[" + compDict[c].physicalUnit + "*h]"),
+            (
+                "operation_annual",
+                annual,
+                lambda c: "[" + compDict[c].physicalUnit + "*h/a]",
+            ),
+            ("opexOp", results_ip.get("opexOp"), perA),
+        ]
+
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
 

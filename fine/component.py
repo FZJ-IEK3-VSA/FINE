@@ -4389,3 +4389,163 @@ class ComponentModel(metaclass=ABCMeta):
             }
             for valName in timeDependentMapping
         }
+
+    # ------------------------------------------------------------------
+    # Results dict accessors for the xarray/netCDF export (see xarrayIO.py).
+    # These read directly from the raw results dict (``self._rawResults`` /
+    # ``self._rawResults1dim``) so the export no longer has to re-parse the
+    # optimization summary DataFrame. The raw results dict is the single source
+    # of truth; the optimization summary is a separate view of the same data.
+    # ------------------------------------------------------------------
+
+    def _exportOptimumVarMap(self):
+        """Map raw result keys to the optimum variable names used by the export.
+
+        :return: list of ``(rawResultsKey, optimumVariableName, timeDependent)`` tuples in the
+            same order/meaning as :meth:`getOptimalValues`.
+        :rtype: list
+        """
+        return [
+            ("capacity", "capacityVariablesOptimum", False),
+            ("isBuilt", "isBuiltVariablesOptimum", False),
+            ("operation", "operationVariablesOptimum", True),
+            ("commissioning", "commissioningVariablesOptimum", False),
+            ("decommissioning", "decommissioningVariablesOptimum", False),
+        ]
+
+    def getResultOptimalValues(self, ip):
+        """Return design/operation optima for the export, read from ``self._rawResults``.
+
+        Same structure as :meth:`getOptimalValues` (``{name: {"values", "timeDependent",
+        "dimension"}}``) but sourced explicitly from the raw results dict. The values are the
+        exact same frame objects the optimum attributes hold (both are populated from the same
+        object in :meth:`extractRawResults`), so the export output is unchanged.
+
+        :param ip: investment period name (key into ``self._rawResults``).
+        :type ip: string
+
+        :rtype: dict
+        """
+        results_ip = self._rawResults[ip]
+        return {
+            optName: {
+                "values": results_ip.get(rawKey),
+                "timeDependent": timeDependent,
+                "dimension": self.dimension,
+            }
+            for rawKey, optName, timeDependent in self._exportOptimumVarMap()
+        }
+
+    def _summaryPlantUnit(self):
+        """(plant unit attribute name, capacity unit suffix) for the design summary rows.
+
+        :rtype: tuple(str, str)
+        """
+        return "commodityUnit", ""
+
+    def _subclassSummaryFrames(self, esM, ip):
+        """Operation summary rows (per subclass) derived from ``self._rawResults``.
+
+        :return: ordered list of ``(property, frame, unitFn)`` where ``frame`` is indexed by
+            component with locations (1dim) / connections (2dim) as columns, and ``unitFn`` maps
+            a component name to its unit string. The base class has no operation rows.
+        :rtype: list
+        """
+        return []
+
+    def getResultSummaryDict(self, esM, ip):
+        """Assemble the time-independent summary results for the export from ``self._rawResults``.
+
+        Reproduces, per component, the variable -> (values, unit) entries the export previously
+        obtained by re-parsing ``getOptimizationSummary``. Design rows come from
+        ``self._rawResults1dim`` and the derived economic rows from ``self._rawResults``; the
+        subclass operation rows are added through :meth:`_subclassSummaryFrames`. For 1-dim
+        components a value is a per-location ``Series`` (NaN-filled where absent, matching the
+        summary's fixed columns); for 2-dim components it is a ``Series`` indexed by
+        ``(locationIn, locationOut)`` with absent/NaN connections dropped (matching the summary's
+        ``stack``), or ``None`` when the whole property is absent.
+
+        :param esM: EnergySystemModel instance.
+        :type esM: EnergySystemModel instance
+
+        :param ip: investment period name (key into ``self._rawResults``).
+        :type ip: string
+
+        :return: ``{componentName: {property: (values, unit)}}``.
+        :rtype: dict
+        """
+        compDict = self.componentsDict
+        results_ip = self._rawResults[ip]
+        results1dim_ip = self._rawResults1dim[ip]
+        plantUnit, unitApp = self._summaryPlantUnit()
+        perA = "[" + esM.costUnit + "/a]"
+        cost = "[" + esM.costUnit + "]"
+
+        def plantUnitFn(compName, suffix):
+            return "[" + getattr(compDict[compName], plantUnit) + suffix + "]"
+
+        # (property, frame, unit) in the order the summary lists them. ``unit`` is either a
+        # fixed string or a callable ``comp -> unit`` for the per-component plant units. Design
+        # rows use the 1-dim companion frames; economic rows use the derived frames.
+        designRows = [
+            ("capacity", results1dim_ip.get("capacity"), lambda c: plantUnitFn(c, unitApp)),
+            ("commissioning", results1dim_ip.get("commissioning"), lambda c: plantUnitFn(c, unitApp)),
+            ("decommissioning", results1dim_ip.get("decommissioning"), lambda c: plantUnitFn(c, unitApp)),
+            ("isBuilt", results1dim_ip.get("isBuilt"), "[-]"),
+        ]
+        econUnits = {
+            "capexCap": perA,
+            "capexIfBuilt": perA,
+            "opexCap": perA,
+            "opexIfBuilt": perA,
+            "TAC": perA,
+            "NPVcontribution": cost,
+            "invest": cost,
+            "investLifetimeExtension": cost,
+            "revenueLifetimeShorteningResale": cost,
+        }
+        econRows = [(prop, results_ip.get(prop), unit) for prop, unit in econUnits.items()]
+        rows = designRows + econRows + self._subclassSummaryFrames(esM, ip)
+
+        mapC = {
+            l1 + "_" + l2: (l1, l2) for l1 in esM.locations for l2 in esM.locations
+        }
+        out = {compName: {} for compName in compDict}
+        for compName in compDict:
+            for prop, frame, unit in rows:
+                values = self._extractComponentResult(frame, compName, esM, mapC)
+                if values is None:
+                    continue
+                out[compName][prop] = (values, unit(compName) if callable(unit) else unit)
+        return out
+
+    def _extractComponentResult(self, frame, compName, esM, mapC):
+        """Shape a class-level result frame into the per-component export values.
+
+        :param frame: frame indexed by component, columns are locations (1dim) or connections
+            (2dim); may be ``None``.
+        :param compName: component name to extract.
+        :param mapC: mapping ``"locIn_locOut" -> (locIn, locOut)`` for the 2-dim split.
+
+        :return: per-location ``Series`` (1dim, NaN-filled), ``(locationIn, locationOut)``
+            ``Series`` (2dim, NaN dropped) or ``None`` to skip the variable.
+        :rtype: pandas.Series or None
+        """
+        if self.dimension == "1dim":
+            locations = sorted(esM.locations)
+            if frame is None or compName not in frame.index:
+                return pd.Series(np.nan, index=locations)
+            return frame.loc[compName].reindex(locations)
+        # 2dim: split connection columns into (locationIn, locationOut), dropping NaN
+        if frame is None or compName not in frame.index:
+            return None
+        row = frame.loc[compName]
+        index, values = [], []
+        for connection, value in row.items():
+            if pd.isna(value):
+                continue
+            index.append(mapC[connection])
+            values.append(value)
+        if not index:
+            return None
+        return pd.Series(values, index=pd.MultiIndex.from_tuples(index))

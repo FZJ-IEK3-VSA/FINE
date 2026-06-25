@@ -91,72 +91,33 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 for key in esM.componentModelingDict[model_dict].componentsDict.keys()
             }
     for ip in esM.investmentPeriodNames:
-        # Write output from esM.getOptimizationSummary to datasets
+        # Write the time-independent results to datasets. These are read directly from the raw
+        # results dict (the single source of truth) via getResultSummaryDict, instead of
+        # re-parsing the optimization summary DataFrame.
         for name in esM.componentModelingDict.keys():
             utils.output("\tProcessing " + name + " ...", esM.verboseLogLevel, 0)
-            oL = optSumOutputLevel
-            oL_ = oL[name] if isinstance(oL, dict) else oL
-            optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
-            if esM.componentModelingDict[name].dimension == "1dim":
-                for component in optSum.index.get_level_values(0).unique():
-                    variables = optSum.loc[component].index.get_level_values(0)
-                    units = optSum.loc[component].index.get_level_values(1)
-                    variables_unit = dict(zip(variables, units))
-                    for variable in (
-                        optSum.loc[component].index.get_level_values(0).unique()
-                    ):
-                        df = optSum.loc[(component, variable)]
-                        df = df.iloc[-1]
-                        df.name = variable
-                        df.index.rename("location", inplace=True)
-                        df = pd.to_numeric(df)
-                        xr_da = df.to_xarray()
-                        # add variable [e.g. 'TAC'] and units to attributes of xarray
-                        unit = variables_unit[variable]
-                        xr_da.attrs[variable] = unit
+            modelingClass = esM.componentModelingDict[name]
+            summaryDict = modelingClass.getResultSummaryDict(esM, ip)
+            for component, variables in summaryDict.items():
+                for variable, (values, unit) in variables.items():
+                    df = pd.to_numeric(values)
+                    df.name = variable
+                    if modelingClass.dimension == "1dim":
+                        df.index = df.index.rename("location")
+                    else:
+                        df.index = df.index.rename(["locationIn", "locationOut"])
+                    xr_da = df.to_xarray()
+                    # add variable [e.g. 'TAC'] and units to attributes of xarray
+                    xr_da.attrs[variable] = unit
+                    # merge to overall xr_ds
+                    xr_dss[ip][name][component] = xr.merge(
+                        [xr_dss[ip][name][component], xr_da],
+                        combine_attrs="drop_conflicts",
+                        join="outer",
+                    )
 
-                        # merge to overall xr_ds
-                        xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da],
-                            combine_attrs="drop_conflicts",
-                            join="outer",
-                        )
-            elif esM.componentModelingDict[name].dimension == "2dim":
-                for component in optSum.index.get_level_values(0).unique():
-                    variables = optSum.loc[component].index.get_level_values(0)
-                    units = optSum.loc[component].index.get_level_values(1)
-                    variables_unit = dict(zip(variables, units))
-                    for variable in (
-                        optSum.loc[component].index.get_level_values(0).unique()
-                    ):
-                        df = optSum.loc[(component, variable)]
-                        if len(df.index.get_level_values(0).unique()) > 1:
-                            idx = df.index.get_level_values(0).unique()[-1]
-                            df = df.xs(idx, level=0)
-
-                        else:
-                            df.index = df.index.droplevel(0)
-
-                        # df = df.iloc[-1]
-                        df = df.stack()
-                        # df.name = (name, component, variables
-                        df.name = variable
-                        df.index.rename(["locationIn", "locationOut"], inplace=True)
-                        df = pd.to_numeric(df)
-                        xr_da = df.to_xarray()
-
-                        # add variable [e.g. 'TAC'] and units to attributes of xarray
-                        unit = variables_unit[variable]
-                        xr_da.attrs[variable] = unit
-                        # merge to overall xr_ds
-                        xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da],
-                            combine_attrs="drop_conflicts",
-                            join="outer",
-                        )
-
-            # Write output from esM.esM.componentModelingDict[name].getOptimalValues() to datasets
-            data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
+            # Write the design/operation optima to datasets, read from the raw results dict.
+            data = modelingClass.getResultOptimalValues(ip)
             dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
             dataTI, indexTI = [], []
             for key, d in data.items():

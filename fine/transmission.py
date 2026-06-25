@@ -1195,6 +1195,31 @@ class TransmissionModel(ComponentModel):
 
         return optSummaryDict
 
+    def _subclassSummaryFrames(self, esM, ip):
+        """Transmission operation summary rows derived from ``self._rawResults`` (see
+        :meth:`fine.component.Component.getResultSummaryDict`). The summed operation uses the
+        1-dim (connection-indexed) companion, matching :meth:`_buildSubclassOptimizationSummary`;
+        ``opexOp`` holds the preserved operation-NPV quirk (see :meth:`_deriveSubclassEconomics`).
+        """
+        compDict = self.componentsDict
+        perA = "[" + esM.costUnit + "/a]"
+
+        optVal = self._rawResults1dim[ip].get("operation")
+        if optVal is not None:
+            opSum = optVal.sum(axis=1).unstack(-1)
+            annual = opSum / esM.numberOfYears
+        else:
+            opSum = annual = None
+        return [
+            ("operation", opSum, lambda c: "[" + compDict[c].commodityUnit + "*h]"),
+            (
+                "operation_annual",
+                annual,
+                lambda c: "[" + compDict[c].commodityUnit + "*h/a]",
+            ),
+            ("opexOp", self._rawResults[ip].get("opexOp"), perA),
+        ]
+
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
 

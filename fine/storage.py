@@ -2353,6 +2353,72 @@ class StorageModel(ComponentModel):
 
         return optSummaryDict
 
+    def _summaryPlantUnit(self):
+        return "commodityUnit", "*h"
+
+    def _exportOptimumVarMap(self):
+        return [
+            ("capacity", "capacityVariablesOptimum", False),
+            ("commissioning", "commissioningVariablesOptimum", False),
+            ("decommissioning", "decommissioningVariablesOptimum", False),
+            ("isBuilt", "isBuiltVariablesOptimum", False),
+            ("chargeOperation", "chargeOperationVariablesOptimum", True),
+            ("dischargeOperation", "dischargeOperationVariablesOptimum", True),
+            (
+                "stateOfChargeOperation",
+                "stateOfChargeOperationVariablesOptimum",
+                True,
+            ),
+        ]
+
+    def _subclassSummaryFrames(self, esM, ip):
+        """Storage charge/discharge summary rows derived from ``self._rawResults`` (see
+        :meth:`fine.component.Component.getResultSummaryDict`).
+        """
+        compDict = self.componentsDict
+        results_ip = self._rawResults[ip]
+        perA = "[" + esM.costUnit + "/a]"
+
+        chargeOp = results_ip.get("chargeOperation")
+        if chargeOp is not None:
+            chargeOp = chargeOp.loc[pd.IndexSlice[:, :], :]
+            opSumCharge = chargeOp.sum(axis=1).unstack(-1)
+            annualCharge = opSumCharge / esM.numberOfYears
+        else:
+            opSumCharge = annualCharge = None
+
+        dischargeOp = results_ip.get("dischargeOperation")
+        if dischargeOp is not None:
+            opSumDischarge = dischargeOp.sum(axis=1).unstack(-1)
+            annualDischarge = opSumDischarge / esM.numberOfYears
+        else:
+            opSumDischarge = annualDischarge = None
+
+        return [
+            (
+                "operationCharge",
+                opSumCharge,
+                lambda c: "[" + compDict[c].commodityUnit + "*h]",
+            ),
+            (
+                "operationCharge_annual",
+                annualCharge,
+                lambda c: "[" + compDict[c].commodityUnit + "*h/a]",
+            ),
+            ("opexCharge", results_ip.get("opexCharge"), perA),
+            (
+                "operationDischarge",
+                opSumDischarge,
+                lambda c: "[" + compDict[c].commodityUnit + "*h]",
+            ),
+            (
+                "operationDischarge_annual",
+                annualDischarge,
+                lambda c: "[" + compDict[c].commodityUnit + "*h/a]",
+            ),
+            ("opexDischarge", results_ip.get("opexDischarge"), perA),
+        ]
+
     def getOptimalValues(self, name="all", ip=0):  # noqa: PLR0911
         """Return optimal values of the components.
 

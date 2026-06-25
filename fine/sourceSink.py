@@ -1305,6 +1305,29 @@ class SourceSinkModel(ComponentModel):
 
         return optSummaryDict
 
+    def _subclassSummaryFrames(self, esM, ip):
+        """Source/sink operation summary rows derived from ``self._rawResults`` (see
+        :meth:`fine.component.Component.getResultSummaryDict`).
+        """
+        compDict = self.componentsDict
+        results_ip = self._rawResults[ip]
+        perA = "[" + esM.costUnit + "/a]"
+
+        optVal = results_ip.get("operation")
+        opSum = optVal.sum(axis=1).unstack(-1) if optVal is not None else None
+        annual = opSum / esM.numberOfYears if opSum is not None else None
+        return [
+            ("operation", opSum, lambda c: "[" + compDict[c].commodityUnit + "*h]"),
+            (
+                "operation_annual",
+                annual,
+                lambda c: "[" + compDict[c].commodityUnit + "*h/a]",
+            ),
+            ("opexOp", results_ip.get("opexOp"), perA),
+            ("commodCosts", results_ip.get("commodCosts"), perA),
+            ("commodRevenues", results_ip.get("commodRevenues"), perA),
+        ]
+
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
 
