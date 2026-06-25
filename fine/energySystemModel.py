@@ -1010,7 +1010,9 @@ class EnergySystemModel:
 
         # clustering of the time series data per investment period individually
         for ip in self.investmentPeriods:
-            timeSeriesData, weightDict, zero_data_cols = self.createTimeSeriesDataForAggregation(ip)
+            timeSeriesData, weightDict, zero_data_cols = (
+                self.createTimeSeriesDataForAggregation(ip)
+            )
 
             if segmentation:
                 clusterClass = TimeSeriesAggregation(
@@ -1144,9 +1146,7 @@ class EnergySystemModel:
         zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
         # drop columns with only zeros
         timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
-        weightDict = {
-            k: v for k, v in weightDict.items() if k not in zero_data_cols
-        }
+        weightDict = {k: v for k, v in weightDict.items() if k not in zero_data_cols}
 
         return timeSeriesData, weightDict, zero_data_cols
 
