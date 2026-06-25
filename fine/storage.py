@@ -2028,23 +2028,16 @@ class StorageModel(ComponentModel):
             )
             rawResults[ipName]["stateOfChargeOperation"] = optVal
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
+    def _deriveSubclassEconomics(self, esM, pyM, rawResults):
+        """Derive the storage specific charge/discharge operational costs.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
+        Adds the ``opexCharge`` and ``opexDischarge`` frames to ``rawResults`` and augments the
+        aggregated ``TAC`` and ``NPVcontribution`` frames with the charge/discharge
+        contributions. Mirrors the former inline computation in :meth:`setOptimalValues`.
         """
-        compDict = self.componentsDict
+        super()._deriveSubclassEconomics(esM, pyM, rawResults)
 
-        # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(
-            esM, pyM, esM.locations, "commodityUnit", "*h"
-        )
-
-        # Get class related results
+        # Get class related results (moved out of setOptimalValues)
         resultsTAC_opexOpCharge = self.getEconomicsOperation(
             pyM,
             esM,
@@ -2087,6 +2080,56 @@ class StorageModel(ComponentModel):
         )
 
         for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+            economics_ip = rawResults[ipName]
+
+            # charge opex contribution
+            if economics_ip["chargeOperation"] is not None:
+                economics_ip["opexCharge"] = resultsTAC_opexOpCharge[ip]
+                if "NPVcontribution" in economics_ip:
+                    economics_ip["NPVcontribution"] = economics_ip[
+                        "NPVcontribution"
+                    ].add(resultsNPV_opexOpCharge[ip], fill_value=0)
+
+            # discharge opex contribution
+            if economics_ip["dischargeOperation"] is not None:
+                economics_ip["opexDischarge"] = resultsTAC_opexOpDischarge[ip]
+                if "NPVcontribution" in economics_ip:
+                    economics_ip["NPVcontribution"] = economics_ip[
+                        "NPVcontribution"
+                    ].add(resultsNPV_opexOpDischarge[ip], fill_value=0)
+
+            # add the charge/discharge opex to the total annual cost
+            tacParts = [
+                economics_ip[key]
+                for key in ("opexCharge", "opexDischarge")
+                if key in economics_ip
+            ]
+            if tacParts and "TAC" in economics_ip:
+                economics_ip["TAC"] = (
+                    pd.concat([economics_ip["TAC"]] + tacParts)
+                    .groupby(level=0)
+                    .sum()
+                )
+
+    def setOptimalValues(self, esM, pyM):
+        """Set the optimal values of the components.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict = self.componentsDict
+
+        # Set optimal design dimension variables, derive the economics (incl. the storage's
+        # charge/discharge opex via _deriveSubclassEconomics) and get the basic summary.
+        optSummaryBasic = super().setOptimalValues(
+            esM, pyM, esM.locations, "commodityUnit", "*h"
+        )
+
+        for ip in esM.investmentPeriods:
             # Set optimal operation variables and append optimization summary
             props = [
                 "operationCharge",
@@ -2095,8 +2138,6 @@ class StorageModel(ComponentModel):
                 "operationDischarge_annual",
                 "opexCharge",
                 "opexDischarge",
-                "NPV_opexCharge",
-                "NPV_opexDischarge",
             ]
             # Unit dict: Specify units for props
             units = {
@@ -2106,8 +2147,6 @@ class StorageModel(ComponentModel):
                 props[3]: ["[-*h/a]"],
                 props[4]: ["[" + esM.costUnit + "/a]"],
                 props[5]: ["[" + esM.costUnit + "/a]"],
-                props[6]: ["[" + esM.costUnit + "/a]"],
-                props[7]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -2198,8 +2237,10 @@ class StorageModel(ComponentModel):
                     opSum.columns,
                 ] = opSum.values
 
-                # cost
-                tac_oxCharge = resultsTAC_opexOpCharge[ip]
+                # cost (derived by _deriveSubclassEconomics)
+                tac_oxCharge = self._rawResults[esM.investmentPeriodNames[ip]][
+                    "opexCharge"
+                ]
                 optSummary.loc[
                     [
                         (ix, "opexCharge", "[" + esM.costUnit + "/a]")
@@ -2207,14 +2248,6 @@ class StorageModel(ComponentModel):
                     ],
                     tac_oxCharge.columns,
                 ] = tac_oxCharge.values
-                npv_oxCharge = resultsNPV_opexOpCharge[ip]
-                optSummary.loc[
-                    [
-                        (ix, "NPV_opexCharge", "[" + esM.costUnit + "/a]")
-                        for ix in npv_oxCharge.index
-                    ],
-                    npv_oxCharge.columns,
-                ] = npv_oxCharge.values
 
             # * discharge variables and contributions (extracted by _extractSubclassRawResults)
             optVal_discharge = self._rawResults[esM.investmentPeriodNames[ip]][
@@ -2263,8 +2296,10 @@ class StorageModel(ComponentModel):
                     opSum.columns,
                 ] = opSum.values
 
-                # costs
-                tac_oxDischarge = resultsTAC_opexOpDischarge[ip]
+                # costs (derived by _deriveSubclassEconomics)
+                tac_oxDischarge = self._rawResults[esM.investmentPeriodNames[ip]][
+                    "opexDischarge"
+                ]
                 optSummary.loc[
                     [
                         (ix, "opexDischarge", "[" + esM.costUnit + "/a]")
@@ -2272,14 +2307,6 @@ class StorageModel(ComponentModel):
                     ],
                     tac_oxDischarge.columns,
                 ] = tac_oxDischarge.values
-                npv_oxDischarge = resultsNPV_opexOpDischarge[ip]
-                optSummary.loc[
-                    [
-                        (ix, "NPV_opexDischarge", "[" + esM.costUnit + "/a]")
-                        for ix in npv_oxDischarge.index
-                    ],
-                    npv_oxDischarge.columns,
-                ] = npv_oxDischarge.values
 
             # State of charge variables are extracted by _extractSubclassRawResults
             # (self._stateOfChargeOperationVariablesOptimum) and are not part of the summary.
@@ -2297,33 +2324,9 @@ class StorageModel(ComponentModel):
                 axis=0,
             ).sort_index()
 
-            # Summarize all contributions to the total annual cost
-            optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
-                optSummary.loc[
-                    (optSummary.index.get_level_values(1) == "TAC")
-                    | (optSummary.index.get_level_values(1) == "opexCharge")
-                    | (optSummary.index.get_level_values(1) == "opexDischarge")
-                ]
-                .groupby(level=0)
-                .sum()
-                .values
-            )
-            optSummary.loc[
-                optSummary.index.get_level_values(1) == "NPVcontribution"
-            ] = (
-                optSummary.loc[
-                    (optSummary.index.get_level_values(1) == "NPVcontribution")
-                    | (optSummary.index.get_level_values(1) == "NPV_opexCharge")
-                    | (optSummary.index.get_level_values(1) == "NPV_opexDischarge")
-                ]
-                .groupby(level=0)
-                .sum()
-                .values
-            )
-
-            # # Delete details of NPV contributions
-            optSummary = optSummary.drop("NPV_opexCharge", level=1)
-            optSummary = optSummary.drop("NPV_opexDischarge", level=1)
+            # The TAC and NPVcontribution rows of optSummaryBasic already include the
+            # charge/discharge contributions (folded in by _deriveSubclassEconomics), so no
+            # further aggregation is required here.
 
             self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 
