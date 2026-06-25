@@ -855,60 +855,46 @@ class ConversionPartLoadModel(ConversionModel):
         """
         return super().getObjectiveFunctionContribution(esM, pyM)
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the part-load specific raw solved discretization variables.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Chains the Conversion hook (operation) and adds the discretization point / segment
+        continuous / segment binary variables to ``rawResults`` while populating the
+        corresponding ``self._*VariablesOptimum`` attributes.
         """
-        super().setOptimalValues(esM, pyM)
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
         abbrvName = self.abbrvName
-        discretizationPointVariables = getattr(pyM, "discretizationPoint_" + abbrvName)
-        discretizationSegmentConVariables = getattr(
-            pyM, "discretizationSegmentCon_" + abbrvName
-        )
-        discretizationSegmentBinVariables = getattr(
-            pyM, "discretizationSegmentBin_" + abbrvName
-        )
+        discretizationVars = [
+            (
+                "discretizationPoint",
+                getattr(pyM, "discretizationPoint_" + abbrvName),
+                self._discretizationPointVariablesOptimum,
+            ),
+            (
+                "discretizationSegmentCon",
+                getattr(pyM, "discretizationSegmentCon_" + abbrvName),
+                self._discretizationSegmentConVariablesOptimum,
+            ),
+            (
+                "discretizationSegmentBin",
+                getattr(pyM, "discretizationSegmentBin_" + abbrvName),
+                self._discretizationSegmentBinVariablesOptimum,
+            ),
+        ]
 
         for ip in esM.investmentPeriods:
-            discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(
-                discretizationPointVariables.get_values(),
-                "operationVariables",
-                "1dim",
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-            discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(
-                discretizationSegmentConVariables.get_values(),
-                "operationVariables",
-                "1dim",
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-            discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(
-                discretizationSegmentBinVariables.get_values(),
-                "operationVariables",
-                "1dim",
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-
-            self._discretizationPointVariablesOptimum[esM.investmentPeriodNames[ip]] = (
-                discretizationPointVariablesOptVal_
-            )
-            self._discretizationSegmentConVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = discretizationSegmentConVariablesOptVal_
-            self._discretizationSegmentBinVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = discretizationSegmentBinVariablesOptVal_
+            ipName = esM.investmentPeriodNames[ip]
+            for varName, pyomoVar, optimumAttr in discretizationVars:
+                optVal_ = utils.formatOptimizationOutput(
+                    pyomoVar.get_values(),
+                    "operationVariables",
+                    "1dim",
+                    ip,
+                    esM.periodsOrder[ip],
+                    esM=esM,
+                )
+                optimumAttr[ipName] = optVal_
+                rawResults[ipName][varName] = optVal_
 
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.

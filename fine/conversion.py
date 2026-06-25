@@ -1656,6 +1656,27 @@ class ConversionModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the conversion specific raw solved ``operation`` variable.
+
+        Adds ``operation`` to ``rawResults`` and populates
+        ``self._operationVariablesOptimum``.
+        """
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
+        opVar = getattr(pyM, "op_" + self.abbrvName)
+        for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+            optVal = utils.formatOptimizationOutput(
+                opVar.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            self._operationVariablesOptimum[ipName] = optVal
+            rawResults[ipName]["operation"] = optVal
+
     def setOptimalValues(self, esM, pyM):
         """Set the optimal values of the components.
 
@@ -1665,8 +1686,7 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
+        compDict = self.componentsDict
 
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(
@@ -1696,16 +1716,8 @@ class ConversionModel(ComponentModel):
         )
 
         for ip in esM.investmentPeriods:
-            # Set optimal operation variables and append optimization summary
-            optVal = utils.formatOptimizationOutput(
-                opVar.get_values(),
-                "operationVariables",
-                "1dim",
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
+            # operation variables are extracted by _extractSubclassRawResults
+            optVal = self._rawResults[esM.investmentPeriodNames[ip]]["operation"]
 
             props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props

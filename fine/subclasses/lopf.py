@@ -312,20 +312,16 @@ class LOPFModel(TransmissionModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the LOPF specific raw solved ``phaseAngle`` variable.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Chains the Transmission hook (operation) and adds ``phaseAngle`` to ``rawResults``
+        while populating ``self._phaseAngleVariablesOptimum``.
         """
-        super().setOptimalValues(esM, pyM)
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
+        phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
         for ip in esM.investmentPeriods:
-            abbrvName = self.abbrvName
-            phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
-
+            ipName = esM.investmentPeriodNames[ip]
             optVal_ = utils.formatOptimizationOutput(
                 phaseAngleVar.get_values(),
                 "operationVariables",
@@ -334,7 +330,8 @@ class LOPFModel(TransmissionModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._phaseAngleVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
+            self._phaseAngleVariablesOptimum[ipName] = optVal_
+            rawResults[ipName]["phaseAngle"] = optVal_
 
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
