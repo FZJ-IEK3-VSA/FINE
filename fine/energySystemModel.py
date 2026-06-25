@@ -1010,7 +1010,7 @@ class EnergySystemModel:
 
         # clustering of the time series data per investment period individually
         for ip in self.investmentPeriods:
-            timeSeriesData, weightDict = self.createTimeSeriesDataForAggregation(ip)
+            timeSeriesData, weightDict, zero_data_cols = self.createTimeSeriesDataForAggregation(ip)
 
             if segmentation:
                 clusterClass = TimeSeriesAggregation(
@@ -1113,6 +1113,9 @@ class EnergySystemModel:
         )
 
     def createTimeSeriesDataForAggregation(self, ip):
+        """
+        Create and return the time series data, weights, and zero-data columns for aggregation.
+        """
         timeSeriesData, weightDict = [], {}
         for mdlName, mdl in self.componentModelingDict.items():
             for compName, comp in mdl.componentsDict.items():
@@ -1147,7 +1150,7 @@ class EnergySystemModel:
             k: v for k, v in weightDict.items() if k not in zero_data_cols
         }
 
-        return timeSeriesData, weightDict
+        return timeSeriesData, weightDict, zero_data_cols
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """Set and initialize basic time parameters and sets.
