@@ -1113,9 +1113,7 @@ class EnergySystemModel:
         )
 
     def createTimeSeriesDataForAggregation(self, ip):
-        """
-        Create and return the time series data, weights, and zero-data columns for aggregation.
-        """
+        """Create and return the time series data, weights, and zero-data columns for aggregation."""
         timeSeriesData, weightDict = [], {}
         for mdlName, mdl in self.componentModelingDict.items():
             for compName, comp in mdl.componentsDict.items():
