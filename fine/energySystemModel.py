@@ -1139,9 +1139,7 @@ class EnergySystemModel:
 
         # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
         # call) depending on whether segmentation is activated or not
-        timeSeriesData = timeSeriesData.reindex(
-            sorted(timeSeriesData.columns), axis=1
-        )
+        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
         # find data with only zeros
         zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
         # drop columns with only zeros
