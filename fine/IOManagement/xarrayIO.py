@@ -91,116 +91,32 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 for key in esM.componentModelingDict[model_dict].componentsDict.keys()
             }
     for ip in esM.investmentPeriodNames:
-        # Write the time-independent results to datasets. These are read directly from the raw
-        # results dict (the single source of truth) via getResultSummaryDict, instead of
-        # re-parsing the optimization summary DataFrame.
+        # Write the results to datasets. Both the time-independent summary rows and the
+        # design/operation optima are read directly from the raw results dict (the single source
+        # of truth) and returned per component as to_xarray-ready (values, unit) entries, so each
+        # variable is just merged into its component's dataset. The summary rows carry a unit;
+        # the optima do not (unit is None).
         for name in esM.componentModelingDict.keys():
             utils.output("\tProcessing " + name + " ...", esM.verboseLogLevel, 0)
             modelingClass = esM.componentModelingDict[name]
             summaryDict = modelingClass.getResultSummaryDict(esM, ip)
-            for component, variables in summaryDict.items():
+            optimaDict = modelingClass.getResultOptimalValues(ip)
+            for component in modelingClass.componentsDict.keys():
+                variables = {
+                    **summaryDict.get(component, {}),
+                    **optimaDict.get(component, {}),
+                }
                 for variable, (values, unit) in variables.items():
-                    df = pd.to_numeric(values)
-                    df.name = variable
-                    if modelingClass.dimension == "1dim":
-                        df.index = df.index.rename("location")
-                    else:
-                        df.index = df.index.rename(["locationIn", "locationOut"])
-                    xr_da = df.to_xarray()
-                    # add variable [e.g. 'TAC'] and units to attributes of xarray
-                    xr_da.attrs[variable] = unit
+                    xr_da = values.to_xarray()
+                    if unit is not None:
+                        # add variable [e.g. 'TAC'] and unit to the variable's attributes
+                        xr_da.attrs[variable] = unit
                     # merge to overall xr_ds
                     xr_dss[ip][name][component] = xr.merge(
                         [xr_dss[ip][name][component], xr_da],
                         combine_attrs="drop_conflicts",
                         join="outer",
                     )
-
-            # Write the design/operation optima to datasets, read from the raw results dict.
-            data = modelingClass.getResultOptimalValues(ip)
-            dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
-            dataTI, indexTI = [], []
-            for key, d in data.items():
-                if d["values"] is None:
-                    continue
-                if d["timeDependent"]:
-                    if d["dimension"] == "1dim":
-                        dataTD1dim.append(d["values"]), indexTD1dim.append(key)
-                    elif d["dimension"] == "2dim":
-                        dataTD2dim.append(d["values"]), indexTD2dim.append(key)
-                else:
-                    dataTI.append(d["values"]), indexTI.append(key)
-            # One dimensional time dependent data
-            if dataTD1dim:
-                names = ["Variable", "Component", "Location"]
-                dfTD1dim = pd.concat(dataTD1dim, keys=indexTD1dim, names=names)
-                for variable in dfTD1dim.index.get_level_values(0).unique():
-                    # for component in dfTD1dim.index.get_level_values(1).unique():
-                    for component in (
-                        dfTD1dim.loc[variable].index.get_level_values(0).unique()
-                    ):
-                        df = dfTD1dim.loc[(variable, component)].T.stack()
-                        df.name = variable
-                        df.index.rename(["time", "location"], inplace=True)
-                        xr_da = df.to_xarray()
-                        xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da],
-                            join="outer",
-                        )
-            # Two dimensional time dependent data
-            if dataTD2dim:
-                names = ["Variable", "Component", "locationIn", "locationOut"]
-                dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
-                for variable in dfTD2dim.index.get_level_values(0).unique():
-                    # for component in dfTD2dim.index.get_level_values(1).unique():
-                    for component in (
-                        dfTD2dim.loc[variable].index.get_level_values(0).unique()
-                    ):
-                        df = dfTD2dim.loc[(variable, component)].stack()
-
-                        df.name = variable
-                        df.index.rename(
-                            ["locationIn", "locationOut", "time"], inplace=True
-                        )
-                        df.index = df.index.reorder_levels([2, 0, 1])
-                        xr_da = df.to_xarray()
-                        xr_dss[ip][name][component] = xr.merge(
-                            [xr_dss[ip][name][component], xr_da], join="outer"
-                        )
-            # Time independent data
-            if dataTI:
-                # One dimensional
-                if esM.componentModelingDict[name].dimension == "1dim":
-                    names = ["Variable type", "Component"]
-                    dfTI = pd.concat(dataTI, keys=indexTI, names=names)
-                    for variable in dfTI.index.get_level_values(0).unique():
-                        # for component in dfTI.index.get_level_values(1).unique():
-                        for component in (
-                            dfTI.loc[variable].index.get_level_values(0).unique()
-                        ):
-                            df = dfTI.loc[(variable, component)].T
-                            df.name = variable
-                            df.index.rename("location", inplace=True)
-                            xr_da = df.to_xarray()
-                            xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da], join="outer"
-                            )
-                # Two dimensional
-                elif esM.componentModelingDict[name].dimension == "2dim":
-                    names = ["Variable type", "Component", "Location"]
-                    dfTI = pd.concat(dataTI, keys=indexTI, names=names)
-                    for variable in dfTI.index.get_level_values(0).unique():
-                        # for component in dfTI.index.get_level_values(1).unique():
-                        for component in (
-                            dfTI.loc[variable].index.get_level_values(0).unique()
-                        ):
-                            df = dfTI.loc[(variable, component)].T.stack()
-                            df.name = variable
-                            df.index.rename(["locationIn", "locationOut"], inplace=True)
-                            xr_da = df.to_xarray()
-                            xr_dss[ip][name][component] = xr.merge(
-                                [xr_dss[ip][name][component], xr_da], join="outer"
-                            )
 
         for name in esM.componentModelingDict.keys():
             for component in esM.componentModelingDict[name].componentsDict.keys():

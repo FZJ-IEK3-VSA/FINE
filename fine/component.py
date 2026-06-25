@@ -4414,27 +4414,62 @@ class ComponentModel(metaclass=ABCMeta):
         ]
 
     def getResultOptimalValues(self, ip):
-        """Return design/operation optima for the export, read from ``self._rawResults``.
+        """Return the design/operation optima for the export, read from ``self._rawResults``.
 
-        Same structure as :meth:`getOptimalValues` (``{name: {"values", "timeDependent",
-        "dimension"}}``) but sourced explicitly from the raw results dict. The values are the
-        exact same frame objects the optimum attributes hold (both are populated from the same
-        object in :meth:`extractRawResults`), so the export output is unchanged.
+        Per component, each optimum variable is shaped into a ``Series`` ready for
+        ``.to_xarray()`` (same structure / dimension names the export produced before). The
+        values are the exact same frame objects the optimum attributes hold (both are populated
+        from the same object in :meth:`extractRawResults`), so the export output is unchanged.
+        These optima carry no unit, so the entries pair the series with ``None``.
 
         :param ip: investment period name (key into ``self._rawResults``).
         :type ip: string
 
+        :return: ``{componentName: {optimumVariableName: (values, None)}}``.
         :rtype: dict
         """
         results_ip = self._rawResults[ip]
-        return {
-            optName: {
-                "values": results_ip.get(rawKey),
-                "timeDependent": timeDependent,
-                "dimension": self.dimension,
-            }
-            for rawKey, optName, timeDependent in self._exportOptimumVarMap()
-        }
+        out = {compName: {} for compName in self.componentsDict}
+        for rawKey, optName, timeDependent in self._exportOptimumVarMap():
+            frame = results_ip.get(rawKey)
+            if frame is None:
+                continue
+            for compName in self.componentsDict:
+                if compName not in frame.index.get_level_values(0):
+                    continue
+                series = self._shapeOptimumResult(frame.loc[compName], optName, timeDependent)
+                out[compName][optName] = (series, None)
+        return out
+
+    def _shapeOptimumResult(self, sub, name, timeDependent):
+        """Shape a single component's optimum frame into a ``to_xarray``-ready ``Series``.
+
+        Reproduces the per-case index handling the export applied to ``getOptimalValues`` output:
+        time-dependent rows gain a ``time`` dimension; 2-dim rows are split into
+        ``(locationIn, locationOut)`` (the time-independent 2-dim case keeps the historical
+        transpose).
+
+        :param sub: the component slice ``frame.loc[component]``.
+        :param name: variable name (becomes the data variable name).
+        :param timeDependent: whether the variable carries a ``time`` dimension.
+
+        :rtype: pandas.Series
+        """
+        if timeDependent and self.dimension == "1dim":
+            series = sub.T.stack()
+            series.index = series.index.rename(["time", "location"])
+        elif timeDependent and self.dimension == "2dim":
+            series = sub.stack()
+            series.index = series.index.rename(["locationIn", "locationOut", "time"])
+            series = series.reorder_levels(["time", "locationIn", "locationOut"])
+        elif not timeDependent and self.dimension == "1dim":
+            series = sub.rename_axis("location")
+        else:  # time-independent 2-dim
+            series = sub.T.stack()
+            series.index = series.index.rename(["locationIn", "locationOut"])
+        series = series.copy()
+        series.name = name
+        return series
 
     def _summaryPlantUnit(self):
         """(plant unit attribute name, capacity unit suffix) for the design summary rows.
@@ -4516,8 +4551,27 @@ class ComponentModel(metaclass=ABCMeta):
                 values = self._extractComponentResult(frame, compName, esM, mapC)
                 if values is None:
                     continue
-                out[compName][prop] = (values, unit(compName) if callable(unit) else unit)
+                series = self._nameResultSeries(pd.to_numeric(values), prop)
+                out[compName][prop] = (series, unit(compName) if callable(unit) else unit)
         return out
+
+    def _nameResultSeries(self, series, name):
+        """Set the variable name and dimension-specific index names for the export.
+
+        :param series: per-component result series (1dim: index = locations; 2dim: index =
+            ``(locationIn, locationOut)`` tuples).
+        :param name: variable name (becomes the data variable name after ``to_xarray``).
+
+        :return: the same series, ready for ``.to_xarray()``.
+        :rtype: pandas.Series
+        """
+        series = series.copy()
+        series.name = name
+        if self.dimension == "1dim":
+            series.index = series.index.rename("location")
+        else:
+            series.index = series.index.rename(["locationIn", "locationOut"])
+        return series
 
     def _extractComponentResult(self, frame, compName, esM, mapC):
         """Shape a class-level result frame into the per-component export values.
