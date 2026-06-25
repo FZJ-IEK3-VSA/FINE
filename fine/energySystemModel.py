@@ -745,46 +745,6 @@ class EnergySystemModel:
         df = self.componentModelingDict[modelingClass]._optSummary[ip].dropna(how="all")
         return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
-    def getPoolNetPositions(self, commodity, poolName, ip=None):
-        """Return the net commodity flow per location for a pooled commodity, summed over all time steps.
-
-        A positive value means net production (more produced than consumed) at that location.
-        A negative value means net consumption.
-
-        :param commodity: the pooled commodity
-        :type commodity: string
-
-        :param poolName: the name of the pool as defined in pooledCommodities
-        :type poolName: string
-
-        :param ip: investment period index (0-based). If None, sums over all investment periods.
-        :type ip: int or None
-
-        :returns: net flow per location
-        :rtype: pandas Series
-        """
-        if commodity not in self.pooledCommodities:
-            raise ValueError(f"'{commodity}' is not a pooled commodity.")
-        if poolName not in self.pooledCommodities[commodity]:
-            raise ValueError(
-                f"Pool '{poolName}' not found for commodity '{commodity}'."
-            )
-
-        locs = self.pooledCommodities[commodity][poolName]
-        result = {}
-        for loc in locs:
-            total = 0.0
-            for ip_i, p, t in self.pyM.timeSet:
-                if ip is not None and ip_i != ip:
-                    continue
-                for mdl in self.componentModelingDict.values():
-                    contrib = mdl.getCommodityBalanceContribution(
-                        self.pyM, commodity, loc, ip_i, p, t
-                    )
-                    total += pyomo.value(contrib)
-            result[loc] = total
-        return pd.Series(result, name=f"{commodity}_{poolName}_net_flow")
-
     def aggregateSpatially(
         self,
         shapefile,
