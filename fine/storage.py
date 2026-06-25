@@ -2081,33 +2081,33 @@ class StorageModel(ComponentModel):
 
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
-            economics_ip = rawResults[ipName]
+            results_ip = rawResults[ipName]
 
             # charge opex contribution
-            if economics_ip["chargeOperation"] is not None:
-                economics_ip["opexCharge"] = resultsTAC_opexOpCharge[ip]
-                if "NPVcontribution" in economics_ip:
-                    economics_ip["NPVcontribution"] = economics_ip[
+            if results_ip["chargeOperation"] is not None:
+                results_ip["opexCharge"] = resultsTAC_opexOpCharge[ip]
+                if "NPVcontribution" in results_ip:
+                    results_ip["NPVcontribution"] = results_ip[
                         "NPVcontribution"
                     ].add(resultsNPV_opexOpCharge[ip], fill_value=0)
 
             # discharge opex contribution
-            if economics_ip["dischargeOperation"] is not None:
-                economics_ip["opexDischarge"] = resultsTAC_opexOpDischarge[ip]
-                if "NPVcontribution" in economics_ip:
-                    economics_ip["NPVcontribution"] = economics_ip[
+            if results_ip["dischargeOperation"] is not None:
+                results_ip["opexDischarge"] = resultsTAC_opexOpDischarge[ip]
+                if "NPVcontribution" in results_ip:
+                    results_ip["NPVcontribution"] = results_ip[
                         "NPVcontribution"
                     ].add(resultsNPV_opexOpDischarge[ip], fill_value=0)
 
             # add the charge/discharge opex to the total annual cost
             tacParts = [
-                economics_ip[key]
+                results_ip[key]
                 for key in ("opexCharge", "opexDischarge")
-                if key in economics_ip
+                if key in results_ip
             ]
-            if tacParts and "TAC" in economics_ip:
-                economics_ip["TAC"] = (
-                    pd.concat([economics_ip["TAC"]] + tacParts)
+            if tacParts and "TAC" in results_ip:
+                results_ip["TAC"] = (
+                    pd.concat([results_ip["TAC"]] + tacParts)
                     .groupby(level=0)
                     .sum()
                 )
@@ -2121,14 +2121,35 @@ class StorageModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict = self.componentsDict
-
         # Set optimal design dimension variables, derive the economics (incl. the storage's
-        # charge/discharge opex via _deriveSubclassEconomics) and get the basic summary.
+        # charge/discharge opex via _deriveSubclassEconomics) and get the basic summary, then
+        # assemble the full summary as a view.
         optSummaryBasic = super().setOptimalValues(
             esM, pyM, esM.locations, "commodityUnit", "*h"
         )
+        self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
 
+    def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
+        """Assemble the storage summary (charge/discharge rows + basic summary) as a view.
+
+        Reads the charge/discharge operation frames extracted by
+        :meth:`_extractSubclassRawResults` and the charge/discharge opex derived by
+        :meth:`_deriveSubclassEconomics` from ``self._rawResults`` and concatenates them with
+        the basic summary. Performs no extraction or economics.
+
+        :param esM: EnergySystemModel instance.
+        :type esM: EnergySystemModel instance
+
+        :param optSummaryBasic: basic summary returned by the base
+            :meth:`~fine.component.Component.setOptimalValues`, keyed by investment period name.
+        :type optSummaryBasic: dict
+
+        :return: full optimization summary keyed by investment period name.
+        :rtype: dict
+        """
+        compDict = self.componentsDict
+
+        optSummaryDict = {}
         for ip in esM.investmentPeriods:
             # Set optimal operation variables and append optimization summary
             props = [
@@ -2328,7 +2349,9 @@ class StorageModel(ComponentModel):
             # charge/discharge contributions (folded in by _deriveSubclassEconomics), so no
             # further aggregation is required here.
 
-            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
+            optSummaryDict[esM.investmentPeriodNames[ip]] = optSummary
+
+        return optSummaryDict
 
     def getOptimalValues(self, name="all", ip=0):  # noqa: PLR0911
         """Return optimal values of the components.

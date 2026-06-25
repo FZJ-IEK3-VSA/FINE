@@ -1001,30 +1001,30 @@ class TransmissionModel(ComponentModel):
 
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
-            economics_ip = rawResults[ipName]
+            results_ip = rawResults[ipName]
 
-            if economics_ip["operation"] is not None:
+            if results_ip["operation"] is not None:
                 # see the note above: the "opexOp" value reproduces the legacy overwrite
                 # (operation NPV, not TAC) and is folded into the total annual cost.
                 # Components without a capacity variable have no base TAC frame, so it is
                 # built from the operation contribution alone (matching the former groupby
                 # over the summary).
-                economics_ip["opexOp"] = resultsNPV_opexOp[ip]
-                tacParts = [economics_ip["opexOp"]]
-                if "TAC" in economics_ip:
-                    tacParts.insert(0, economics_ip["TAC"])
-                economics_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
+                results_ip["opexOp"] = resultsNPV_opexOp[ip]
+                tacParts = [results_ip["opexOp"]]
+                if "TAC" in results_ip:
+                    tacParts.insert(0, results_ip["TAC"])
+                results_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
 
                 # The legacy NPV groupby added the (all-NaN) operation NPV row, leaving the
                 # NPVcontribution values unchanged but normalizing NaN cells (sparse
                 # connections) to 0. That 0 matters: the connection-splitting stack() below
                 # drops NaN cells, so without this the NPVcontribution rows of unused
                 # connections would disappear. Reproduce the NaN->0 normalization.
-                if "NPVcontribution" in economics_ip and not economics_ip[
+                if "NPVcontribution" in results_ip and not results_ip[
                     "NPVcontribution"
                 ].empty:
-                    economics_ip["NPVcontribution"] = (
-                        economics_ip["NPVcontribution"].groupby(level=0).sum()
+                    results_ip["NPVcontribution"] = (
+                        results_ip["NPVcontribution"].groupby(level=0).sum()
                     )
 
     def setOptimalValues(self, esM, pyM):
@@ -1036,7 +1036,6 @@ class TransmissionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict = self.componentsDict
         mapC = {
             loc1 + "_" + loc2: (loc1, loc2)
             for loc1 in esM.locations
@@ -1044,11 +1043,39 @@ class TransmissionModel(ComponentModel):
         }
         # Set optimal design dimension variables, derive the economics (incl. the
         # operation opex via _deriveSubclassEconomics, already folded into TAC) and get
-        # the basic optimization summary.
+        # the basic optimization summary, then assemble the full summary as a view.
         optSummaryBasic = super().setOptimalValues(
             esM, pyM, mapC.keys(), "commodityUnit"
         )
+        self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
 
+    def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
+        """Assemble the transmission summary (operation rows + basic summary) as a view.
+
+        Reads the 1-dim operation companion extracted by :meth:`_extractSubclassRawResults`
+        and the operation opex derived by :meth:`_deriveSubclassEconomics` from
+        ``self._rawResults`` / ``self._rawResults1dim``, concatenates them with the basic
+        summary and splits the connection index into ``locationOut``/``locationIn``. Performs
+        no extraction or economics.
+
+        :param esM: EnergySystemModel instance.
+        :type esM: EnergySystemModel instance
+
+        :param optSummaryBasic: basic summary returned by the base
+            :meth:`~fine.component.Component.setOptimalValues`, keyed by investment period name.
+        :type optSummaryBasic: dict
+
+        :return: full optimization summary keyed by investment period name.
+        :rtype: dict
+        """
+        compDict = self.componentsDict
+        mapC = {
+            loc1 + "_" + loc2: (loc1, loc2)
+            for loc1 in esM.locations
+            for loc2 in esM.locations
+        }
+
+        optSummaryDict = {}
         for ip in esM.investmentPeriods:
             for compName, comp in compDict.items():
                 for cost in [
@@ -1093,7 +1120,7 @@ class TransmissionModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] == "operation" or "operation_annual"
+                        if x[1] in ("operation", "operation_annual")
                         else x
                     ),
                     tuples,
@@ -1164,7 +1191,9 @@ class TransmissionModel(ComponentModel):
             names = list(optSummaryBasic[esM.investmentPeriodNames[ip]].index.names)
             names.append("locationIn")
             optSummary.index.set_names(names, inplace=True)
-            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
+            optSummaryDict[esM.investmentPeriodNames[ip]] = optSummary
+
+        return optSummaryDict
 
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.

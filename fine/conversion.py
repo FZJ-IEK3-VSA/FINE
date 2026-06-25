@@ -1709,21 +1709,21 @@ class ConversionModel(ComponentModel):
 
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
-            economics_ip = rawResults[ipName]
+            results_ip = rawResults[ipName]
 
-            if economics_ip["operation"] is not None:
+            if results_ip["operation"] is not None:
                 # operation opex (TAC) shown in the summary
-                economics_ip["opexOp"] = resultsTAC_opexOp[ip]
+                results_ip["opexOp"] = resultsTAC_opexOp[ip]
                 # fold the operation opex into the total annual cost. Components without a
                 # capacity variable have no base TAC frame, so it is built from the
                 # operation opex alone (matching the former groupby over the summary).
-                tacParts = [economics_ip["opexOp"]]
-                if "TAC" in economics_ip:
-                    tacParts.insert(0, economics_ip["TAC"])
-                economics_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
+                tacParts = [results_ip["opexOp"]]
+                if "TAC" in results_ip:
+                    tacParts.insert(0, results_ip["TAC"])
+                results_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
                 # fold the operation NPV contribution into NPVcontribution
-                if "NPVcontribution" in economics_ip:
-                    economics_ip["NPVcontribution"] = economics_ip[
+                if "NPVcontribution" in results_ip:
+                    results_ip["NPVcontribution"] = results_ip[
                         "NPVcontribution"
                     ].add(resultsNPV_opexOp[ip], fill_value=0)
 
@@ -1736,15 +1736,34 @@ class ConversionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict = self.componentsDict
-
         # Set optimal design dimension variables, derive the economics (incl. the
         # operation opex via _deriveSubclassEconomics, already folded into TAC/NPV) and
-        # get the basic optimization summary.
+        # get the basic optimization summary, then assemble the full summary as a view.
         optSummaryBasic = super().setOptimalValues(
             esM, pyM, esM.locations, "physicalUnit"
         )
+        self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
 
+    def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
+        """Assemble the conversion summary (operation rows + basic summary) as a view.
+
+        Reads the operation frames extracted by :meth:`_extractSubclassRawResults` and the
+        operation opex derived by :meth:`_deriveSubclassEconomics` from ``self._rawResults``
+        and concatenates them with the basic summary. Performs no extraction or economics.
+
+        :param esM: EnergySystemModel instance.
+        :type esM: EnergySystemModel instance
+
+        :param optSummaryBasic: basic summary returned by the base
+            :meth:`~fine.component.Component.setOptimalValues`, keyed by investment period name.
+        :type optSummaryBasic: dict
+
+        :return: full optimization summary keyed by investment period name.
+        :rtype: dict
+        """
+        compDict = self.componentsDict
+
+        optSummaryDict = {}
         for ip in esM.investmentPeriods:
             # operation variables are extracted by _extractSubclassRawResults
             optVal = self._rawResults[esM.investmentPeriodNames[ip]]["operation"]
@@ -1772,7 +1791,7 @@ class ConversionModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].physicalUnit),
                         )
-                        if x[1] == "operation" or "operation_annual"
+                        if x[1] in ("operation", "operation_annual")
                         else x
                     ),
                     tuples,
@@ -1836,8 +1855,9 @@ class ConversionModel(ComponentModel):
             # operation contribution (folded in by _deriveSubclassEconomics), so no
             # further aggregation is required here.
 
-            # save the optimization summary
-            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
+            optSummaryDict[esM.investmentPeriodNames[ip]] = optSummary
+
+        return optSummaryDict
 
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.

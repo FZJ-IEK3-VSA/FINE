@@ -3759,9 +3759,9 @@ class ComponentModel(metaclass=ABCMeta):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
 
-        :return: nested dictionary ``rawResults[investmentPeriodName][variableName]`` holding
-            the solved values formatted in the component's native dimension.
-        :rtype: dict
+        The results are stored on the component as ``self._rawResults`` (native dimension)
+        and ``self._rawResults1dim`` (1-dim companion used by the economics/summary phase).
+        Nothing is returned.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(esM.pyM, "cap_" + abbrvName)
@@ -3799,7 +3799,6 @@ class ComponentModel(metaclass=ABCMeta):
         self._rawResults = rawResults
         # let subclasses add their specific variables (operation, charge/discharge, ...)
         self._extractSubclassRawResults(esM, pyM, rawResults)
-        return rawResults
 
     def _extractSubclassRawResults(self, esM, pyM, rawResults):
         """Overridable hook for subclass specific raw variable extraction.
@@ -3820,19 +3819,20 @@ class ComponentModel(metaclass=ABCMeta):
         """
         pass
 
-    def deriveEconomics(self, esM, pyM, rawResults):
-        """Derive the economic (cost) results and write them into the results dictionary.
+    def deriveEconomics(self, esM, pyM):
+        """Derive the economic (cost) results and write them into ``self._rawResults``.
 
-        Called after :meth:`extractRawResults` populated ``rawResults`` with the solved raw
-        variables. It computes the cost rows that are shown in the optimization summary
+        Called after :meth:`extractRawResults` populated ``self._rawResults`` with the solved
+        raw variables. It computes the cost rows that are shown in the optimization summary
         (``invest``, ``capexCap``, ``opexCap``, ``capexIfBuilt``, ``opexIfBuilt``,
         ``investLifetimeExtension``, ``revenueLifetimeShorteningResale``, ``TAC`` and
         ``NPVcontribution``) from the component parameters and the raw 1-dim variable frames
-        (:attr:`_rawResults1dim`). The derived frames are stored into the *same* ``rawResults``
-        dictionary under keys that match the summary property rows, so that the later
-        summary assembly is a mechanical write. Subclass specific cost contributions (e.g.
-        a storage's charge/discharge opex) are added through the overridable
-        :meth:`_deriveSubclassEconomics` hook.
+        (:attr:`_rawResults1dim`). The derived frames are stored into the *same*
+        ``self._rawResults`` dictionary under keys that match the summary property rows, so
+        that the later summary assembly is a mechanical write. Subclass specific cost
+        contributions (e.g. a storage's charge/discharge opex) are added through the
+        overridable :meth:`_deriveSubclassEconomics` hook. Nothing is returned; the results
+        dictionary is mutated in place.
 
         **Required arguments**
 
@@ -3842,14 +3842,6 @@ class ComponentModel(metaclass=ABCMeta):
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
-
-        :param rawResults: nested dictionary built by :meth:`extractRawResults`, keyed by
-            investment period name then variable name. Mutated in place: the economic frames
-            are added per investment period.
-        :type rawResults: dict
-
-        :return: the ``rawResults`` dictionary, now also holding the economic frames.
-        :rtype: dict
         """
         compDict = self.componentsDict
 
@@ -3954,7 +3946,7 @@ class ComponentModel(metaclass=ABCMeta):
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
             # write the economic frames into the same results dict
-            economics_ip = rawResults[ipName]
+            results_ip = self._rawResults[ipName]
 
             # Read raw solved design variables (1-dim) extracted by extractRawResults
             commisOptVal = self._rawResults1dim[ipName]["commissioning"]
@@ -3978,12 +3970,12 @@ class ComponentModel(metaclass=ABCMeta):
                     ),
                     axis=1,
                 )
-                economics_ip["invest"] = i
+                results_ip["invest"] = i
 
                 # Annualized investment (CAPEX) and operational (OPEX) costs due to
                 # capacity expansion.
-                economics_ip["capexCap"] = resultsTAC_cx[ip]
-                economics_ip["opexCap"] = resultsTAC_ox[ip]
+                results_ip["capexCap"] = resultsTAC_cx[ip]
+                results_ip["opexCap"] = resultsTAC_ox[ip]
 
                 # add additional costs for lifetime extension or scrapping bonus if lifetime
                 # is floored or ceiled to next interval
@@ -4048,8 +4040,8 @@ class ComponentModel(metaclass=ABCMeta):
                             val_revenueLifetimeShorteningResale
                         )
 
-                economics_ip["investLifetimeExtension"] = investLifetimeExtension
-                economics_ip["revenueLifetimeShorteningResale"] = (
+                results_ip["investLifetimeExtension"] = investLifetimeExtension
+                results_ip["revenueLifetimeShorteningResale"] = (
                     revenueLifetimeShorteningResale
                 )
 
@@ -4060,27 +4052,27 @@ class ComponentModel(metaclass=ABCMeta):
                     axis=1,
                 )
                 # invest is the sum of capacity expansion and isBuilt contributions
-                if "invest" in economics_ip:
-                    economics_ip["invest"] = economics_ip["invest"].add(
+                if "invest" in results_ip:
+                    results_ip["invest"] = results_ip["invest"].add(
                         i_bin, fill_value=0
                     )
                 else:
-                    economics_ip["invest"] = i_bin
+                    results_ip["invest"] = i_bin
 
                 # Annualized investment (CAPEX) and operational (OPEX) costs if built
-                economics_ip["capexIfBuilt"] = resultsTAC_cx_bin[ip]
-                economics_ip["opexIfBuilt"] = resultTAC_ox_bin[ip]
+                results_ip["capexIfBuilt"] = resultsTAC_cx_bin[ip]
+                results_ip["opexIfBuilt"] = resultTAC_ox_bin[ip]
 
             # Summarize all annualized contributions to the total annual cost. Mirrors the
             # former summary groupby (note: opexIfBuilt is intentionally not part of the TAC,
             # matching the previous behavior).
             tacParts = [
-                economics_ip[key]
+                results_ip[key]
                 for key in ("capexCap", "opexCap", "capexIfBuilt")
-                if key in economics_ip
+                if key in results_ip
             ]
             if tacParts:
-                economics_ip["TAC"] = (
+                results_ip["TAC"] = (
                     pd.concat(tacParts).groupby(level=0).sum()
                 )
 
@@ -4092,11 +4084,10 @@ class ComponentModel(metaclass=ABCMeta):
             if binCapOptVal is not None:
                 npv = npv.add(resultsNPV_cx_bin[ip], fill_value=0)
                 npv = npv.add(resultsNPV_ox_bin[ip], fill_value=0)
-            economics_ip["NPVcontribution"] = npv
+            results_ip["NPVcontribution"] = npv
 
         # let subclasses add their specific cost contributions (e.g. charge/discharge opex)
-        self._deriveSubclassEconomics(esM, pyM, rawResults)
-        return rawResults
+        self._deriveSubclassEconomics(esM, pyM, self._rawResults)
 
     def _deriveSubclassEconomics(self, esM, pyM, rawResults):
         """Overridable hook for subclass specific economic (cost) contributions.
@@ -4156,80 +4147,89 @@ class ComponentModel(metaclass=ABCMeta):
         :return: summary of the optimized values.
         :rtype: pandas DataFrame
         """
-        compDict = self.componentsDict
-
         # Extract raw solved variables (economics-independent) and populate the
         # *VariablesOptimum attributes, then derive the economic (cost) frames into the
-        # same results dict. The summary below is a mechanical write of those frames.
+        # results dict. The summary returned below is a mechanical view of those frames.
         self.extractRawResults(esM, pyM)
-        self.deriveEconomics(esM, pyM, self._rawResults)
+        self.deriveEconomics(esM, pyM)
+        return self._buildOptimizationSummary(esM, indexColumns, plantUnit, unitApp)
 
-        props = [
-            "capacity",
-            "commissioning",
-            "decommissioning",
-            "isBuilt",
-            "capexCap",
-            "capexIfBuilt",
-            "opexCap",
-            "opexIfBuilt",
-            "TAC",
-            "NPVcontribution",
-            "invest",
-            "investLifetimeExtension",
-            "revenueLifetimeShorteningResale",
-        ]
-        units = [
-            "[-]",
-            "[-]",
-            "[-]",
-            "[-]",
-            "[" + esM.costUnit + "/a]",
-            "[" + esM.costUnit + "/a]",
-            "[" + esM.costUnit + "/a]",
-            "[" + esM.costUnit + "/a]",
-            "[" + esM.costUnit + "/a]",
-            "[" + esM.costUnit + "]",
-            "[" + esM.costUnit + "]",
-            "[" + esM.costUnit + "]",
-            "[" + esM.costUnit + "]",
-        ]
-        tuples = [
-            (compName, prop, unit)
-            for compName in compDict.keys()
-            for prop, unit in zip(props, units)
-        ]
-        tuples = list(
-            map(
-                lambda x: (
-                    (
-                        x[0],
-                        x[1],
-                        "[" + getattr(compDict[x[0]], plantUnit) + unitApp + "]",
-                    )
-                    if x[1] in ["capacity", "commissioning", "decommissioning"]
-                    else x
-                ),
-                tuples,
-            )
-        )
-        mIndex = pd.MultiIndex.from_tuples(
-            tuples, names=["Component", "Property", "Unit"]
-        )
+    def _buildOptimizationSummary(self, esM, indexColumns, plantUnit, unitApp=""):
+        r"""Assemble the optimization summary as a view of ``self._rawResults``.
 
-        # Units of the economic frames derived by deriveEconomics. The keys are aligned with
-        # the summary property rows so that the write below is mechanical.
-        econUnits = {
-            "invest": "[" + esM.costUnit + "]",
-            "capexCap": "[" + esM.costUnit + "/a]",
-            "opexCap": "[" + esM.costUnit + "/a]",
-            "capexIfBuilt": "[" + esM.costUnit + "/a]",
-            "opexIfBuilt": "[" + esM.costUnit + "/a]",
-            "investLifetimeExtension": "[" + esM.costUnit + "]",
-            "revenueLifetimeShorteningResale": "[" + esM.costUnit + "]",
-            "TAC": "[" + esM.costUnit + "/a]",
-            "NPVcontribution": "[" + esM.costUnit + "]",
+        Called by :meth:`setOptimalValues` after :meth:`extractRawResults` and
+        :meth:`deriveEconomics` have populated ``self._rawResults`` (raw solved variables and
+        derived economic frames) and ``self._rawResults1dim`` (1-dim companions). This method
+        performs no extraction or economics; it only writes the already computed frames into
+        the ``(Component, Property, Unit) x Locations`` summary DataFrame, keyed per
+        investment period. It also emits the big-M proximity warning for capacities close to
+        the chosen big-M value.
+
+        **Required arguments**
+
+        :param esM: EnergySystemModel instance representing the energy system in which the
+            components are modeled.
+        :type esM: EnergySystemModel instance
+
+        :param indexColumns: set of strings with the column indices of the summary (locations
+            or connections between locations).
+        :type indexColumns: set
+
+        :param plantUnit: attribute of the component that describes the unit of the plants
+            (e.g. "commodityUnit" or "physicalUnit").
+        :type plantUnit: string
+
+        **Default arguments**
+
+        :param unitApp: string appended to the capacity unit in the summary (e.g. '\\*h' for
+            storage). |br| * the default value is ''.
+        :type unitApp: string
+
+        :return: summary of the optimized values, keyed by investment period name.
+        :rtype: dict
+        """
+        compDict = self.componentsDict
+
+        # Single source of truth for the summary's (Property -> Unit) rows. The design rows
+        # (capacity/commissioning/decommissioning) carry a per-component plant unit resolved
+        # below and are marked with ``None``; every other unit is fixed. The same mapping
+        # drives both the MultiIndex and the economic-frame write loop further down.
+        perA = "[" + esM.costUnit + "/a]"
+        cost = "[" + esM.costUnit + "]"
+        summaryUnits = {
+            "capacity": None,
+            "commissioning": None,
+            "decommissioning": None,
+            "isBuilt": "[-]",
+            "capexCap": perA,
+            "capexIfBuilt": perA,
+            "opexCap": perA,
+            "opexIfBuilt": perA,
+            "TAC": perA,
+            "NPVcontribution": cost,
+            "invest": cost,
+            "investLifetimeExtension": cost,
+            "revenueLifetimeShorteningResale": cost,
         }
+        # Design rows are written explicitly below (from the 1-dim frames, with their own
+        # conditionals); the remaining rows are the economic frames derived by deriveEconomics.
+        designProps = ("capacity", "commissioning", "decommissioning", "isBuilt")
+
+        def resolveUnit(compName, prop):
+            # ``None`` marks a capacity-like row whose unit is the component's plant unit.
+            unit = summaryUnits[prop]
+            if unit is None:
+                unit = "[" + getattr(compDict[compName], plantUnit) + unitApp + "]"
+            return unit
+
+        mIndex = pd.MultiIndex.from_tuples(
+            [
+                (compName, prop, resolveUnit(compName, prop))
+                for compName in compDict.keys()
+                for prop in summaryUnits
+            ],
+            names=["Component", "Property", "Unit"],
+        )
 
         optSummary = {}
         for ip in esM.investmentPeriods:
@@ -4238,7 +4238,7 @@ class ComponentModel(metaclass=ABCMeta):
                 index=mIndex, columns=sorted(indexColumns)
             ).sort_index()
             # raw + derived economic frames produced by extractRawResults / deriveEconomics
-            economics_ip = self._rawResults[ipName]
+            results_ip = self._rawResults[ipName]
 
             # Read raw solved design variables (1-dim) extracted by extractRawResults
             capOptVal = self._rawResults1dim[ipName]["capacity"]
@@ -4324,10 +4324,10 @@ class ComponentModel(metaclass=ABCMeta):
                 "investLifetimeExtension",
                 "revenueLifetimeShorteningResale",
             )
-            for prop, unit in econUnits.items():
-                if prop not in economics_ip:
+            for prop, unit in summaryUnits.items():
+                if prop in designProps or prop not in results_ip:
                     continue
-                frame = economics_ip[prop]
+                frame = results_ip[prop]
                 if frame.empty:
                     continue
                 if prop in perCellProps:

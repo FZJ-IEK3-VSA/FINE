@@ -1091,17 +1091,17 @@ class SourceSinkModel(ComponentModel):
 
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
-            economics_ip = rawResults[ipName]
+            results_ip = rawResults[ipName]
 
-            if economics_ip["operation"] is None:
+            if results_ip["operation"] is None:
                 continue
 
             # operation opex, commodity costs and revenues shown in the summary
-            economics_ip["opexOp"] = resultsTAC_opexOp[ip]
-            economics_ip["commodCosts"] = (
+            results_ip["opexOp"] = resultsTAC_opexOp[ip]
+            results_ip["commodCosts"] = (
                 resultsTAC_commodCostTimeSeries[ip] + resultsTAC_commodCost[ip]
             )
-            economics_ip["commodRevenues"] = (
+            results_ip["commodRevenues"] = (
                 resultsTAC_commodRevenueTimeSeries[ip] + resultsTAC_commodRevenue[ip]
             )
 
@@ -1109,17 +1109,17 @@ class SourceSinkModel(ComponentModel):
             # Components without a capacity variable have no base TAC frame, so it is built
             # from the operation contributions alone (matching the former groupby over the
             # summary, which treated the missing base TAC row as zero).
-            tacParts = [economics_ip["opexOp"], economics_ip["commodCosts"]]
-            if "TAC" in economics_ip:
-                tacParts.insert(0, economics_ip["TAC"])
+            tacParts = [results_ip["opexOp"], results_ip["commodCosts"]]
+            if "TAC" in results_ip:
+                tacParts.insert(0, results_ip["TAC"])
             tac = pd.concat(tacParts).groupby(level=0).sum()
-            economics_ip["TAC"] = tac.sub(
-                economics_ip["commodRevenues"].groupby(level=0).sum(),
+            results_ip["TAC"] = tac.sub(
+                results_ip["commodRevenues"].groupby(level=0).sum(),
                 fill_value=0,
             )
 
             # add operation NPV contributions and subtract revenues
-            if "NPVcontribution" in economics_ip:
+            if "NPVcontribution" in results_ip:
                 npv_commodCosts = (
                     resultsNPV_commodCostTimeSeries[ip] + resultsNPV_commodCost[ip]
                 )
@@ -1130,7 +1130,7 @@ class SourceSinkModel(ComponentModel):
                 npv = (
                     pd.concat(
                         [
-                            economics_ip["NPVcontribution"],
+                            results_ip["NPVcontribution"],
                             resultsNPV_opexOp[ip],
                             npv_commodCosts,
                         ]
@@ -1138,7 +1138,7 @@ class SourceSinkModel(ComponentModel):
                     .groupby(level=0)
                     .sum()
                 )
-                economics_ip["NPVcontribution"] = npv.sub(
+                results_ip["NPVcontribution"] = npv.sub(
                     npv_commodRevenues.groupby(level=0).sum(), fill_value=0
                 )
 
@@ -1156,11 +1156,32 @@ class SourceSinkModel(ComponentModel):
         """
         # Set optimal design dimension variables, derive the economics (incl. the
         # operation opex/commodity cost/revenue via _deriveSubclassEconomics, already
-        # folded into TAC/NPV) and get the basic optimization summary.
+        # folded into TAC/NPV) and get the basic optimization summary, then assemble the
+        # full summary as a view.
         optSummaryBasic = super().setOptimalValues(
             esM, pyM, esM.locations, "commodityUnit"
         )
+        self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
 
+    def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
+        """Assemble the source/sink summary (operation rows + basic summary) as a view.
+
+        Reads the operation frames extracted by :meth:`_extractSubclassRawResults` and the
+        operation opex / commodity cost / commodity revenue derived by
+        :meth:`_deriveSubclassEconomics` from ``self._rawResults`` and concatenates them with
+        the basic summary. Performs no extraction or economics.
+
+        :param esM: EnergySystemModel instance.
+        :type esM: EnergySystemModel instance
+
+        :param optSummaryBasic: basic summary returned by the base
+            :meth:`~fine.component.Component.setOptimalValues`, keyed by investment period name.
+        :type optSummaryBasic: dict
+
+        :return: full optimization summary keyed by investment period name.
+        :rtype: dict
+        """
+        optSummaryDict = {}
         for ip in esM.investmentPeriods:
             compDict = self.componentsDict
 
@@ -1198,7 +1219,7 @@ class SourceSinkModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] == "operation" or "operation_annual"
+                        if x[1] in ("operation", "operation_annual")
                         else x
                     ),
                     tuples,
@@ -1236,15 +1257,15 @@ class SourceSinkModel(ComponentModel):
                 ] = opSum.values / esM.numberOfYears
 
                 # costs (derived by _deriveSubclassEconomics)
-                economics_ip = self._rawResults[esM.investmentPeriodNames[ip]]
-                tac_ox = economics_ip["opexOp"]
+                results_ip = self._rawResults[esM.investmentPeriodNames[ip]]
+                tac_ox = results_ip["opexOp"]
                 optSummary.loc[
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
                     tac_ox.columns,
                 ] = tac_ox.values
 
                 # costs: commodity costs
-                tac_commodCosts = economics_ip["commodCosts"]
+                tac_commodCosts = results_ip["commodCosts"]
                 optSummary.loc[
                     [
                         (ix, "commodCosts", "[" + esM.costUnit + "/a]")
@@ -1254,7 +1275,7 @@ class SourceSinkModel(ComponentModel):
                 ] = tac_commodCosts.values
 
                 # costs: commodity revenues
-                tac_commodRevenue = economics_ip["commodRevenues"]
+                tac_commodRevenue = results_ip["commodRevenues"]
                 optSummary.loc[
                     [
                         (ix, "commodRevenues", "[" + esM.costUnit + "/a]")
@@ -1280,7 +1301,9 @@ class SourceSinkModel(ComponentModel):
             # operation contributions (opexOp + commodCosts - commodRevenues, folded in by
             # _deriveSubclassEconomics), so no further aggregation is required here.
 
-            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
+            optSummaryDict[esM.investmentPeriodNames[ip]] = optSummary
+
+        return optSummaryDict
 
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
