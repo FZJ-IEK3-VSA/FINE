@@ -1677,23 +1677,15 @@ class ConversionModel(ComponentModel):
             self._operationVariablesOptimum[ipName] = optVal
             rawResults[ipName]["operation"] = optVal
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
+    def _deriveSubclassEconomics(self, esM, pyM, rawResults):
+        """Derive the conversion specific operational costs.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
+        Adds the ``opexOp`` frame to ``rawResults`` and folds the operation contribution
+        into the aggregated ``TAC`` and ``NPVcontribution`` frames. Mirrors the former
+        inline computation in :meth:`setOptimalValues`.
         """
-        compDict = self.componentsDict
+        super()._deriveSubclassEconomics(esM, pyM, rawResults)
 
-        # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(
-            esM, pyM, esM.locations, "physicalUnit"
-        )
-
-        # Get class related results
         resultsTAC_opexOp = self.getEconomicsOperation(
             pyM,
             esM,
@@ -1716,16 +1708,53 @@ class ConversionModel(ComponentModel):
         )
 
         for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+            economics_ip = rawResults[ipName]
+
+            if economics_ip["operation"] is not None:
+                # operation opex (TAC) shown in the summary
+                economics_ip["opexOp"] = resultsTAC_opexOp[ip]
+                # fold the operation opex into the total annual cost. Components without a
+                # capacity variable have no base TAC frame, so it is built from the
+                # operation opex alone (matching the former groupby over the summary).
+                tacParts = [economics_ip["opexOp"]]
+                if "TAC" in economics_ip:
+                    tacParts.insert(0, economics_ip["TAC"])
+                economics_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
+                # fold the operation NPV contribution into NPVcontribution
+                if "NPVcontribution" in economics_ip:
+                    economics_ip["NPVcontribution"] = economics_ip[
+                        "NPVcontribution"
+                    ].add(resultsNPV_opexOp[ip], fill_value=0)
+
+    def setOptimalValues(self, esM, pyM):
+        """Set the optimal values of the components.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+        """
+        compDict = self.componentsDict
+
+        # Set optimal design dimension variables, derive the economics (incl. the
+        # operation opex via _deriveSubclassEconomics, already folded into TAC/NPV) and
+        # get the basic optimization summary.
+        optSummaryBasic = super().setOptimalValues(
+            esM, pyM, esM.locations, "physicalUnit"
+        )
+
+        for ip in esM.investmentPeriods:
             # operation variables are extracted by _extractSubclassRawResults
             optVal = self._rawResults[esM.investmentPeriodNames[ip]]["operation"]
 
-            props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
+            props = ["operation", "operation_annual", "opexOp"]
             # Unit dict: Specify units for props
             units = {
                 props[0]: ["[-*h]"],
                 props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
-                props[3]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1784,21 +1813,12 @@ class ConversionModel(ComponentModel):
                     opSum.columns,
                 ] = opSum.values / esM.numberOfYears
 
-                # operation cost - TAC
-                tac_ox = resultsTAC_opexOp[ip]
+                # operation cost - TAC (derived by _deriveSubclassEconomics)
+                tac_ox = self._rawResults[esM.investmentPeriodNames[ip]]["opexOp"]
                 optSummary.loc[
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
                     tac_ox.columns,
                 ] = tac_ox.values
-                # operation cost - NPV contribution
-                npv_ox = resultsNPV_opexOp[ip]
-                optSummary.loc[
-                    [
-                        (ix, "NPV_opexOp", "[" + esM.costUnit + "/a]")
-                        for ix in npv_ox.index
-                    ],
-                    npv_ox.columns,
-                ] = npv_ox.values
 
             optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]
             if isinstance(optSummaryBasic_frame, pd.Series):
@@ -1812,30 +1832,9 @@ class ConversionModel(ComponentModel):
                 axis=0,
             ).sort_index()
 
-            # Summarize all contributions to the total annual cost
-            optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
-                optSummary.loc[
-                    (optSummary.index.get_level_values(1) == "TAC")
-                    | (optSummary.index.get_level_values(1) == "opexOp")
-                ]
-                .groupby(level=0)
-                .sum()
-                .values
-            )
-            # Update the NPV contribution
-            optSummary.loc[
-                optSummary.index.get_level_values(1) == "NPVcontribution"
-            ] = (
-                optSummary.loc[
-                    (optSummary.index.get_level_values(1) == "NPVcontribution")
-                    | (optSummary.index.get_level_values(1) == "NPV_opexOp")
-                ]
-                .groupby(level=0)
-                .sum()
-                .values
-            )
-            # # Delete details of NPV contributions
-            optSummary = optSummary.drop("NPV_opexOp", level=1)
+            # The TAC and NPVcontribution rows of optSummaryBasic already include the
+            # operation contribution (folded in by _deriveSubclassEconomics), so no
+            # further aggregation is required here.
 
             # save the optimization summary
             self._optSummary[esM.investmentPeriodNames[ip]] = optSummary

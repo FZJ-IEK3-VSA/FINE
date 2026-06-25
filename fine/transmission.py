@@ -973,6 +973,60 @@ class TransmissionModel(ComponentModel):
             rawResults[ipName]["operation"] = optVal_
             self._rawResults1dim[ipName]["operation"] = optVal
 
+    def _deriveSubclassEconomics(self, esM, pyM, rawResults):
+        """Derive the transmission specific operational costs.
+
+        Adds the ``opexOp`` frame to ``rawResults`` and folds it into the aggregated
+        ``TAC`` frame.
+
+        .. note::
+            This mirrors a legacy quirk of the former inline implementation: the summary's
+            ``opexOp`` row was written twice (the operation TAC, then immediately
+            overwritten by the operation NPV), so the value shown there is the *NPV*
+            contribution, and the ``NPVcontribution`` row received *no* operation
+            contribution at all. Both behaviors are reproduced faithfully here.
+        """
+        super()._deriveSubclassEconomics(esM, pyM, rawResults)
+
+        resultsNPV_opexOp = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
+        )
+
+        for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+            economics_ip = rawResults[ipName]
+
+            if economics_ip["operation"] is not None:
+                # see the note above: the "opexOp" value reproduces the legacy overwrite
+                # (operation NPV, not TAC) and is folded into the total annual cost.
+                # Components without a capacity variable have no base TAC frame, so it is
+                # built from the operation contribution alone (matching the former groupby
+                # over the summary).
+                economics_ip["opexOp"] = resultsNPV_opexOp[ip]
+                tacParts = [economics_ip["opexOp"]]
+                if "TAC" in economics_ip:
+                    tacParts.insert(0, economics_ip["TAC"])
+                economics_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
+
+                # The legacy NPV groupby added the (all-NaN) operation NPV row, leaving the
+                # NPVcontribution values unchanged but normalizing NaN cells (sparse
+                # connections) to 0. That 0 matters: the connection-splitting stack() below
+                # drops NaN cells, so without this the NPVcontribution rows of unused
+                # connections would disappear. Reproduce the NaN->0 normalization.
+                if "NPVcontribution" in economics_ip and not economics_ip[
+                    "NPVcontribution"
+                ].empty:
+                    economics_ip["NPVcontribution"] = (
+                        economics_ip["NPVcontribution"].groupby(level=0).sum()
+                    )
+
     def setOptimalValues(self, esM, pyM):
         """Set the optimal values of the components.
 
@@ -988,32 +1042,13 @@ class TransmissionModel(ComponentModel):
             for loc1 in esM.locations
             for loc2 in esM.locations
         }
-        # Set optimal design dimension variables and get basic optimization summary
+        # Set optimal design dimension variables, derive the economics (incl. the
+        # operation opex via _deriveSubclassEconomics, already folded into TAC) and get
+        # the basic optimization summary.
         optSummaryBasic = super().setOptimalValues(
             esM, pyM, mapC.keys(), "commodityUnit"
         )
 
-        # Get class related results
-        resultsTAC_opexOp = self.getEconomicsOperation(
-            pyM,
-            esM,
-            "TD",
-            ["processedOpexPerOperation"],
-            "op",
-            "operationVarDict",
-            getOptValue=True,
-            getOptValueCostType="TAC",
-        )
-        resultsNPV_opexOp = self.getEconomicsOperation(
-            pyM,
-            esM,
-            "TD",
-            ["processedOpexPerOperation"],
-            "op",
-            "operationVarDict",
-            getOptValue=True,
-            getOptValueCostType="NPV",
-        )
         for ip in esM.investmentPeriods:
             for compName, comp in compDict.items():
                 for cost in [
@@ -1035,13 +1070,12 @@ class TransmissionModel(ComponentModel):
             # (1-dim companion used here for the summary; 2-dim stored on the attr)
             optVal = self._rawResults1dim[esM.investmentPeriodNames[ip]]["operation"]
 
-            props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
+            props = ["operation", "operation_annual", "opexOp"]
             # Unit dict: Specify units for props
             units = {
                 props[0]: ["[-*h]"],
                 props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
-                props[3]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1095,17 +1129,13 @@ class TransmissionModel(ComponentModel):
                     opSum.columns,
                 ] = opSum.values / esM.numberOfYears
 
-                tac_ox = resultsTAC_opexOp[ip]
+                # operation cost (derived by _deriveSubclassEconomics; see the note in
+                # _deriveSubclassEconomics on the preserved opexOp = NPV quirk)
+                tac_ox = self._rawResults[esM.investmentPeriodNames[ip]]["opexOp"]
                 optSummary.loc[
                     [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
                     tac_ox.columns,
                 ] = tac_ox.values
-
-                npv_ox = resultsNPV_opexOp[ip]
-                optSummary.loc[
-                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in npv_ox.index],
-                    npv_ox.columns,
-                ] = npv_ox.values
 
             optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]
             if isinstance(optSummaryBasic_frame, pd.Series):
@@ -1119,31 +1149,9 @@ class TransmissionModel(ComponentModel):
                 axis=0,
             ).sort_index()
 
-            # Summarize all contributions to the total annual cost
-            optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
-                optSummary.loc[
-                    (optSummary.index.get_level_values(1) == "TAC")
-                    | (optSummary.index.get_level_values(1) == "opexOp")
-                ]
-                .groupby(level=0)
-                .sum()
-                .values
-            )
-
-            # Update the NPV contribution
-            optSummary.loc[
-                optSummary.index.get_level_values(1) == "NPVcontribution"
-            ] = (
-                optSummary.loc[
-                    (optSummary.index.get_level_values(1) == "NPVcontribution")
-                    | (optSummary.index.get_level_values(1) == "NPV_opexOp")
-                ]
-                .groupby(level=0)
-                .sum()
-                .values
-            )
-            # Delete details of NPV contribution
-            optSummary = optSummary.drop("NPV_opexOp", level=1)
+            # The TAC row of optSummaryBasic already includes the operation contribution
+            # (folded in by _deriveSubclassEconomics); the NPVcontribution row is left
+            # unchanged, matching the legacy behavior described there.
 
             # Split connection indices to two location indices
             optSummary = optSummary.stack()
