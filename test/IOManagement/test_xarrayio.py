@@ -134,7 +134,7 @@ def assert_optimization_results_match_golden(esM, golden_file_name, tmp_path):
         f"Missing golden file: {golden_path}\n"
         "Generate it intentionally with:\n"
         f"UPDATE_GOLDEN=1 pytest {Path(__file__).as_posix()} "
-        "-k golden_minimal_optimization_results"
+        "-k <matching_golden_test_name>"
     )
 
     actual_path = tmp_path / golden_file_name
@@ -256,6 +256,29 @@ def test_golden_minimal_optimization_results(minimal_test_esM, tmp_path):
     assert_optimization_results_match_golden(
         esM,
         "minimal_test_esM.nc",
+        tmp_path,
+    )
+
+
+
+def test_golden_multi_node_optimization_results(multi_node_test_esM_optimized, tmp_path):
+    """Regression test for committed golden optimization output of the multi-node esM."""
+    assert_optimization_results_match_golden(
+        multi_node_test_esM_optimized,
+        "multi_node_test_esM_optimized.nc",
+        tmp_path,
+    )
+
+
+
+def test_golden_perfect_foresight_optimization_results(perfectForesight_test_esM, tmp_path):
+    """Regression test for committed golden optimization output of the perfect-foresight esM."""
+    esM = perfectForesight_test_esM
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
+
+    assert_optimization_results_match_golden(
+        esM,
+        "perfectForesight_test_esM.nc",
         tmp_path,
     )
 
