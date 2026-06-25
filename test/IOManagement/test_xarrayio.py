@@ -1,4 +1,5 @@
 import os
+import pickle
 from pathlib import Path
 
 import pytest
@@ -112,6 +113,120 @@ def assert_nested_xarray_dict_matches(actual, expected, path="Results"):
             assert_nested_xarray_dict_matches(actual_value, expected_value, key_path)
         else:
             assert_xarray_dataset_matches(actual_value, expected_value, key_path)
+
+
+
+def assert_pandas_like_matches(actual, expected, path):
+    """Compare pandas objects with dtype checks and numeric tolerance."""
+    if isinstance(actual, pd.DataFrame):
+        assert isinstance(expected, pd.DataFrame), f"{path}: expected a DataFrame"
+        assert_frame_equal(
+            actual.sort_index(),
+            expected.sort_index(),
+            check_dtype=True,
+            check_exact=False,
+            rtol=1e-7,
+            atol=1e-9,
+            obj=path,
+        )
+    elif isinstance(actual, pd.Series):
+        assert isinstance(expected, pd.Series), f"{path}: expected a Series"
+        assert_series_equal(
+            actual.sort_index(),
+            expected.sort_index(),
+            check_dtype=True,
+            check_exact=False,
+            rtol=1e-7,
+            atol=1e-9,
+            obj=path,
+        )
+    else:
+        assert actual == expected, (
+            f"{path}: values differ\n"
+            f"Actual: {actual!r}\n"
+            f"Expected: {expected!r}"
+        )
+
+
+def assert_nested_python_matches(actual, expected, path="root"):
+    """Recursively compare nested dicts containing pandas objects and scalars."""
+    if isinstance(actual, dict):
+        assert isinstance(expected, dict), f"{path}: expected a dict"
+        _assert_same_keys(actual, expected, path)
+        for key in actual:
+            assert_nested_python_matches(actual[key], expected[key], f"{path}/{key}")
+    elif isinstance(actual, (pd.DataFrame, pd.Series)):
+        assert_pandas_like_matches(actual, expected, path)
+    else:
+        assert actual == expected, (
+            f"{path}: values differ\n"
+            f"Actual: {actual!r}\n"
+            f"Expected: {expected!r}"
+        )
+
+
+def assert_pickled_golden(actual, golden_file_name):
+    """Compare a Python/pandas object with a committed golden pickle file.
+
+    Set UPDATE_GOLDEN=1 to intentionally regenerate the golden reference.
+    """
+    GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
+    golden_path = GOLDEN_DIR / golden_file_name
+
+    if UPDATE_GOLDEN:
+        with golden_path.open("wb") as file:
+            pickle.dump(actual, file, protocol=pickle.HIGHEST_PROTOCOL)
+        return
+
+    assert golden_path.exists(), (
+        f"Missing golden file: {golden_path}\n"
+        "Generate it intentionally with:\n"
+        f"UPDATE_GOLDEN=1 pytest {Path(__file__).as_posix()} "
+        "-k <matching_golden_test_name>"
+    )
+
+    with golden_path.open("rb") as file:
+        expected = pickle.load(file)
+
+    assert_nested_python_matches(actual, expected, path=golden_file_name)
+
+
+def collect_optimization_summaries(esM):
+    """Collect getOptimizationSummary() for every model, investment period, and output level."""
+    summaries = {}
+    for ip in esM.investmentPeriodNames:
+        summaries[ip] = {}
+        for model in esM.componentModelingDict:
+            summaries[ip][model] = {}
+            for output_level in (0, 1, 2):
+                summaries[ip][model][output_level] = esM.getOptimizationSummary(
+                    model, outputLevel=output_level, ip=ip
+                )
+    return summaries
+
+
+def collect_optimal_values(esM):
+    """Collect getOptimalValues() for every model and investment period."""
+    optimal_values = {}
+    for ip in esM.investmentPeriodNames:
+        optimal_values[ip] = {}
+        for model in esM.componentModelingDict:
+            optimal_values[ip][model] = esM.componentModelingDict[
+                model
+            ].getOptimalValues(ip=ip)
+    return optimal_values
+
+
+def assert_pandas_optimization_results_match_golden(esM, golden_prefix):
+    """Compare OptimizationSummary and OptimalValues against committed golden files."""
+    assert_pickled_golden(
+        collect_optimization_summaries(esM),
+        f"{golden_prefix}_optimization_summaries.pkl",
+    )
+    assert_pickled_golden(
+        collect_optimal_values(esM),
+        f"{golden_prefix}_optimal_values.pkl",
+    )
 
 
 def assert_optimization_results_match_golden(esM, golden_file_name, tmp_path):
@@ -281,6 +396,31 @@ def test_golden_perfect_foresight_optimization_results(perfectForesight_test_esM
         "perfectForesight_test_esM.nc",
         tmp_path,
     )
+
+
+
+
+def test_golden_minimal_pandas_optimization_results(minimal_test_esM):
+    """Regression test for getOptimizationSummary() and getOptimalValues()."""
+    esM = minimal_test_esM
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
+
+    assert_pandas_optimization_results_match_golden(esM, "minimal_test_esM")
+
+
+def test_golden_multi_node_pandas_optimization_results(multi_node_test_esM_optimized):
+    """Regression test for multi-node getOptimizationSummary() and getOptimalValues()."""
+    assert_pandas_optimization_results_match_golden(
+        multi_node_test_esM_optimized, "multi_node_test_esM_optimized"
+    )
+
+
+def test_golden_perfect_foresight_pandas_optimization_results(perfectForesight_test_esM):
+    """Regression test for perfect-foresight getOptimizationSummary() and getOptimalValues()."""
+    esM = perfectForesight_test_esM
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
+
+    assert_pandas_optimization_results_match_golden(esM, "perfectForesight_test_esM")
 
 
 def test_esm_input_to_dataset_and_back(minimal_test_esM):
