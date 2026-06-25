@@ -939,6 +939,40 @@ class TransmissionModel(ComponentModel):
 
         return opexOp + capexCap + capexDec + opexCap + opexDec
 
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the transmission specific raw solved ``operation`` variable.
+
+        The operation is 2-dimensional. The 2-dim frame is stored in ``rawResults`` and in
+        ``self._operationVariablesOptimum``; the 1-dim companion (used by the summary
+        assembly) is stored in ``self._rawResults1dim``.
+        """
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
+        compDict = self.componentsDict
+        opVar = getattr(pyM, "op_" + self.abbrvName)
+        for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+            values = opVar.get_values()
+            optVal = utils.formatOptimizationOutput(
+                values,
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            optVal_ = utils.formatOptimizationOutput(
+                values,
+                "operationVariables",
+                "2dim",
+                ip,
+                esM.periodsOrder[ip],
+                compDict=compDict,
+                esM=esM,
+            )
+            self._operationVariablesOptimum[ipName] = optVal_
+            rawResults[ipName]["operation"] = optVal_
+            self._rawResults1dim[ipName]["operation"] = optVal
+
     def setOptimalValues(self, esM, pyM):
         """Set the optimal values of the components.
 
@@ -948,8 +982,7 @@ class TransmissionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
+        compDict = self.componentsDict
         mapC = {
             loc1 + "_" + loc2: (loc1, loc2)
             for loc1 in esM.locations
@@ -998,25 +1031,9 @@ class TransmissionModel(ComponentModel):
                         compName, cost
                     ] = (data).values
 
-            # Set optimal operation variables and append optimization summary
-            optVal = utils.formatOptimizationOutput(
-                opVar.get_values(),
-                "operationVariables",
-                "1dim",
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-            optVal_ = utils.formatOptimizationOutput(
-                opVar.get_values(),
-                "operationVariables",
-                "2dim",
-                ip,
-                esM.periodsOrder[ip],
-                compDict=compDict,
-                esM=esM,
-            )
-            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
+            # operation variables are extracted by _extractSubclassRawResults
+            # (1-dim companion used here for the summary; 2-dim stored on the attr)
+            optVal = self._rawResults1dim[esM.investmentPeriodNames[ip]]["operation"]
 
             props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props

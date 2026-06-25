@@ -3737,6 +3737,89 @@ class ComponentModel(metaclass=ABCMeta):
             / esM.numberOfYears
         )
 
+    def extractRawResults(self, esM, pyM):
+        """Extract the raw solved variable values into a results dictionary.
+
+        The function is called after a successful optimization. It reads the solved pyomo
+        design variables (capacity, commissioning, decommissioning, isBuilt) once per
+        investment period and formats them with :func:`utils.formatOptimizationOutput`. It
+        deliberately performs *no* economics calculations, big-M warnings or summary
+        assembly. Subclass specific variables (e.g. operation, charge/discharge, state of
+        charge) are added through the overridable :meth:`_extractSubclassRawResults` hook.
+
+        The existing ``self._*VariablesOptimum`` attributes are populated from the extracted
+        values so that the public getter behavior is preserved.
+
+        **Required arguments**
+
+        :param esM: EnergySystemModel instance representing the energy system in which the
+            components are modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :return: nested dictionary ``rawResults[investmentPeriodName][variableName]`` holding
+            the solved values formatted in the component's native dimension.
+        :rtype: dict
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        capVar = getattr(esM.pyM, "cap_" + abbrvName)
+        binVar = getattr(esM.pyM, "commisBin_" + abbrvName)
+        commisVar = getattr(esM.pyM, "commis_" + abbrvName)
+        decommisVar = getattr(esM.pyM, "decommis_" + abbrvName)
+
+        # mapping of dict key -> (pyomo variable, attribute populated from it)
+        designVars = [
+            ("capacity", capVar, self._capacityVariablesOptimum),
+            ("commissioning", commisVar, self._commissioningVariablesOptimum),
+            ("decommissioning", decommisVar, self._decommissioningVariablesOptimum),
+            ("isBuilt", binVar, self._isBuiltVariablesOptimum),
+        ]
+
+        rawResults = {}
+        # 1-dim companion frames (used by the economics/summary phase in setOptimalValues)
+        self._rawResults1dim = {}
+        for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+            rawResults[ipName] = {}
+            self._rawResults1dim[ipName] = {}
+            for varName, pyomoVar, optimumAttr in designVars:
+                values = pyomoVar.get_values()
+                optVal = utils.formatOptimizationOutput(
+                    values, "designVariables", "1dim", ip
+                )
+                optVal_ = utils.formatOptimizationOutput(
+                    values, "designVariables", self.dimension, ip, compDict=compDict
+                )
+                optimumAttr[ipName] = optVal_
+                rawResults[ipName][varName] = optVal_
+                self._rawResults1dim[ipName][varName] = optVal
+
+        self._rawResults = rawResults
+        # let subclasses add their specific variables (operation, charge/discharge, ...)
+        self._extractSubclassRawResults(esM, pyM, rawResults)
+        return rawResults
+
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Overridable hook for subclass specific raw variable extraction.
+
+        Subclasses add their variables (e.g. ``operation``) to ``rawResults`` in place and
+        populate their own ``self._*VariablesOptimum`` attributes. The base implementation
+        does nothing.
+
+        :param esM: EnergySystemModel instance.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel.
+        :type pyM: pyomo ConcreteModel
+
+        :param rawResults: nested dictionary built by :meth:`extractRawResults`, keyed by
+            investment period name then variable name. Mutated in place.
+        :type rawResults: dict
+        """
+        pass
+
     def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
         r"""Set the optimal values for the considered components and return a summary of them.
         The function is called after optimization was successful and an optimal solution was found.
@@ -3775,11 +3858,12 @@ class ComponentModel(metaclass=ABCMeta):
         :return: summary of the optimized values.
         :rtype: pandas DataFrame
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        capVar = getattr(esM.pyM, "cap_" + abbrvName)
-        binVar = getattr(esM.pyM, "commisBin_" + abbrvName)
-        commisVar = getattr(esM.pyM, "commis_" + abbrvName)
-        decommisVar = getattr(esM.pyM, "decommis_" + abbrvName)
+        compDict = self.componentsDict
+
+        # Extract raw solved variables (economics-independent) and populate the
+        # *VariablesOptimum attributes. The 1-dim companion frames in
+        # self._rawResults1dim feed the economics/summary assembly below.
+        self.extractRawResults(esM, pyM)
 
         props = [
             "capacity",
@@ -3934,41 +4018,15 @@ class ComponentModel(metaclass=ABCMeta):
 
         optSummary = {}
         for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
             optSummary_ip = pd.DataFrame(
                 index=mIndex, columns=sorted(indexColumns)
             ).sort_index()
 
-            # Get and set optimal variable values for capacities
-            values = capVar.get_values()
-            capOptVal = utils.formatOptimizationOutput(
-                values, "designVariables", "1dim", ip
-            )
-            capOptVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, ip, compDict=compDict
-            )
-            self._capacityVariablesOptimum[esM.investmentPeriodNames[ip]] = capOptVal_
-            # Get and set optimal variable values for commissioning
-            commisValues = commisVar.get_values()
-            commisOptVal = utils.formatOptimizationOutput(
-                commisValues, "designVariables", "1dim", ip
-            )
-            commisOptVal_ = utils.formatOptimizationOutput(
-                commisValues, "designVariables", self.dimension, ip, compDict=compDict
-            )
-            self._commissioningVariablesOptimum[esM.investmentPeriodNames[ip]] = (
-                commisOptVal_
-            )
-            # Get and set optimal variable values for decommissioning
-            decommisValues = decommisVar.get_values()
-            decommisOptVal = utils.formatOptimizationOutput(
-                decommisValues, "designVariables", "1dim", ip
-            )
-            decommisOptVal_ = utils.formatOptimizationOutput(
-                decommisValues, "designVariables", self.dimension, ip, compDict=compDict
-            )
-            self._decommissioningVariablesOptimum[esM.investmentPeriodNames[ip]] = (
-                decommisOptVal_
-            )
+            # Read raw solved design variables (1-dim) extracted by extractRawResults
+            capOptVal = self._rawResults1dim[ipName]["capacity"]
+            commisOptVal = self._rawResults1dim[ipName]["commissioning"]
+            decommisOptVal = self._rawResults1dim[ipName]["decommissioning"]
 
             if capOptVal is not None:
                 # Check if the installed capacities are close to a bigM val
@@ -4121,15 +4179,8 @@ class ComponentModel(metaclass=ABCMeta):
                             loc,
                         ] = val_revenueLifetimeShorteningResale
 
-            # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
-            values = binVar.get_values()
-            binCapOptVal = utils.formatOptimizationOutput(
-                values, "designVariables", "1dim", ip
-            )
-            binCapOptVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, ip=ip, compDict=compDict
-            )
-            self._isBuiltVariablesOptimum[esM.investmentPeriodNames[ip]] = binCapOptVal_
+            # Read raw solved binary investment decisions (isBuilt, 1-dim)
+            binCapOptVal = self._rawResults1dim[ipName]["isBuilt"]
 
             if binCapOptVal is not None:
                 # Calculate the investment costs i (fix value if component is built)

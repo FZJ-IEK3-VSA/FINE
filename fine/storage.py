@@ -1905,6 +1905,129 @@ class StorageModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the storage specific raw solved operation variables.
+
+        Adds ``chargeOperation``, ``dischargeOperation`` and ``stateOfChargeOperation`` to
+        ``rawResults`` and populates the corresponding ``self._*VariablesOptimum`` attributes
+        (and the component-level ``_stateOfChargeVariablesOptimum``). The state of charge is
+        reconstructed for both the non-TSA and the TSA/segmentation cases.
+        """
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        chargeOp = getattr(pyM, "chargeOp_" + abbrvName)
+        dischargeOp = getattr(pyM, "dischargeOp_" + abbrvName)
+        SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
+
+        for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+
+            # charge operation
+            optVal_charge = utils.formatOptimizationOutput(
+                chargeOp.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            self._chargeOperationVariablesOptimum[ipName] = optVal_charge
+            rawResults[ipName]["chargeOperation"] = optVal_charge
+
+            # discharge operation
+            optVal_discharge = utils.formatOptimizationOutput(
+                dischargeOp.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            self._dischargeOperationVariablesOptimum[ipName] = optVal_discharge
+            rawResults[ipName]["dischargeOperation"] = optVal_discharge
+
+            # state of charge
+            if not pyM.hasTSA:
+                optVal = utils.formatOptimizationOutput(
+                    SOC.get_values(),
+                    "operationVariables",
+                    "1dim",
+                    ip,
+                    esM.periodsOrder[ip],
+                    esM=esM,
+                )
+                # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
+                # other)
+                optVal = optVal.loc[:, : len(optVal.columns) - 2]
+            else:
+                SOCinter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
+                stateOfChargeIntra = SOC.get_values()
+                stateOfChargeInter = SOCinter.get_values()
+                if stateOfChargeIntra is not None:
+                    # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
+                    # Results in a one dimensional DataFrame
+                    stateOfChargeIntra = (
+                        pd.DataFrame(stateOfChargeIntra, index=[0])
+                        .T.loc[:, :, ip, :, :]
+                        .swaplevel(i=0, j=-2)
+                        .sort_index()
+                    )
+                    stateOfChargeInter = (
+                        pd.DataFrame(stateOfChargeInter, index=[0])
+                        .T.loc[:, :, ip, :]
+                        .swaplevel(i=0, j=1)
+                        .sort_index()
+                    )
+                    # Unstack time steps (convert to a two dimensional DataFrame with the time indices being the columns)
+                    stateOfChargeIntra = stateOfChargeIntra.unstack(level=-1)
+                    stateOfChargeInter = stateOfChargeInter.unstack(level=-1)
+                    # Get rid of the unnecessary 0 level
+                    stateOfChargeIntra.columns = stateOfChargeIntra.columns.droplevel()
+                    stateOfChargeInter.columns = stateOfChargeInter.columns.droplevel()
+                    # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
+                    # time steps first
+                    if esM.segmentation:
+                        dataAllPeriods = []
+                        for p in esM.typicalPeriods:
+                            # Repeat each segment in each period as often as time steps are represented by the corresponding
+                            # segment
+                            repList = esM.timeStepsPerSegment[ip].loc[p, :].tolist()
+                            dataPeriod = pd.DataFrame(
+                                np.repeat(
+                                    stateOfChargeIntra.loc[p]
+                                    .loc[:, : esM.segmentsPerPeriod[-1]]
+                                    .values,
+                                    repList,
+                                    axis=1,
+                                ),
+                                index=stateOfChargeIntra.xs(
+                                    p, level=0, drop_level=False
+                                ).index,
+                            )
+                            dataAllPeriods.append(dataPeriod)
+                        # Concat data to multiindex dataframe with periods, components and locations as indices and inner-
+                        # period time steps as columns
+                        stateOfChargeIntra = pd.concat(dataAllPeriods, axis=0)
+                    # Concat data according to periods order to cover the full time horizon
+                    data = []
+                    for count, p in enumerate(esM.periodsOrder[ip]):
+                        data.append(
+                            (
+                                stateOfChargeInter.loc[:, count]
+                                + stateOfChargeIntra.loc[p]
+                                .loc[:, : esM.timeStepsPerPeriod[-1]]
+                                .T
+                            ).T
+                        )
+                    optVal = pd.concat(data, axis=1, ignore_index=True)
+                else:
+                    optVal = None
+            self._stateOfChargeOperationVariablesOptimum[ipName] = optVal
+            utils.setOptimalComponentVariables(
+                optVal, "_stateOfChargeVariablesOptimum", compDict
+            )
+            rawResults[ipName]["stateOfChargeOperation"] = optVal
+
     def setOptimalValues(self, esM, pyM):
         """Set the optimal values of the components.
 
@@ -1914,12 +2037,7 @@ class StorageModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        chargeOp, dischargeOp = (
-            getattr(pyM, "chargeOp_" + abbrvName),
-            getattr(pyM, "dischargeOp_" + abbrvName),
-        )
-        SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
+        compDict = self.componentsDict
 
         # Set optimal design dimension variables and get basic optimization summary
         optSummaryBasic = super().setOptimalValues(
@@ -2044,18 +2162,10 @@ class StorageModel(ComponentModel):
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
 
-            # * charge variables and contributions
-            optVal_charge = utils.formatOptimizationOutput(
-                chargeOp.get_values(),
-                "operationVariables",
-                "1dim",
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-            self._chargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
-                optVal_charge
-            )
+            # * charge variables and contributions (extracted by _extractSubclassRawResults)
+            optVal_charge = self._rawResults[esM.investmentPeriodNames[ip]][
+                "chargeOperation"
+            ]
 
             if optVal_charge is not None:
                 idx = pd.IndexSlice
@@ -2106,18 +2216,10 @@ class StorageModel(ComponentModel):
                     npv_oxCharge.columns,
                 ] = npv_oxCharge.values
 
-            # * discharge variables and contributions
-            optVal_discharge = utils.formatOptimizationOutput(
-                dischargeOp.get_values(),
-                "operationVariables",
-                "1dim",
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-            self._dischargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
-                optVal_discharge
-            )
+            # * discharge variables and contributions (extracted by _extractSubclassRawResults)
+            optVal_discharge = self._rawResults[esM.investmentPeriodNames[ip]][
+                "dischargeOperation"
+            ]
             # Check if there are time steps, at which a storage component is both charging and discharging
             for compName in opSum.index:
                 simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
@@ -2179,94 +2281,8 @@ class StorageModel(ComponentModel):
                     npv_oxDischarge.columns,
                 ] = npv_oxDischarge.values
 
-            # * set state of charge variables
-            if not pyM.hasTSA:
-                optVal = utils.formatOptimizationOutput(
-                    SOC.get_values(),
-                    "operationVariables",
-                    "1dim",
-                    ip,
-                    esM.periodsOrder[ip],
-                    esM=esM,
-                )
-                # Remove the last column (by applying the cycle constraint, the first and the last columns are equal to each
-                # other)
-                optVal = optVal.loc[:, : len(optVal.columns) - 2]
-                self._stateOfChargeOperationVariablesOptimum[
-                    esM.investmentPeriodNames[ip]
-                ] = optVal
-                utils.setOptimalComponentVariables(
-                    optVal, "_stateOfChargeVariablesOptimum", compDict
-                )
-            else:
-                SOCinter = getattr(pyM, "stateOfChargeInterPeriods_" + abbrvName)
-                stateOfChargeIntra = SOC.get_values()
-                stateOfChargeInter = SOCinter.get_values()
-                if stateOfChargeIntra is not None:
-                    # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
-                    # Results in a one dimensional DataFrame
-                    stateOfChargeIntra = (
-                        pd.DataFrame(stateOfChargeIntra, index=[0])
-                        .T.loc[:, :, ip, :, :]
-                        .swaplevel(i=0, j=-2)
-                        .sort_index()
-                    )
-                    stateOfChargeInter = (
-                        pd.DataFrame(stateOfChargeInter, index=[0])
-                        .T.loc[:, :, ip, :]
-                        .swaplevel(i=0, j=1)
-                        .sort_index()
-                    )
-                    # Unstack time steps (convert to a two dimensional DataFrame with the time indices being the columns)
-                    stateOfChargeIntra = stateOfChargeIntra.unstack(level=-1)
-                    stateOfChargeInter = stateOfChargeInter.unstack(level=-1)
-                    # Get rid of the unnecessary 0 level
-                    stateOfChargeIntra.columns = stateOfChargeIntra.columns.droplevel()
-                    stateOfChargeInter.columns = stateOfChargeInter.columns.droplevel()
-                    # If segmentation is chosen, the segments of each period need to be unravelled to the original number of
-                    # time steps first
-                    if esM.segmentation:
-                        dataAllPeriods = []
-                        for p in esM.typicalPeriods:
-                            # Repeat each segment in each period as often as time steps are represented by the corresponding
-                            # segment
-                            repList = esM.timeStepsPerSegment[ip].loc[p, :].tolist()
-                            dataPeriod = pd.DataFrame(
-                                np.repeat(
-                                    stateOfChargeIntra.loc[p]
-                                    .loc[:, : esM.segmentsPerPeriod[-1]]
-                                    .values,
-                                    repList,
-                                    axis=1,
-                                ),
-                                index=stateOfChargeIntra.xs(
-                                    p, level=0, drop_level=False
-                                ).index,
-                            )
-                            dataAllPeriods.append(dataPeriod)
-                        # Concat data to multiindex dataframe with periods, components and locations as indices and inner-
-                        # period time steps as columns
-                        stateOfChargeIntra = pd.concat(dataAllPeriods, axis=0)
-                    # Concat data according to periods order to cover the full time horizon
-                    data = []
-                    for count, p in enumerate(esM.periodsOrder[ip]):
-                        data.append(
-                            (
-                                stateOfChargeInter.loc[:, count]
-                                + stateOfChargeIntra.loc[p]
-                                .loc[:, : esM.timeStepsPerPeriod[-1]]
-                                .T
-                            ).T
-                        )
-                    optVal = pd.concat(data, axis=1, ignore_index=True)
-                else:
-                    optVal = None
-                self._stateOfChargeOperationVariablesOptimum[
-                    esM.investmentPeriodNames[ip]
-                ] = optVal
-                utils.setOptimalComponentVariables(
-                    optVal, "_stateOfChargeVariablesOptimum", compDict
-                )
+            # State of charge variables are extracted by _extractSubclassRawResults
+            # (self._stateOfChargeOperationVariablesOptimum) and are not part of the summary.
 
             # Append optimization summaries
             optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]

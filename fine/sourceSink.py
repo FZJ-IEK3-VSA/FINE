@@ -957,6 +957,27 @@ class SourceSinkModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the source/sink specific raw solved ``operation`` variable.
+
+        Adds ``operation`` to ``rawResults`` and populates
+        ``self._operationVariablesOptimum``.
+        """
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
+        opVar = getattr(pyM, "op_" + self.abbrvName)
+        for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+            optVal = utils.formatOptimizationOutput(
+                opVar.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            self._operationVariablesOptimum[ipName] = optVal
+            rawResults[ipName]["operation"] = optVal
+
     def setOptimalValues(self, esM, pyM):
         """Set the optimal values of the components.
 
@@ -1077,20 +1098,10 @@ class SourceSinkModel(ComponentModel):
         )
 
         for ip in esM.investmentPeriods:
-            compDict, abbrvName = self.componentsDict, self.abbrvName
-            opVar = getattr(pyM, "op_" + abbrvName)
+            compDict = self.componentsDict
 
-            # Set optimal operation variables and append optimization summary
-            optVal = utils.formatOptimizationOutput(
-                opVar.get_values(),
-                "operationVariables",
-                "1dim",
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-
-            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
+            # operation variables are extracted by _extractSubclassRawResults
+            optVal = self._rawResults[esM.investmentPeriodNames[ip]]["operation"]
 
             props = [
                 "operation",
