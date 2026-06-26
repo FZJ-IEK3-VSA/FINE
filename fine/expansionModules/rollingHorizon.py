@@ -159,7 +159,7 @@ def rollingHorizonOptimization(
                     if parameter_name == "commodityConversionFactors":
                         firstKey = list(parameter_value.keys())[0]
                         # check for ip dependendy
-                        if firstKey in esM.investmentPeriods:
+                        if firstKey in esM.investmentPeriodNames:
                             # filter for years of rolling horizon time frame
                             new_parameter_value = {
                                 key: value
