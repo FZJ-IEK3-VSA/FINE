@@ -48,6 +48,7 @@ __all__ = [
     "plotOperation",
     "plotOperationColorMap",
     "plotTransmission",
+    "plotPieChart",
     "subclasses",
     "utils",
     "xarrayIO",
