@@ -9,7 +9,7 @@ Last edited: February 06, 2020
 from .energySystemModel import EnergySystemModel
 from .sourceSink import Source, Sink
 from .conversion import Conversion
-from .storage import Storage
+from .storage import Storage, MaterialStorage
 from .transmission import Transmission
 from .component import Component, ComponentModel
 from .subclasses import *

@@ -592,6 +592,61 @@ class Storage(Component):
                 self.fullStateOfChargeMax, "stateOfChargeMax_", data, ip
             )
 
+class MaterialStorage(Storage):
+    """A material stockpile that stores a material commodity between investment periods.
+
+    Unlike Storage, MaterialStorage does not model an intra-year state-of-charge
+    trajectory. Charge and discharge operation variables are retained only as
+    links to the existing commodity balance.
+    """
+
+    def __init__(self, *args, **kwargs):
+        if kwargs.get("hasIsBuiltBinaryVariable", False):
+            raise ValueError("MaterialStorage does not support isBuilt binary variables.")
+        kwargs["hasIsBuiltBinaryVariable"] = False
+        kwargs.setdefault("stateOfChargeBoundary", "interInvestmentPeriod")
+        super().__init__(*args, **kwargs)
+
+        if self.bigM is not None:
+            raise ValueError("MaterialStorage does not support the bigM parameter.")
+
+        if self.isBuiltFix is not None:
+            raise ValueError("MaterialStorage does not support isBuiltFix.")
+
+        if self.investIfBuilt != 0:
+            raise ValueError("MaterialStorage does not support investIfBuilt.")
+
+        if self.opexIfBuilt != 0:
+            raise ValueError("MaterialStorage does not support opexIfBuilt.")
+
+        if self.capacityMin is not None:
+            raise ValueError(
+                "MaterialStorage does not support capacityMin because it "
+                "requires isBuilt binary variables in FINE."
+            )
+
+        if self.stateOfChargeBoundary != "interInvestmentPeriod":
+            raise ValueError(
+                "MaterialStorage currently only supports "
+                "stateOfChargeBoundary='interInvestmentPeriod'."
+            )
+
+        if self.selfDischarge != 0:
+            raise ValueError("MaterialStorage currently only supports selfDischarge=0.")
+
+        if self.cyclicLifetime is not None:
+            raise ValueError("MaterialStorage does not support cyclicLifetime.")
+
+        if not isinstance(self.stateOfChargeMin, int | float) or not isinstance(
+            self.stateOfChargeMax, int | float
+        ):
+            raise ValueError(
+                "MaterialStorage currently only supports scalar "
+                "stateOfChargeMin and stateOfChargeMax."
+            )
+
+        self.modelingClass = MaterialStorageModel
+
 
 class StorageModel(ComponentModel):
     """Instantly create a StorageModel class instance when a Storage class instance is initialized.
@@ -2375,6 +2430,596 @@ class StorageModel(ComponentModel):
             "stateOfChargeOperationVariablesOptimum": {
                 "values": self._stateOfChargeOperationVariablesOptimum[ip],
                 "timeDependent": True,
+                "dimension": self.dimension,
+            },
+        }
+
+
+class MaterialStorageModel(StorageModel):
+    """Model class for MaterialStorage components."""
+
+    def __init__(self):
+        super().__init__()
+        self.abbrvName = "matStor"
+        self.dimension = "1dim"
+        self._chargeOperationVariablesOptimum = {}
+        self._dischargeOperationVariablesOptimum = {}
+        self._stateOfChargeStartVariablesOptimum = {}
+        self._stateOfChargeEndVariablesOptimum = {}
+
+    def declareSets(self, esM, pyM):
+        """Declare sets for material stockpiling."""
+        self.declareDesignVarSet(pyM, esM)
+        self.declareCommissioningVarSet(pyM, esM)
+        self.declareContinuousDesignVarSet(pyM)
+        self.declareDiscreteDesignVarSet(pyM)
+        self.declareDesignDecisionVarSet(pyM)
+
+        self.declarePathwaySets(pyM, esM)
+        self.declareLocationComponentSet(pyM)
+
+        self.declareOpVarSet(esM, pyM)
+
+    def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
+        """Declare design, operation, and IP-level stock variables."""
+        self.declareCapacityVars(pyM)
+        self.declareRealNumbersVars(pyM)
+        self.declareIntNumbersVars(pyM)
+        # Declare an empty binary variable component for compatibility with
+        # ComponentModel output handling. MaterialStorage rejects all binary
+        # design options, so this adds no solver variables.
+        self.declareBinaryDesignDecisionVars(pyM, relaxIsBuiltBinary)
+
+        self.declareOperationVars(
+            pyM,
+            esM,
+            "chargeOp",
+            "processedChargeOpRateFix",
+            "processedChargeOpRateMax",
+            relevanceThreshold=relevanceThreshold,
+        )
+        self.declareOperationVars(
+            pyM,
+            esM,
+            "dischargeOp",
+            "processedDischargeOpRateFix",
+            "processedDischargeOpRateMax",
+            relevanceThreshold=relevanceThreshold,
+        )
+
+        self.declareCommissioningVars(pyM, esM)
+        self.declareDecommissioningVars(pyM, esM)
+
+        opVarSet = getattr(pyM, "operationVarSet_" + self.abbrvName)
+
+        setattr(
+            pyM,
+            "stateOfChargeStart_" + self.abbrvName,
+            pyomo.Var(opVarSet, domain=pyomo.NonNegativeReals),
+        )
+        setattr(
+            pyM,
+            "stateOfChargeEnd_" + self.abbrvName,
+            pyomo.Var(opVarSet, domain=pyomo.NonNegativeReals),
+        )
+
+    def connectMaterialStock(self, pyM, esM):
+        """Connect IP-level material stock to aggregate charge/discharge."""
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        stockStart = getattr(pyM, "stateOfChargeStart_" + abbrvName)
+        stockEnd = getattr(pyM, "stateOfChargeEnd_" + abbrvName)
+        chargeOp = getattr(pyM, "chargeOp_" + abbrvName)
+        dischargeOp = getattr(pyM, "dischargeOp_" + abbrvName)
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        def connectMaterialStock(pyM, loc, compName, ip):
+            return stockEnd[loc, compName, ip] == stockStart[
+                loc, compName, ip
+            ] + sum(
+                (
+                    chargeOp[loc, compName, ip, p, t]
+                    * compDict[compName].chargeEfficiency
+                    - dischargeOp[loc, compName, ip, p, t]
+                    / compDict[compName].dischargeEfficiency
+                )
+                * esM.periodOccurrences[ip][p]
+                for p, t in pyM.intraYearTimeSet
+            )
+
+        setattr(
+            pyM,
+            "ConstrConnectMaterialStock_" + abbrvName,
+            pyomo.Constraint(opVarSet, rule=connectMaterialStock),
+        )
+
+    def interInvestmentPeriodMaterialStock(self, pyM, esM):
+        """Connect material stock between investment periods."""
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        stockStart = getattr(pyM, "stateOfChargeStart_" + abbrvName)
+        stockEnd = getattr(pyM, "stateOfChargeEnd_" + abbrvName)
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        def interInvestmentPeriodMaterialStock(pyM, loc, compName, ip):
+            if compDict[compName].stateOfChargeBoundary != "interInvestmentPeriod":
+                return pyomo.Constraint.Skip
+
+            ip_index = esM.investmentPeriods.index(ip)
+            next_ip = esM.investmentPeriods[
+                (ip_index + 1) % len(esM.investmentPeriods)
+            ]
+
+            return stockEnd[loc, compName, ip] == stockStart[
+                loc, compName, next_ip
+            ]
+
+        setattr(
+            pyM,
+            "ConstrInterInvestmentPeriodMaterialStock_" + abbrvName,
+            pyomo.Constraint(opVarSet, rule=interInvestmentPeriodMaterialStock),
+        )
+
+    def limitMaterialStock(self, pyM):
+        """Limit IP-level material stock by installed capacity."""
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        stockStart = getattr(pyM, "stateOfChargeStart_" + abbrvName)
+        stockEnd = getattr(pyM, "stateOfChargeEnd_" + abbrvName)
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
+
+        def stockStartMax(pyM, loc, compName, ip):
+            comp = compDict[compName]
+            if comp.hasCapacityVariable:
+                return stockStart[loc, compName, ip] <= (
+                    capVar[loc, compName, ip] * comp.stateOfChargeMax
+                )
+            return stockStart[loc, compName, ip] <= comp.stateOfChargeMax
+
+        def stockEndMax(pyM, loc, compName, ip):
+            comp = compDict[compName]
+            if comp.hasCapacityVariable:
+                return stockEnd[loc, compName, ip] <= (
+                    capVar[loc, compName, ip] * comp.stateOfChargeMax
+                )
+            return stockEnd[loc, compName, ip] <= comp.stateOfChargeMax
+
+        def stockStartMin(pyM, loc, compName, ip):
+            comp = compDict[compName]
+            if comp.hasCapacityVariable:
+                return stockStart[loc, compName, ip] >= (
+                    capVar[loc, compName, ip] * comp.stateOfChargeMin
+                )
+            return stockStart[loc, compName, ip] >= comp.stateOfChargeMin
+
+        def stockEndMin(pyM, loc, compName, ip):
+            comp = compDict[compName]
+            if comp.hasCapacityVariable:
+                return stockEnd[loc, compName, ip] >= (
+                    capVar[loc, compName, ip] * comp.stateOfChargeMin
+                )
+            return stockEnd[loc, compName, ip] >= comp.stateOfChargeMin
+
+        setattr(
+            pyM,
+            "ConstrMaterialStockStartMax_" + abbrvName,
+            pyomo.Constraint(opVarSet, rule=stockStartMax),
+        )
+        setattr(
+            pyM,
+            "ConstrMaterialStockEndMax_" + abbrvName,
+            pyomo.Constraint(opVarSet, rule=stockEndMax),
+        )
+        setattr(
+            pyM,
+            "ConstrMaterialStockStartMin_" + abbrvName,
+            pyomo.Constraint(opVarSet, rule=stockStartMin),
+        )
+        setattr(
+            pyM,
+            "ConstrMaterialStockEndMin_" + abbrvName,
+            pyomo.Constraint(opVarSet, rule=stockEndMin),
+        )
+
+    def declareComponentConstraints(self, esM, pyM):
+        """Declare constraints for material stockpiling."""
+        if pyM.hasTSA:
+            raise ValueError("MaterialStorage is currently only supported without TSA.")
+
+        self.capToNbReal(pyM)
+        self.capToNbInt(pyM)
+
+        self.designDevelopmentConstraint(pyM, esM)
+        self.decommissioningConstraint(pyM, esM)
+        self.stockCapacityConstraint(pyM, esM)
+        self.stockCommissioningConstraint(pyM, esM)
+
+        self.connectMaterialStock(pyM, esM)
+        self.interInvestmentPeriodMaterialStock(pyM, esM)
+        self.limitMaterialStock(pyM)
+
+    def getObjectiveFunctionContribution(self, esM, pyM):
+        """Get objective contribution without SOC offset terms."""
+        capexCap = self.getEconomicsDesign(
+            pyM,
+            esM,
+            ["processedInvestPerCapacity"],
+            lifetimeAttr="ipEconomicLifetime",
+            varName="commis",
+            divisorName="CCF",
+        )
+        opexCap = self.getEconomicsDesign(
+            pyM,
+            esM,
+            ["processedOpexPerCapacity"],
+            lifetimeAttr="ipTechnicalLifetime",
+            varName="commis",
+        )
+        opexOpCharge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerChargeOperation"],
+            "chargeOp",
+            "operationVarDict",
+        )
+        opexOpDischarge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerDischargeOperation"],
+            "dischargeOp",
+            "operationVarDict",
+        )
+
+        return (
+            capexCap
+            + opexCap
+            + opexOpCharge
+            + opexOpDischarge
+        )
+
+    def setOptimalValues(self, esM, pyM):
+        """Set optimal values for material stockpiling components."""
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        chargeOp, dischargeOp = (
+            getattr(pyM, "chargeOp_" + abbrvName),
+            getattr(pyM, "dischargeOp_" + abbrvName),
+        )
+        stockStart = getattr(pyM, "stateOfChargeStart_" + abbrvName)
+        stockEnd = getattr(pyM, "stateOfChargeEnd_" + abbrvName)
+
+        optSummaryBasic = ComponentModel.setOptimalValues(
+            self, esM, pyM, esM.locations, "commodityUnit", "*h"
+        )
+
+        resultsTAC_opexOpCharge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerChargeOperation"],
+            "chargeOp",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
+        )
+        resultsNPV_opexOpCharge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerChargeOperation"],
+            "chargeOp",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
+        )
+        resultsTAC_opexOpDischarge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerDischargeOperation"],
+            "dischargeOp",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="TAC",
+        )
+        resultsNPV_opexOpDischarge = self.getEconomicsOperation(
+            pyM,
+            esM,
+            "TD",
+            ["processedOpexPerDischargeOperation"],
+            "dischargeOp",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType="NPV",
+        )
+
+        for ip in esM.investmentPeriods:
+            props = [
+                "operationCharge",
+                "operationDischarge",
+                "opexCharge",
+                "opexDischarge",
+                "NPV_opexCharge",
+                "NPV_opexDischarge",
+                "stateOfChargeStart",
+                "stateOfChargeEnd",
+            ]
+
+            def unit(prop, comp):
+                if prop in {
+                    "operationCharge",
+                    "operationDischarge",
+                    "stateOfChargeStart",
+                    "stateOfChargeEnd",
+                }:
+                    return "[" + comp.commodityUnit + "*h]"
+                return "[" + esM.costUnit + "/a]"
+
+            tuples = [
+                (compName, prop, unit(prop, comp))
+                for compName, comp in compDict.items()
+                for prop in props
+            ]
+            mIndex = pd.MultiIndex.from_tuples(
+                tuples, names=["Component", "Property", "Unit"]
+            )
+            optSummary = pd.DataFrame(
+                index=mIndex, columns=sorted(esM.locations)
+            ).sort_index()
+
+            optValCharge = utils.formatOptimizationOutput(
+                chargeOp.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            self._chargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                optValCharge
+            )
+            if optValCharge is not None:
+                opSum = optValCharge.sum(axis=1).unstack(-1)
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "operationCharge",
+                            "[" + compDict[ix].commodityUnit + "*h]",
+                        )
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values
+
+                tacOpexCharge = resultsTAC_opexOpCharge[ip]
+                optSummary.loc[
+                    [
+                        (ix, "opexCharge", "[" + esM.costUnit + "/a]")
+                        for ix in tacOpexCharge.index
+                    ],
+                    tacOpexCharge.columns,
+                ] = tacOpexCharge.values
+                npvOpexCharge = resultsNPV_opexOpCharge[ip]
+                optSummary.loc[
+                    [
+                        (ix, "NPV_opexCharge", "[" + esM.costUnit + "/a]")
+                        for ix in npvOpexCharge.index
+                    ],
+                    npvOpexCharge.columns,
+                ] = npvOpexCharge.values
+
+            optValDischarge = utils.formatOptimizationOutput(
+                dischargeOp.get_values(),
+                "operationVariables",
+                "1dim",
+                ip,
+                esM.periodsOrder[ip],
+                esM=esM,
+            )
+            self._dischargeOperationVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                optValDischarge
+            )
+            if optValDischarge is not None:
+                opSum = optValDischarge.sum(axis=1).unstack(-1)
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "operationDischarge",
+                            "[" + compDict[ix].commodityUnit + "*h]",
+                        )
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values
+
+                tacOpexDischarge = resultsTAC_opexOpDischarge[ip]
+                optSummary.loc[
+                    [
+                        (ix, "opexDischarge", "[" + esM.costUnit + "/a]")
+                        for ix in tacOpexDischarge.index
+                    ],
+                    tacOpexDischarge.columns,
+                ] = tacOpexDischarge.values
+                npvOpexDischarge = resultsNPV_opexOpDischarge[ip]
+                optSummary.loc[
+                    [
+                        (ix, "NPV_opexDischarge", "[" + esM.costUnit + "/a]")
+                        for ix in npvOpexDischarge.index
+                    ],
+                    npvOpexDischarge.columns,
+                ] = npvOpexDischarge.values
+
+            optValStockStart = utils.formatOptimizationOutput(
+                stockStart.get_values(), "designVariables", "1dim", ip
+            )
+            self._stateOfChargeStartVariablesOptimum[
+                esM.investmentPeriodNames[ip]
+            ] = optValStockStart
+            utils.setOptimalComponentVariables(
+                optValStockStart, "_stateOfChargeStartVariablesOptimum", compDict
+            )
+
+            optValStockEnd = utils.formatOptimizationOutput(
+                stockEnd.get_values(), "designVariables", "1dim", ip
+            )
+            self._stateOfChargeEndVariablesOptimum[esM.investmentPeriodNames[ip]] = (
+                optValStockEnd
+            )
+            utils.setOptimalComponentVariables(
+                optValStockEnd, "_stateOfChargeEndVariablesOptimum", compDict
+            )
+
+            if optValStockStart is not None:
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "stateOfChargeStart",
+                            "[" + compDict[ix].commodityUnit + "*h]",
+                        )
+                        for ix in optValStockStart.index
+                    ],
+                    optValStockStart.columns,
+                ] = optValStockStart.values
+            if optValStockEnd is not None:
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "stateOfChargeEnd",
+                            "[" + compDict[ix].commodityUnit + "*h]",
+                        )
+                        for ix in optValStockEnd.index
+                    ],
+                    optValStockEnd.columns,
+                ] = optValStockEnd.values
+
+            optSummaryBasicFrame = optSummaryBasic[esM.investmentPeriodNames[ip]]
+            if isinstance(optSummaryBasicFrame, pd.Series):
+                optSummaryBasicFrame = optSummaryBasicFrame.to_frame().T
+
+            optSummary = pd.concat(
+                [optSummary, optSummaryBasicFrame], axis=0
+            ).sort_index()
+
+            optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "TAC")
+                    | (optSummary.index.get_level_values(1) == "opexCharge")
+                    | (optSummary.index.get_level_values(1) == "opexDischarge")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+            )
+            optSummary.loc[
+                optSummary.index.get_level_values(1) == "NPVcontribution"
+            ] = (
+                optSummary.loc[
+                    (optSummary.index.get_level_values(1) == "NPVcontribution")
+                    | (optSummary.index.get_level_values(1) == "NPV_opexCharge")
+                    | (optSummary.index.get_level_values(1) == "NPV_opexDischarge")
+                ]
+                .groupby(level=0)
+                .sum()
+                .values
+            )
+
+            optSummary = optSummary.drop("NPV_opexCharge", level=1)
+            optSummary = optSummary.drop("NPV_opexDischarge", level=1)
+
+            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
+
+    def getOptimalValues(self, name="all", ip=0):  # noqa: PLR0911
+        """Return optimal values of material stockpiling components."""
+        if name == "capacityVariablesOptimum":
+            return {
+                "values": self._capacityVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        if name == "commissioningVariablesOptimum":
+            return {
+                "values": self._commissioningVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        if name == "decommissioningVariablesOptimum":
+            return {
+                "values": self._decommissioningVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        if name == "isBuiltVariablesOptimum":
+            return {
+                "values": self._isBuiltVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        if name == "chargeOperationVariablesOptimum":
+            return {
+                "values": self._chargeOperationVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": self.dimension,
+            }
+        if name == "dischargeOperationVariablesOptimum":
+            return {
+                "values": self._dischargeOperationVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": self.dimension,
+            }
+        if name == "stateOfChargeStartVariablesOptimum":
+            return {
+                "values": self._stateOfChargeStartVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        if name == "stateOfChargeEndVariablesOptimum":
+            return {
+                "values": self._stateOfChargeEndVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            }
+        return {
+            "commissioningVariablesOptimum": {
+                "values": self._commissioningVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "decommissioningVariablesOptimum": {
+                "values": self._decommissioningVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "capacityVariablesOptimum": {
+                "values": self._capacityVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "isBuiltVariablesOptimum": {
+                "values": self._isBuiltVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "chargeOperationVariablesOptimum": {
+                "values": self._chargeOperationVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": self.dimension,
+            },
+            "dischargeOperationVariablesOptimum": {
+                "values": self._dischargeOperationVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": self.dimension,
+            },
+            "stateOfChargeStartVariablesOptimum": {
+                "values": self._stateOfChargeStartVariablesOptimum[ip],
+                "timeDependent": False,
+                "dimension": self.dimension,
+            },
+            "stateOfChargeEndVariablesOptimum": {
+                "values": self._stateOfChargeEndVariablesOptimum[ip],
+                "timeDependent": False,
                 "dimension": self.dimension,
             },
         }
