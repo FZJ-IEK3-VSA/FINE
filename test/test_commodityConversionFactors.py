@@ -10,9 +10,7 @@ not covered in the minimal test system or other tests.
 
 
 def create_core_esm():
-    """
-    We create a core esm that only consists of a source and a sink in one location.
-    """
+    """We create a core esm that only consists of a source and a sink in one location."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
     # Create an energy system model instance
@@ -52,11 +50,48 @@ def create_core_esm():
     return esM
 
 
-def test_conversion_factors_as_series():
-    """
-    Input as pandas.Series for one location.
-    """
+def create_two_loc_esm():
+    """We create a core esm with two locations, one source and one sink."""
+    numberOfTimeSteps = 1
+    hoursPerTimeStep = 1
+    esM = fn.EnergySystemModel(
+        locations={"Loc1", "Loc2"},
+        commodities={"electricity", "hydrogen"},
+        numberOfTimeSteps=numberOfTimeSteps,
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "hydrogen": r"kW$_{H_{2},LHV}$",
+        },
+        hoursPerTimeStep=hoursPerTimeStep,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Electricity market",
+            commodity="electricity",
+            hasCapacityVariable=False,
+        )
+    )
+    demand = pd.DataFrame(
+        {"Loc1": [10.0], "Loc2": [20.0]}, index=esM.totalTimeSteps
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Industry site",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateFix=demand,
+        )
+    )
+    return esM
 
+
+def test_conversion_factors_as_series():
+    """Input as pandas.Series for one location."""
     esM = create_core_esm()
 
     with pytest.raises(
@@ -82,3 +117,40 @@ def test_conversion_factors_as_series():
 
     # optimize
     esM.optimize(timeSeriesAggregation=False, solver="glpk")
+
+
+def test_location_specific_conversion_factors_series():
+    """Location-specific conversion factors are accepted as pandas.Series."""
+    esM = create_two_loc_esm()
+
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Electrolyzers_LocCcf",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={
+                "electricity": -1,
+                "hydrogen": pd.Series({"Loc1": 0.5, "Loc2": 1.0}),
+            },
+            hasCapacityVariable=True,
+            investPerCapacity=0,
+            opexPerCapacity=0,
+            interestRate=0.08,
+            economicLifetime=10,
+        )
+    )
+
+    comp = esM.getComponent("Electrolyzers_LocCcf")
+    processed = comp.processedCommodityConversionFactors[0]["hydrogen"]
+    assert isinstance(processed, pd.Series)
+    np.testing.assert_almost_equal(processed.loc["Loc1"], 0.5)
+    np.testing.assert_almost_equal(processed.loc["Loc2"], 1.0)
+
+    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+
+    op = (
+        esM.componentModelingDict["ConversionModel"]
+        .operationVariablesOptimum.xs("Electrolyzers_LocCcf")
+    )
+    np.testing.assert_almost_equal(op.loc["Loc1", 0], 20.0, decimal=6)
+    np.testing.assert_almost_equal(op.loc["Loc2", 0], 20.0, decimal=6)

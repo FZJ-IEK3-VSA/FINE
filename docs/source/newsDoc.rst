@@ -1,10 +1,8 @@
-﻿################
-FINE's News Feed
+﻿FINE's News Feed
 ################
 
 Since version 2.3.3 this news feed is not updated anymore. Please refer to the [release page](https://github.com/FZJ-IEK3-VSA/FINE/releases) for changelogs.
 
-*********************
 Release version 2.3.2
 *********************
 
@@ -15,7 +13,6 @@ Further, FINE release 2.3.2 provides changes in the requirements:
 * Pin `GDAL` to version 3.4.3 because version 3.4.1 is not compatible with the latest Fiona versions.
 * Change the repository of `gurobi-logtools` from pypi to conda-forge.
 
-*********************
 Release version 2.3.1
 *********************
 
@@ -26,7 +23,6 @@ FINE release 2.3.1 provides the following changes:
 * Makes subclass `conversionPartLoad` usable again. The `nSegments` parameter has to be set manually depending on the form of the non-linear function.
 * Drops the constraint on the version of `pandas` to also work with versions lower than 2.
 
-*********************
 Release version 2.3.0
 *********************
 
@@ -41,7 +37,6 @@ FINE release (2.3.0) provides new major functionalities:
 The ConversionPartLoad class is not supported in this release due to the deprecated package `GPyOpt`.
 Also, the installation method has been changed from `setup.py` to `pyproject.toml`.
 
-*********************
 Release version 2.2.2
 *********************
 
@@ -53,7 +48,6 @@ FINE release (2.2.2) provides new major functionalities:
 Black autoformatting was applied to make the source code easier to read and to simplify contributions. 
 Additionally, the installation guide was revised to make the installation easier to handle.
 
-*********************
 Release version 2.2.1
 *********************
 
@@ -67,7 +61,6 @@ FINE release (2.2.1) fixes a bug in storage.py
 
 * constraints for chargeOperationMax, chargeOperationFix, disChargeOperationMax and dischargeOperationFix should be set up without an error message. 
 
-*********************
 Release version 2.2.0
 *********************
 
@@ -87,7 +80,6 @@ New features were included:
 * Add operation value for considered time horizon in the optimizationSummary 
 * Add new attribute objectiveValue to EnergySystemModel class
 
-*********************
 Release version 2.1.1
 *********************
 
@@ -96,7 +88,6 @@ FINE release (2.1.1) provides some minor changes in code including bug fixes for
 * Missing labels (for newer pandas versions) 
 * setting operationRateFix or operationRateMax for transmission components
 
-*******************
 Release version 2.1
 *******************
 
@@ -105,7 +96,6 @@ In FINE release (2.1) the following functionalities were included, for example:
 * New time series aggregation method: Segmentation of time series
 * Bug Fix: TAC of transmission components within the optimization summary is fixed
 
-*******************
 Release version 2.0
 *******************
 

@@ -1,14 +1,15 @@
 import inspect
-import os
+from pathlib import Path
 import time
 import warnings
 import importlib.util
+import os
 
 import gurobi_logtools as glt
 import pandas as pd
 import psutil
 import pyomo.environ as pyomo
-import pyomo.opt as opt
+from pyomo import opt
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from fine import utils
@@ -22,8 +23,7 @@ warnings.filterwarnings("always", category=UserWarning)
 
 
 class EnergySystemModel:
-    """
-    EnergySystemModel class
+    r"""EnergySystemModel class.
 
     The functionality provided by the EnergySystemModel class is fourfold:
 
@@ -87,9 +87,9 @@ class EnergySystemModel:
         componentLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
+        LP_savepath=None,
     ):
-        """
-        Constructor for creating an EnergySystemModel class instance
+        r"""Create an EnergySystemModel class instance.
 
         **Required arguments:**
 
@@ -194,10 +194,8 @@ class EnergySystemModel:
             Regional dependency:
             The balanceLimit is defined as a pd.DataFrame. Each row contains an individual balanceLimitID as
             index, the corresponding regional scope as columns and the values as data. The regional scope can be set
-            for a region with the matching region name as column name or "Total" as colum name for setting for the entire system.
-            Example:
-            - per region: pd.DataFrame(columns=["Region1"], index=["electricity"], data=[1000])
-            - per region and per system: pd.DataFrame(columns=["Region1","Total"], index=["electricity"], data=[1000,2000])
+            for a region with the matching region name as column name or "Total" as column name for setting for the entire system.
+            If no balanceLimit is to be set for a given location, replace the corresponding entry with 'None' (not 'np.nan').
 
             Temporal dependency:
             If the balanceLimit is passed as a dict with the described pd.DataFrames as values it is considered per investment period.
@@ -220,6 +218,44 @@ class EnergySystemModel:
                 (Logically maximum limit for negative values, define negative value in balanceLimit).
                 Example: Define upper limit for Carbon Capture & Storage.\n
 
+        Examples:
+            - balanceLimit for commodity flow into system/ location e.g. due to a source
+            [positive value; lowerBound=False] (e.g. natural gas field):
+                balanceLimit=pd.DataFrame(columns=["Total"],
+                                          index=["Gas production", "lowerBound"],
+                                          data=[1000, False]
+                                          )
+            - balanceLimit for commodity flow out of system/ location e.g. due to a sink
+            [negative value; lowerBound=True] (e.g. CO2 sink):
+                balanceLimit=pd.DataFrame(columns=["Total"],
+                                          index=["CO2 Limit", "lowerBound"],
+                                          data=[-1000, True]
+                                          )
+            - balanceLimit per region and per system (flow into system/ location):
+                balanceLimit=pd.DataFrame(columns=["Region1", "Total"],
+                                          index=["CO2 Limit"],
+                                          data=[1000, 2000]
+                                          )
+            - multiple balanceLimits for different IDs:
+                balanceLimit=pd.DataFrame(columns=["Total", "lowerBound"],
+                                            index=["CO2 limit", "Gas production"],
+                                            data=[[400, False], [1000, True]]
+                                            )
+            - Different CO2 Limits for each investment period and minimum installed capacity for renewables:
+                balanceLimit = {
+                    2020: pd.DataFrame(index=["CO2 limit", "Renewables"],
+                                       columns=["Total", "lowerBound"],
+                                       data=[[-366 * (1 - CO2_reductionTarget * 0.33), True],[430000, True]]
+                                       ),
+                    2025: pd.DataFrame(index=["CO2 limit", "Renewables"],
+                                       columns=["Region1", "Total", "lowerBound"],
+                                       data=[[-366 * (1 - CO2_reductionTarget * 0.67), True],[430000, True]]
+                                       ),
+                    2030: pd.DataFrame(index=["CO2 limit", "Renewables"],
+                                       columns=["Region1", "Total", "lowerBound"],
+                                       data=[[-366 * (1 - CO2_reductionTarget), True],[430000, True]]
+                                       )
+                                }
             .. note::
                 If bounds for sinks shall be specified (e.g. min. export, max. sink volume), values must be
                 defined as negative.
@@ -249,7 +285,6 @@ class EnergySystemModel:
         :type: annuityPerpetuity: bool
 
         """
-
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(
             locations,
@@ -273,7 +308,7 @@ class EnergySystemModel:
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
-
+        self.LP_savepath = LP_savepath
         self.locations, self.lengthUnit = locations, lengthUnit
         self._locationsOrdered = sorted(locations)
 
@@ -366,9 +401,6 @@ class EnergySystemModel:
         self.processedPathwayBalanceLimit = utils.checkAndSetPathwayBalanceLimit(
             self, pathwayBalanceLimit, locations
         )
-        self.processedBalanceLimit = utils.setParamToNoneIfNoneForAllYears(
-            self.processedBalanceLimit
-        )
 
         self.componentLimit = componentLimit
         self.componentLimitEligibility = componentLimitEligibility
@@ -440,12 +472,11 @@ class EnergySystemModel:
         self.verboseLogLevel = verboseLogLevel  # TODO replace
 
     def add(self, component):
-        """
-        Function for adding a component and, if required, its respective modeling class to the EnergySystemModel
-        instance. The added component has to inherit from the FINE class Component.
+        """Add a component and, if required, its respective modeling class to the EnergySystemModel instance.
+        The added component has to inherit from the FINE class Component.
 
         :param component: the component to be added
-        :type component: An object which inherits from the FINE Component class
+        :type component: An object which inherits from the FINE class Component
         """
         if not issubclass(type(component), Component):
             raise TypeError(
@@ -458,8 +489,7 @@ class EnergySystemModel:
         component.addToEnergySystemModel(self)
 
     def removeComponent(self, componentName, track=False):
-        """
-        Function which removes a component from the energy system.
+        """Remove a component from the energy system.
 
         :param componentName: name of the component that should be removed
         :type componentName: string
@@ -471,7 +501,6 @@ class EnergySystemModel:
         :returns: dictionary with the removed componentName and component instance if track is set to True else None.
         :rtype: dict or None
         """
-
         # Test if component exists
         if componentName not in self.componentNames.keys():
             raise ValueError(
@@ -500,21 +529,19 @@ class EnergySystemModel:
             ].componentsDict:  # False if dict is empty
                 del self.componentModelingDict[modelingClass]
             return removedComp
-        else:
-            # Remove component from the componentNames dict:
-            del self.componentNames[componentName]
-            # Remove component from the componentModelingDict:
-            del self.componentModelingDict[modelingClass].componentsDict[componentName]
-            # Test if all components of one modelingClass are removed. If so, remove modelingClass:
-            if not self.componentModelingDict[
-                modelingClass
-            ].componentsDict:  # False if dict is empty
-                del self.componentModelingDict[modelingClass]
-            return None
+        # Remove component from the componentNames dict:
+        del self.componentNames[componentName]
+        # Remove component from the componentModelingDict:
+        del self.componentModelingDict[modelingClass].componentsDict[componentName]
+        # Test if all components of one modelingClass are removed. If so, remove modelingClass:
+        if not self.componentModelingDict[
+            modelingClass
+        ].componentsDict:  # False if dict is empty
+            del self.componentModelingDict[modelingClass]
+        return None
 
     def getComponent(self, componentName):
-        """
-        Function which returns a component of the energy system.
+        """Return a component of the energy system.
 
         :param componentName: name of the component that should be returned
         :type componentName: string
@@ -534,8 +561,7 @@ class EnergySystemModel:
         return self.componentModelingDict[modelingClass].componentsDict[componentName]
 
     def updateComponent(self, componentName, updateAttrs):
-        """
-        Overwrite selected attributes of an existing esM component with new values.
+        """Overwrite selected attributes of an existing esM component with new values.
 
         .. note::
             Be aware of the fact that some attributes are filled automatically while initializing a component.
@@ -562,14 +588,29 @@ class EnergySystemModel:
 
         # get affected classes and extract relevant class attributes
         _class = self.getComponent(componentName).__class__
-        class_attrs = list(inspect.signature(_class).parameters.keys())
+
+        # Get parameters from the class and its direct parent class (only for specific subclasses)
+        class_attrs = set()
+        # Get parameters from current class
+        class_attrs.update(inspect.signature(_class).parameters.keys())
+
+        # Get parameters from direct parent class only for specific subclasses
+        subclass_names = [
+            "ConversionDynamic",
+            "ConversionPartLoadModel",
+            "LinearOptimalPowerFlow",
+        ]
+        if (
+            _class.__name__ in subclass_names
+            and _class.__bases__
+            and _class.__bases__[0] is not object
+        ):
+            class_attrs.update(inspect.signature(_class.__bases__[0]).parameters.keys())
+
+        class_attrs = list(class_attrs)  # Convert back to list for compatibility
 
         # check if all arguments to be updated are class attributes
         for k in updateAttrs.keys():
-            if k not in class_attrs:
-                raise AttributeError(
-                    f"parameter '{k}' from updateAttrs is not an attribute of the component class '{_class}'."
-                )
             if k == "name":
                 warnings.warn(
                     "Updating the name will just create a new component."
@@ -590,8 +631,7 @@ class EnergySystemModel:
         self.add(_class(self, **new_args))
 
     def getComponentAttribute(self, componentName, attributeName):
-        """
-        Function which returns an attribute of a component considered in the energy system.
+        """Return an attribute of a component considered in the energy system.
 
         :param componentName: name of the component from which the attribute should be obtained
         :type componentName: string
@@ -608,13 +648,10 @@ class EnergySystemModel:
         attr = getattr(self.getComponent(componentName), attributeName)
         if isinstance(attr, dict) and list(attr.keys()) == [0]:
             return attr[0]
-        else:
-            return attr
+        return attr
 
     def getOptimizationSummary(self, modelingClass, ip=0, outputLevel=0):
-        """
-        Function which returns the optimization summary (design variables, aggregated operation variables,
-        objective contributions) of a modeling class.
+        """Return the optimization summary (design variables, aggregated operation variables, and objective contributions) of a modeling class.
 
         :param modelingClass: name of the modeling class from which the optimization summary should be obtained
         :type modelingClass: string
@@ -638,25 +675,21 @@ class EnergySystemModel:
                 + f"(from '{self.investmentPeriodNames}')"
             )
 
+        # adjust columns name and remove "space" or "space_2" in case it exists
+        self.componentModelingDict[modelingClass]._optSummary[ip].columns.name = None
+
         if outputLevel == 0:
             return self.componentModelingDict[modelingClass]._optSummary[ip]
-        elif outputLevel == 1:
+        if outputLevel == 1:
             return (
                 self.componentModelingDict[modelingClass]
                 ._optSummary[ip]
                 .dropna(how="all")
             )
-        else:
-            if outputLevel != 2 and self.verbose < 2:
-                warnings.warn(
-                    "Invalid input. An outputLevel parameter of 2 is assumed."
-                )
-            df = (
-                self.componentModelingDict[modelingClass]
-                ._optSummary[ip]
-                .dropna(how="all")
-            )
-            return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
+        if outputLevel != 2 and self.verbose < 2:
+            warnings.warn("Invalid input. An outputLevel parameter of 2 is assumed.")
+        df = self.componentModelingDict[modelingClass]._optSummary[ip].dropna(how="all")
+        return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
     def aggregateSpatially(
         self,
@@ -667,8 +700,7 @@ class EnergySystemModel:
         aggregatedResultsPath=None,
         **kwargs,
     ):
-        """
-        Spatially clusters the data of all components considered in the Energy System Model (esM) instance
+        """Spatially clusters the data of all components considered in the Energy System Model (esM) instance
         and returns a new esM instance with the aggregated data.
 
         :param shapefile: Either the path to the shapefile or the read-in shapefile
@@ -819,7 +851,6 @@ class EnergySystemModel:
 
         :returns: Aggregated esM instance
         """
-
         # STEP 1. Obtain xr dataset from esM
         xr_dataset = xrIO.convertOptimizationInputToDatasets(
             self, useProcessedValues=True
@@ -837,17 +868,54 @@ class EnergySystemModel:
         )
 
         # STEP 3. Obtain aggregated esM
-        aggregated_esM = xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
-
-        return aggregated_esM
+        return xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
     def cluster(self, *args, **kwargs):
+        """Deprecated method, use `aggregateTemporally()` instead.
+
+        Calls `aggregateTemporally()` with the same arguments and issues
+        a deprecation warning.
+        """  # noqa D401
         warnings.warn(
             "EnergySystemModel.cluster() is deprecated and will be removed in a future release. \
             use EnergySystemModel.aggregateTemporally() instead.",
             DeprecationWarning,
         )
         self.aggregateTemporally(*args, **kwargs)
+
+    def build_time_series_data(self, ip):
+        timeSeriesData, weightDict = [], {}
+        for mdlName, mdl in self.componentModelingDict.items():
+            for compName, comp in mdl.componentsDict.items():
+                (
+                    compTimeSeriesData,
+                    compWeightDict,
+                ) = comp.getDataForTimeSeriesAggregation(ip)
+                if compTimeSeriesData is not None:
+                    (
+                        timeSeriesData.append(compTimeSeriesData),
+                        weightDict.update(compWeightDict),
+                    )
+        timeSeriesData = pd.concat(timeSeriesData, axis=1)
+        # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
+        timeSeriesData.index = pd.date_range(
+            "2050-01-01 00:30:00",
+            periods=len(self.totalTimeSteps),
+            freq=(str(self.hoursPerTimeStep) + "h"),
+            tz="Europe/Berlin",
+        )
+
+        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
+        # call) depending on whether segmentation is activated or not
+        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
+        # find data with only zeros
+        zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
+        # drop columns with only zeros
+        timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
+        weightDict = {k: v for k, v in weightDict.items() if k not in zero_data_cols}
+
+        return timeSeriesData, weightDict, zero_data_cols
+
 
     def aggregateTemporally(
         self,
@@ -862,8 +930,7 @@ class EnergySystemModel:
         rescaleClusterPeriods=False,
         **kwargs,
     ):
-        """
-        Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
+        """Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
         stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
         days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
@@ -947,7 +1014,6 @@ class EnergySystemModel:
             |br| * the default value is False
         :type storeTSAinstance: boolean
         """
-
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(
             numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps)
@@ -1003,31 +1069,7 @@ class EnergySystemModel:
 
         # clustering of the time series data per investment period individually
         for ip in self.investmentPeriods:
-            timeSeriesData, weightDict = [], {}
-            for mdlName, mdl in self.componentModelingDict.items():
-                for compName, comp in mdl.componentsDict.items():
-                    (
-                        compTimeSeriesData,
-                        compWeightDict,
-                    ) = comp.getDataForTimeSeriesAggregation(ip)
-                    if compTimeSeriesData is not None:
-                        timeSeriesData.append(compTimeSeriesData), weightDict.update(
-                            compWeightDict
-                        )
-            timeSeriesData = pd.concat(timeSeriesData, axis=1)
-            # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
-            timeSeriesData.index = pd.date_range(
-                "2050-01-01 00:30:00",
-                periods=len(self.totalTimeSteps),
-                freq=(str(self.hoursPerTimeStep) + "h"),
-                tz="Europe/Berlin",
-            )
-
-            # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
-            # call) depending on whether segmentation is activated or not
-            timeSeriesData = timeSeriesData.reindex(
-                sorted(timeSeriesData.columns), axis=1
-            )
+            timeSeriesData, weightDict, zero_data_cols = self.build_time_series_data(ip)
             if segmentation:
                 clusterClass = TimeSeriesAggregation(
                     timeSeries=timeSeriesData,
@@ -1047,6 +1089,7 @@ class EnergySystemModel:
                 data = pd.DataFrame.from_dict(
                     clusterClass.clusterPeriodDict
                 ).reset_index(level=2, drop=True)
+
                 # Get the length of each segment in each typical period with the first index as typical period number and
                 # the second index as segment number per typical period.
                 timeStepsPerSegment = pd.DataFrame.from_dict(
@@ -1067,6 +1110,9 @@ class EnergySystemModel:
                 # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
                 # second index as time step number per typical period.
                 data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+
+            # add zeros data back to data
+            data[zero_data_cols] = 0.0
 
             # Store the respective clustered time series data in the associated components
             for mdlName, mdl in self.componentModelingDict.items():
@@ -1124,8 +1170,7 @@ class EnergySystemModel:
         utils.output("\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verbose, 0)
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
-        """
-        Set and initialize basic time parameters and sets.
+        """Set and initialize basic time parameters and sets.
 
         :param pyM: a pyomo ConcreteModel instance which contains parameters, sets, variables,
             constraints and objective required for the optimization set up and solving.
@@ -1148,15 +1193,14 @@ class EnergySystemModel:
             |br| * the default value is False
         :type segmentation: boolean
         """
-
         # Store the information if aggregated time series data is considered for modeling the energy system in the pyomo
         # model instance and set the time series which is again considered for modeling in all components accordingly
         pyM.hasTSA = timeSeriesAggregation
         pyM.hasSegmentation = segmentation
         for mdl in self.componentModelingDict.values():
-            for comp in mdl.componentsDict.values():
-                comp.setTimeSeriesData(pyM.hasTSA)
-                comp.checkProcessedDataSets()
+            if mdl.abbrvName != "pwlcf":
+                for comp in mdl.componentsDict.values():
+                    comp.setTimeSeriesData(pyM.hasTSA)
 
         # Set the time set and the inter time steps set. The time set is a set of tuples. A tuple consists of two
         # entries, the first one indicates an index of a period and the second one indicates a time step inside that
@@ -1208,97 +1252,90 @@ class EnergySystemModel:
                     )
                 )
 
+        elif not pyM.hasSegmentation:
+            utils.output(
+                "Time series aggregation specifications:\n"
+                "Number of typical periods:"
+                + str(len(self.typicalPeriods))
+                + ", number of time steps per period:"
+                + str(len(self.timeStepsPerPeriod))
+                + "\n",
+                self.verbose,
+                0,
+            )
+
+            # Define sets
+            # To-Do: Add explanation perfect foresight
+            def initTimeSet(pyM):
+                return (
+                    (ip, p, t)
+                    for ip in self.investmentPeriods
+                    for p in self.typicalPeriods
+                    for t in self.timeStepsPerPeriod
+                )
+
+            def initInterTimeStepsSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in range(len(self.timeStepsPerPeriod) + 1)
+                )
+
+            def initIntraYearTimeSet(pyM):
+                return (
+                    (p, t) for p in self.typicalPeriods for t in self.timeStepsPerPeriod
+                )
+
+            def initInvestPeriodInterPeriodSet(pyM):
+                return (
+                    (t_inter)
+                    for t_inter in range(
+                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1
+                    )
+                )
+
         else:
-            if not pyM.hasSegmentation:
-                utils.output(
-                    "Time series aggregation specifications:\n"
-                    "Number of typical periods:"
-                    + str(len(self.typicalPeriods))
-                    + ", number of time steps per period:"
-                    + str(len(self.timeStepsPerPeriod))
-                    + "\n",
-                    self.verbose,
-                    0,
+            utils.output(
+                "Time series aggregation specifications:\n"
+                "Number of typical periods:"
+                + str(len(self.typicalPeriods))
+                + ", number of time steps per period:"
+                + str(len(self.timeStepsPerPeriod))
+                + ", number of segments per period:"
+                + str(len(self.segmentsPerPeriod))
+                + "\n",
+                self.verbose,
+                0,
+            )
+
+            # Define sets
+            def initTimeSet(pyM):
+                return (
+                    (ip, p, t)
+                    for ip in self.investmentPeriods
+                    for p in self.typicalPeriods
+                    for t in self.segmentsPerPeriod
                 )
 
-                # Define sets
-                # To-Do: Add explanation perfect foresight
-                def initTimeSet(pyM):
-                    return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
-                        for p in self.typicalPeriods
-                        for t in self.timeStepsPerPeriod
-                    )
-
-                def initInterTimeStepsSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in range(len(self.timeStepsPerPeriod) + 1)
-                    )
-
-                def initIntraYearTimeSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in self.timeStepsPerPeriod
-                    )
-
-                def initInvestPeriodInterPeriodSet(pyM):
-                    return (
-                        (t_inter)
-                        for t_inter in range(
-                            int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
-                            + 1
-                        )
-                    )
-
-            else:
-                utils.output(
-                    "Time series aggregation specifications:\n"
-                    "Number of typical periods:"
-                    + str(len(self.typicalPeriods))
-                    + ", number of time steps per period:"
-                    + str(len(self.timeStepsPerPeriod))
-                    + ", number of segments per period:"
-                    + str(len(self.segmentsPerPeriod))
-                    + "\n",
-                    self.verbose,
-                    0,
+            def initInterTimeStepsSet(pyM):
+                return (
+                    (p, t)
+                    for p in self.typicalPeriods
+                    for t in range(len(self.segmentsPerPeriod) + 1)
                 )
 
-                # Define sets
-                def initTimeSet(pyM):
-                    return (
-                        (ip, p, t)
-                        for ip in self.investmentPeriods
-                        for p in self.typicalPeriods
-                        for t in self.segmentsPerPeriod
-                    )
+            def initIntraYearTimeSet(pyM):
+                return (
+                    (p, t) for p in self.typicalPeriods for t in self.segmentsPerPeriod
+                )
 
-                def initInterTimeStepsSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in range(len(self.segmentsPerPeriod) + 1)
+            def initInvestPeriodInterPeriodSet(pyM):
+                return (
+                    (t_inter)
+                    for t_inter in range(
+                        int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod)) + 1
                     )
-
-                def initIntraYearTimeSet(pyM):
-                    return (
-                        (p, t)
-                        for p in self.typicalPeriods
-                        for t in self.segmentsPerPeriod
-                    )
-
-                def initInvestPeriodInterPeriodSet(pyM):
-                    return (
-                        (t_inter)
-                        for t_inter in range(
-                            int(len(self.totalTimeSteps) / len(self.timeStepsPerPeriod))
-                            + 1
-                        )
-                    )
+                )
 
         def initInvestSet(pyM):
             return (ip for ip in self.investmentPeriods)
@@ -1322,85 +1359,86 @@ class EnergySystemModel:
         if self.processedComponentLimit is not None:
             # get all componentLimits from the processedComponentLimit
             componentsOfComponentLimit = {}
-            for ip in self.investmentPeriods:
-                componentsOfComponentLimit[ip] = {}
-                if self.processedComponentLimit[ip] is not None:
-                    componentLimitIDs = self.processedComponentLimit[ip].index.unique()
-                    for componentLimitID in componentLimitIDs:
-                        # Get Components per balance limit
-                        componentsOfommodityLimit = {}
-                        for mdl_type, mdl in self.componentModelingDict.items():
-                            if mdl_type in ["SourceSinkModel", "StorageModel","TransmissionModel","ConversionModel"]:
-                                for compName, comp in mdl.componentsDict.items():
-                                    if comp.componentLimitID is not None:
-                                        if componentLimitID in comp.componentLimitID:
-                                            componentsOfommodityLimit.setdefault(
-                                                componentLimitID, []
-                                            ).append(compName)
-                        componentsOfComponentLimit[ip][
-                            componentLimitID
-                        ] = componentsOfommodityLimit
+            if self.processedComponentLimit is not None:
+                componentLimitIDs = self.processedComponentLimit.index.unique()
+                for componentLimitID in componentLimitIDs:
+                    # Get Components per balance limit
+                    componentsOfommodityLimit = {}
+                    for mdl_type, mdl in self.componentModelingDict.items():
+                        if mdl_type in ["SourceSinkModel", "StorageModel","TransmissionModel","ConversionModel"]:
+                            for compName, comp in mdl.componentsDict.items():
+                                if comp.componentLimitID is not None:
+                                    if componentLimitID in comp.componentLimitID:
+                                        componentsOfommodityLimit.setdefault(
+                                            componentLimitID, []
+                                        ).append(compName)
+                    componentsOfComponentLimit[
+                        componentLimitID
+                    ] = componentsOfommodityLimit
 
             yearlyComponentLimitDict = {}
 
             # iterate over commodity limit to define either minimal, maximal or fixed balance limits per balanceLimitID
-            for ip in self.investmentPeriods:
-                if self.processedComponentLimit[ip] is not None:
-                    for balanceLimitID, data in self.processedComponentLimit[
-                        ip
-                    ].iterrows():
-                        # check if balanceLimitID is in processedComponentLimitEligibility
-                        if balanceLimitID in self.processedComponentLimitEligibility[ip].columns:
-                            
-                            # check which region is affected
-                            _elig = self.processedComponentLimitEligibility[ip].loc[
-                                :, balanceLimitID
-                            ]
-                            locs = _elig[_elig == 1].index.tolist()
-                            # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format 
-                            if locs:
-                                yearlyComponentLimitDict.setdefault(
-                                    (
-                                        balanceLimitID,
-                                        ip,
-                                        data["bound"],
-                                        data["type"],
-                                        float(data["value"]),
-                                        data["commodity"],
-                                    ),
-                                    [componentsOfComponentLimit[ip][balanceLimitID], locs],
-                                )
-                        elif balanceLimitID in self.processedComponentLimitEligibility2dim[ip].columns:
-                            _elig = self.processedComponentLimitEligibility2dim[ip].loc[
-                                :, balanceLimitID
-                            ]        
-                            locs = _elig[_elig == 1].index.tolist()
-                            # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format
-                            if locs:
-                                yearlyComponentLimitDict.setdefault(
-                                    (
-                                        balanceLimitID,
-                                        ip,
-                                        data["bound"],
-                                        data["type"],
-                                        float(data["value"]),
-                                        data["commodity"],
-                                    ),
-                                    [componentsOfComponentLimit[ip][balanceLimitID], locs],
-                                )
-                    
+            if self.processedComponentLimit is not None:
+                for balanceLimitID, data in self.processedComponentLimit.iterrows():
+                    # check if balanceLimitID is in processedComponentLimitEligibility
+                    if balanceLimitID in self.processedComponentLimitEligibility.columns:
+                        
+                        # check which region is affected
+                        _elig = self.processedComponentLimitEligibility.loc[
+                            :, balanceLimitID
+                        ]
+                        locs = _elig[_elig == 1].index.tolist()
+                        # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format 
+                        if locs:                            
+                            yearlyComponentLimitDict.setdefault(
+                                (
+                                    balanceLimitID,
+                                    data["ip"],
+                                    data["ipEnd"],
+                                    data["bound"],
+                                    data["type"],
+                                    float(data["value"]),
+                                    data["commodity"],
+                                ),
+                                [componentsOfComponentLimit[balanceLimitID], locs],
+                            )
+                    elif balanceLimitID in self.processedComponentLimitEligibility2dim.columns:
+                        _elig = self.processedComponentLimitEligibility2dim.loc[
+                            :, balanceLimitID
+                        ]        
+                        locs = _elig[_elig == 1].index.tolist()
+                        # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format
+                        if locs:
+                            yearlyComponentLimitDict.setdefault(
+                                (
+                                    balanceLimitID,
+                                    data["ip"],
+                                    data["ipEnd"],
+                                    data["bound"],
+                                    data["type"],
+                                    float(data["value"]),
+                                    data["commodity"],
+                                ),
+                                [componentsOfComponentLimit[balanceLimitID], locs],
+                            )
+                
                         
             setattr(pyM, "yearlyComponentLimitDict", yearlyComponentLimitDict)
             from pprint import pprint
             pprint(yearlyComponentLimitDict)
 
-            def yearlyComponentLimitConstraint(pyM, ID, ip, bound, type, value, commodity):
+            def yearlyComponentLimitConstraint(pyM, ID, ip, ipEnd, bound, type, value, commodity):
                 # yearly restriction
-                locs = yearlyComponentLimitDict[(ID, ip, bound, type, value, commodity)][1]
-                componentNames = yearlyComponentLimitDict[(ID, ip, bound, type, value, commodity)][
+                locs = yearlyComponentLimitDict[(ID, ip, ipEnd, bound, type, value, commodity)][1]
+                componentNames = yearlyComponentLimitDict[(ID, ip, ipEnd, bound, type, value, commodity)][
                     0
                 ][ID]
                 balanceList = []
+                
+                if pd.notna(ipEnd):
+                    ip = (ip, ipEnd)
+                
                 for mdl_type, mdl in self.componentModelingDict.items():
                     if (mdl_type == "TransmissionModel") and (type == "operation"):
                         #TODO: fix when capacity is used. currently not working!
@@ -1415,31 +1453,36 @@ class EnergySystemModel:
                                 type=type,
                             )               ]
                     elif (mdl_type == "TransmissionModel") and (type == "capacity"):
-                        if "total" in ID:
-                            _balanceList = [
-                                mdl.getComponentLimitContribution(
-                                    esM=self,
-                                    pyM=pyM,
-                                    timeSeriesAggregation=timeSeriesAggregation,
-                                    ip=ip,
-                                    loc=loc,
-                                    componentNames=componentNames,
-                                    type=type,
-                                )
-                                for loc in locs
-                            ]
+                        # skip if none of the components is of class TransmissionModel
+                        # check if intersection of mdl.componentsDict.keys() and componentNames is empty
+                        if not set(mdl.componentsDict.keys()).intersection(set(componentNames)):
+                            _balanceList = [None]
                         else:
-                            _balanceList = [
-                                mdl.getComponentLimitContribution(
-                                    esM=self,
-                                    pyM=pyM,
-                                    timeSeriesAggregation=timeSeriesAggregation,
-                                    ip=ip,
-                                    loc=locs,
-                                    componentNames=componentNames,
-                                    type=type,
-                                )
-                            ]
+                            if "total" in ID:
+                                _balanceList = [
+                                    mdl.getComponentLimitContribution(
+                                        esM=self,
+                                        pyM=pyM,
+                                        timeSeriesAggregation=timeSeriesAggregation,
+                                        ip=ip,
+                                        loc=loc,
+                                        componentNames=componentNames,
+                                        type=type,
+                                    )
+                                    for loc in locs
+                                ]
+                            else:
+                                _balanceList = [
+                                    mdl.getComponentLimitContribution(
+                                        esM=self,
+                                        pyM=pyM,
+                                        timeSeriesAggregation=timeSeriesAggregation,
+                                        ip=ip,
+                                        loc=locs,
+                                        componentNames=componentNames,
+                                        type=type,
+                                    )
+                                ]
                         
                     elif mdl_type == "ConversionModel":
                         _balanceList = [
@@ -1486,8 +1529,7 @@ class EnergySystemModel:
             )
 
     def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):
-        """
-        Declare balance limit constraint.
+        """Declare balance limit constraint.
 
         Balance limit constraint can limit the exchange of commodities within the model or over the model region
         boundaries. See the documentation of the parameters for further explanation. In general the following equation
@@ -1513,7 +1555,7 @@ class EnergySystemModel:
             # Get Components per balance limit
             componentsOfBalanceLimit = {}
             for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
+                if mdl_type in ("SourceSinkModel", "TransmissionModel"):
                     for compName, comp in mdl.componentsDict.items():
                         if comp.balanceLimitID is not None:
                             componentsOfBalanceLimit.setdefault(
@@ -1524,32 +1566,35 @@ class EnergySystemModel:
 
             # iterate over balance limit to define either minimal, maximal or both balance limits per balanceLimitID
             for ip in self.investmentPeriods:
-                for balanceLimitID, data in self.processedBalanceLimit[ip].iterrows():
-                    # check for regional constraints
-                    for loc in self.locations:
-                        if data[loc] is not None:
+                if self.processedBalanceLimit[ip] is not None:
+                    for balanceLimitID, data in self.processedBalanceLimit[
+                        ip
+                    ].iterrows():
+                        # check for regional constraints
+                        for loc in self.locations:
+                            if data[loc] is not None:
+                                yearlyBalanceLimitDict.setdefault(
+                                    (
+                                        balanceLimitID,
+                                        loc,
+                                        ip,
+                                        data["lowerBound"],
+                                        data[loc],
+                                    ),
+                                    componentsOfBalanceLimit[balanceLimitID],
+                                )
+                        # check for total constraints over all regions
+                        if data["Total"] is not None:
                             yearlyBalanceLimitDict.setdefault(
                                 (
                                     balanceLimitID,
-                                    loc,
+                                    "Total",
                                     ip,
                                     data["lowerBound"],
-                                    data[loc],
+                                    data["Total"],
                                 ),
                                 componentsOfBalanceLimit[balanceLimitID],
                             )
-                    # check for total constraints over all regions
-                    if data["Total"] is not None:
-                        yearlyBalanceLimitDict.setdefault(
-                            (
-                                balanceLimitID,
-                                "Total",
-                                ip,
-                                data["lowerBound"],
-                                data["Total"],
-                            ),
-                            componentsOfBalanceLimit[balanceLimitID],
-                        )
 
             setattr(pyM, "yearlyBalanceLimitDict", yearlyBalanceLimitDict)
 
@@ -1568,15 +1613,12 @@ class EnergySystemModel:
                         ],
                     )
                     for mdl_type, mdl in self.componentModelingDict.items()
-                    if (
-                        mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel"
-                    )
+                    if (mdl_type in ("SourceSinkModel", "TransmissionModel"))
                 )
                 # Check whether we want to consider an upper or lower bound.
                 if lowerBound == 0:
                     return balanceSum <= value
-                else:
-                    return balanceSum >= value
+                return balanceSum >= value
 
             pyM.yearlyBalanceLimitConstraint = pyomo.Constraint(
                 pyM.yearlyBalanceLimitDict.keys(),
@@ -1588,7 +1630,7 @@ class EnergySystemModel:
             # Get Components per balance limit
             componentsOfBalanceLimit = {}
             for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel":
+                if mdl_type in ("SourceSinkModel", "TransmissionModel"):
                     for compName, comp in mdl.componentsDict.items():
                         if comp.pathwayBalanceLimitID is not None:
                             componentsOfBalanceLimit.setdefault(
@@ -1641,9 +1683,7 @@ class EnergySystemModel:
                     )
                     for mdl_type, mdl in self.componentModelingDict.items()
                     for _ip in self.investmentPeriods
-                    if (
-                        mdl_type == "SourceSinkModel" or mdl_type == "TransmissionModel"
-                    )
+                    if (mdl_type in ("SourceSinkModel", "TransmissionModel"))
                 )
                 value = self.processedPathwayBalanceLimit.loc[ID, loc]
                 lowerBound = self.processedPathwayBalanceLimit.loc[ID, "lowerBound"]
@@ -1651,8 +1691,7 @@ class EnergySystemModel:
                 # Check whether we want to consider an upper or lower bound.
                 if lowerBound == 0:
                     return balanceSum * temporalScope <= value
-                else:
-                    return balanceSum * temporalScope >= value
+                return balanceSum * temporalScope >= value
 
             pyM.pathwayBalanceLimitConstraint = pyomo.Constraint(
                 pyM.pathwayBalanceLimitDict.keys(),
@@ -1660,8 +1699,7 @@ class EnergySystemModel:
             )
 
     def declareSharedPotentialConstraints(self, pyM):
-        """
-        Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
+        r"""Declare shared potential constraints, e.g. if a maximum potential of salt caverns has to be shared by
         salt cavern storing methane and salt caverns storing hydrogen.
 
         .. math::
@@ -1710,8 +1748,7 @@ class EnergySystemModel:
         )
 
     def declareComponentLinkedQuantityConstraints(self, pyM):
-        """
-        Declare linked component quantity constraint, e.g. if an engine (E-Motor) is built also a storage (Battery)
+        """Declare linked component quantity constraint, e.g. if an engine (E-Motor) is built also a storage (Battery)
         and a vehicle body (e.g. BEV Car) needs to be built. Not the capacity of the components, but the number of
         the components is linked.
 
@@ -1742,21 +1779,21 @@ class EnergySystemModel:
             abbrvName2 = self.componentModelingDict[
                 self.componentNames[compName2]
             ].abbrvName
-            capVar1 = getattr(pyM, "cap_" + abbrvName1)
-            capVar2 = getattr(pyM, "cap_" + abbrvName2)
+            commisVar1 = getattr(pyM, "commis_" + abbrvName1)
+            commisVar2 = getattr(pyM, "commis_" + abbrvName2)
             capPPU1 = (
                 self.componentModelingDict[self.componentNames[compName1]]
                 .componentsDict[compName1]
-                .capacityPerPlantUnit
+                .processedCapacityPerPlantUnit[ip]
             )
             capPPU2 = (
                 self.componentModelingDict[self.componentNames[compName2]]
                 .componentsDict[compName2]
-                .capacityPerPlantUnit
+                .processedCapacityPerPlantUnit[ip]
             )
             return (
-                capVar1[loc, compName1, ip] / capPPU1
-                == capVar2[loc, compName2, ip] / capPPU2
+                commisVar1[loc, compName1, ip] / capPPU1
+                == commisVar2[loc, compName2, ip] / capPPU2
             )
 
         for i, j in pyM.linkedQuantityDict.keys():
@@ -1775,8 +1812,7 @@ class EnergySystemModel:
             )
 
     def declareCommodityBalanceConstraints(self, pyM):
-        """
-        Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
+        r"""Declare commodity balance constraints (one balance constraint for each commodity, location and time step).
 
         .. math::
 
@@ -1824,8 +1860,7 @@ class EnergySystemModel:
         )
 
     def declareObjective(self, pyM):
-        """
-        Declare the objective function by obtaining the contributions to the objective function from all modeling
+        r"""Declare the objective function by obtaining the contributions to the objective function from all modeling
         classes. Currently, the only objective function which can be selected is the sum of the net present value of all
         components.
 
@@ -1888,6 +1923,8 @@ class EnergySystemModel:
                 mdl.getObjectiveFunctionContribution(self, pyM)
                 for mdl in self.componentModelingDict.values()
             )
+            if hasattr(self, "pwlcfModel"):
+                NPV += self.pwlcfModel.getObjectiveFunctionContribution(self, pyM)
 
             return NPV
 
@@ -1899,9 +1936,8 @@ class EnergySystemModel:
         relaxIsBuiltBinary=False,
         relevanceThreshold=None,
     ):
-        """
-        Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
-        instance is built and filled with
+        """Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
+        instance is built and filled with.
 
         * basic time sets,
         * sets, variables and constraints contributed by the component modeling classes,
@@ -1965,15 +2001,29 @@ class EnergySystemModel:
             utils.output(
                 "Declaring sets, variables and constraints for " + key, self.verbose, 0
             )
-            utils.output("\tdeclaring sets... ", self.verbose, 0), mdl.declareSets(
-                self, pyM
+            (
+                utils.output("\tdeclaring sets... ", self.verbose, 0),
+                mdl.declareSets(self, pyM),
             )
+            (
+                utils.output("\tdeclaring variables... ", self.verbose, 0),
+                mdl.declareVariables(self, pyM, relaxIsBuiltBinary, relevanceThreshold),
+            )
+            (
+                utils.output("\tdeclaring constraints... ", self.verbose, 0),
+                mdl.declareComponentConstraints(self, pyM),
+            )
+            utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+
+        if hasattr(self, "pwlcfModel"):
             utils.output(
-                "\tdeclaring variables... ", self.verbose, 0
-            ), mdl.declareVariables(self, pyM, relaxIsBuiltBinary, relevanceThreshold)
-            utils.output(
-                "\tdeclaring constraints... ", self.verbose, 0
-            ), mdl.declareComponentConstraints(self, pyM)
+                "Declaring sets, variables and constraints for PWLCF components",
+                self.verbose,
+                0,
+            )
+            self.pwlcfModel.declareSets(self, pyM)
+            self.pwlcfModel.declareVariables(self, pyM)
+            self.pwlcfModel.declareComponentConstraints(self, pyM)
             utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         ################################################################################################################
@@ -2031,8 +2081,7 @@ class EnergySystemModel:
         relevanceThreshold=None,
         includePerformanceSummary=False,
     ):
-        """
-        Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
+        """Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
         A pyomo instance is optimized with the specified inputs, and the optimization results are further
         processed.
 
@@ -2120,7 +2169,6 @@ class EnergySystemModel:
         Last edited: November 16, 2023
         |br| @author: FINE Developer Team (FZJ IEK-3)
         """
-
         if not timeSeriesAggregation:
             self.segmentation = False
 
@@ -2130,12 +2178,11 @@ class EnergySystemModel:
                 relaxIsBuiltBinary=relaxIsBuiltBinary,
                 relevanceThreshold=relevanceThreshold,
             )
-        else:
-            if self.pyM is None:
-                raise TypeError(
-                    "The optimization problem is not declared yet. Set the argument declaresOptimization"
-                    " problem to True or call the declareOptimizationProblem function first."
-                )
+        elif self.pyM is None:
+            raise TypeError(
+                "The optimization problem is not declared yet. Set the argument declaresOptimization"
+                " problem to True or call the declareOptimizationProblem function first."
+            )
 
         if includePerformanceSummary:
             """
@@ -2221,9 +2268,21 @@ class EnergySystemModel:
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
+        
+        if self.LP_savepath is not None:
+            # save the LP file to the specified path
+            if not os.path.exists(self.LP_savepath):
+                os.makedirs(self.LP_savepath)
+            LP_file_path = os.path.join(self.LP_savepath, "model.lp")
+            utils.output(
+                "Saving LP file to: " + LP_file_path, self.verbose, 0
+            )
+            from pyomo.opt import ProblemFormat
+            self.pyM.write(LP_file_path, format=ProblemFormat.cpxlp)
+
 
         # Set which solver should solve the specified optimization problem
-        if solver == "gurobi" and importlib.util.find_spec('gurobipy'):
+        if solver == "gurobi" and importlib.util.find_spec("gurobipy"):
             # Use the direct gurobi solver that uses the Python API.
             optimizer = opt.SolverFactory(solver, solver_io="python")
         else:
@@ -2259,8 +2318,9 @@ class EnergySystemModel:
         else:
             solver_info = optimizer.solve(self.pyM, tee=True)
         self.solverSpecs["solvetime"] = time.time() - timeStart
-        utils.output(solver_info.solver(), self.verbose, 0), utils.output(
-            solver_info.problem(), self.verbose, 0
+        (
+            utils.output(solver_info.solver(), self.verbose, 0),
+            utils.output(solver_info.problem(), self.verbose, 0),
         )
         utils.output(
             "Solve time: " + str(self.solverSpecs["solvetime"]) + " sec.",
@@ -2284,10 +2344,10 @@ class EnergySystemModel:
         )
         self.solverSpecs["status"] = str(status)
         self.solverSpecs["terminationCondition"] = str(termCondition)
-        if (
-            status == opt.SolverStatus.error
-            or status == opt.SolverStatus.aborted
-            or status == opt.SolverStatus.unknown
+        if status in (
+            opt.SolverStatus.error,
+            opt.SolverStatus.aborted,
+            opt.SolverStatus.unknown,
         ):
             utils.output(
                 "Solver status:  "
@@ -2298,13 +2358,10 @@ class EnergySystemModel:
                 self.verbose,
                 0,
             )
-        elif (
-            solver_info.solver.termination_condition
-            == opt.TerminationCondition.infeasibleOrUnbounded
-            or solver_info.solver.termination_condition
-            == opt.TerminationCondition.infeasible
-            or solver_info.solver.termination_condition
-            == opt.TerminationCondition.unbounded
+        elif solver_info.solver.termination_condition in (
+            opt.TerminationCondition.infeasibleOrUnbounded,
+            opt.TerminationCondition.infeasible,
+            opt.TerminationCondition.unbounded,
         ):
             utils.output(
                 "Optimization problem is "
@@ -2379,6 +2436,9 @@ class EnergySystemModel:
                 for optParam in optimalValueParameters:
                     convertOptimalValues(self, mdl, optParam)
 
+            if hasattr(self, "pwlcfModel"):
+                self.pwlcfModel.setOptimalValues(self, self.pyM)
+
             # Store the objective value in the EnergySystemModel instance.
             self.objectiveValue = self.pyM.Obj()
 
@@ -2442,11 +2502,9 @@ class EnergySystemModel:
                 if logFileName == "":
                     gurobi_summary_dict = {}
                 else:
-                    absolute_logFilePath = os.path.abspath(logFileName)
+                    absolute_logFilePath = Path(logFileName).resolve()
                     gurobi_summary_dict = glt.get_dataframe(
-                        [
-                            os.path.join(absolute_logFilePath)
-                        ]  # passed path has to be a list
+                        [str(absolute_logFilePath)]  # passed path has to be a list
                     ).T.to_dict()[0]
             else:
                 gurobi_summary_dict = {}

@@ -1,107 +1,100 @@
 <!-- markdownlint-disable line-length no-inline-html -->
 # ETHOS.FINE - Framework for Integrated Energy System Assessment
+<a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/Logo_FZ_Juelich_412x120_rgb_jpg.jpg?raw=true" alt="Forschungszentrum Juelich Logo" width="300px"></a>
 
-[![Build Status](https://travis-ci.com/FZJ-IEK3-VSA/FINE.svg?branch=master)](https://travis-ci.com/FZJ-IEK3-VSA/FINE)
+[![.github/workflows/test_push.yml](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml/badge.svg)](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml)
 [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/fine.svg)](https://anaconda.org/conda-forge/fine)
 [![Documentation Status](https://readthedocs.org/projects/vsa-fine/badge/?version=latest)](https://vsa-fine.readthedocs.io/en/latest/)
 [![PyPI - License](https://img.shields.io/pypi/l/FINE)](https://github.com/FZJ-IEK3-VSA/FINE/blob/master/LICENSE.txt)
 [![codecov](https://codecov.io/gh/FZJ-IEK3-VSA/FINE/branch/master/graph/badge.svg)](https://codecov.io/gh/FZJ-IEK3-VSA/FINE)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.06274/status.svg)](https://doi.org/10.21105/joss.06274)
+[![JURSE Code of the month Feburary 2026](https://img.shields.io/badge/JuRSE_Code_Pick-Feb_2026-blue?link=https://www.fz-juelich.de/en/rse/community-initiatives/jurse-code-of-the-month/february-2026)](https://www.fz-juelich.de/en/rse/community-initiatives/jurse-code-of-the-month/february-2026)
 
-<a href="https://www.fz-juelich.de/en/iek/iek-3"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/FJZ_IEK-3_logo.svg?raw=True" alt="Forschungszentrum Juelich Logo" width="300px"></a>
 
-The ETHOS.FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities and time steps can be modeled. Target of the optimization is the minimization of the total annual cost while considering technical and environmental constraints. Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
+The ETHOS.FINE python package provides a framework for modeling, optimizing and assessing energy systems. With the provided framework, systems with multiple regions, commodities, time steps and investment periods can be modeled. Target of the optimization is the minimization of the systems net present value (NPV) while considering technical and environmental constraints. If only one investment period is considered, the net present value is equal to the total annual costs (TAC). Besides using the full temporal resolution, an interconnected typical period storage formulation can be applied, that reduces the complexity and computational time of the model.
 
 This Readme provides information on the installation of the package. For further information have a look at the [documentation](https://vsa-fine.readthedocs.io/en/latest/).
 
-ETHOS.FINE is used for the modelling of a diverse group of optimization problems within the [Energy Transformation PatHway Optimization Suite (ETHOS) at IEK-3](https://www.fz-juelich.de/de/iek/iek-3/leistungen/model-services).  
+ETHOS.FINE is used for the modelling of a diverse group of optimization problems within the [Energy Transformation PatHway Optimization Suite (ETHOS) at ICE-2](https://www.fz-juelich.de/de/ice/ice-2/leistungen/model-services).  
 
-If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://www.sciencedirect.com/science/article/pii/S036054421830879X) which gives a description of the first stages of the framework. The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
+If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://joss.theoj.org/papers/10.21105/joss.06274). The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
 
-## Installation from conda-forge
+## Installation 
+There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge. In all of the following variants it is recommended to install your dependencies from conda-forge as the ecosystem is better tested and maintained. For more information on installation specifics and comparison between the different options, have a look at the [installation documentation](https://vsa-fine.readthedocs.io/en/latest/installationDoc.html). In the following first the [preqrequisites](#Preqrequisites) for the installation are presented. Then the recommended [installation](#Installation from conda-forge (Recomended)) is shown. If you want to work on the source code of FINE, see [Editable install from conda-forge](#editable-install-from-conda-forge).
 
-If you would like to run ETHOS.FINE for your analysis we recommend to install it directly from conda-forge into a new Python environment with
+
+
+### Preqrequisites
+
+You either need a mamba or conda installation (recommended), but any Python installation will do. However, if you are unfamiliar with using environment manager (like mamba), you should [consider using one](https://realpython.com/python-virtual-environments-a-primer/). Fine has many dependencies and will likely interfere with other software projects on your machine in case you dont isolate them with an environment
+
+You need conda or mamba installer on your machine, which are mostly interchangeable. The code is tested for Linux, Windows and Macos. We recommend to use [mamba](https://mamba.readthedocs.io/en/latest/) and install it using the [miniforge installer](https://github.com/conda-forge/miniforge). Please be aware that having multiple conda and mamba installation (for example from the [miniforge installer](https://github.com/conda-forge/miniforge) and the [anaconda installer](https://www.anaconda.com/download)) can cause serious problems during the installation. Please remove the other installer and any old environment on your machine if you decide to switch. 
+
+### Installation from conda-forge (Recomended)
 
 ```bash
-mamba create --name fine --channel conda-forge fine
+mamba create --name fine_env --channel conda-forge fine
 ```
+### Installation from PyPI
 
-**Note on Mamba vs.Conda:** `mamba` commands can be substitued with `conda`. We highly recommend using [(Micro-)Mamba](https://mamba.readthedocs.io/en/latest/) instead of Conda. The recommended way to use Mamba on your system is to install the [Miniforge distribution](https://github.com/conda-forge/miniforge#miniforge3). They offer installers for Windows, Linux and OS X. In principle, Conda and Mamba are interchangeable. The commands and concepts are the same. The distributions differ in the methodology for determining dependencies when installing Python packages. Mamba relies on a more modern methodology, which (with the same result) leads to very significant time savings during the installation of ETHOS.FINE. Switching to Mamba usually does not lead to any problems, as it is virtually identical to Conda in terms of operation.
-
-**Note on the solver:** The mamba/conda installation comes with [GLPK](https://www.gnu.org/software/glpk/) [(installation for Windows)](https://sourceforge.net/projects/winglpk/files/latest/download) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](#installation-of-an-optimization-solver) for more information.
-
-## Installation from pipy
-
-The functionality of ETHOS.FINE depends on the following C libraries that need to be installed on your system. If you do not know how to install those, consider installing from conda-forge.
-
-- [GLPK](https://www.gnu.org/software/glpk/)
-- [GDAL](https://gdal.org/index.html)
-
-Create a virtual environment in the ETHOS.FINE folder and activate it
-
+Create venv environment
 ```bash
 python -m venv .venv
+```
+
+Activate venv environment on Linux
+
+```bash
 source .venv/bin/activate
 ```
 
-Install ETHOS.FINE with
+Activate venv environment on Windows
+
+```bash
+.venv\Scripts\activate
+```
+
+Find more information on creating virtual environments with venv [here](https://docs.python.org/3/library/venv.html#how-venvs-work>).  
 
 ```bash
 python -m pip install fine
 ```
 
-### Installation of an optimization solver
 
-ETHOS.FINE requires an MILP solver which can be accessed using [PYOMO](https://pyomo.readthedocs.io/en/stable/index.html). It searches for the following solvers in this order:
 
-#### [GUROBI](http://www.gurobi.com/)
+### Solver
 
-This solver is recommended due to better performance but requires license (free academic version available). It is set as the default solver.
+The functionality of ETHOS.FINE depends on the following C libraries that need to be installed on your system. If you do not know how to install those, consider installing from conda-forge. The mamba/conda installation comes with [GLPK](https://www.gnu.org/software/glpk/) [(installation for Windows)](https://sourceforge.net/projects/winglpk/files/latest/download) as Mixed Integer Linear Programming (MILP) solver. If you want to solve large problems it is highly recommended to install [GUROBI](http://www.gurobi.com/). See ["Installation of an optimization solver"](https://vsa-fine.readthedocs.io/en/latest/installationDoc.html#installation-of-an-optimization-solver) in the documentation for more information.
 
-The installation requires the following three components:
-
-- Gurobi Optimizer
-  - In order to [download](https://www.gurobi.com/downloads/gurobi-optimizer-eula/) the software you need to create an account and obtain a license.
-- Gurobi license
-  - The license needs to be installed according to the instructions in the registration process.
-- Gurobi python api
-  - The python api can be installed according to [this instruction](https://support.gurobi.com/hc/en-us/articles/360044290292-How-do-I-install-Gurobi-for-Python-).
-
-#### [GLPK](https://sourceforge.net/projects/winglpk/files/latest/download)
-
-This solver is installed with the ETHOS.FINE environment. A complete installation instruction for Windows can be found [here](http://winglpk.sourceforge.net/).
-
-#### [CBC](https://projects.coin-or.org/Cbc)
-
-Installation procedure can be found [here](https://projects.coin-or.org/Cbc).
 
 ## Examples
 
-A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples) shows the capabilities of ETHOS.FINE.
+A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples) shows the capabilities of ETHOS.FINE.
 
-- [00_Tutorial](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/00_Tutorial)
+- [00_Tutorial](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/00_Tutorial)
   - In this application, an energy supply system, consisting of two regions, is modeled and optimized. Recommended as starting point to get to know to ETHOS.FINE.
-- [01_1node_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/01_1node_Energy_System_Workflow)
+- [01_1node_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/01_1node_Energy_System_Workflow)
   - In this application, a single region energy system is modeled and optimized. The system includes only a few technologies.
-- [02_EnergyLand](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/02_EnergyLand)
+- [02_EnergyLand](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/02_EnergyLand)
   - In this application, a single region energy system is modeled and optimized. Compared to the previous examples, this example includes a lot more technologies considered in the system.
-- [03_Multi-regional_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/03_Multi-regional_Energy_System_Workflow)
+- [03_Multi-regional_Energy_System_Workflow](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/03_Multi-regional_Energy_System_Workflow)
   - In this application, an energy supply system, consisting of eight regions, is modeled and optimized. The example shows how to model multi-regional energy systems. The example also includes a notebook to get to know the optional performance summary. The summary shows how the optimization performed.
-- [04_Model_Run_from_Excel](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/04_Model_Run_from_Excel)
+- [04_Model_Run_from_Excel](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/04_Model_Run_from_Excel)
   - ETHOS.FINE can also be run by excel. This example shows how to read and run a model using excel files.
-- [05_District_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/05_District_Optimization)
+- [05_District_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/05_District_Optimization)
   - In this application, a small district is modeled and optimized. This example also includes binary decision variables.
-- [06_Water_Supply_System](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/06_Water_Supply_System)
+- [06_Water_Supply_System](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/06_Water_Supply_System)
   - The application cases of ETHOS.FINE are not limited. This application shows how to model the water supply system.
-- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/07_NetCDF_to_save_and_set_up_model_instance)
+- [07_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/dmaster/examples/07_NetCDF_to_save_and_set_up_model_instance)
   - This example shows how to save the input and optimized results of an energy system Model instance to netCDF files to allow reproducibility.
-- [08_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/08_Spatial_and_technology_aggregation)
+- [08_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/08_Spatial_and_technology_aggregation)
   - These two examples show how to reduce the model complexity. Model regions can be aggregated to reduce the number of regions (spatial aggregation). Input parameters are automatically adapted. Furthermore, technologies can be aggregated to reduce complexity, e.g. reducing the number of different PV components (technology aggregation). Input parameters are automatically adapted.
-- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/9_Stochastic_Optimizatio)
+- [09_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/9_Stochastic_Optimizatio)
   - In this application, a stochastic optimization is performed. It is possible to perform the optimization of an energy system model with different input parameter sets to receive a more robust solution.
-- [10_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/10_PerfectForesight)
+- [10_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/10_PerfectForesight)
   - In this application, a transformation pathway of an energy system is modeled and optimized showing how to handle several investment periods with time-dependent assumptions for costs and operation.
-- [11_Partload](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/11_Partload)
+- [11_Partload](https://github.com/FZJ-IEK3-VSA/FINE/tree/master/examples/11_Partload)
   - In this application, a hydrogen system is modeled and optimized considering partload behavior of the electrolyzer.
 
 ## Notes for developers
@@ -123,21 +116,47 @@ python -m pip install --no-deps --editable .
 
 ### Editable install from pypi
 
-If you do not want to use conda-forge consider the steps in section [Installation from pipy](#Installation-from-pipy) and install ETHOS.FINE as editable install and with developer dependencies with
+If you do not want to use conda-forge consider the steps in section [Installation from PyPI](#Installation-from-pipy) and install ETHOS.FINE as editable install and with developer dependencies with
+
+```bash
+python -m venv .venv
+```
+
+Activate venv environment on Linux
+
+```bash
+source .venv/bin/activate
+```
+
+Activate venv environment on Windows
+
+```bash
+.venv\Scripts\activate
+```
 
 ```bash
 python -m pip install --editable .[develop]
+```
+
+### Good coding style
+
+We use [ruff](https://docs.astral.sh/ruff) to ensure good coding style. Make
+sure to use it before contributing to the code base with
+
+```bash
+ruff check --config=pyproject.toml
+ruff format --diff --config=pyproject.toml
 ```
 
 ## License
 
 MIT License
 
-Copyright (C) 2016-2024 FZJ-IEK-3
+Copyright (C) 2016-2025 FZJ-ICE-2
 
-Active Developers: Theresa Groß, Kevin Knosala, Noah Pflugradt, Johannes Behrens, Julian Belina, Arne Burdack, Toni Busch, Philipp Dunkel, David Franzmann, Patrick Freitag, Thomas Grube, Heidi Heinrichs, Maximilian Hoffmann, Jason Hu, Shitab Ishmam, Sebastian Kebrich, Felix Kullmann, Jochen Linßen, Rachel Maier, Shruthi Patil, Jan Priesmann, Julian Schönau, Maximilian Stargardt, Lovindu Wijesinghe, Christoph Winkler, Detlef Stolten
+Active Developers: Johannes Behrens, Theresa Klütz, Noah Pflugradt,  Julian Belina, Arne Burdack, Toni Busch, Philipp Dunkel, David Franzmann, Maike Gnirß, Thomas Grube, Lars Hadidi, Heidi Heinrichs, Shitab Ishmam, Sebastian Kebrich, Jochen Linßen, Nils Ludwig, Lilly Madeisky, Drin Marmullaku, Gian Müller, Kenneth Okosun, Olalekan Omoyele, Shruthi Patil, Kai Schulze, Julian Schönau, Maximilian Stargardt, Lana Söltzer, Henrik Wenzel, Bernhard Wortmann, Lovindu Wijesinghe, Christoph Winkler, Detlef Stolten
 
-Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Timo Kannengießer, Leander Kotzur, Stefan Kraus, Peter Markewitz, Lars Nolting,Stanley Risch, Martin Robinius, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder, Michael Zier
+Alumni: Robin Beer, Henrik Büsing, Dilara Caglayan, Patrick Freitag, Maximilian Hoffmann, Jason Hu, Timo Kannengießer, Kevin Knosala, Leander Kotzur, Felix Kullmann, Stefan Kraus, Rachel Maier, Peter Markewitz, Lars Nolting, Jan Priesmann, Stanley Risch, Martin Robinius, Bismark Singh, Andreas Smolenko, Peter Stenzel, Chloi Syranidou, Johannes Thürauf, Lara Welder, Michael Zier
 
 You should have received a copy of the MIT License along with this program.
 If not, see https://opensource.org/licenses/MIT
@@ -145,9 +164,9 @@ If not, see https://opensource.org/licenses/MIT
 
 ## About Us 
 
-<a href="https://www.fz-juelich.de/en/iek/iek-3"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/iek3-square.png?raw=True" alt="Institute image IEK-3" width="280" align="right" style="margin:0px 10px"/></a>
+<a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/iek3-square.png?raw=True" alt="Institute image ICE-2" width="280" align="right" style="margin:0px 10px"/></a>
 
-We are the <a href="https://www.fz-juelich.de/en/iek/iek-3">Institute of Energy and Climate Research - Techno-economic Systems Analysis (IEK-3)</a> belonging to the <a href="https://www.fz-juelich.de/en">Forschungszentrum Jülich</a>. Our interdisciplinary department's research is focusing on energy-related process and systems analyses. Data searches and system simulations are used to determine energy and mass balances, as well as to evaluate performance, emissions and costs of energy systems. The results are used for performing comparative assessment studies between the various systems. Our current priorities include the development of energy strategies, in accordance with the German Federal Government’s greenhouse gas reduction targets, by designing new infrastructures for sustainable and secure energy supply chains and by conducting cost analysis studies for integrating new technologies into future energy market frameworks.
+We are the <a href="https://www.fz-juelich.de/en/ice/ice-2">Institute of Climate and Energy Systems (ICE) - Jülich Systems Analysis</a> belonging to the <a href="https://www.fz-juelich.de/en">Forschungszentrum Jülich</a>. Our interdisciplinary department's research is focusing on energy-related process and systems analyses. Data searches and system simulations are used to determine energy and mass balances, as well as to evaluate performance, emissions and costs of energy systems. The results are used for performing comparative assessment studies between the various systems. Our current priorities include the development of energy strategies, in accordance with the German Federal Government’s greenhouse gas reduction targets, by designing new infrastructures for sustainable and secure energy supply chains and by conducting cost analysis studies for integrating new technologies into future energy market frameworks.
 
 ## Contributions and Support
 Every contributions are welcome:

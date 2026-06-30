@@ -1,0 +1,81 @@
+on:
+  workflow_dispatch:
+  # push:
+  # branches: ["update_ci_2026_01"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  TestPushCondaForgeDev:
+    name: Test conda-forge development version on ${{ matrix.runner_tag }} for xarray=${{ matrix.xarray_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # runner_tag: ["ubuntu-latest", "windows-latest"]
+        runner_tag: ["self-hosted"]
+        xarray_version:
+          [
+            "2022.3.0",
+            "2022.6.0",
+            "2022.9.0",
+            "2022.10.0",
+            "2022.11.0",
+            "2022.12.0",
+            "2023.1.0",
+            "2023.2.0",
+            "2023.3.0",
+            "2023.4.1",
+            "2023.4.2",
+            "2023.5.0",
+            "2023.6.0",
+            "2023.7.0",
+            "2023.8.0",
+            "2023.9.0",
+            "2023.10.0",
+            "2023.10.1",
+            "2023.11.0",
+            "2023.12.0",
+            "2024.1.0",
+            "2024.1.1",
+            "2024.2.0",
+            "2024.3.0",
+            "2024.5.0",
+            "2024.6.0",
+            "2024.7.0",
+            "2024.9.0",
+            "2025.4.0",
+            "2025.6.0",
+            "2025.6.1",
+            "2025.7.0",
+            "2025.7.1",
+            "2025.8.0",
+            "2025.10.1",
+          ]
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_conda_forge_test.yml@main
+    with:
+      runner_tag: ${{ matrix.runner_tag }}
+      requirements_file_name: requirements_dev.yml
+      ipynb_example_folder: "examples"
+      library_name: "xarray"
+      library_version: ${{ matrix.xarray_version }}
+      dependency_position_env_file: "12"
+
+  # We decided not to test old dependency ranges on PyPI as there are many known incompatabilities
+  # of indirect dependencies. There is no method known to us to automatically test, store share this information
+  # TestPushPyPIDev:
+  #   name: Test PyPi development version on ${{ matrix.runner_tag }} for numpy=${{ matrix.xarray_version }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       runner_tag: ["self-hosted"]
+  #       # xarray_version: ["2.3","2.2","2.1","2.0","1.26","1.25","1.24","1.23","1.22"]
+  #       xarray_version: ["2.3","2.2"]
+  #   uses: FZJ-IEK3-VSA/.github/.github/workflows/_run_single_pypi_test.yml@main
+  #   with:
+  #       runner_tag: ${{ matrix.runner_tag }}
+  #       ipynb_example_folder: "examples"
+  #       python_version: "3.13"
+  #       optional_dependency_PyPI_tag: "[develop]"
+  #       additional_conda_forge_dependencies: "glpk"
+  #       library_name: "numpy"
+  #       library_version: ${{ matrix.xarray_version }}

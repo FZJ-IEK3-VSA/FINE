@@ -7,13 +7,12 @@ import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
 
-import fine.utils as utils
+from fine import utils
 from fine.IOManagement import dictIO, utilsIO
 
 
 def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
-    """
-    Takes esM instance input and converts it into xarray datasets.
+    """Take esM instance input and convert it into xarray datasets.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
@@ -28,7 +27,6 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     :return: xr_ds - esM instance data in xarray dataset format
     :rtype: xarray.dataset
     """
-
     # STEP 1. Get the esm and component dicts
     esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
 
@@ -46,13 +44,17 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
         xr_dss[classname] = {
             component: xr.Dataset() for component in component_dict[classname]
         }
+
     # STEP 3.1 get _mapC for all transmission components
     _mapC_dict = {}
-    for tech in component_dict["Transmission"].keys():
-        _mapC_dict[tech] = esM.getComponent(tech)._mapC
-    
+    for transmission_class in ["LinearOptimalPowerFlow", "Transmission"]:
+        for tech in component_dict[transmission_class].keys():
+            _mapC_dict[tech] = esM.getComponent(tech)._mapC
+
     # STEP 4. Add all df variables to xr_ds
-    xr_dss = utilsIO.addDFVariablesToXarray(xr_dss, component_dict, df_iteration_dict, _mapC_dict, list(esM.locations))
+    xr_dss = utilsIO.addDFVariablesToXarray(
+        xr_dss, component_dict, df_iteration_dict, _mapC_dict, list(esM.locations)
+    )
 
     # STEP 5. Add all series variables to xr_ds
     locations = sorted(esm_dict["locations"])
@@ -70,9 +72,8 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     attributes_xr = xr.Dataset()
     attributes_xr.attrs = esm_dict
 
-    xr_dss = {"Input": xr_dss, "Parameters": attributes_xr}
+    return {"Input": xr_dss, "Parameters": attributes_xr}
 
-    return xr_dss
 
 def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
     """
@@ -108,7 +109,7 @@ def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
     # STEP 1.2. Create was_none_mask for perfect reconstruction
     was_none_mask = utilsIO.createWasNoneMask(component_dict_mod)
     # STEP 1.3. Replace None values with appropriate defaults for xarray
-    component_dict = utilsIO.replaceNoneValuesForXarray(component_dict_mod)
+    component_dict_mod = utilsIO.replaceNoneValuesForXarray(component_dict_mod)
 
     # STEP 2. Convert esm_dict to xarray datasets
     xr_dss = utilsIO.convertToXarray(component_dict_mod)
@@ -123,31 +124,28 @@ def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
 
     return xr_dss
 
+
 def convertPerformanceSummaryToDatasets(esM):
     import pandas as pd
     df = esM.performanceSummary.squeeze()
-    # summary_dict = {}
-    # for category in df.index.get_level_values("Category").unique():
-        # _df = df.xs(category, level="Category")
-        # summary_dict[category] = _df.to_dict()  
     df = df.droplevel("Category")
-    df = df.apply(lambda x: pd.to_numeric(x, errors='ignore'))
+    df = df.apply(lambda x: pd.to_numeric(x, errors="ignore"))
     # convert datetime to string
     for idx, value in df.items():
         if isinstance(value, pd.Timestamp):
             print(value)
             df.loc[idx] = value.strftime('%Y-%m-%d %H:%M:%S')
+        if isinstance(value, dict):
+            df.loc[idx] = str(value)
     summary_dict = df.to_dict()
     summary_xr = xr.Dataset()
     summary_xr.attrs = summary_dict
-    
-    xr_dss = {"PerformanceSummary": summary_xr}
-    
-    return xr_dss
+
+    return {"PerformanceSummary": summary_xr}
+
 
 def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
-    """
-    Takes esM instance output and converts it into an xarray dataset.
+    """Take esM instance output and convert it into an xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
@@ -162,7 +160,6 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
     :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
     :rtype: xarray.dataset
     """
-
     # Create the netCDF file and the xr.Dataset dict for all ips and components
     xr_dss = dict.fromkeys(esM.investmentPeriodNames)
     for ip in esM.investmentPeriodNames:
@@ -344,9 +341,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             xr_dss[ip][name][component].coords["space_2"].astype(str)
                         )
 
-    xr_dss = {"Results": xr_dss}
-
-    return xr_dss
+    return {"Results": xr_dss}
 
 def processDataset(datasets):
     """
@@ -598,8 +593,7 @@ def writeDatasetsToNetCDF(
     mode="a",
     groupPrefix=None,
 ):
-    """
-    Saves dictionary of xarray datasets (with esM instance data) to a netCDF
+    """Save dictionary of xarray datasets (with esM instance data) to a netCDF
     file.
 
     **Required arguments:**
@@ -632,7 +626,6 @@ def writeDatasetsToNetCDF(
     :type groupPrefix: string
 
     """
-
     # Create netCDF file, remove existant
     if removeExisting:
         if Path(outputFilePath).is_file():
@@ -643,7 +636,7 @@ def writeDatasetsToNetCDF(
             pass
 
     for group in datasets.keys():
-        if group == "Parameters" or group == "PerformanceSummary":
+        if group in ("Parameters", "PerformanceSummary"):
             xarray_dataset = datasets[group]
             _xarray_dataset = (
                 xarray_dataset.copy()
@@ -679,8 +672,15 @@ def writeDatasetsToNetCDF(
                     _df = _df.reindex(sorted(_df.columns), axis=1)
                     for idx, row in _df.iterrows():
                         xarray_dataset.attrs.update(
-                            {f"{attr_name}.{idx}": row.to_list()}
+                            {f"{attr_name}.{idx}": row.to_numpy().astype(str)}
                         )
+                        if attr_name in ("balanceLimit", "componentLimit"):
+                            xarray_dataset.attrs.update(
+                                {f"{attr_name}_columns": _df.columns.tolist()}
+                            )
+                            xarray_dataset.attrs.update(
+                                {f"{attr_name}_dtypes": _df.dtypes.astype(str).tolist()}
+                            )
 
                     # Delete the original attribute
                     del xarray_dataset.attrs[attr_name]
@@ -760,8 +760,7 @@ def writeDatasetsToNetCDF(
 
 
 def convertDatasetsToEnergySystemModel(datasets):
-    """
-    Takes dictionary of xarray datasets (with esM instance data) and converts
+    """Take dictionary of xarray datasets (with esM instance data) and convert
     it to an esM instance.
 
     :param datasets: The xarray datasets holding all data required to set up an esM instance.
@@ -837,6 +836,8 @@ def convertDatasetsToEnergySystemModel(datasets):
             operationVariablesOptimum_dict = {}
             capacityVariablesOptimum_dict = {}
             isBuiltVariablesOptimum_dict = {}
+            commissioningVariablesOptimum_dict = {}
+            decommissioningVariablesOptimum_dict = {}
             chargeOperationVariablesOptimum_dict = {}
             dischargeOperationVariablesOptimum_dict = {}
             stateOfChargeOperationVariablesOptimum_dict = {}
@@ -867,16 +868,19 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 [iterables[0] + [location]][0]
                                 for location in datasets["Results"][ip][model][
                                     component
-                                ][variable]["space"].values
+                                ][variable]["LocationIn"].values
                             ]
                             idx = pd.MultiIndex.from_tuples(tuple(iterables2))
                             _optSum_df.index = idx
-                            _optSum_df.index.names = [
-                                "Component",
-                                "Property",
-                                "Unit",
-                                "LocationIn",
-                            ]
+                            _optSum_df.index.set_names(
+                                names=[
+                                    "Component",
+                                    "Property",
+                                    "Unit",
+                                    "LocationIn",
+                                ],
+                                inplace=True,
+                            )
                             _optSum_df = _optSum_df.droplevel(0, axis=1)
                             if isinstance(_optSum_df, pd.Series):
                                 _optSum_df = _optSum_df.to_frame().T
@@ -897,14 +901,23 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     component
                                 ][variable].attrs.items()
                             ]
-                            _optSum_df.index = pd.MultiIndex.from_tuples(iterables)
-                            _optSum_df.index.names = ["Component", "Property", "Unit"]
+                            _optSum_df.index = pd.MultiIndex.from_tuples(
+                                iterables, names=["Component", "Property", "Unit"]
+                            )
+
                             if isinstance(_optSum_df, pd.Series):
                                 _optSum_df = _optSum_df.to_frame().T
                             optSum_df_comp = pd.concat(
                                 [optSum_df_comp, _optSum_df],
                                 axis=0,
                             )
+
+                        if (
+                            "operation" in variable and "_1" in variable
+                        ):  # operation needed to be renamed in conversion
+                            optSum_df_comp = optSum_df_comp.rename(
+                                index={variable: variable.replace("_1", "")}
+                            )  # to dataset and xarray and now is renamed to operation again
 
                     if isinstance(optSum_df_comp, pd.Series):
                         optSum_df_comp = optSum_df_comp.to_frame().T
@@ -920,6 +933,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                 operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 capacityVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 isBuiltVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                commissioningVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                decommissioningVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 chargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 dischargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
                 stateOfChargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
@@ -928,6 +943,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                     _operationVariablesOptimum_df = pd.DataFrame([])
                     _capacityVariablesOptimum_df = pd.DataFrame([])
                     _isBuiltVariablesOptimum_df = pd.DataFrame([])
+                    _commissioningVariablesOptimum_df = pd.DataFrame([])
+                    _decommissioningVariablesOptimum_df = pd.DataFrame([])
                     _chargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
@@ -944,7 +961,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                         else:
                             continue
 
-                        if opt_variable == "_operationVariablesOptimum":
+                        if opt_variable == "operationVariablesOptimum":
                             if "space_2" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
@@ -964,7 +981,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     _operationVariablesOptimum_df = pd.concat(
                                         [_operationVariablesOptimum_df, _df],
                                         axis=0,
-                                    )
+                                    ).rename_axis(len(idx.names) * [None], axis=0)
 
                             else:
                                 _operationVariablesOptimum_df = (
@@ -980,9 +997,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 )
                                 _operationVariablesOptimum_df = (
                                     _operationVariablesOptimum_df.set_index(idx)
-                                )
+                                ).rename_axis(len(idx.names) * [None], axis=0)
 
-                        if opt_variable == "_capacityVariablesOptimum":
+                        if opt_variable == "capacityVariablesOptimum":
                             if "space_2" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
@@ -993,14 +1010,16 @@ def convertDatasetsToEnergySystemModel(datasets):
                                     [[component], list(df.index)]
                                 )
                                 _df = df.set_index(idx)
-                                _capacityVariablesOptimum_df = _df
+                                _capacityVariablesOptimum_df = _df.rename_axis(
+                                    None, axis=1
+                                )
                             else:
                                 _capacityVariablesOptimum_df = xr_opt.to_dataframe().T
                                 _capacityVariablesOptimum_df = (
                                     _capacityVariablesOptimum_df.set_axis([component])
-                                )
+                                ).rename_axis(None, axis=1)
 
-                        if opt_variable == "_isBuiltVariablesOptimum":
+                        if opt_variable == "isBuiltVariablesOptimum":
                             _isBuiltVariablesOptimum_df = (
                                 xr_opt.to_dataframe()
                                 .unstack(level=0)
@@ -1011,7 +1030,53 @@ def convertDatasetsToEnergySystemModel(datasets):
                             )
                             _isBuiltVariablesOptimum_df = (
                                 _isBuiltVariablesOptimum_df.set_index(idx)
-                            )
+                            ).rename_axis(None, axis=1)
+                        if opt_variable == "commissioningVariablesOptimum":
+                            if "space_2" in list(xr_opt.coords):
+                                df = (
+                                    xr_opt.to_dataframe()
+                                    .unstack(level=0)
+                                    .droplevel(0, axis=1)
+                                )
+                                idx = pd.MultiIndex.from_product(
+                                    [[component], list(df.index)]
+                                )
+                                _df = df.set_index(idx)
+                                _commissioningVariablesOptimum_df = _df.rename_axis(
+                                    None, axis=1
+                                )
+                            else:
+                                _commissioningVariablesOptimum_df = (
+                                    xr_opt.to_dataframe().T
+                                )
+                                _commissioningVariablesOptimum_df = (
+                                    _commissioningVariablesOptimum_df.set_axis(
+                                        [component]
+                                    )
+                                ).rename_axis(None, axis=1)
+                        if opt_variable == "decommissioningVariablesOptimum":
+                            if "space_2" in list(xr_opt.coords):
+                                df = (
+                                    xr_opt.to_dataframe()
+                                    .unstack(level=0)
+                                    .droplevel(0, axis=1)
+                                )
+                                idx = pd.MultiIndex.from_product(
+                                    [[component], list(df.index)]
+                                )
+                                _df = df.set_index(idx)
+                                _decommissioningVariablesOptimum_df = _df.rename_axis(
+                                    None, axis=1
+                                )
+                            else:
+                                _decommissioningVariablesOptimum_df = (
+                                    xr_opt.to_dataframe().T
+                                )
+                                _decommissioningVariablesOptimum_df = (
+                                    _decommissioningVariablesOptimum_df.set_axis(
+                                        [component]
+                                    )
+                                ).rename_axis(None, axis=1)
 
                         if opt_variable == "chargeOperationVariablesOptimum":
                             _chargeOperationVariablesOptimum_df = (
@@ -1023,7 +1088,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 [[component], _chargeOperationVariablesOptimum_df.index]
                             )
                             _chargeOperationVariablesOptimum_df = (
-                                _chargeOperationVariablesOptimum_df.set_index(idx)
+                                (_chargeOperationVariablesOptimum_df.set_index(idx))
+                                .rename_axis(len(idx.names) * [None], axis=0)
+                                .rename_axis(None, axis=1)
                             )
 
                         if opt_variable == "dischargeOperationVariablesOptimum":
@@ -1039,7 +1106,9 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 ]
                             )
                             _dischargeOperationVariablesOptimum_df = (
-                                _dischargeOperationVariablesOptimum_df.set_index(idx)
+                                (_dischargeOperationVariablesOptimum_df.set_index(idx))
+                                .rename_axis(len(idx.names) * [None], axis=0)
+                                .rename_axis(None, axis=1)
                             )
 
                         if opt_variable == "stateOfChargeOperationVariablesOptimum":
@@ -1055,9 +1124,13 @@ def convertDatasetsToEnergySystemModel(datasets):
                                 ]
                             )
                             _stateOfChargeOperationVariablesOptimum_df = (
-                                _stateOfChargeOperationVariablesOptimum_df.set_index(
-                                    idx
+                                (
+                                    _stateOfChargeOperationVariablesOptimum_df.set_index(
+                                        idx
+                                    )
                                 )
+                                .rename_axis(len(idx.names) * [None], axis=0)
+                                .rename_axis(None, axis=1)
                             )
                     if isinstance(_operationVariablesOptimum_df, pd.Series):
                         _operationVariablesOptimum_df = (
@@ -1089,6 +1162,28 @@ def convertDatasetsToEnergySystemModel(datasets):
                         [
                             isBuiltVariablesOptimum_dict[int(ip)],
                             _isBuiltVariablesOptimum_df,
+                        ],
+                        axis=0,
+                    )
+                    if isinstance(_commissioningVariablesOptimum_df, pd.Series):
+                        _commissioningVariablesOptimum_df = (
+                            _commissioningVariablesOptimum_df.to_frame().T
+                        )
+                    commissioningVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            commissioningVariablesOptimum_dict[int(ip)],
+                            _commissioningVariablesOptimum_df,
+                        ],
+                        axis=0,
+                    )
+                    if isinstance(_decommissioningVariablesOptimum_df, pd.Series):
+                        _decommissioningVariablesOptimum_df = (
+                            _decommissioningVariablesOptimum_df.to_frame().T
+                        )
+                    decommissioningVariablesOptimum_dict[int(ip)] = pd.concat(
+                        [
+                            decommissioningVariablesOptimum_dict[int(ip)],
+                            _decommissioningVariablesOptimum_df,
                         ],
                         axis=0,
                     )
@@ -1135,6 +1230,10 @@ def convertDatasetsToEnergySystemModel(datasets):
                     capacityVariablesOptimum_dict[int(ip)] = None
                 if isBuiltVariablesOptimum_dict[int(ip)].empty:
                     isBuiltVariablesOptimum_dict[int(ip)] = None
+                if commissioningVariablesOptimum_dict[int(ip)].empty:
+                    commissioningVariablesOptimum_dict[int(ip)] = None
+                if decommissioningVariablesOptimum_dict[int(ip)].empty:
+                    decommissioningVariablesOptimum_dict[int(ip)] = None
                 if chargeOperationVariablesOptimum_dict[int(ip)].empty:
                     chargeOperationVariablesOptimum_dict[int(ip)] = None
                 if dischargeOperationVariablesOptimum_dict[int(ip)].empty:
@@ -1156,6 +1255,16 @@ def convertDatasetsToEnergySystemModel(datasets):
                 esM.componentModelingDict[model],
                 "_isBuiltVariablesOptimum",
                 isBuiltVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_commissioningVariablesOptimum",
+                commissioningVariablesOptimum_dict,
+            )
+            setattr(
+                esM.componentModelingDict[model],
+                "_decommissioningVariablesOptimum",
+                decommissioningVariablesOptimum_dict,
             )
             setattr(
                 esM.componentModelingDict[model],
@@ -1207,8 +1316,7 @@ def writeEnergySystemModelToNetCDF(
     optSumOutputLevel=0,
     groupPrefix=None,
 ):
-    """
-    Write energySystemModel (input and if exists, output) to netCDF file.
+    """Write energySystemModel (input and if exists, output) to netCDF file.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
@@ -1238,7 +1346,6 @@ def writeEnergySystemModelToNetCDF(
         for each component.
     :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
-
     if overwriteExisting:
         if Path(outputFilePath).is_file():
             Path(outputFilePath).unlink()
@@ -1252,7 +1359,9 @@ def writeEnergySystemModelToNetCDF(
         xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
         if hasattr(esM, "performanceSummary"):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
-            xr_dss_output["PerformanceSummary"] = xr_dss_performance["PerformanceSummary"]
+            xr_dss_output["PerformanceSummary"] = xr_dss_performance[
+                "PerformanceSummary"
+            ]
             print(xr_dss_output.keys())
         writeDatasetsToNetCDF(xr_dss_output, outputFilePath, groupPrefix=groupPrefix)
 
@@ -1302,9 +1411,9 @@ def writeEnergySystemModelToDatasets(esM, zarrFormat=False):
 
     return xr_dss_results
 
+
 def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
-    """
-    Read optimization results from grouped netCDF file to dictionary of
+    """Read optimization results from grouped netCDF file to dictionary of
     xr.Datasets.
 
     :param filePath: output file name of netCDF file (can include full path)
@@ -1316,6 +1425,11 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
         structure is then {group_prefix}/{group}/{...} instead of {group}/{...}
         |br| * the default value is None
     :type groupPrefix: string
+
+    :param lazy_load: If True, the data is not loaded into memory until it is
+        accessed. This can be useful for large datasets. Refer to xarray documentation for more information
+        |br| * the default value is False
+    :type lazy_load: boolean
 
     :return: Nested dictionary containing an xr.Dataset with all result values
         for each component.
@@ -1339,9 +1453,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
         # read input from netcdf
         xr_dss["Input"] = {
             model_key: {
-                comp_key: loader(
-                    filePath, group=f"Input/{model_key}/{comp_key}"
-                )
+                comp_key: loader(filePath, group=f"Input/{model_key}/{comp_key}")
                 for comp_key in group_keys["Input"][model_key].groups
             }
             for model_key in group_keys["Input"].groups
@@ -1409,8 +1521,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
 
 
 def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
-    """
-    Converts netCDF file into an EnergySystemModel instance.
+    """Convert netCDF file into an EnergySystemModel instance.
 
     :param filePath: file name of netCDF file (can include full path) in which
         the esM data is stored
@@ -1420,7 +1531,6 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     :return: EnergySystemModel instance
     :rtype: EnergySystemModel instance
     """
-
     # netcdf to xarray dataset
     xr_dss = readNetCDFToDatasets(filePath, groupPrefix)
 
