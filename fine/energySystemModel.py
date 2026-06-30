@@ -883,6 +883,40 @@ class EnergySystemModel:
         )
         self.aggregateTemporally(*args, **kwargs)
 
+    def build_time_series_data(self, ip):
+        timeSeriesData, weightDict = [], {}
+        for mdlName, mdl in self.componentModelingDict.items():
+            for compName, comp in mdl.componentsDict.items():
+                (
+                    compTimeSeriesData,
+                    compWeightDict,
+                ) = comp.getDataForTimeSeriesAggregation(ip)
+                if compTimeSeriesData is not None:
+                    (
+                        timeSeriesData.append(compTimeSeriesData),
+                        weightDict.update(compWeightDict),
+                    )
+        timeSeriesData = pd.concat(timeSeriesData, axis=1)
+        # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
+        timeSeriesData.index = pd.date_range(
+            "2050-01-01 00:30:00",
+            periods=len(self.totalTimeSteps),
+            freq=(str(self.hoursPerTimeStep) + "h"),
+            tz="Europe/Berlin",
+        )
+
+        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
+        # call) depending on whether segmentation is activated or not
+        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
+        # find data with only zeros
+        zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
+        # drop columns with only zeros
+        timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
+        weightDict = {k: v for k, v in weightDict.items() if k not in zero_data_cols}
+
+        return timeSeriesData, weightDict, zero_data_cols
+
+
     def aggregateTemporally(
         self,
         numberOfTypicalPeriods=40,
@@ -1035,39 +1069,7 @@ class EnergySystemModel:
 
         # clustering of the time series data per investment period individually
         for ip in self.investmentPeriods:
-            timeSeriesData, weightDict = [], {}
-            for mdlName, mdl in self.componentModelingDict.items():
-                for compName, comp in mdl.componentsDict.items():
-                    (
-                        compTimeSeriesData,
-                        compWeightDict,
-                    ) = comp.getDataForTimeSeriesAggregation(ip)
-                    if compTimeSeriesData is not None:
-                        (
-                            timeSeriesData.append(compTimeSeriesData),
-                            weightDict.update(compWeightDict),
-                        )
-            timeSeriesData = pd.concat(timeSeriesData, axis=1)
-            # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
-            timeSeriesData.index = pd.date_range(
-                "2050-01-01 00:30:00",
-                periods=len(self.totalTimeSteps),
-                freq=(str(self.hoursPerTimeStep) + "h"),
-                tz="Europe/Berlin",
-            )
-
-            # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
-            # call) depending on whether segmentation is activated or not
-            timeSeriesData = timeSeriesData.reindex(
-                sorted(timeSeriesData.columns), axis=1
-            )
-            # find data with only zeros
-            zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
-            # drop columns with only zeros
-            timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
-            weightDict = {
-                k: v for k, v in weightDict.items() if k not in zero_data_cols
-            }
+            timeSeriesData, weightDict, zero_data_cols = self.build_time_series_data(ip)
             if segmentation:
                 clusterClass = TimeSeriesAggregation(
                     timeSeries=timeSeriesData,
