@@ -85,6 +85,7 @@ class EnergySystemModel:
         componentLimitEligibility=None,
         componentLimitEligibility2dim=None,
         componentLimit=None,
+        componentLimitGrouping=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
         LP_savepath=None,
@@ -269,6 +270,17 @@ class EnergySystemModel:
             |br| * the default value is None
         :type lowerBound: bool
 
+        :param componentLimitGrouping: optional region-grouping used by the share bounds ("shareMax"/"shareMin") of
+            the componentLimit. It is a pd.DataFrame (index = locations, columns = componentLimitIDs) whose values are
+            group labels (e.g. country codes). For a share-limited ID, the eligible regions are bucketed by label and
+            one share constraint is built per group (e.g. per country); regions without a label (or IDs without a
+            column) are treated as their own group (per-region). It has no effect on the absolute lower/upper/fixed
+            bounds.
+
+            |br| * the default value is None
+        :type componentLimitGrouping: None, pd.DataFrame or dictionary with investment periods years as keys and
+            pd.DataFrame as values
+
         :param pathwayBalanceLimit: the pathway balance limit defines commodity balance (lower or upper bound) for the pathway.
             The structure is similar to the balanceLimit, however does without the temporal dependency per investment period.
             Examples: CO2 budget for the entire transformation pathway
@@ -405,11 +417,20 @@ class EnergySystemModel:
         self.componentLimit = componentLimit
         self.componentLimitEligibility = componentLimitEligibility
         self.componentLimitEligibility2dim = componentLimitEligibility2dim
+        self.componentLimitGrouping = componentLimitGrouping
 
-        self.processedComponentLimit, self.processedComponentLimitEligibility, self.processedComponentLimitEligibility2dim = (
-            utils.checkAndSetComponentLimit(
-                self, componentLimit, componentLimitEligibility, componentLimitEligibility2dim, locations
-            )
+        (
+            self.processedComponentLimit,
+            self.processedComponentLimitEligibility,
+            self.processedComponentLimitEligibility2dim,
+            self.processedComponentLimitGrouping,
+        ) = utils.checkAndSetComponentLimit(
+            self,
+            componentLimit,
+            componentLimitEligibility,
+            componentLimitEligibility2dim,
+            componentLimitGrouping,
+            locations,
         )
 
         ################################################################################################################
@@ -1376,71 +1397,26 @@ class EnergySystemModel:
                         componentLimitID
                     ] = componentsOfommodityLimit
 
-            yearlyComponentLimitDict = {}
+            # share bounds express a fraction of the eligible total (variable RHS)
+            shareBounds = ("shareMax", "shareMin")
 
-            # iterate over commodity limit to define either minimal, maximal or fixed balance limits per balanceLimitID
-            if self.processedComponentLimit is not None:
-                for balanceLimitID, data in self.processedComponentLimit.iterrows():
-                    # check if balanceLimitID is in processedComponentLimitEligibility
-                    if balanceLimitID in self.processedComponentLimitEligibility.columns:
-                        
-                        # check which region is affected
-                        _elig = self.processedComponentLimitEligibility.loc[
-                            :, balanceLimitID
-                        ]
-                        locs = _elig[_elig == 1].index.tolist()
-                        # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format 
-                        if locs:                            
-                            yearlyComponentLimitDict.setdefault(
-                                (
-                                    balanceLimitID,
-                                    data["ip"],
-                                    data["ipEnd"],
-                                    data["bound"],
-                                    data["type"],
-                                    float(data["value"]),
-                                    data["commodity"],
-                                ),
-                                [componentsOfComponentLimit[balanceLimitID], locs],
-                            )
-                    elif balanceLimitID in self.processedComponentLimitEligibility2dim.columns:
-                        _elig = self.processedComponentLimitEligibility2dim.loc[
-                            :, balanceLimitID
-                        ]        
-                        locs = _elig[_elig == 1].index.tolist()
-                        # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format
-                        if locs:
-                            yearlyComponentLimitDict.setdefault(
-                                (
-                                    balanceLimitID,
-                                    data["ip"],
-                                    data["ipEnd"],
-                                    data["bound"],
-                                    data["type"],
-                                    float(data["value"]),
-                                    data["commodity"],
-                                ),
-                                [componentsOfComponentLimit[balanceLimitID], locs],
-                            )
-                
-                        
-            setattr(pyM, "yearlyComponentLimitDict", yearlyComponentLimitDict)
-            from pprint import pprint
-            pprint(yearlyComponentLimitDict)
-
-            def yearlyComponentLimitConstraint(pyM, ID, ip, ipEnd, bound, type, value, commodity):
-                # yearly restriction
-                locs = yearlyComponentLimitDict[(ID, ip, ipEnd, bound, type, value, commodity)][1]
-                componentNames = yearlyComponentLimitDict[(ID, ip, ipEnd, bound, type, value, commodity)][
-                    0
-                ][ID]
-                balanceList = []
-                
+            def _limitExpr(locs, componentNames, ip, ipEnd, type, commodity, ID):
+                """Summed componentLimit contribution (pyomo expression or constant) of
+                ``componentNames`` over the locations ``locs`` for one (range of)
+                investment period(s). Shared by the absolute (lower/upper/fixed) and the
+                share (shareMax/shareMin) constraints."""
+                # a non-null ipEnd marks a range of investment periods (perfect foresight)
                 if pd.notna(ipEnd):
                     ip = (ip, ipEnd)
-                
+                balanceList = []
                 for mdl_type, mdl in self.componentModelingDict.items():
-                    if (mdl_type == "TransmissionModel") and (type == "operation"):
+                    # match TransmissionModel/ConversionModel and their subclasses
+                    # (e.g. LOPFModel) by the class hierarchy, not by an exact name
+                    # (note: the `type` parameter shadows the builtin here)
+                    mdlBases = [base.__name__ for base in mdl.__class__.__mro__]
+                    isTransmission = "TransmissionModel" in mdlBases
+                    isConversion = "ConversionModel" in mdlBases
+                    if isTransmission and (type == "operation"):
                         #TODO: fix when capacity is used. currently not working!
                         _balanceList = [
                             mdl.getComponentLimitContribution(
@@ -1451,8 +1427,9 @@ class EnergySystemModel:
                                 loc=locs,
                                 componentNames=componentNames,
                                 type=type,
-                            )               ]
-                    elif (mdl_type == "TransmissionModel") and (type == "capacity"):
+                            )
+                        ]
+                    elif isTransmission and (type == "capacity"):
                         # skip if none of the components is of class TransmissionModel
                         # check if intersection of mdl.componentsDict.keys() and componentNames is empty
                         if not set(mdl.componentsDict.keys()).intersection(set(componentNames)):
@@ -1483,8 +1460,7 @@ class EnergySystemModel:
                                         type=type,
                                     )
                                 ]
-                        
-                    elif mdl_type == "ConversionModel":
+                    elif isConversion:
                         _balanceList = [
                             mdl.getComponentLimitContribution(
                                 esM=self,
@@ -1512,7 +1488,110 @@ class EnergySystemModel:
                             for loc in locs
                         ]
                     balanceList.extend(_balanceList)
-                balanceSum = sum(const for const in balanceList if const is not None)
+                return sum(const for const in balanceList if const is not None)
+
+            def _resolveGroups(ID, locs):
+                """Bucket the eligible locations ``locs`` of share-limited ``ID`` into
+                groups. If a grouping column exists for ``ID`` the regions are bucketed by
+                their group label (e.g. country code); otherwise (or for regions without a
+                label) each region is its own group (per-region)."""
+                grouping = self.processedComponentLimitGrouping
+                if grouping is not None and ID in grouping.columns:
+                    groups = {}
+                    for loc in locs:
+                        label = grouping.loc[loc, ID]
+                        if pd.isnull(label):
+                            label = loc
+                        groups.setdefault(label, []).append(loc)
+                    return groups
+                return {loc: [loc] for loc in locs}
+
+            yearlyComponentLimitDict = {}
+            componentShareLimitDict = {}
+
+            # iterate over commodity limit to define either minimal, maximal, fixed or
+            # share balance limits per balanceLimitID
+            if self.processedComponentLimit is not None:
+                for balanceLimitID, data in self.processedComponentLimit.iterrows():
+                    # check if balanceLimitID is in processedComponentLimitEligibility
+                    if balanceLimitID in self.processedComponentLimitEligibility.columns:
+
+                        # check which region is affected
+                        _elig = self.processedComponentLimitEligibility.loc[
+                            :, balanceLimitID
+                        ]
+                        locs = _elig[_elig == 1].index.tolist()
+                        # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format
+                        if not locs:
+                            continue
+                        if data["bound"] in shareBounds:
+                            # one constraint per region/group; the eligible regions form
+                            # both the per-group left-hand side and the total right-hand side
+                            for groupLabel, groupLocs in _resolveGroups(
+                                balanceLimitID, locs
+                            ).items():
+                                componentShareLimitDict.setdefault(
+                                    (
+                                        balanceLimitID,
+                                        data["ip"],
+                                        data["ipEnd"],
+                                        data["bound"],
+                                        data["type"],
+                                        float(data["value"]),
+                                        data["commodity"],
+                                        groupLabel,
+                                    ),
+                                    [
+                                        componentsOfComponentLimit[balanceLimitID],
+                                        groupLocs,
+                                        locs,
+                                    ],
+                                )
+                        else:
+                            yearlyComponentLimitDict.setdefault(
+                                (
+                                    balanceLimitID,
+                                    data["ip"],
+                                    data["ipEnd"],
+                                    data["bound"],
+                                    data["type"],
+                                    float(data["value"]),
+                                    data["commodity"],
+                                ),
+                                [componentsOfComponentLimit[balanceLimitID], locs],
+                            )
+                    elif balanceLimitID in self.processedComponentLimitEligibility2dim.columns:
+                        _elig = self.processedComponentLimitEligibility2dim.loc[
+                            :, balanceLimitID
+                        ]
+                        locs = _elig[_elig == 1].index.tolist()
+                        # NOTE: check how processed Elig looks for transmission! adapt if necessary. has to be in loc0_loc1 format
+                        if locs:
+                            yearlyComponentLimitDict.setdefault(
+                                (
+                                    balanceLimitID,
+                                    data["ip"],
+                                    data["ipEnd"],
+                                    data["bound"],
+                                    data["type"],
+                                    float(data["value"]),
+                                    data["commodity"],
+                                ),
+                                [componentsOfComponentLimit[balanceLimitID], locs],
+                            )
+
+            setattr(pyM, "yearlyComponentLimitDict", yearlyComponentLimitDict)
+            setattr(pyM, "componentShareLimitDict", componentShareLimitDict)
+
+            def yearlyComponentLimitConstraint(pyM, ID, ip, ipEnd, bound, type, value, commodity):
+                # yearly restriction
+                componentNames, locs = yearlyComponentLimitDict[
+                    (ID, ip, ipEnd, bound, type, value, commodity)
+                ]
+                componentNames = componentNames[ID]
+                balanceSum = _limitExpr(
+                    locs, componentNames, ip, ipEnd, type, commodity, ID
+                )
                 if isinstance(balanceSum, int) or isinstance(balanceSum, float):
                     return pyomo.Constraint.Skip
                 # Check whether we want to consider an upper or lower bound.
@@ -1526,6 +1605,33 @@ class EnergySystemModel:
             pyM.yearlyComponentLimitConstraint = pyomo.Constraint(
                 pyM.yearlyComponentLimitDict.keys(),
                 rule=yearlyComponentLimitConstraint,
+            )
+
+            def componentShareLimitConstraint(
+                pyM, ID, ip, ipEnd, bound, type, value, commodity, group
+            ):
+                # anti-concentration restriction: e[group] {<=,>=} value * sum_r e[r]
+                componentNames, groupLocs, allLocs = componentShareLimitDict[
+                    (ID, ip, ipEnd, bound, type, value, commodity, group)
+                ]
+                componentNames = componentNames[ID]
+                regional = _limitExpr(
+                    groupLocs, componentNames, ip, ipEnd, type, commodity, ID
+                )
+                # no decision variables in this group -> nothing to constrain
+                if isinstance(regional, int) or isinstance(regional, float):
+                    return pyomo.Constraint.Skip
+                total = _limitExpr(
+                    allLocs, componentNames, ip, ipEnd, type, commodity, ID
+                )
+                if bound == "shareMax":
+                    return regional <= value * total
+                elif bound == "shareMin":
+                    return regional >= value * total
+
+            pyM.componentShareLimitConstraint = pyomo.Constraint(
+                pyM.componentShareLimitDict.keys(),
+                rule=componentShareLimitConstraint,
             )
 
     def declareBalanceLimitConstraint(self, pyM, timeSeriesAggregation):

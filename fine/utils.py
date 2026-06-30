@@ -1552,7 +1552,12 @@ def checkAndSetPathwayBalanceLimit(esM, pathwayBalanceLimit, locations):
 
 
 def checkAndSetComponentLimit(
-    esM, componentLimit, componentLimitEligibility, componentLimitEligibility2dim, locations
+    esM,
+    componentLimit,
+    componentLimitEligibility,
+    componentLimitEligibility2dim,
+    componentLimitGrouping,
+    locations,
 ):
     # componentLimit has to be DataFrame with componentLimitIDs as index, and "value","bound","type" as columns
     # or a dict per investment periods as keys and described dataframe as values,
@@ -1566,9 +1571,17 @@ def checkAndSetComponentLimit(
         componentLimitEligibility,
         esM.investmentPeriodNames,
     )
+    checkInvestmentPeriodParameters(
+        "componentLimitGrouping",
+        componentLimitGrouping,
+        esM.investmentPeriodNames,
+    )
+    # bounds that express a fraction of the eligible total (variable right-hand side)
+    shareBounds = ["shareMax", "shareMin"]
     processedComponentLimit = None
     processedComponentLimitEligibility = None
     processedComponentLimitEligibility2dim = None
+    processedComponentLimitGrouping = None
 
     # check if both componentLimit and componentLimitEligibility are either None or not None
     if (componentLimit is None and componentLimitEligibility is not None) or (
@@ -1577,10 +1590,11 @@ def checkAndSetComponentLimit(
         raise ValueError(
             "componentLimit and componentLimitEligibility have to be either both None or both not None"
         )
-    
+
     _componentLimit = componentLimit
     _componentLimitEligibility = componentLimitEligibility
     _componentLimitEligibility2dim = componentLimitEligibility2dim
+    _componentLimitGrouping = componentLimitGrouping
 
 
     if _componentLimit is not None:
@@ -1624,7 +1638,31 @@ def checkAndSetComponentLimit(
         _componentLimit["ip"] = _componentLimit["ip"].map(ip_map)
         _componentLimit["ipEnd"] = _componentLimit["ipEnd"].map(ip_map)
 
-                
+        # validate share bounds ("shareMax"/"shareMin"): e[r] {<=,>=} value * sum_r' e[r']
+        shareRows = _componentLimit[_componentLimit["bound"].isin(shareBounds)]
+        if not shareRows.empty:
+            # the share fraction has to be in (0, 1]
+            for shareID, shareData in shareRows.iterrows():
+                shareValue = float(shareData["value"])
+                if not (0 < shareValue <= 1):
+                    warnings.warn(
+                        f"componentLimit '{shareID}' uses a share bound "
+                        f"('{shareData['bound']}') with value {shareValue}, which is "
+                        "outside the expected fraction range (0, 1]."
+                    )
+            # share bounds are only meaningful for the 1-dim (per-region) eligibility of
+            # producers; the 2-dim eligibility describes transmission connections, for
+            # which a per-group production share has no meaning.
+            if _componentLimitEligibility2dim is not None:
+                forbidden = set(shareRows.index).intersection(
+                    set(_componentLimitEligibility2dim.columns)
+                )
+                if forbidden:
+                    raise ValueError(
+                        "Share bounds ('shareMax'/'shareMin') are not supported for "
+                        "transmission components (componentLimitEligibility2dim). "
+                        f"Offending componentLimitID(s): {sorted(forbidden)}"
+                    )
 
     if _componentLimitEligibility is not None:
         if not type(_componentLimitEligibility) == pd.DataFrame:
@@ -1666,7 +1704,26 @@ def checkAndSetComponentLimit(
     else:
         processedComponentLimitEligibility2dim = None
 
-    return processedComponentLimit, processedComponentLimitEligibility, processedComponentLimitEligibility2dim
+    if _componentLimitGrouping is not None:
+        if not type(_componentLimitGrouping) == pd.DataFrame:
+            raise TypeError(
+                "The componentLimitGrouping input argument has to be a pandas.DataFrame."
+            )
+        # the grouping maps every model location to a group label
+        if not set(locations) == set(_componentLimitGrouping.index):
+            raise ValueError(
+                "componentLimitGrouping does not have the same locations as the model"
+            )
+        processedComponentLimitGrouping = _componentLimitGrouping
+    else:
+        processedComponentLimitGrouping = None
+
+    return (
+        processedComponentLimit,
+        processedComponentLimitEligibility,
+        processedComponentLimitEligibility2dim,
+        processedComponentLimitGrouping,
+    )
 
 
 def checkAndSetBalanceLimit(esM, balanceLimit, locations):

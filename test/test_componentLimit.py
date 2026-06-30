@@ -14,13 +14,15 @@ def test_componentLimitConstraint(multi_node_test_esM_init):
     # 2. LIM2: Operation limit of 10000 for Wind (onshore) in locations cluster_5, cluster_6, cluster_7
     # 3. LIM3: Fixed capacity limit of 10 for Wind (offshore) and Wind (onshore) combined in locations cluster_0, cluster_1
 
+    # componentLimit is a single DataFrame; "ip"/"ipEnd" are internal investment
+    # period indices (None = open-ended) and "commodity" is only used for conversions.
     _componentLimit = pd.DataFrame(
-        columns=["value", "bound", "type"],
+        columns=["value", "bound", "type", "commodity", "ip", "ipEnd"],
         index=["LIM1", "LIM2", "LIM3"],
         data=[
-            [20, "upper", "capacity"],
-            [10000, "upper", "operation"],
-            [10, "fixed", "capacity"],
+            [20, "upper", "capacity", None, 0, None],
+            [10000, "upper", "operation", None, 0, None],
+            [10, "fixed", "capacity", None, 0, None],
         ],
     )
 
@@ -39,11 +41,6 @@ def test_componentLimitConstraint(multi_node_test_esM_init):
         ],
     )
 
-    componentLimit = {}
-    componentLimitEligibility = {}
-    componentLimit[0] = _componentLimit
-    componentLimitEligibility[0] = _componentLimitEligibility
-
     multi_node_test_esM_init.updateComponent(
         componentName="Wind (offshore)",
         updateAttrs={"componentLimitID": ["LIM1", "LIM3"]},
@@ -54,9 +51,9 @@ def test_componentLimitConstraint(multi_node_test_esM_init):
     )
 
     # Add componentLimit to esM manually. Not recommended for normal use.
-    multi_node_test_esM_init.processedComponentLimit = componentLimit
+    multi_node_test_esM_init.processedComponentLimit = _componentLimit
     multi_node_test_esM_init.processedComponentLimitEligibility = (
-        componentLimitEligibility
+        _componentLimitEligibility
     )
 
     # 2) Optimize esM
