@@ -11,7 +11,9 @@ from fine import utils
 from fine.IOManagement import dictIO, utilsIO
 
 
-def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
+def convertOptimizationInputToDatasets(
+    esM, useProcessedValues=False, esm_dict=None, component_dict=None
+):
     """Take esM instance input and convert it into xarray datasets.
 
     :param esM: EnergySystemModel instance in which the model is held
@@ -24,11 +26,24 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
             |br| * the default value is False
         :type useProcessedValues: bool
 
+        :param esm_dict: pre-computed esm dict (as returned by dictIO.exportToDict). If given
+            together with component_dict, the (potentially expensive, e.g. due to TSA
+            full-timeseries reconstruction) export step is skipped and the passed-in dicts are
+            reused. This allows callers that also need convertOptimizationInputToDatasetsZarr
+            to compute the export once and share it between both conversions.
+            |br| * the default value is None
+        :type esm_dict: dict or None
+
+        :param component_dict: pre-computed component dict, see esm_dict.
+            |br| * the default value is None
+        :type component_dict: dict or None
+
     :return: xr_ds - esM instance data in xarray dataset format
     :rtype: xarray.dataset
     """
     # STEP 1. Get the esm and component dicts
-    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
+    if esm_dict is None or component_dict is None:
+        esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
 
     # STEP 2. Get the iteration dicts
     ip = esM.investmentPeriods
@@ -75,7 +90,9 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     return {"Input": xr_dss, "Parameters": attributes_xr}
 
 
-def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
+def convertOptimizationInputToDatasetsZarr(
+    esM, useProcessedValues=False, esm_dict=None, component_dict=None
+):
     """
     Takes esM instance input and converts it into xarray datasets.
 
@@ -89,12 +106,25 @@ def convertOptimizationInputToDatasetsZarr(esM, useProcessedValues=False):
             |br| * the default value is False
         :type useProcessedValues: bool
 
+        :param esm_dict: pre-computed esm dict (as returned by dictIO.exportToDict). If given
+            together with component_dict, the (potentially expensive, e.g. due to TSA
+            full-timeseries reconstruction) export step is skipped and the passed-in dicts are
+            reused. This allows callers that also need convertOptimizationInputToDatasets
+            to compute the export once and share it between both conversions.
+            |br| * the default value is None
+        :type esm_dict: dict or None
+
+        :param component_dict: pre-computed component dict, see esm_dict.
+            |br| * the default value is None
+        :type component_dict: dict or None
+
     :return: xr_ds - esM instance data in xarray dataset format
     :rtype: xarray.dataset
     """
 
     # STEP 1. Get the esm and component dicts
-    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
+    if esm_dict is None or component_dict is None:
+        esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
     
     # STEP 3.1 get _mapC for all transmission components
     _mapC_dict = {}
@@ -1412,6 +1442,63 @@ def writeEnergySystemModelToDatasets(esM, zarrFormat=False):
     return xr_dss_results
 
 
+def writeEnergySystemModelToDatasetsBoth(esM, optSumOutputLevel=0):
+    """Converts esM instance (input and output) into xarray datasets for BOTH
+    the NetCDF and the Zarr representation in one call.
+
+    This avoids the cost of calling ``writeEnergySystemModelToDatasets`` once per
+    format: exporting the esM/component dicts (which, when time series aggregation
+    was used, reconstructs full 8760h timeseries from the aggregated typical
+    periods, see dictIO.reconstruct_full_timeseries) and converting the
+    optimization output (which similarly rebuilds full timeseries via
+    utils.buildFullTimeSeries) do not depend on the target format and are
+    therefore computed only once and reused for both representations, instead of
+    once per format.
+
+    :param esM: EnergySystemModel instance in which the optimized model is held
+    :type esM: EnergySystemModel instance
+
+    :return: (xr_dss_results_netcdf, xr_dss_results_zarr)
+    :rtype: tuple(dict, dict)
+    """
+    is_optimized = esM.objectiveValue is not None
+
+    xr_dss_output = None
+    if is_optimized:
+        xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
+
+    xr_dss_performance = None
+    if hasattr(esM, "performanceSummary"):
+        xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
+
+    # Shared, potentially expensive export (incl. TSA full-timeseries
+    # reconstruction), computed once and reused by both format-specific
+    # input conversions below.
+    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues=False)
+
+    xr_dss_input_netcdf = convertOptimizationInputToDatasets(
+        esM, esm_dict=esm_dict, component_dict=component_dict
+    )
+    xr_dss_input_zarr = convertOptimizationInputToDatasetsZarr(
+        esM, esm_dict=esm_dict, component_dict=component_dict
+    )
+
+    def _assemble(xr_dss_input):
+        xr_dss_results = {
+            "Input": xr_dss_input["Input"],
+            "Parameters": xr_dss_input["Parameters"],
+        }
+        if xr_dss_output is not None:
+            xr_dss_results["Results"] = xr_dss_output["Results"]
+        if xr_dss_performance is not None:
+            xr_dss_results["PerformanceSummary"] = xr_dss_performance[
+                "PerformanceSummary"
+            ]
+        return xr_dss_results
+
+    return _assemble(xr_dss_input_netcdf), _assemble(xr_dss_input_zarr)
+
+
 def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
     """Read optimization results from grouped netCDF file to dictionary of
     xr.Datasets.
@@ -1539,18 +1626,41 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
 
     return esM
 
-def _make_datasets_lazy(data_dict, chunks=None):
+def _make_datasets_lazy(data_dict, chunks="auto", _path=()):
     """
     Recursively traverses a dictionary of datasets and converts their
     in-memory NumPy arrays to lazy Dask arrays by chunking them.
     Skips chunking for datasets with object dtypes to avoid NotImplementedError.
+
+    Note: chunks=None must never be used here. xr.Dataset.chunk(None) does not
+    pick a sensible chunk size, it converts each array into a *single* Dask
+    chunk covering the whole array. For large reconstructed timeseries that
+    single chunk can exceed 2GB, which the Blosc codec cannot write
+    ("Codec does not support buffers of > 2147483647 bytes"), and it also
+    defeats the purpose of chunking (no incremental/streamed writes, full
+    materialization in memory). "auto" lets dask pick chunk sizes bounded by
+    its configured target chunk size (default 128MiB).
+
+    _path tracks the dict-key path down to the current dataset and is used to
+    give dask.Dataset.chunk() an explicit, cheap-to-compute `token` for each
+    array. Without it, xarray/dask derives the dask array name by hashing the
+    full array *content* (sha1 over every byte), which for many large,
+    already-materialized result arrays dominates the total save time even
+    though the written data itself is small. Since each dict path is unique,
+    using it as the token is just as safe as content hashing (no risk of two
+    distinct arrays colliding on the same dask array name) but is O(1) instead
+    of O(array size).
     """
     if isinstance(data_dict, dict):
-        return {key: _make_datasets_lazy(value, chunks) for key, value in data_dict.items()}
-    
+        return {
+            key: _make_datasets_lazy(value, chunks, _path=_path + (str(key),))
+            for key, value in data_dict.items()
+        }
+
     elif isinstance(data_dict, xr.Dataset):
         try:
-            return data_dict.chunk(chunks)
+            token = "/".join(_path) if _path else None
+            return data_dict.chunk(chunks, token=token)
         except Exception as e:
             print(f"Error chunking dataset: {e}")
             return data_dict
@@ -1610,7 +1720,7 @@ def writeDatasetsToZarr(
     # Use higher compression and better algorithm for smaller files
     compressor = Blosc(cname=compression_algorithm, clevel=compression_level, shuffle=Blosc.SHUFFLE)
     
-    lazy_data_dict = _make_datasets_lazy(data_dict, chunks=None)
+    lazy_data_dict = _make_datasets_lazy(data_dict, chunks="auto")
     # lazy_data_dict = data_dict  # Assuming data_dict is already lazy-loaded or chunked
 
 
@@ -1833,13 +1943,22 @@ def writeDatasetsToZarr(
 
     print("Writing consolidated data to Zarr store...")
     
+    # NOTE: 'space'/'space_2'/'technology' used to be -1 (i.e. "keep the whole
+    # dimension in a single chunk"). That is unbounded: for a large model
+    # (many locations/components concatenated along 'technology'), a single
+    # chunk of shape (1000 time steps x all space x all space_2 x all
+    # technology) can exceed 2GB, which the Blosc codec cannot write
+    # ("Codec does not support buffers of > 2147483647 bytes"). Using "auto"
+    # keeps the deliberate 1000-step time chunk but lets dask size the other
+    # dimensions so the total bytes per chunk stay bounded (~128MiB default),
+    # regardless of how many locations/components the model has.
     master_chunk_scheme  = {
-        'time': 1000, # One chunk for the whole time series
-        'space': -1,
-        'space_2': -1,
-        'technology': -1
+        'time': 1000,
+        'space': 'auto',
+        'space_2': 'auto',
+        'technology': 'auto'
     }
-    
+
     def _chunk(ds, chunk=False):
         if not chunk:
             return ds
@@ -1908,6 +2027,7 @@ def writeDatasetsToZarr(
                 )
                 
             except Exception as e:
+                print(e)
                 chunked_ds = _chunk(ds, chunk=False)
 
                 encoding_var = {}
