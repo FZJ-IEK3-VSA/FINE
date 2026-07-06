@@ -30,7 +30,7 @@ classifiers = [
 ]
 keywords = ["energy assessment", "energy system", "optimization"]
 dependencies = [
-    "geopandas>=1.0.0,<=1.1.3",
+    "geopandas>=1.0.0,<=1.1.4",
     "openpyxl<=3.1.5",
     "matplotlib<=3.11.0",
     "xlrd>=1.2.0,<=2.0.2",
@@ -43,12 +43,12 @@ dependencies = [
     "rasterio>=1.3.7,<=1.5.0,!=1.3.0.post1",
     "netcdf4>1.5.8,<=1.7.4",
     "tsam>=3.3.0,<=3.4.1",
-    "pwlf>=2.0.4,<=2.5.2",
+    "pwlf>=2.0.4,<=2.5.3",
     "psutil>=5.8.0,<=7.2.2",
     "gurobi-logtools>=3.0.0,<=4.0.1",
     "ipykernel<=7.2.0",
     "gurobipy<=13.0.2",
-    "highspy>=1.13.1,<=1.14.0",
+    "highspy>=1.13.1,<=1.15.1",
 ]
 # <=3.13 translates to <=3.13.0, why the <3.14 is used
 requires-python = ">=3.10,<3.15"
