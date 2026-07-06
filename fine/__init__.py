@@ -13,6 +13,7 @@ from .IOManagement.standardIO import (
     plotLocations,
     plotOperation,
     plotOperationColorMap,
+    plotPieChart,
     plotTransmission,
     plotPieChart,
 )
@@ -47,6 +48,7 @@ __all__ = [
     "plotLocations",
     "plotOperation",
     "plotOperationColorMap",
+    "plotPieChart",
     "plotTransmission",
     "plotPieChart",
     "subclasses",
