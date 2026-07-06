@@ -13,9 +13,8 @@ from .IOManagement.standardIO import (
     plotLocations,
     plotOperation,
     plotOperationColorMap,
-    plotPieChart, # noqa: F811
-    plotTransmission,
     plotPieChart,
+    plotTransmission,
 )
 from .expansionModules.optimizeTSAmultiStage import (
     fixBinaryVariables,
