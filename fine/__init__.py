@@ -13,7 +13,7 @@ from .IOManagement.standardIO import (
     plotLocations,
     plotOperation,
     plotOperationColorMap,
-    plotPieChart,
+    plotPieChart, # noqa: F811
     plotTransmission,
     plotPieChart,
 )
