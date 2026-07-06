@@ -1,5 +1,6 @@
 from fine.transmission import Transmission, TransmissionModel
 from fine import utils
+from fine.enums import ComponentAbbreviation, Dimension, VarType
 import pyomo.environ as pyomo
 import pandas as pd
 
@@ -105,7 +106,7 @@ class LinearOptimalPowerFlow(Transmission):
             self.reactances = pd.Series(self._mapC).apply(
                 lambda loc: self.reactances2dim[loc[0]][loc[1]]
             )
-        except Exception:
+        except (KeyError, TypeError, IndexError):
             self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
 
@@ -118,8 +119,8 @@ class LOPFModel(TransmissionModel):
 
     def __init__(self):
         super().__init__()
-        self.abbrvName = "lopf"
-        self.dimension = "2dim"
+        self.abbrvName = ComponentAbbreviation.LOPF
+        self.dimension = Dimension.TWO
         self._operationVariablesOptimum = {}
         self._phaseAngleVariablesOptimum = {}
 
@@ -328,8 +329,8 @@ class LOPFModel(TransmissionModel):
 
             optVal_ = utils.formatOptimizationOutput(
                 phaseAngleVar.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
@@ -360,7 +361,7 @@ class LOPFModel(TransmissionModel):
             "capacityVariablesOptimum": self.dimension,
             "isBuiltVariablesOptimum": self.dimension,
             "operationVariablesOptimum": self.dimension,
-            "phaseAngleVariablesOptimum": "1dim",
+            "phaseAngleVariablesOptimum": Dimension.ONE,
         }
 
         if name in timeDependentMapping:

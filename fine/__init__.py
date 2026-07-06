@@ -13,7 +13,9 @@ from .IOManagement.standardIO import (
     plotLocations,
     plotOperation,
     plotOperationColorMap,
+    plotPieChart,
     plotTransmission,
+    plotPieChart,
 )
 from .expansionModules.optimizeTSAmultiStage import (
     fixBinaryVariables,
@@ -46,7 +48,9 @@ __all__ = [
     "plotLocations",
     "plotOperation",
     "plotOperationColorMap",
+    "plotPieChart",
     "plotTransmission",
+    "plotPieChart",
     "subclasses",
     "utils",
     "xarrayIO",

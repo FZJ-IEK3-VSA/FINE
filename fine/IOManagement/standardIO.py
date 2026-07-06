@@ -1,5 +1,6 @@
 import fine as fn
 from fine import utils
+from fine.enums import Dimension
 import pandas as pd
 import datetime
 import time
@@ -120,9 +121,9 @@ def writeOptimizationOutputToExcel(
                 if d["values"] is None:
                     continue
                 if d["timeDependent"]:
-                    if d["dimension"] == "1dim":
+                    if d["dimension"] == Dimension.ONE:
                         dataTD1dim.append(d["values"]), indexTD1dim.append(key)
-                    elif d["dimension"] == "2dim":
+                    elif d["dimension"] == Dimension.TWO:
                         dataTD2dim.append(d["values"]), indexTD2dim.append(key)
                 else:
                     dataTI.append(d["values"]), indexTI.append(key)
@@ -149,9 +150,9 @@ def writeOptimizationOutputToExcel(
                         writer, sheet_name=abbreviatedName + "_TDoptVar_2dim"
                     )
             if dataTI:
-                if esM.componentModelingDict[name].dimension == "1dim":
+                if esM.componentModelingDict[name].dimension == Dimension.ONE:
                     names = ["Variable type", "Component"]
-                elif esM.componentModelingDict[name].dimension == "2dim":
+                elif esM.componentModelingDict[name].dimension == Dimension.TWO:
                     names = ["Variable type", "Component", "Location"]
                 dfTI = pd.concat(dataTI, keys=indexTI, names=names)
                 if oL_ == 1:
@@ -1132,13 +1133,12 @@ def plotPieChart(
     Total_degree = 360
 
     for region in shapefile[indexColumn_in_shp]:  # LOOP OVER REGIONS
-        xValue = float(
-            shapefile.loc[shapefile[indexColumn_in_shp] == region].centroid.x.values
-        )
-        yValue = float(
-            shapefile.loc[shapefile[indexColumn_in_shp] == region].centroid.y.values
-        )
+        centroid = shapefile.loc[
+            shapefile[indexColumn_in_shp] == region, "centroid"
+        ].iloc[0]
 
+        xValue = float(centroid.x)
+        yValue = float(centroid.y)
         total_property_value = regional_property_sum[region]
 
         theta1 = 0
