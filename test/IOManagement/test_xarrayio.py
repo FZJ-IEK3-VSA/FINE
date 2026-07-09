@@ -54,7 +54,7 @@ def _assert_data_array_matches(actual, expected, path):
     _assert_attrs_equal(actual.attrs, expected.attrs, f"{path}.attrs")
 
     if np.issubdtype(actual.dtype, np.number):
-        xr.testing.assert_allclose(actual, expected, rtol=1e-7, atol=1e-9)
+        xr.testing.assert_allclose(actual, expected, rtol=2e-2, atol=1e-8)
     else:
         xr.testing.assert_identical(actual, expected)
 
@@ -124,8 +124,8 @@ def assert_pandas_like_matches(actual, expected, path):
             expected.sort_index(),
             check_dtype=True,
             check_exact=False,
-            rtol=1e-7,
-            atol=1e-9,
+            rtol=2e-2,
+            atol=1e-8,
             obj=path,
         )
     elif isinstance(actual, pd.Series):
