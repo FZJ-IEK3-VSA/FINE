@@ -1128,8 +1128,15 @@ class EnergySystemModel:
             "\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verboseLogLevel, 0
         )
 
-    def createTimeSeriesDataForAggregation(self, ip):
-        """Create and return the time series data, weights, and zero-data columns for aggregation."""
+    def createTimeSeriesDataForAggregation(
+            self, ip
+            ) -> tuple[pd.DataFrame, dict, pd.Index]:
+        """Create and return the time series data, weights, and zero-data columns for aggregation.
+
+            Returns:
+                tuple[pd.DataFrame, dict, pd.Index]: Time series data, weight dictionary,
+                    and columns containing only zero values
+        """
         timeSeriesData, weightDict = [], {}
         for mdlName, mdl in self.componentModelingDict.items():
             for compName, comp in mdl.componentsDict.items():
