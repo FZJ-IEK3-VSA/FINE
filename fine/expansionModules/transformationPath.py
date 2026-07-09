@@ -3,6 +3,7 @@ from fine.IOManagement import standardIO
 import pandas as pd
 import copy
 import logging
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,16 @@ def optimizeSimpleMyopic(
         nothing is returned.
     :rtype: dict of all optimized instances of the EnergySystemModel class or None.
     """
+    warnings.warn(
+        "optimizeSimpleMyopic is deprecated and no longer maintained. "
+        "Use fine.expansionModules.rollingHorizon.rollingHorizonOptimization with "
+        "numberOfInvestmentPeriodsForRollingHorizon=1 instead, which covers the same "
+        "myopic foresight use case (see issue #640). Note that CO2ReductionTargets are "
+        "not supported here anymore; express them as a per-investment-period "
+        "balanceLimit passed to rollingHorizonOptimization instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if esM.numberOfInvestmentPeriods != 1:
         raise ValueError(
             "Myopic is based on single year optimizations. "
@@ -126,7 +137,8 @@ def optimizeSimpleMyopic(
     for step in range(0, nbOfSteps + 1):
         mileStoneYear = startYear + step * nbOfRepresentedYears
         logFileName = "log_" + str(mileStoneYear)
-        utils.setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step)
+        if CO2ReductionTargets is not None:
+            utils.setNewCO2ReductionTarget(esM, CO2Reference, CO2ReductionTargets, step)
 
         # Optimization
         if timeSeriesAggregation:

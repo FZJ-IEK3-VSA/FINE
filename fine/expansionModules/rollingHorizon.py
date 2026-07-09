@@ -8,7 +8,6 @@ from pathlib import Path
 def rollingHorizonOptimization(
     esM,
     scenario_name,
-    resultExportPath,
     numberOfInvestmentPeriodsForRollingHorizon,
     timeSeriesAggregation=True,
     numberOfTypicalPeriods=7,
@@ -17,8 +16,16 @@ def rollingHorizonOptimization(
     clusterMethod="hierarchical",
     solver="gurobi",
     optimizationSpecs="",
+    writeExcelOutput=False,
+    resultExportPath=None,
 ):
-    """If numberOfInvestmentPeriodsForRollingHorizon == numberOfInvestmentPeriods -> Perfect Foresight, If numberOfInvestmentPeriodsForRollingHorizon == 1 -> Foresight, else Rolling Horizon."""
+    """If numberOfInvestmentPeriodsForRollingHorizon == numberOfInvestmentPeriods -> Perfect Foresight, If numberOfInvestmentPeriodsForRollingHorizon == 1 -> Foresight, else Rolling Horizon.
+
+    If writeExcelOutput is True, resultExportPath must be set and the optimization summaries of each rolling horizon interval are written to Excel files there.
+    """
+    if writeExcelOutput and resultExportPath is None:
+        raise ValueError("resultExportPath must be set if writeExcelOutput is True.")
+
     if esM.rollingHorizonStartYear is None:
         esM.rollingHorizonStartYear = esM.startYear
 
@@ -267,33 +274,34 @@ def rollingHorizonOptimization(
         # 4. export optimization summaries
         # For all optimization than the last rolling horizon optimization, export only first year.
         # For the last rolling horizon interval, export all years.
-        if rollingHorizonYears != rollingHorizonIntervals[-1]:
-            exportYears = [rollingHorizonYears[0]]
-        else:
-            exportYears = rollingHorizonYears
+        if writeExcelOutput:
+            if rollingHorizonYears != rollingHorizonIntervals[-1]:
+                exportYears = [rollingHorizonYears[0]]
+            else:
+                exportYears = rollingHorizonYears
 
-        for year in exportYears:
-            writeOptimizationOutputToExcel(
-                rollingHorizonEsm,
-                outputFileName=str(
-                    Path(resultExportPath) / f"{scenario_name}_rollingHorizon"
-                ),
-                optSumOutputLevel={
-                    "SourceSinkModel": 0,
-                    "ConversionModel": 0,
-                    "StorageModel": 0,
-                    "TransmissionModel": 0,
-                    "LOPFModel": 0,
-                },
-                optValOutputLevel={
-                    "SourceSinkModel": 0,
-                    "ConversionModel": 0,
-                    "StorageModel": 0,
-                    "TransmissionModel": 0,
-                    "LOPFModel": 0,
-                },
-                investmentPeriod=year,
-            )
+            for year in exportYears:
+                writeOptimizationOutputToExcel(
+                    rollingHorizonEsm,
+                    outputFileName=str(
+                        Path(resultExportPath) / f"{scenario_name}_rollingHorizon"
+                    ),
+                    optSumOutputLevel={
+                        "SourceSinkModel": 0,
+                        "ConversionModel": 0,
+                        "StorageModel": 0,
+                        "TransmissionModel": 0,
+                        "LOPFModel": 0,
+                    },
+                    optValOutputLevel={
+                        "SourceSinkModel": 0,
+                        "ConversionModel": 0,
+                        "StorageModel": 0,
+                        "TransmissionModel": 0,
+                        "LOPFModel": 0,
+                    },
+                    investmentPeriod=year,
+                )
 
         # 5. save esM's
         esM_results[rollingHorizonYears[0]] = rollingHorizonEsm
