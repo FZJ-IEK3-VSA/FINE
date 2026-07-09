@@ -1825,7 +1825,7 @@ class EnergySystemModel:
                 ):
                     if "_scrap" in comp.commodity:
                         try:
-                            if comp.commodity.startswith("SLbatteries"):
+                            if comp.commodity.startswith("slbatteries"):
                                 base = comp.commodity[:-6]
                                 tech, mat = base.split("_", 1)
                             else:
