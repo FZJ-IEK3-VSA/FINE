@@ -1136,7 +1136,6 @@ class EnergySystemModel:
         Returns:
             tuple[pd.DataFrame, dict, pd.Index]: Time series data, weight dictionary,
             and columns containing only zero values.
-            
         """
         timeSeriesData, weightDict = [], {}
         for mdlName, mdl in self.componentModelingDict.items():
