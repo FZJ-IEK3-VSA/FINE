@@ -297,6 +297,17 @@ def test_raises_when_write_excel_output_without_export_path():
         )
 
 
+def test_raises_when_write_excel_output_without_scenario_name():
+    """writeExcelOutput=True requires scenario_name to be set."""
+    with pytest.raises(ValueError, match="scenario_name"):
+        rollingHorizonOptimization(
+            esM=_minimal_esM(4),
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            writeExcelOutput=True,
+            resultExportPath="some/path",
+        )
+
+
 # ─── Results structure tests ───────────────────────────────────────────────────
 
 

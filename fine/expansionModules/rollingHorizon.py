@@ -7,7 +7,6 @@ from pathlib import Path
 
 def rollingHorizonOptimization(
     esM,
-    scenario_name,
     numberOfInvestmentPeriodsForRollingHorizon,
     timeSeriesAggregation=True,
     numberOfTypicalPeriods=7,
@@ -18,13 +17,16 @@ def rollingHorizonOptimization(
     optimizationSpecs="",
     writeExcelOutput=False,
     resultExportPath=None,
+    scenario_name=None,
 ):
     """If numberOfInvestmentPeriodsForRollingHorizon == numberOfInvestmentPeriods -> Perfect Foresight, If numberOfInvestmentPeriodsForRollingHorizon == 1 -> Foresight, else Rolling Horizon.
 
-    If writeExcelOutput is True, resultExportPath must be set and the optimization summaries of each rolling horizon interval are written to Excel files there.
+    If writeExcelOutput is True, resultExportPath and scenario_name must be set, and the optimization summaries of each rolling horizon interval are written to Excel files there, named after scenario_name.
     """
     if writeExcelOutput and resultExportPath is None:
         raise ValueError("resultExportPath must be set if writeExcelOutput is True.")
+    if writeExcelOutput and scenario_name is None:
+        raise ValueError("scenario_name must be set if writeExcelOutput is True.")
 
     if esM.rollingHorizonStartYear is None:
         esM.rollingHorizonStartYear = esM.startYear
