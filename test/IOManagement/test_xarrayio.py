@@ -115,7 +115,6 @@ def assert_nested_xarray_dict_matches(actual, expected, path="Results"):
             assert_xarray_dataset_matches(actual_value, expected_value, key_path)
 
 
-
 def assert_pandas_like_matches(actual, expected, path):
     """Compare pandas objects with dtype checks and numeric tolerance."""
     if isinstance(actual, pd.DataFrame):
@@ -142,9 +141,7 @@ def assert_pandas_like_matches(actual, expected, path):
         )
     else:
         assert actual == expected, (
-            f"{path}: values differ\n"
-            f"Actual: {actual!r}\n"
-            f"Expected: {expected!r}"
+            f"{path}: values differ\nActual: {actual!r}\nExpected: {expected!r}"
         )
 
 
@@ -159,9 +156,7 @@ def assert_nested_python_matches(actual, expected, path="root"):
         assert_pandas_like_matches(actual, expected, path)
     else:
         assert actual == expected, (
-            f"{path}: values differ\n"
-            f"Actual: {actual!r}\n"
-            f"Expected: {expected!r}"
+            f"{path}: values differ\nActual: {actual!r}\nExpected: {expected!r}"
         )
 
 
@@ -265,7 +260,6 @@ def assert_optimization_results_match_golden(esM, golden_file_name, tmp_path):
     assert "Results" in actual
     assert "Results" in expected
     assert_nested_xarray_dict_matches(actual["Results"], expected["Results"])
-
 
 
 def compare_values(value_1, value_2):
@@ -375,8 +369,9 @@ def test_golden_minimal_optimization_results(minimal_test_esM, tmp_path):
     )
 
 
-
-def test_golden_multi_node_optimization_results(multi_node_test_esM_optimized, tmp_path):
+def test_golden_multi_node_optimization_results(
+    multi_node_test_esM_optimized, tmp_path
+):
     """Regression test for committed golden optimization output of the multi-node esM."""
     assert_optimization_results_match_golden(
         multi_node_test_esM_optimized,
@@ -385,8 +380,9 @@ def test_golden_multi_node_optimization_results(multi_node_test_esM_optimized, t
     )
 
 
-
-def test_golden_perfect_foresight_optimization_results(perfectForesight_test_esM, tmp_path):
+def test_golden_perfect_foresight_optimization_results(
+    perfectForesight_test_esM, tmp_path
+):
     """Regression test for committed golden optimization output of the perfect-foresight esM."""
     esM = perfectForesight_test_esM
     esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
@@ -396,8 +392,6 @@ def test_golden_perfect_foresight_optimization_results(perfectForesight_test_esM
         "perfectForesight_test_esM.nc",
         tmp_path,
     )
-
-
 
 
 def test_golden_minimal_pandas_optimization_results(minimal_test_esM):
@@ -415,7 +409,9 @@ def test_golden_multi_node_pandas_optimization_results(multi_node_test_esM_optim
     )
 
 
-def test_golden_perfect_foresight_pandas_optimization_results(perfectForesight_test_esM):
+def test_golden_perfect_foresight_pandas_optimization_results(
+    perfectForesight_test_esM,
+):
     """Regression test for perfect-foresight getOptimizationSummary() and getOptimalValues()."""
     esM = perfectForesight_test_esM
     esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
