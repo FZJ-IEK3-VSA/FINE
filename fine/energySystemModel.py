@@ -1405,7 +1405,7 @@ class EnergySystemModel:
                                 componentsOfBalanceLimit[balanceLimitID],
                             )
 
-            setattr(pyM, "yearlyBalanceLimitDict", yearlyBalanceLimitDict)
+            pyM.yearlyBalanceLimitDict = yearlyBalanceLimitDict
 
             def yearlyBalanceLimitConstraint(pyM, ID, loc, ip, lowerBound, value):
                 # yearly restriction
@@ -1474,7 +1474,7 @@ class EnergySystemModel:
                         componentsOfBalanceLimit[balanceLimitID],
                     )
 
-            setattr(pyM, "pathwayBalanceLimitDict", pathwayBalanceLimitDict)
+            pyM.pathwayBalanceLimitDict = pathwayBalanceLimitDict
 
             def pathwayBalanceLimitConstraint(pyM, ID, loc, lowerBound, value):
                 # pathway restriction
