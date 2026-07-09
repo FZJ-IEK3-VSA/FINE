@@ -513,8 +513,9 @@ def test_myopic_outdated_stock_still_removed(rh_results_myopic):
 
 # ─── Myopic parity with the retired simple myopic module (issue #640) ─────────
 #
-# fine.expansionModules.transformationPath.optimizeSimpleMyopic is deprecated
-# (it relies on utils.setNewCO2ReductionTarget, which no longer exists). These
+# fine.expansionModules.transformationPath.optimizeSimpleMyopic has been
+# removed (it relies on utils.setNewCO2ReductionTarget, which no longer
+# exists) and now raises NotImplementedError. These
 # tests port its two use cases - a CO2 reduction pathway and technical-lifetime
 # expiry of installed stock - onto rollingHorizonOptimization with
 # numberOfInvestmentPeriodsForRollingHorizon=1, showing the rolling horizon
@@ -698,12 +699,8 @@ def rh_results_exceeded_lifetime():
         verboseLogLevel=0,
     )
 
-    costs = pd.DataFrame(
-        [np.array([0.05, 0.0, 0.1, 0.051])], index=["OneLocation"]
-    ).T
-    revenues = pd.DataFrame(
-        [np.array([0.0, 0.01, 0.0, 0.0])], index=["OneLocation"]
-    ).T
+    costs = pd.DataFrame([np.array([0.05, 0.0, 0.1, 0.051])], index=["OneLocation"]).T
+    revenues = pd.DataFrame([np.array([0.0, 0.01, 0.0, 0.0])], index=["OneLocation"]).T
     maxpurchase = (
         pd.DataFrame([np.array([1e6, 1e6, 1e6, 1e6])], index=["OneLocation"]).T
         * hoursPerTimeStep
@@ -792,5 +789,9 @@ def test_exceeded_lifetime_stock_dropped_by_2030(rh_results_exceeded_lifetime):
     """2020 stock (technicalLifetime=7) must be gone from the 2030 window:
     2020 < 2030 - 7 = 2023.
     """
-    stock = rh_results_exceeded_lifetime[2030].getComponent("Electrolyzers").stockCommissioning
+    stock = (
+        rh_results_exceeded_lifetime[2030]
+        .getComponent("Electrolyzers")
+        .stockCommissioning
+    )
     assert stock is None or 2020 not in stock

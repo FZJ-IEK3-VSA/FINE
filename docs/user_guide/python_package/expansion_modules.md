@@ -19,9 +19,9 @@ system models multiple times or can be applied in the pre- and post-processing o
 
 ## Transformation Path
 
-!!! warning "Deprecated"
-    `optimizeSimpleMyopic` is deprecated and no longer maintained. Use
-    [Rolling Horizon](#rolling-horizon) with
+!!! warning "Removed"
+    `optimizeSimpleMyopic` has been removed and now raises a
+    `NotImplementedError`. Use [Rolling Horizon](#rolling-horizon) with
     `numberOfInvestmentPeriodsForRollingHorizon=1` instead, which covers the
     same myopic foresight use case.
 
