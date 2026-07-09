@@ -1133,9 +1133,10 @@ class EnergySystemModel:
             ) -> tuple[pd.DataFrame, dict, pd.Index]:
         """Create and return the time series data, weights, and zero-data columns for aggregation.
 
-            Returns:
-                tuple[pd.DataFrame, dict, pd.Index]: Time series data, weight dictionary,
-                    and columns containing only zero values
+        Returns:
+            tuple[pd.DataFrame, dict, pd.Index]: Time series data, weight dictionary,
+            and columns containing only zero values.
+            
         """
         timeSeriesData, weightDict = [], {}
         for mdlName, mdl in self.componentModelingDict.items():
