@@ -15,7 +15,6 @@ from .IOManagement.standardIO import (
     plotOperationColorMap,
     plotPieChart,
     plotTransmission,
-    plotPieChart,
 )
 from .expansionModules.optimizeTSAmultiStage import (
     fixBinaryVariables,
