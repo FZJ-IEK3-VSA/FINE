@@ -421,7 +421,9 @@ class EnergySystemModel:
 
         # pooledCommodities defines commodities whose balance is enforced over a group of locations
         # rather than per individual location. Format: {commodity: {pool_name: [locations]}}
-        self.pooledCommodities = pooledCommodities or {}
+        self.pooledCommodities = (
+            pooledCommodities if isinstance(pooledCommodities, dict) else {}
+        )
         # check if pooled commodities are part of the model
         for commod, pools in self.pooledCommodities.items():
             if commod not in self.commodities:
