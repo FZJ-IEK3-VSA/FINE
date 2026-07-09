@@ -1129,9 +1129,9 @@ class EnergySystemModel:
         )
 
     def createTimeSeriesDataForAggregation(
-            self,
-            ip,
-            ) -> tuple[pd.DataFrame, dict, pd.Index]:
+        self,
+        ip,
+    ) -> tuple[pd.DataFrame, dict, pd.Index]:
         """Create and return the time series data, weights, and zero-data columns for aggregation.
 
         Returns:
