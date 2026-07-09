@@ -160,7 +160,19 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
             dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
             dataTI, indexTI = [], []
+
+            duplicate_optimum_variables = {
+                "capacityVariablesOptimum",
+                "commissioningVariablesOptimum",
+                "decommissioningVariablesOptimum",
+            }
+            rename_optimum_variables = {
+                "operationVariablesOptimum": "operationTimeSeriesOptimum",
+            }
             for key, d in data.items():
+                if key in duplicate_optimum_variables:
+                    continue
+
                 if d["values"] is None:
                     continue
                 if d["timeDependent"]:
@@ -180,7 +192,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         dfTD1dim.loc[variable].index.get_level_values(0).unique()
                     ):
                         df = dfTD1dim.loc[(variable, component)].T.stack()
-                        df.name = variable
+                        df.name = rename_optimum_variables.get(variable, variable)
                         df.index.rename(["time", "location"], inplace=True)
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
@@ -198,7 +210,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                     ):
                         df = dfTD2dim.loc[(variable, component)].stack()
 
-                        df.name = variable
+                        df.name = rename_optimum_variables.get(variable, variable)
                         df.index.rename(
                             ["locationIn", "locationOut", "time"], inplace=True
                         )
@@ -627,7 +639,10 @@ def convertDatasetsToEnergySystemModel(datasets):
                         else:
                             continue
 
-                        if opt_variable == "operationVariablesOptimum":
+                        if opt_variable in [
+                            "operationVariablesOptimum",
+                            "operationTimeSeriesOptimum",
+                        ]:
                             if "locationOut" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
