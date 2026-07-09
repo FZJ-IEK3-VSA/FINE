@@ -1765,8 +1765,7 @@ class ConversionModel(ComponentModel):
 
         optSummaryDict = {}
         for ip in esM.investmentPeriods:
-            # operation variables are extracted by _extractSubclassRawResults
-            optVal = self._rawResults[esM.investmentPeriodNames[ip]]["operation"]
+            ipName = esM.investmentPeriodNames[ip]
 
             props = ["operation", "operation_annual", "opexOp"]
             # Unit dict: Specify units for props
@@ -1804,40 +1803,10 @@ class ConversionModel(ComponentModel):
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
 
-            if optVal is not None:
-                idx = pd.IndexSlice
-                optVal = optVal.loc[
-                    idx[:, :], :
-                ]  # perfect foresight: added ip and deleted again
-                opSum = optVal.sum(axis=1).unstack(-1)
-
-                # operation
-                optSummary.loc[
-                    [
-                        (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values
-
-                optSummary.loc[
-                    [
-                        (
-                            ix,
-                            "operation_annual",
-                            "[" + compDict[ix].physicalUnit + "*h/a]",
-                        )
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-
-                # operation cost - TAC (derived by _deriveSubclassEconomics)
-                tac_ox = self._rawResults[esM.investmentPeriodNames[ip]]["opexOp"]
-                optSummary.loc[
-                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
-                    tac_ox.columns,
-                ] = tac_ox.values
+            # operation rows (operation, operation_annual, opexOp) are aggregated once in
+            # _subclassSummaryFrames and written here, so the summary and the export share
+            # the same source.
+            self._writeOperationSummaryRows(optSummary, esM, ipName)
 
             optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]
             if isinstance(optSummaryBasic_frame, pd.Series):
@@ -1872,7 +1841,6 @@ class ConversionModel(ComponentModel):
 
         optVal = results_ip.get("operation")
         if optVal is not None:
-            optVal = optVal.loc[pd.IndexSlice[:, :], :]
             opSum = optVal.sum(axis=1).unstack(-1)
             annual = opSum / esM.numberOfYears
         else:

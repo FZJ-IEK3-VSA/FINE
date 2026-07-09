@@ -1036,11 +1036,7 @@ class TransmissionModel(ComponentModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
-        mapC = {
-            loc1 + "_" + loc2: (loc1, loc2)
-            for loc1 in esM.locations
-            for loc2 in esM.locations
-        }
+        mapC = self._connectionLocationMap(esM)
         # Set optimal design dimension variables, derive the economics (incl. the
         # operation opex via _deriveSubclassEconomics, already folded into TAC) and get
         # the basic optimization summary, then assemble the full summary as a view.
@@ -1069,14 +1065,11 @@ class TransmissionModel(ComponentModel):
         :rtype: dict
         """
         compDict = self.componentsDict
-        mapC = {
-            loc1 + "_" + loc2: (loc1, loc2)
-            for loc1 in esM.locations
-            for loc2 in esM.locations
-        }
+        mapC = self._connectionLocationMap(esM)
 
         optSummaryDict = {}
         for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
             for compName, comp in compDict.items():
                 for cost in [
                     "invest",
@@ -1086,16 +1079,8 @@ class TransmissionModel(ComponentModel):
                     "opexIfBuilt",
                     "TAC",
                 ]:
-                    data = optSummaryBasic[esM.investmentPeriodNames[ip]].loc[
-                        compName, cost
-                    ]
-                    optSummaryBasic[esM.investmentPeriodNames[ip]].loc[
-                        compName, cost
-                    ] = (data).values
-
-            # operation variables are extracted by _extractSubclassRawResults
-            # (1-dim companion used here for the summary; 2-dim stored on the attr)
-            optVal = self._rawResults1dim[esM.investmentPeriodNames[ip]]["operation"]
+                    data = optSummaryBasic[ipName].loc[compName, cost]
+                    optSummaryBasic[ipName].loc[compName, cost] = (data).values
 
             props = ["operation", "operation_annual", "opexOp"]
             # Unit dict: Specify units for props
@@ -1133,38 +1118,14 @@ class TransmissionModel(ComponentModel):
                 index=mIndex, columns=sorted(mapC.keys())
             ).sort_index()
 
-            if optVal is not None:
-                opSum = optVal.sum(axis=1).unstack(-1)
+            # operation rows (operation, operation_annual, opexOp) are aggregated once in
+            # _subclassSummaryFrames and written here (connection-indexed, split into
+            # locationIn/locationOut below), so the summary and the export share the same
+            # source. opexOp carries the preserved operation-NPV quirk (see
+            # _deriveSubclassEconomics).
+            self._writeOperationSummaryRows(optSummary, esM, ipName)
 
-                optSummary.loc[
-                    [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values
-
-                optSummary.loc[
-                    [
-                        (
-                            ix,
-                            "operation_annual",
-                            "[" + compDict[ix].commodityUnit + "*h/a]",
-                        )
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-
-                # operation cost (derived by _deriveSubclassEconomics; see the note in
-                # _deriveSubclassEconomics on the preserved opexOp = NPV quirk)
-                tac_ox = self._rawResults[esM.investmentPeriodNames[ip]]["opexOp"]
-                optSummary.loc[
-                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
-                    tac_ox.columns,
-                ] = tac_ox.values
-
-            optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]
+            optSummaryBasic_frame = optSummaryBasic[ipName]
             if isinstance(optSummaryBasic_frame, pd.Series):
                 optSummaryBasic_frame = optSummaryBasic_frame.to_frame().T
 
@@ -1188,10 +1149,10 @@ class TransmissionModel(ComponentModel):
                 indexNew.append((tup[0], tup[1], tup[2], loc1, loc2))
             optSummary.index = pd.MultiIndex.from_tuples(indexNew)
             optSummary = optSummary.unstack(level=-1)
-            names = list(optSummaryBasic[esM.investmentPeriodNames[ip]].index.names)
+            names = list(optSummaryBasic[ipName].index.names)
             names.append("locationIn")
             optSummary.index.set_names(names, inplace=True)
-            optSummaryDict[esM.investmentPeriodNames[ip]] = optSummary
+            optSummaryDict[ipName] = optSummary
 
         return optSummaryDict
 

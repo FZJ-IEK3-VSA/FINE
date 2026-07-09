@@ -896,6 +896,29 @@ class ConversionPartLoadModel(ConversionModel):
                 optimumAttr[ipName] = optVal_
                 rawResults[ipName][varName] = optVal_
 
+    def _exportOptimumVarMap(self):
+        """Extend the Conversion export map with the part-load discretization variables.
+
+        These are 1-dim, time-dependent variables (like the conversion operation) and were
+        part of the netCDF/xarray export before the results-dict refactor.
+        """
+        d = self.dimension
+        return super()._exportOptimumVarMap() + [
+            ("discretizationPoint", "discretizationPointVariablesOptimum", True, d),
+            (
+                "discretizationSegmentCon",
+                "discretizationSegmentConVariablesOptimum",
+                True,
+                d,
+            ),
+            (
+                "discretizationSegmentBin",
+                "discretizationSegmentBinVariablesOptimum",
+                True,
+                d,
+            ),
+        ]
+
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
 

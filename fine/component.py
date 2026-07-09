@@ -3792,6 +3792,13 @@ class ComponentModel(metaclass=ABCMeta):
                 optVal_ = utils.formatOptimizationOutput(
                     values, "designVariables", self.dimension, ip, compDict=compDict
                 )
+                # NOTE (aliasing invariant): the ``self._*VariablesOptimum`` attribute and the
+                # raw results dict deliberately share the *same* frame object (avoids doubling
+                # the memory of the optima). ``self._rawResults`` is the single source of truth,
+                # so these frames must be treated as immutable after optimization: never mutate
+                # a ``*VariablesOptimum`` frame in place, or the summary/export read from
+                # ``_rawResults`` would silently see the mutation. Readers copy before returning
+                # (see :meth:`getResultOptimalValues` / :meth:`getResultSummaryDict`).
                 optimumAttr[ipName] = optVal_
                 rawResults[ipName][varName] = optVal_
                 self._rawResults1dim[ipName][varName] = optVal
@@ -4089,6 +4096,23 @@ class ComponentModel(metaclass=ABCMeta):
         # let subclasses add their specific cost contributions (e.g. charge/discharge opex)
         self._deriveSubclassEconomics(esM, pyM, self._rawResults)
 
+        # Label the derived economic frames so the raw results dict is self-describing,
+        # consistent with the solved-variable frames named in utils.formatOptimizationOutput.
+        # All derived economics are flat ``component x location`` (2-dim connections are the
+        # 1-dim pseudo-location convention) frames; the raw design/operation frames are already
+        # named and either multi-level (2-dim, operation) or time-columned, so this sweep only
+        # touches the flat component-indexed cost frames and needs no per-cost-term upkeep.
+        for ipResults in self._rawResults.values():
+            for frame in ipResults.values():
+                if (
+                    isinstance(frame, pd.DataFrame)
+                    and frame.index.nlevels == 1
+                    and frame.columns.nlevels == 1
+                    and frame.index.name != "component"
+                ):
+                    frame.index = frame.index.set_names("component")
+                    frame.columns = frame.columns.set_names("location")
+
     def _deriveSubclassEconomics(self, esM, pyM, rawResults):
         """Overridable hook for subclass specific economic (cost) contributions.
 
@@ -4154,6 +4178,48 @@ class ComponentModel(metaclass=ABCMeta):
         self.deriveEconomics(esM, pyM)
         return self._buildOptimizationSummary(esM, indexColumns, plantUnit, unitApp)
 
+    def _connectionLocationMap(self, esM):
+        """Cached ``"locIn_locOut" -> (locIn, locOut)`` map for 2-dim connection splitting.
+
+        Built once per (component-model, location set) and rebuilt only if ``esM.locations``
+        changes, avoiding the O(locations^2) rebuild on every summary/export call.
+
+        :param esM: EnergySystemModel instance (provides ``locations``).
+        :rtype: dict
+        """
+        cache = getattr(self, "_connLocMapCache", None)
+        if cache is None or cache[0] != esM.locations:
+            mapC = {
+                l1 + "_" + l2: (l1, l2) for l1 in esM.locations for l2 in esM.locations
+            }
+            cache = (set(esM.locations), mapC)
+            self._connLocMapCache = cache
+        return cache[1]
+
+    def _economicSummaryUnits(self, esM):
+        """Property -> unit string for the derived economic summary rows.
+
+        Single source for these units; consumed by both the optimization summary
+        (:meth:`_buildOptimizationSummary`) and the export (:meth:`getResultSummaryDict`).
+
+        :param esM: EnergySystemModel instance (provides ``costUnit``).
+        :return: ordered ``{property: unitString}`` mapping.
+        :rtype: dict
+        """
+        perA = "[" + esM.costUnit + "/a]"
+        cost = "[" + esM.costUnit + "]"
+        return {
+            "capexCap": perA,
+            "capexIfBuilt": perA,
+            "opexCap": perA,
+            "opexIfBuilt": perA,
+            "TAC": perA,
+            "NPVcontribution": cost,
+            "invest": cost,
+            "investLifetimeExtension": cost,
+            "revenueLifetimeShorteningResale": cost,
+        }
+
     def _buildOptimizationSummary(self, esM, indexColumns, plantUnit, unitApp=""):
         r"""Assemble the optimization summary as a view of ``self._rawResults``.
 
@@ -4192,24 +4258,15 @@ class ComponentModel(metaclass=ABCMeta):
 
         # Single source of truth for the summary's (Property -> Unit) rows. The design rows
         # (capacity/commissioning/decommissioning) carry a per-component plant unit resolved
-        # below and are marked with ``None``; every other unit is fixed. The same mapping
+        # below and are marked with ``None``; every other unit is fixed. The economic units
+        # are shared with the export via :meth:`_economicSummaryUnits`. The same mapping
         # drives both the MultiIndex and the economic-frame write loop further down.
-        perA = "[" + esM.costUnit + "/a]"
-        cost = "[" + esM.costUnit + "]"
         summaryUnits = {
             "capacity": None,
             "commissioning": None,
             "decommissioning": None,
             "isBuilt": "[-]",
-            "capexCap": perA,
-            "capexIfBuilt": perA,
-            "opexCap": perA,
-            "opexIfBuilt": perA,
-            "TAC": perA,
-            "NPVcontribution": cost,
-            "invest": cost,
-            "investLifetimeExtension": cost,
-            "revenueLifetimeShorteningResale": cost,
+            **self._economicSummaryUnits(esM),
         }
         # Design rows are written explicitly below (from the 1-dim frames, with their own
         # conditionals); the remaining rows are the economic frames derived by deriveEconomics.
@@ -4401,16 +4458,22 @@ class ComponentModel(metaclass=ABCMeta):
     def _exportOptimumVarMap(self):
         """Map raw result keys to the optimum variable names used by the export.
 
-        :return: list of ``(rawResultsKey, optimumVariableName, timeDependent)`` tuples in the
-            same order/meaning as :meth:`getOptimalValues`.
+        Each entry carries an explicit ``dimension`` so a variable can be shaped
+        independently of the component's own dimension (e.g. the LOPF phase angle is
+        1-dim on a 2-dim component). Subclasses extend this list with their own
+        variables (see :meth:`fine.storage.StorageModel._exportOptimumVarMap`).
+
+        :return: list of ``(rawResultsKey, optimumVariableName, timeDependent, dimension)``
+            tuples in the same order/meaning as :meth:`getOptimalValues`.
         :rtype: list
         """
+        d = self.dimension
         return [
-            ("capacity", "capacityVariablesOptimum", False),
-            ("isBuilt", "isBuiltVariablesOptimum", False),
-            ("operation", "operationVariablesOptimum", True),
-            ("commissioning", "commissioningVariablesOptimum", False),
-            ("decommissioning", "decommissioningVariablesOptimum", False),
+            ("capacity", "capacityVariablesOptimum", False, d),
+            ("isBuilt", "isBuiltVariablesOptimum", False, d),
+            ("operation", "operationVariablesOptimum", True, d),
+            ("commissioning", "commissioningVariablesOptimum", False, d),
+            ("decommissioning", "decommissioningVariablesOptimum", False, d),
         ]
 
     def getResultOptimalValues(self, ip):
@@ -4430,39 +4493,59 @@ class ComponentModel(metaclass=ABCMeta):
         """
         results_ip = self._rawResults[ip]
         out = {compName: {} for compName in self.componentsDict}
-        for rawKey, optName, timeDependent in self._exportOptimumVarMap():
+        for rawKey, optName, timeDependent, dimension in self._exportOptimumVarMap():
             frame = results_ip.get(rawKey)
             if frame is None:
                 continue
             for compName in self.componentsDict:
                 if compName not in frame.index.get_level_values(0):
                     continue
-                series = self._shapeOptimumResult(frame.loc[compName], optName, timeDependent)
+                series = self._shapeOptimumResult(
+                    frame.loc[compName], optName, timeDependent, dimension
+                )
                 out[compName][optName] = (series, None)
         return out
 
-    def _shapeOptimumResult(self, sub, name, timeDependent):
+    def _shapeOptimumResult(self, sub, name, timeDependent, dimension):
         """Shape a single component's optimum frame into a ``to_xarray``-ready ``Series``.
 
         Reproduces the per-case index handling the export applied to ``getOptimalValues`` output:
         time-dependent rows gain a ``time`` dimension; 2-dim rows are split into
         ``(locationIn, locationOut)`` (the time-independent 2-dim case keeps the historical
-        transpose).
+        transpose). The shaping uses the variable's own ``dimension`` (from
+        :meth:`_exportOptimumVarMap`), which may differ from ``self.dimension`` (e.g. the LOPF
+        phase angle is 1-dim on a 2-dim component).
+
+        Variables that carry an extra index level beyond ``location`` (e.g. the part-load
+        discretization point/segment variables, indexed by ``(discretizationIndex, location)``
+        per component) keep that level so each variable exports under its own name instead of
+        colliding on an anonymous stacked column. The extra level names are propagated from the
+        frame (labelled in :func:`utils.formatOptimizationOutput`) rather than re-derived here.
 
         :param sub: the component slice ``frame.loc[component]``.
         :param name: variable name (becomes the data variable name).
         :param timeDependent: whether the variable carries a ``time`` dimension.
+        :param dimension: ``"1dim"`` or ``"2dim"`` shaping to apply to this variable.
 
         :rtype: pandas.Series
         """
-        if timeDependent and self.dimension == "1dim":
-            series = sub.T.stack()
-            series.index = series.index.rename(["time", "location"])
-        elif timeDependent and self.dimension == "2dim":
+        if timeDependent and dimension == "1dim":
+            subT = sub.T
+            if subT.columns.nlevels == 1:
+                series = subT.stack()
+                series.index = series.index.rename(["time", "location"])
+            else:
+                # extra index levels (e.g. discretizationIndex) sit before location; stack
+                # every column level so nothing is lost or collides on export, keeping the
+                # level names set by formatOptimizationOutput.
+                series = subT.stack(list(range(subT.columns.nlevels)))
+                extraNames = list(sub.index.names[:-1])
+                series.index = series.index.rename(["time", *extraNames, "location"])
+        elif timeDependent and dimension == "2dim":
             series = sub.stack()
             series.index = series.index.rename(["locationIn", "locationOut", "time"])
             series = series.reorder_levels(["time", "locationIn", "locationOut"])
-        elif not timeDependent and self.dimension == "1dim":
+        elif not timeDependent and dimension == "1dim":
             series = sub.rename_axis("location")
         else:  # time-independent 2-dim
             series = sub.T.stack()
@@ -4481,12 +4564,43 @@ class ComponentModel(metaclass=ABCMeta):
     def _subclassSummaryFrames(self, esM, ip):
         """Operation summary rows (per subclass) derived from ``self._rawResults``.
 
+        These frames are the single source of the aggregated operation rows: they feed both
+        the export (:meth:`getResultSummaryDict`) and the optimization summary (written into
+        the summary skeleton by :meth:`_writeOperationSummaryRows`).
+
         :return: ordered list of ``(property, frame, unitFn)`` where ``frame`` is indexed by
             component with locations (1dim) / connections (2dim) as columns, and ``unitFn`` maps
             a component name to its unit string. The base class has no operation rows.
         :rtype: list
         """
         return []
+
+    def _writeOperationSummaryRows(self, optSummary, esM, ipName):
+        """Write the subclass operation rows (:meth:`_subclassSummaryFrames`) into the summary.
+
+        Shared by every subclass' ``_buildSubclassOptimizationSummary`` so the operation
+        aggregation is computed once (in :meth:`_subclassSummaryFrames`) rather than
+        independently for the summary and the export.
+
+        :param optSummary: summary skeleton with a ``(Component, Property, Unit) x columns``
+            MultiIndex; filled in place.
+        :param esM: EnergySystemModel instance.
+        :param ipName: investment period name (key into ``self._rawResults``).
+
+        :return: the ``{property: frame}`` mapping (so callers can reuse the aggregated frames,
+            e.g. for the storage charge/discharge warning).
+        :rtype: dict
+        """
+        framesByProp = {}
+        for prop, frame, unit in self._subclassSummaryFrames(esM, ipName):
+            framesByProp[prop] = frame
+            if frame is None or frame.empty:
+                continue
+            optSummary.loc[
+                [(ix, prop, unit(ix) if callable(unit) else unit) for ix in frame.index],
+                frame.columns,
+            ] = frame.values
+        return framesByProp
 
     def getResultSummaryDict(self, esM, ip):
         """Assemble the time-independent summary results for the export from ``self._rawResults``.
@@ -4513,38 +4627,27 @@ class ComponentModel(metaclass=ABCMeta):
         results_ip = self._rawResults[ip]
         results1dim_ip = self._rawResults1dim[ip]
         plantUnit, unitApp = self._summaryPlantUnit()
-        perA = "[" + esM.costUnit + "/a]"
-        cost = "[" + esM.costUnit + "]"
 
         def plantUnitFn(compName, suffix):
             return "[" + getattr(compDict[compName], plantUnit) + suffix + "]"
 
         # (property, frame, unit) in the order the summary lists them. ``unit`` is either a
         # fixed string or a callable ``comp -> unit`` for the per-component plant units. Design
-        # rows use the 1-dim companion frames; economic rows use the derived frames.
+        # rows use the 1-dim companion frames; economic rows use the derived frames. The
+        # economic units are shared with the summary via :meth:`_economicSummaryUnits`.
         designRows = [
             ("capacity", results1dim_ip.get("capacity"), lambda c: plantUnitFn(c, unitApp)),
             ("commissioning", results1dim_ip.get("commissioning"), lambda c: plantUnitFn(c, unitApp)),
             ("decommissioning", results1dim_ip.get("decommissioning"), lambda c: plantUnitFn(c, unitApp)),
             ("isBuilt", results1dim_ip.get("isBuilt"), "[-]"),
         ]
-        econUnits = {
-            "capexCap": perA,
-            "capexIfBuilt": perA,
-            "opexCap": perA,
-            "opexIfBuilt": perA,
-            "TAC": perA,
-            "NPVcontribution": cost,
-            "invest": cost,
-            "investLifetimeExtension": cost,
-            "revenueLifetimeShorteningResale": cost,
-        }
-        econRows = [(prop, results_ip.get(prop), unit) for prop, unit in econUnits.items()]
+        econRows = [
+            (prop, results_ip.get(prop), unit)
+            for prop, unit in self._economicSummaryUnits(esM).items()
+        ]
         rows = designRows + econRows + self._subclassSummaryFrames(esM, ip)
 
-        mapC = {
-            l1 + "_" + l2: (l1, l2) for l1 in esM.locations for l2 in esM.locations
-        }
+        mapC = self._connectionLocationMap(esM)
         out = {compName: {} for compName in compDict}
         for compName in compDict:
             for prop, frame, unit in rows:

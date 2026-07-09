@@ -2099,18 +2099,18 @@ class StorageModel(ComponentModel):
                         "NPVcontribution"
                     ].add(resultsNPV_opexOpDischarge[ip], fill_value=0)
 
-            # add the charge/discharge opex to the total annual cost
+            # add the charge/discharge opex to the total annual cost. Components without a
+            # capacity variable have no base TAC frame, so it is built from the operation
+            # parts alone (missing base row treated as 0), matching conversion/transmission.
             tacParts = [
                 results_ip[key]
                 for key in ("opexCharge", "opexDischarge")
                 if key in results_ip
             ]
-            if tacParts and "TAC" in results_ip:
-                results_ip["TAC"] = (
-                    pd.concat([results_ip["TAC"]] + tacParts)
-                    .groupby(level=0)
-                    .sum()
-                )
+            if tacParts:
+                if "TAC" in results_ip:
+                    tacParts.insert(0, results_ip["TAC"])
+                results_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
 
     def setOptimalValues(self, esM, pyM):
         """Set the optimal values of the components.
@@ -2151,6 +2151,7 @@ class StorageModel(ComponentModel):
 
         optSummaryDict = {}
         for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
             # Set optimal operation variables and append optimization summary
             props = [
                 "operationCharge",
@@ -2222,112 +2223,32 @@ class StorageModel(ComponentModel):
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
 
-            # * charge variables and contributions (extracted by _extractSubclassRawResults)
-            optVal_charge = self._rawResults[esM.investmentPeriodNames[ip]][
-                "chargeOperation"
-            ]
+            # charge/discharge operation rows (operation(Charge|Discharge)[_annual],
+            # opex(Charge|Discharge)) are aggregated once in _subclassSummaryFrames and written
+            # here, so the summary and the export share the same source.
+            framesByProp = self._writeOperationSummaryRows(optSummary, esM, ipName)
 
-            if optVal_charge is not None:
-                idx = pd.IndexSlice
-                optVal_charge = optVal_charge.loc[
-                    idx[:, :], :
-                ]  # perfect foresight: added ip and deleted again
-                opSum = optVal_charge.sum(axis=1).unstack(-1)
-
-                # operation
-                optSummary.loc[
-                    [
-                        (
-                            ix,
-                            "operationCharge_annual",
-                            "[" + compDict[ix].commodityUnit + "*h/a]",
+            # Check if there are time steps at which a storage component is both charging and
+            # discharging (uses the charge aggregation's component index).
+            chargeSum = framesByProp.get("operationCharge")
+            if chargeSum is not None:
+                for compName in chargeSum.index:
+                    simultaneousChargeDischarge = (
+                        utils.checkSimultaneousChargeDischarge(
+                            tsCharge=self._chargeOperationVariablesOptimum[ipName].loc[
+                                compName
+                            ],
+                            tsDischarge=self._dischargeOperationVariablesOptimum[
+                                ipName
+                            ].loc[compName],
                         )
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-                optSummary.loc[
-                    [
-                        (
-                            ix,
-                            "operationCharge",
-                            "[" + compDict[ix].commodityUnit + "*h]",
-                        )
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values
-
-                # cost (derived by _deriveSubclassEconomics)
-                tac_oxCharge = self._rawResults[esM.investmentPeriodNames[ip]][
-                    "opexCharge"
-                ]
-                optSummary.loc[
-                    [
-                        (ix, "opexCharge", "[" + esM.costUnit + "/a]")
-                        for ix in tac_oxCharge.index
-                    ],
-                    tac_oxCharge.columns,
-                ] = tac_oxCharge.values
-
-            # * discharge variables and contributions (extracted by _extractSubclassRawResults)
-            optVal_discharge = self._rawResults[esM.investmentPeriodNames[ip]][
-                "dischargeOperation"
-            ]
-            # Check if there are time steps, at which a storage component is both charging and discharging
-            for compName in opSum.index:
-                simultaneousChargeDischarge = utils.checkSimultaneousChargeDischarge(
-                    tsCharge=self._chargeOperationVariablesOptimum[
-                        esM.investmentPeriodNames[ip]
-                    ].loc[compName],
-                    tsDischarge=self._dischargeOperationVariablesOptimum[
-                        esM.investmentPeriodNames[ip]
-                    ].loc[compName],
-                )
-                if simultaneousChargeDischarge:
-                    if esM.verboseLogLevel < 2:
-                        warnings.warn(
-                            f"Charge and discharge at the same time for component {compName}",
-                            UserWarning,
-                        )
-
-            if optVal_discharge is not None:
-                # operation
-                opSum = optVal_discharge.sum(axis=1).unstack(-1)
-                optSummary.loc[
-                    [
-                        (
-                            ix,
-                            "operationDischarge_annual",
-                            "[" + compDict[ix].commodityUnit + "*h/a]",
-                        )
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-                optSummary.loc[
-                    [
-                        (
-                            ix,
-                            "operationDischarge",
-                            "[" + compDict[ix].commodityUnit + "*h]",
-                        )
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values
-
-                # costs (derived by _deriveSubclassEconomics)
-                tac_oxDischarge = self._rawResults[esM.investmentPeriodNames[ip]][
-                    "opexDischarge"
-                ]
-                optSummary.loc[
-                    [
-                        (ix, "opexDischarge", "[" + esM.costUnit + "/a]")
-                        for ix in tac_oxDischarge.index
-                    ],
-                    tac_oxDischarge.columns,
-                ] = tac_oxDischarge.values
+                    )
+                    if simultaneousChargeDischarge:
+                        if esM.verboseLogLevel < 2:
+                            warnings.warn(
+                                f"Charge and discharge at the same time for component {compName}",
+                                UserWarning,
+                            )
 
             # State of charge variables are extracted by _extractSubclassRawResults
             # (self._stateOfChargeOperationVariablesOptimum) and are not part of the summary.
@@ -2357,17 +2278,19 @@ class StorageModel(ComponentModel):
         return "commodityUnit", "*h"
 
     def _exportOptimumVarMap(self):
+        d = self.dimension
         return [
-            ("capacity", "capacityVariablesOptimum", False),
-            ("commissioning", "commissioningVariablesOptimum", False),
-            ("decommissioning", "decommissioningVariablesOptimum", False),
-            ("isBuilt", "isBuiltVariablesOptimum", False),
-            ("chargeOperation", "chargeOperationVariablesOptimum", True),
-            ("dischargeOperation", "dischargeOperationVariablesOptimum", True),
+            ("capacity", "capacityVariablesOptimum", False, d),
+            ("commissioning", "commissioningVariablesOptimum", False, d),
+            ("decommissioning", "decommissioningVariablesOptimum", False, d),
+            ("isBuilt", "isBuiltVariablesOptimum", False, d),
+            ("chargeOperation", "chargeOperationVariablesOptimum", True, d),
+            ("dischargeOperation", "dischargeOperationVariablesOptimum", True, d),
             (
                 "stateOfChargeOperation",
                 "stateOfChargeOperationVariablesOptimum",
                 True,
+                d,
             ),
         ]
 
@@ -2381,7 +2304,6 @@ class StorageModel(ComponentModel):
 
         chargeOp = results_ip.get("chargeOperation")
         if chargeOp is not None:
-            chargeOp = chargeOp.loc[pd.IndexSlice[:, :], :]
             opSumCharge = chargeOp.sum(axis=1).unstack(-1)
             annualCharge = opSumCharge / esM.numberOfYears
         else:

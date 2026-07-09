@@ -65,18 +65,11 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
     return {"PerformanceSummary": summary_xr}
 
 
-def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
+def convertOptimizationOutputToDatasets(esM):
     """Take esM instance output and convert it into an xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
-
-    :param optSumOutputLevel: Output level of the optimization summary (see
-        EnergySystemModel). Either an integer (0,1,2) which holds for all model
-        classes or a dictionary with model class names as keys and an integer
-        (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        |br| * the default value is 2
-    :type optSumOutputLevel: int (0,1,2) or dict
 
     :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
     :rtype: xarray.dataset
@@ -855,7 +848,6 @@ def writeEnergySystemModelToNetCDF(
     esM,
     outputFilePath="my_esm.nc",
     overwriteExisting=False,
-    optSumOutputLevel=0,
     groupPrefix=None,
     includeShadowPrices=False,
     shadowPriceConstraintStr="commodityBalanceConstraint",
@@ -872,13 +864,6 @@ def writeEnergySystemModelToNetCDF(
     :param overwriteExisting: Overwrite existing netCDF file
         |br| * the default value is False
     :type outputFileName: boolean
-
-    :param optSumOutputLevel: Output level of the optimization summary (see
-        EnergySystemModel). Either an integer (0,1,2) which holds for all model
-        classes or a dictionary with model class names as keys and an integer
-        (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
-        |br| * the default value is 2
-    :type optSumOutputLevel: int (0,1,2) or dict
 
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
@@ -908,7 +893,7 @@ def writeEnergySystemModelToNetCDF(
     xr_dss_input = convertOptimizationInputToDatasets(esM)
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
     if esM.objectiveValue is not None:  # model was optimized
-        xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
+        xr_dss_output = convertOptimizationOutputToDatasets(esM)
         if hasattr(esM, "performanceSummary"):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
             xr_dss_output["PerformanceSummary"] = xr_dss_performance[

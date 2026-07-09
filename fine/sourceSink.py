@@ -1184,9 +1184,7 @@ class SourceSinkModel(ComponentModel):
         optSummaryDict = {}
         for ip in esM.investmentPeriods:
             compDict = self.componentsDict
-
-            # operation variables are extracted by _extractSubclassRawResults
-            optVal = self._rawResults[esM.investmentPeriodNames[ip]]["operation"]
+            ipName = esM.investmentPeriodNames[ip]
 
             props = [
                 "operation",
@@ -1234,55 +1232,10 @@ class SourceSinkModel(ComponentModel):
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
 
-            if optVal is not None:
-                # operation
-                opSum = optVal.sum(axis=1).unstack(-1)
-                optSummary.loc[
-                    [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values
-                optSummary.loc[
-                    [
-                        (
-                            ix,
-                            "operation_annual",
-                            "[" + compDict[ix].commodityUnit + "*h/a]",
-                        )
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-
-                # costs (derived by _deriveSubclassEconomics)
-                results_ip = self._rawResults[esM.investmentPeriodNames[ip]]
-                tac_ox = results_ip["opexOp"]
-                optSummary.loc[
-                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
-                    tac_ox.columns,
-                ] = tac_ox.values
-
-                # costs: commodity costs
-                tac_commodCosts = results_ip["commodCosts"]
-                optSummary.loc[
-                    [
-                        (ix, "commodCosts", "[" + esM.costUnit + "/a]")
-                        for ix in tac_commodCosts.index
-                    ],
-                    tac_commodCosts.columns,
-                ] = tac_commodCosts.values
-
-                # costs: commodity revenues
-                tac_commodRevenue = results_ip["commodRevenues"]
-                optSummary.loc[
-                    [
-                        (ix, "commodRevenues", "[" + esM.costUnit + "/a]")
-                        for ix in tac_commodRevenue.index
-                    ],
-                    tac_commodRevenue.columns,
-                ] = tac_commodRevenue.values
+            # operation rows (operation, operation_annual, opexOp, commodCosts,
+            # commodRevenues) are aggregated once in _subclassSummaryFrames and written here,
+            # so the summary and the export share the same source.
+            self._writeOperationSummaryRows(optSummary, esM, ipName)
 
             # get discounted investment cost as total annual cost (TAC)
             optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]

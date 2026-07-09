@@ -333,6 +333,17 @@ class LOPFModel(TransmissionModel):
             self._phaseAngleVariablesOptimum[ipName] = optVal_
             rawResults[ipName]["phaseAngle"] = optVal_
 
+    def _exportOptimumVarMap(self):
+        """Extend the Transmission export map with the LOPF phase angle.
+
+        The phase angle is a 1-dim, time-dependent variable even though the LOPF component
+        itself is 2-dim, so its dimension is given explicitly. It was part of the
+        netCDF/xarray export before the results-dict refactor.
+        """
+        return super()._exportOptimumVarMap() + [
+            ("phaseAngle", "phaseAngleVariablesOptimum", True, "1dim"),
+        ]
+
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
 
