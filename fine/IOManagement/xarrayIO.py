@@ -6,6 +6,7 @@ from netCDF4 import Dataset
 import logging
 
 from fine import utils
+from fine.enums import Dimension
 from fine.IOManagement import dictIO, utilsIO
 
 logger = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             oL = optSumOutputLevel
             oL_ = oL[name] if isinstance(oL, dict) else oL
             optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
-            if esM.componentModelingDict[name].dimension == "1dim":
+            if esM.componentModelingDict[name].dimension == Dimension.ONE:
                 for component in optSum.index.get_level_values(0).unique():
                     variables = optSum.loc[component].index.get_level_values(0)
                     units = optSum.loc[component].index.get_level_values(1)
@@ -121,7 +122,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             combine_attrs="drop_conflicts",
                             join="outer",
                         )
-            elif esM.componentModelingDict[name].dimension == "2dim":
+            elif esM.componentModelingDict[name].dimension == Dimension.TWO:
                 for component in optSum.index.get_level_values(0).unique():
                     variables = optSum.loc[component].index.get_level_values(0)
                     units = optSum.loc[component].index.get_level_values(1)
@@ -163,9 +164,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 if d["values"] is None:
                     continue
                 if d["timeDependent"]:
-                    if d["dimension"] == "1dim":
+                    if d["dimension"] == Dimension.ONE:
                         dataTD1dim.append(d["values"]), indexTD1dim.append(key)
-                    elif d["dimension"] == "2dim":
+                    elif d["dimension"] == Dimension.TWO:
                         dataTD2dim.append(d["values"]), indexTD2dim.append(key)
                 else:
                     dataTI.append(d["values"]), indexTI.append(key)
@@ -209,7 +210,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             # Time independent data
             if dataTI:
                 # One dimensional
-                if esM.componentModelingDict[name].dimension == "1dim":
+                if esM.componentModelingDict[name].dimension == Dimension.ONE:
                     names = ["Variable type", "Component"]
                     dfTI = pd.concat(dataTI, keys=indexTI, names=names)
                     for variable in dfTI.index.get_level_values(0).unique():
@@ -225,7 +226,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                                 [xr_dss[ip][name][component], xr_da], join="outer"
                             )
                 # Two dimensional
-                elif esM.componentModelingDict[name].dimension == "2dim":
+                elif esM.componentModelingDict[name].dimension == Dimension.TWO:
                     names = ["Variable type", "Component", "Location"]
                     dfTI = pd.concat(dataTI, keys=indexTI, names=names)
                     for variable in dfTI.index.get_level_values(0).unique():
@@ -246,7 +247,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 if list(xr_dss[ip][name][component].data_vars) == []:
                     # Delete components that have not been built.
                     del xr_dss[ip][name][component]
-                elif esM.componentModelingDict[name].dimension == "2dim":
+                elif esM.componentModelingDict[name].dimension == Dimension.TWO:
                     xr_dss[ip][name][component].coords["locationOut"] = (
                         xr_dss[ip][name][component].coords["locationOut"].astype(str)
                     )
