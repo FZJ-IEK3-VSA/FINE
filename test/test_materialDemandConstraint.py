@@ -6,6 +6,19 @@ import pytest
 
 
 def test_material_demand_constraint():
+    initial_material_cost = {
+        "steel": pd.Series(
+            {
+                "A": 0.1,
+            }
+        ),
+        "copper": pd.Series(
+            {
+                "A": 0.1,
+            }
+        ),
+    }
+
     # Define the Energy System Model
     esM = fn.EnergySystemModel(
         locations={"A"},
@@ -13,6 +26,7 @@ def test_material_demand_constraint():
         commodityUnitsDict={"electricity": r"GW$_{el}$"},
         materials={"steel", "copper"},
         materialUnitsDict={"steel": r"tons", "copper": r"tons"},
+        initialMaterialCost=initial_material_cost,
     )
 
     # Add electricity source with material intensity
@@ -67,9 +81,8 @@ def test_material_demand_constraint():
     expected_copper = 50 * 5.3
     expected_steel = 50 * 3.1
 
-    res_copper = esM.pyM.op_srcSnk["A", "Copper demand", 0, 0, 0]()
-    res_steel = esM.pyM.op_srcSnk["A", "Steel demand", 0, 0, 0]()
+    result_copper = esM.pyM.initialMaterialSupply["A", "copper"].value
+    result_steel = esM.pyM.initialMaterialSupply["A", "steel"].value
 
-    # Check whether the constraint performs the calculation correctly
-    assert res_copper == pytest.approx(expected_copper)
-    assert res_steel == pytest.approx(expected_steel)
+    assert result_copper == pytest.approx(expected_copper)
+    assert result_steel == pytest.approx(expected_steel)
