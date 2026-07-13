@@ -88,6 +88,7 @@ class EnergySystemModel:
         annuityPerpetuity=False,
         materials=None,
         materialUnitsDict=None,
+        initialMaterialCost=None,
     ):
         r"""Create an EnergySystemModel class instance.
 
@@ -389,6 +390,8 @@ class EnergySystemModel:
         self.processedPathwayBalanceLimit = utils.checkAndSetPathwayBalanceLimit(
             self, pathwayBalanceLimit, locations
         )
+
+        self.initialMaterialCost = initialMaterialCost or {}
 
         ################################################################################################################
         #                                        Component specific parameters                                         #
@@ -1730,6 +1733,22 @@ class EnergySystemModel:
             pyM.locationCommoditySet, pyM.timeSet, rule=commodityBalanceConstraint
         )
 
+    def declareInitialMaterialVariables(self, pyM):
+        """Material supply available before the first investment period."""
+        pyM.initialMaterialSet = pyomo.Set(
+            dimen=2,
+            initialize=(
+                (loc, mat)
+                for mat, regional_costs in self.initialMaterialCost.items()
+                for loc in regional_costs.index
+            ),
+        )
+
+        pyM.initialMaterialSupply = pyomo.Var(
+            pyM.initialMaterialSet,
+            domain=pyomo.NonNegativeReals,
+        )
+
     def declareMaterialDemandConstraints(self, pyM):
         r"""Declare material balance constraints (one constraint for each location, material, and investment period) summed over all components.
 
@@ -1771,11 +1790,11 @@ class EnergySystemModel:
             opVar = m.op_srcSnk
 
             # LHS: operation of the manually added material Sink
-            lhs = sum(
-                opVar[loc, sinkName, ip, p, t] * self.periodOccurrences[ip][p]
-                for p, t in m.intraYearTimeSet
-            )
-            print("LHS_demand", lhs)
+            # lhs = sum(
+            #     opVar[loc, sinkName, ip, p, t] * self.periodOccurrences[ip][p] * self.investmentPeriodInterval
+            #     for p, t in m.intraYearTimeSet
+            # )
+            # print("LHS_demand", lhs)
 
             # RHS: sum of material demand contributions from all components
             rhs = sum(
@@ -1784,6 +1803,27 @@ class EnergySystemModel:
                 if hasattr(mdl, "getMaterialDemandContribution")
             )
             print("RHS_demand", rhs)
+
+            if ip == 0:
+                if (loc, mat) not in m.initialMaterialSet:
+                    raise ValueError(
+                        f"No initial material cost defined for material '{mat}' "
+                        f"at location '{loc}'."
+                    )
+
+                return m.initialMaterialSupply[loc, mat] == rhs
+
+            previous_ip = ip - 1
+
+            lhs = sum(
+                opVar[loc, sinkName, previous_ip, p, t]
+                * self.periodOccurrences[previous_ip][p]
+                * self.investmentPeriodInterval
+                for p, t in m.intraYearTimeSet
+                if (loc, sinkName, previous_ip, p, t) in opVar
+            )
+
+            print("LHS_demand", lhs)
 
             return lhs == rhs
 
@@ -1842,7 +1882,9 @@ class EnergySystemModel:
 
             # LHS: operation of the manually added material scrap Source
             lhs = sum(
-                opVar[loc, scrap_source_name, ip, p, t] * self.periodOccurrences[ip][p]
+                opVar[loc, scrap_source_name, ip, p, t]
+                * self.periodOccurrences[ip][p]
+                * self.investmentPeriodInterval
                 for p, t in m.intraYearTimeSet
                 if (loc, scrap_source_name, ip, p, t) in opVar
             )
@@ -1926,8 +1968,18 @@ class EnergySystemModel:
                 mdl.getObjectiveFunctionContribution(self, pyM)
                 for mdl in self.componentModelingDict.values()
             )
+
+            initial_material_costs = sum(
+                pyM.initialMaterialSupply[loc, mat] * self.initialMaterialCost[mat][loc]
+                for loc, mat in pyM.initialMaterialSet
+            )
+
+            NPV += initial_material_costs
+
             if hasattr(self, "pwlcfModel"):
                 NPV += self.pwlcfModel.getObjectiveFunctionContribution(self, pyM)
+
+            print("Initial material costs:", initial_material_costs)
 
             return NPV
 
@@ -2032,6 +2084,11 @@ class EnergySystemModel:
         ################################################################################################################
         #                              Declare cross-componential sets and constraints                                 #
         ################################################################################################################
+
+        # Declare initial material variables
+        _t = time.time()
+        self.declareInitialMaterialVariables(pyM)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
 
         # Declare constraints for enforcing shared capacities
         _t = time.time()
