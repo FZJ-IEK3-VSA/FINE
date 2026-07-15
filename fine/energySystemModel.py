@@ -1805,13 +1805,13 @@ class EnergySystemModel:
             print("RHS_demand", rhs)
 
             if ip == 0:
-                if (loc, mat) not in m.initialMaterialSet:
-                    raise ValueError(
-                        f"No initial material cost defined for material '{mat}' "
-                        f"at location '{loc}'."
-                    )
+                if (loc, mat) in m.initialMaterialSet:
+                    return m.initialMaterialSupply[loc, mat] == rhs
 
-                return m.initialMaterialSupply[loc, mat] == rhs
+                if mat.endswith("_scrap"):
+                    return rhs == 0
+
+                return pyomo.Constraint.Feasible
 
             previous_ip = ip - 1
 
