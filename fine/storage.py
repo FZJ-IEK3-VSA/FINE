@@ -9,6 +9,8 @@ import numpy as np
 class Storage(Component):
     """A Storage component can store a commodity and thus transfers it between time steps."""
 
+    _validStateOfChargeBoundaries = ("cyclic", "interInvestmentPeriod")
+
     def __init__(
         self,
         esM,
@@ -316,7 +318,7 @@ class Storage(Component):
         self.cyclicLifetime = cyclicLifetime
         self.stateOfChargeMin = stateOfChargeMin
         self.stateOfChargeMax = stateOfChargeMax
-        if stateOfChargeBoundary not in ["cyclic", "interInvestmentPeriod"]:
+        if stateOfChargeBoundary not in self._validStateOfChargeBoundaries:
             raise ValueError(
                 "The stateOfChargeBoundary parameter must be either 'cyclic' "
                 "or 'interInvestmentPeriod'."
@@ -597,8 +599,20 @@ class MaterialStorage(Storage):
 
     Unlike Storage, MaterialStorage does not model an intra-year state-of-charge
     trajectory. Charge and discharge operation variables are retained only as
-    links to the existing commodity balance.
+    links to the existing commodity balance. With time series aggregation, their
+    net contribution to the investment-period stock is weighted by the number of
+    occurrences of each typical period; no virtual intra-year SOC is required.
+    The state-of-charge boundary option ``"interInvestmentPeriodNotCyclic"``
+    connects consecutive investment periods without connecting the end of the
+    last period to the start of the first and fixes the stock at the start of the
+    first period to zero.
     """
+
+    _validStateOfChargeBoundaries = (
+        "cyclic",
+        "interInvestmentPeriod",
+        "interInvestmentPeriodNotCyclic",
+    )
 
     def __init__(self, *args, **kwargs):
         if kwargs.get("hasIsBuiltBinaryVariable", False):
@@ -625,10 +639,13 @@ class MaterialStorage(Storage):
                 "requires isBuilt binary variables in FINE."
             )
 
-        if self.stateOfChargeBoundary != "interInvestmentPeriod":
+        if self.stateOfChargeBoundary not in [
+            "interInvestmentPeriod",
+            "interInvestmentPeriodNotCyclic",
+        ]:
             raise ValueError(
-                "MaterialStorage currently only supports "
-                "stateOfChargeBoundary='interInvestmentPeriod'."
+                "MaterialStorage only supports stateOfChargeBoundary="
+                "'interInvestmentPeriod' or 'interInvestmentPeriodNotCyclic'."
             )
 
         if self.selfDischarge != 0:
@@ -2540,10 +2557,20 @@ class MaterialStorageModel(StorageModel):
         opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
         def interInvestmentPeriodMaterialStock(pyM, loc, compName, ip):
-            if compDict[compName].stateOfChargeBoundary != "interInvestmentPeriod":
+            boundary = compDict[compName].stateOfChargeBoundary
+            if boundary not in [
+                "interInvestmentPeriod",
+                "interInvestmentPeriodNotCyclic",
+            ]:
                 return pyomo.Constraint.Skip
 
             ip_index = esM.investmentPeriods.index(ip)
+            if (
+                boundary == "interInvestmentPeriodNotCyclic"
+                and ip_index == len(esM.investmentPeriods) - 1
+            ):
+                return pyomo.Constraint.Skip
+
             next_ip = esM.investmentPeriods[
                 (ip_index + 1) % len(esM.investmentPeriods)
             ]
@@ -2556,6 +2583,29 @@ class MaterialStorageModel(StorageModel):
             pyM,
             "ConstrInterInvestmentPeriodMaterialStock_" + abbrvName,
             pyomo.Constraint(opVarSet, rule=interInvestmentPeriodMaterialStock),
+        )
+
+    def initialMaterialStock(self, pyM, esM):
+        """Set the initial stock of non-cyclic material storage to zero."""
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        stockStart = getattr(pyM, "stateOfChargeStart_" + abbrvName)
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
+        first_ip = esM.investmentPeriods[0]
+
+        def initialMaterialStock(pyM, loc, compName, ip):
+            if (
+                compDict[compName].stateOfChargeBoundary
+                != "interInvestmentPeriodNotCyclic"
+                or ip != first_ip
+            ):
+                return pyomo.Constraint.Skip
+
+            return stockStart[loc, compName, ip] == 0
+
+        setattr(
+            pyM,
+            "ConstrInitialMaterialStock_" + abbrvName,
+            pyomo.Constraint(opVarSet, rule=initialMaterialStock),
         )
 
     def limitMaterialStock(self, pyM):
@@ -2621,9 +2671,6 @@ class MaterialStorageModel(StorageModel):
 
     def declareComponentConstraints(self, esM, pyM):
         """Declare constraints for material stockpiling."""
-        if pyM.hasTSA:
-            raise ValueError("MaterialStorage is currently only supported without TSA.")
-
         self.capToNbReal(pyM)
         self.capToNbInt(pyM)
 
@@ -2634,6 +2681,7 @@ class MaterialStorageModel(StorageModel):
 
         self.connectMaterialStock(pyM, esM)
         self.interInvestmentPeriodMaterialStock(pyM, esM)
+        self.initialMaterialStock(pyM, esM)
         self.limitMaterialStock(pyM)
 
     def getObjectiveFunctionContribution(self, esM, pyM):
