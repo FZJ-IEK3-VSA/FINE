@@ -25,3 +25,4 @@ build/
 .coverage
 
 test_esM_etl.nc
+AGENTS.md
