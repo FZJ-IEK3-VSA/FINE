@@ -2540,6 +2540,7 @@ class MaterialStorageModel(StorageModel):
                     / compDict[compName].dischargeEfficiency
                 )
                 * esM.periodOccurrences[ip][p]
+                * esM.investmentPeriodInterval
                 for p, t in pyM.intraYearTimeSet
             )
 
