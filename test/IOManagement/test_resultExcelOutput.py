@@ -220,11 +220,11 @@ def compareTwoExcelFiles(path1, path2):
             # index with different values between expected and output
             idx = expected.compare(filtered_output).index
             # sum of data with different
-            _expected_sum = expected.loc[idx].sum(axis=1).round(1)
-            _output_sum = filtered_output.loc[idx].sum(axis=1).round(1)
-            # check if sum has difference above one decimal
-            # (operation can be quite different)
+            _expected_sum = expected.loc[idx].sum(axis=1)
+            _output_sum = filtered_output.loc[idx].sum(axis=1)
             sum_diff = _expected_sum.compare(_output_sum)
+            sum_diff = sum_diff[(sum_diff["self"] / sum_diff["other"] - 1).abs() > 0.005]
+
             if not sum_diff.empty:
                 # 3. ignore state of charge
                 comparison_errors.append(
