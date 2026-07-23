@@ -1,4 +1,5 @@
 from fine.conversion import Conversion, ConversionModel
+from fine.enums import ComponentAbbreviation, Dimension
 from fine import utils
 import pyomo.environ as pyomo
 
@@ -74,8 +75,8 @@ class ConversionDynamicModel(ConversionModel):
 
     def __init__(self):
         super().__init__()
-        self.abbrvName = "conv_dyn"
-        self.dimension = "1dim"
+        self.abbrvName = ComponentAbbreviation.CONVERSION_DYNAMIC
+        self.dimension = Dimension.ONE
         self._operationVariablesOptimum = {}
 
     def declareSets(self, esM, pyM):

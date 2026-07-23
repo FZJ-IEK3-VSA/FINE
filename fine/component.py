@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from fine import utils
+from fine.enums import CostType, Dimension, FncType, VarType
 import fine
 import warnings
 import pyomo.environ as pyomo
@@ -748,6 +749,14 @@ class Component(metaclass=ABCMeta):
             esM.componentModelingDict.update({mdl: self.modelingClass()})
         esM.componentModelingDict[mdl].componentsDict.update({self.name: self})
 
+        if self.sharedPotentialID is not None:
+            for ip in esM.investmentPeriods:
+                for loc in self.processedLocationalEligibility.index:
+                    if self.processedCapacityMax[ip][loc] != 0:
+                        esM.sharedPotentialDict.setdefault(
+                            (self.sharedPotentialID, loc, ip), []
+                        ).append(self.name)
+
         if self.pwlcf is not None:
             pwlcfModel = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModel
             if not hasattr(esM, "pwlcfModel"):
@@ -1108,7 +1117,7 @@ class ComponentModel(metaclass=ABCMeta):
             pyomo.Set(dimen=3, initialize=declareOpVarSet),
         )
 
-        if self.dimension == "1dim":
+        if self.dimension == Dimension.ONE:
             # Dictionary which lists all components of the modeling class at one location
             setattr(
                 pyM,
@@ -1126,7 +1135,7 @@ class ComponentModel(metaclass=ABCMeta):
                     for ip in esM.investmentPeriods
                 },
             )
-        elif self.dimension == "2dim":
+        elif self.dimension == Dimension.TWO:
             # Dictionaries which list all outgoing and incoming components at a location
             setattr(
                 pyM,
@@ -3034,7 +3043,7 @@ class ComponentModel(metaclass=ABCMeta):
         QPfactorNames=[],
         QPdivisorNames=[],
         getOptValue=False,
-        getOptValueCostType="TAC",
+        getOptValueCostType=CostType.TAC,
     ):
         """Set design dependent cost equations for the individual components. The equations will be set
         for all components of a modeling class and all locations.
@@ -3077,8 +3086,10 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is None.
         :type getOptValueCostType: string
         """
-        if getOptValueCostType not in ["TAC", "NPV"]:
-            raise ValueError("The cost types must be 'TAC' or 'NPV'.")
+        try:
+            getOptValueCostType = CostType(getOptValueCostType)
+        except ValueError as exc:
+            raise ValueError("The cost types must be 'TAC' or 'NPV'.") from exc
 
         var = getattr(pyM, varName + "_" + self.abbrvName)
         if esM.stochasticModel:
@@ -3247,11 +3258,11 @@ class ComponentModel(metaclass=ABCMeta):
                             for y in componentYears[compName]
                         ]
                     )
-                    if getOptValueCostType == "NPV":
+                    if getOptValueCostType == CostType.NPV:
                         cost_results[ip].loc[compName, loc] = (
                             cContrSum * utils.discountFactor(esM, ip, compName, loc)
                         )
-                    elif getOptValueCostType == "TAC":
+                    elif getOptValueCostType == CostType.TAC:
                         cost_results[ip].loc[compName, loc] = (
                             cContrSum
                             / utils.annuityPresentValueFactor(
@@ -3419,7 +3430,7 @@ class ComponentModel(metaclass=ABCMeta):
         varName,
         dictName,
         getOptValue=False,
-        getOptValueCostType="TAC",
+        getOptValueCostType=CostType.TAC,
     ):
         """Set time-dependent equations for the individual components. The equations will be set for all components of a modeling class
         and all locations as well as for each considered time step.
@@ -3461,11 +3472,17 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is None.
         :type getOptValueCostType: string
         """
-        if getOptValueCostType not in ["TAC", "NPV"]:
-            raise ValueError("getOptValueCostType must be either 'TAC' or 'NPV'")
-        if fncType not in ["TD", "TimeSeries"]:
-            raise ValueError("fncType must be either 'TD' or 'TimeSeries'")
-        if fncType == "TimeSeries":
+        try:
+            getOptValueCostType = CostType(getOptValueCostType)
+        except ValueError as exc:
+            raise ValueError(
+                "getOptValueCostType must be either 'TAC' or 'NPV'"
+            ) from exc
+        try:
+            fncType = FncType(fncType)
+        except ValueError as exc:
+            raise ValueError("fncType must be either 'TD' or 'TimeSeries'") from exc
+        if fncType == FncType.TIME_SERIES:
             factorName = factorNames[0]  # noqa: F841
 
         var = getattr(pyM, varName + "_" + self.abbrvName)
@@ -3564,7 +3581,7 @@ class ComponentModel(metaclass=ABCMeta):
                             for y in componentYears[compName]
                         ]
                     )
-                    if getOptValueCostType == "NPV":
+                    if getOptValueCostType == CostType.NPV:
                         cost_results[ip].loc[compName, loc] = (
                             cContrSum
                             * utils.annuityPresentValueFactor(
@@ -3572,7 +3589,7 @@ class ComponentModel(metaclass=ABCMeta):
                             )
                             * utils.discountFactor(esM, ip, compName, loc)
                         )
-                    elif getOptValueCostType == "TAC":
+                    elif getOptValueCostType == CostType.TAC:
                         cost_results[ip].loc[compName, loc] = cContrSum
             return cost_results
         if esM.annuityPerpetuity:
@@ -3668,7 +3685,7 @@ class ComponentModel(metaclass=ABCMeta):
         timeSet_pt = [(p, t) for ip0, p, t in pyM.timeSet if ip0 == ip]
 
         # get factor
-        if fncType == "TD":
+        if fncType == FncType.TD:
             factors = [
                 getattr(self.componentsDict[compName], factorName)[ip][loc]
                 for factorName in factorNames
@@ -3683,7 +3700,7 @@ class ComponentModel(metaclass=ABCMeta):
             # write pd series with constant value for factornames
             mIdx = pd.MultiIndex.from_tuples(timeSet_pt, names=["Period", "TimeStep"])
             factor = pd.Series(factorVal, index=mIdx)
-        elif fncType == "TimeSeries":
+        elif fncType == FncType.TIME_SERIES:
             # if there is not time series, there is not cost contribution
             if getattr(self.componentsDict[compName], factorNames[0])[ip] is None:
                 return 0
@@ -3837,7 +3854,7 @@ class ComponentModel(metaclass=ABCMeta):
             divisorName="CCF",
             QPdivisorNames=["QPbound", "CCF"],
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
 
         resultsTAC_cx = self.getEconomicsDesign(
@@ -3850,7 +3867,7 @@ class ComponentModel(metaclass=ABCMeta):
             divisorName="CCF",
             QPdivisorNames=["QPbound", "CCF"],
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
 
         resultsNPV_ox = self.getEconomicsDesign(
@@ -3862,7 +3879,7 @@ class ComponentModel(metaclass=ABCMeta):
             varName="commis",
             QPdivisorNames=["QPbound"],
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
 
         resultsTAC_ox = self.getEconomicsDesign(
@@ -3874,7 +3891,7 @@ class ComponentModel(metaclass=ABCMeta):
             varName="commis",
             QPdivisorNames=["QPbound"],
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
 
         # Get NPV contribution for investmentIfBuilt
@@ -3886,7 +3903,7 @@ class ComponentModel(metaclass=ABCMeta):
             varName="commisBin",
             divisorName="CCF",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
 
         # Calculate the annualized investment costs cx (CAPEX)
@@ -3899,7 +3916,7 @@ class ComponentModel(metaclass=ABCMeta):
             varName="commisBin",
             divisorName="CCF",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
 
         # Get NPV cost contribution for the annualized operational costs if built ox (OPEX)
@@ -3910,7 +3927,7 @@ class ComponentModel(metaclass=ABCMeta):
             lifetimeAttr="ipTechnicalLifetime",
             varName="commisBin",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
 
         # Calculate the annualized operational costs if built ox (OPEX)
@@ -3921,7 +3938,7 @@ class ComponentModel(metaclass=ABCMeta):
             lifetimeAttr="ipTechnicalLifetime",
             varName="commisBin",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
 
         optSummary = {}
@@ -3933,19 +3950,19 @@ class ComponentModel(metaclass=ABCMeta):
             # Get and set optimal variable values for capacities
             values = capVar.get_values()
             capOptVal = utils.formatOptimizationOutput(
-                values, "designVariables", "1dim", ip
+                values, VarType.DESIGN, Dimension.ONE, ip
             )
             capOptVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, ip, compDict=compDict
+                values, VarType.DESIGN, self.dimension, ip, compDict=compDict
             )
             self._capacityVariablesOptimum[esM.investmentPeriodNames[ip]] = capOptVal_
             # Get and set optimal variable values for commissioning
             commisValues = commisVar.get_values()
             commisOptVal = utils.formatOptimizationOutput(
-                commisValues, "designVariables", "1dim", ip
+                commisValues, VarType.DESIGN, Dimension.ONE, ip
             )
             commisOptVal_ = utils.formatOptimizationOutput(
-                commisValues, "designVariables", self.dimension, ip, compDict=compDict
+                commisValues, VarType.DESIGN, self.dimension, ip, compDict=compDict
             )
             self._commissioningVariablesOptimum[esM.investmentPeriodNames[ip]] = (
                 commisOptVal_
@@ -3953,10 +3970,10 @@ class ComponentModel(metaclass=ABCMeta):
             # Get and set optimal variable values for decommissioning
             decommisValues = decommisVar.get_values()
             decommisOptVal = utils.formatOptimizationOutput(
-                decommisValues, "designVariables", "1dim", ip
+                decommisValues, VarType.DESIGN, Dimension.ONE, ip
             )
             decommisOptVal_ = utils.formatOptimizationOutput(
-                decommisValues, "designVariables", self.dimension, ip, compDict=compDict
+                decommisValues, VarType.DESIGN, self.dimension, ip, compDict=compDict
             )
             self._decommissioningVariablesOptimum[esM.investmentPeriodNames[ip]] = (
                 decommisOptVal_
@@ -4116,10 +4133,10 @@ class ComponentModel(metaclass=ABCMeta):
             # Get and set optimal variable values for binary investment decisions (isBuiltBinary).
             values = binVar.get_values()
             binCapOptVal = utils.formatOptimizationOutput(
-                values, "designVariables", "1dim", ip
+                values, VarType.DESIGN, Dimension.ONE, ip
             )
             binCapOptVal_ = utils.formatOptimizationOutput(
-                values, "designVariables", self.dimension, ip=ip, compDict=compDict
+                values, VarType.DESIGN, self.dimension, ip=ip, compDict=compDict
             )
             self._isBuiltVariablesOptimum[esM.investmentPeriodNames[ip]] = binCapOptVal_
 
