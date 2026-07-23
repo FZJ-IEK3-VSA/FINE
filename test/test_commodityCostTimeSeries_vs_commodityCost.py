@@ -24,6 +24,8 @@ import fine as fn
 import pandas as pd
 import numpy as np
 
+# print("FINE version: ", fn.__path__)
+
 
 def test_miniSystem():
     locations = {"loc1", "loc2"}
@@ -42,6 +44,7 @@ def test_miniSystem():
         lengthUnit="km",
         verboseLogLevel=0,
     )
+    # print(vars(esM))
 
     costTS = pd.DataFrame(
         [
@@ -51,31 +54,39 @@ def test_miniSystem():
         columns=["loc1", "loc2"],
     )
 
+    costSeries = pd.Series(
+        [1, 2], index=["loc1", "loc2"], dtype=float
+    )
+
     esM.add(
         fn.Source(
             esM=esM,
             name="Electricity purchase",
             commodity="electricity",
             hasCapacityVariable=False,
-            commodityCostTimeSeries=costTS,
+            commodityCost = 1,
+            # commodityCost = costSeries,
+            # commodityCost = costTS,
+            # commodityCostTimeSeries=costTS,
         )
     )
 
     demandTS = pd.DataFrame(
-        [[i + 1 for i in range(len(locations))] for j in range(numberOfTimeSteps)],
+        [[i + 1.5 for i in range(len(locations))] for j in range(numberOfTimeSteps)],
         columns=["loc1", "loc2"],
     )
+    # print(costTS, demandTS)
 
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="Electricity demand",
-            commodity="electricity",
-            operationRateFix=demandTS,
-            hasCapacityVariable=False,
-            commodityRevenue=2,
-        )
-    )
+    # esM.add(
+    #     fn.Sink(
+    #         esM=esM,
+    #         name="Electricity demand",
+    #         commodity="electricity",
+    #         operationRateFix=demandTS,
+    #         hasCapacityVariable=False,
+    #         commodityRevenue=2,
+    #     )
+    # )
 
     # esM.optimize(timeSeriesAggregation=False, solver="gurobi")
 
@@ -93,19 +104,20 @@ def test_miniSystem():
     #     summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc2"], 2920
     # )
 
-    esM.aggregateTemporally(
-        numberOfTypicalPeriods=5,
-        numberOfTimeStepsPerPeriod=1,
-        segmentation=False,
-        sortValues=True,
-        representationMethod=None,
-        rescaleClusterPeriods=True,
-    )
+    # esM.aggregateTemporally(
+    #     numberOfTypicalPeriods=5,
+    #     numberOfTimeStepsPerPeriod=1,
+    #     segmentation=False,
+    #     sortValues=True,
+    #     representationMethod=None,
+    #     rescaleClusterPeriods=True,
+    # )
 
-    esM.optimize(timeSeriesAggregation=True, solver="gurobi")
+    # esM.optimize(timeSeriesAggregation=True, solver="gurobi")
+    # esM.optimize(timeSeriesAggregation=False, solver="gurobi")
 
-    summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
-    print(summary)
+    # summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
+    # print(summary)
     # np.testing.assert_almost_equal(
     #     summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc1"], -730
     # )
