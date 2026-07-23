@@ -3617,6 +3617,7 @@ def _hasConsistentTimeSeriesLength(esM, timeSeriesList):
         if timeSeries is not None
     )
 
+
 def _getConversionComponents(esM):
     """Return all components which convert commodities, independent of
     their modeling class. Conversion subclasses such as ConversionPartLoad
@@ -3654,6 +3655,7 @@ def _getStorageComponents(esM):
         if hasattr(comp, "chargeEfficiency")
     ]
 
+
 def checkCommodityReachability(esM):
     """Check whether every demanded commodity can be provided at its location.
 
@@ -3675,6 +3677,7 @@ def checkCommodityReachability(esM):
     """
     problems = []
     sources, sinks = _splitSourcesAndSinks(esM)
+    conversions = _getConversionComponents(esM)
 
     available = set()
     for comp in sources:
@@ -3712,7 +3715,7 @@ def checkCommodityReachability(esM):
     changed = True
     while changed:
         changed = False
-        for comp in convModel.componentsDict.values():
+        for comp in conversions:
             factors, isFlexible = _getScalarConversionFactors(comp)
             inputs = {commod for commod, factor in factors.items() if factor < 0}
             outputs = {commod for commod, factor in factors.items() if factor > 0}
@@ -3728,9 +3731,7 @@ def checkCommodityReachability(esM):
                         (commod, loc) in available for commod in inputs
                     )
                 if inputsAvailable:
-                    newlyAvailable = {
-                        (commod, loc) for commod in outputs
-                    } - available
+                    newlyAvailable = {(commod, loc) for commod in outputs} - available
                     if newlyAvailable:
                         available |= newlyAvailable
                         changed = True
