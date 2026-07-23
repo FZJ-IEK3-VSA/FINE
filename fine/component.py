@@ -905,6 +905,14 @@ class ComponentModel(metaclass=ABCMeta):
         self._decommissioningVariablesOptimum = {}
         self._isBuiltVariablesOptimum = {}
         self._optSummary = {}
+        # Raw results dict (single source of truth for the summary and the export), filled by
+        # extractRawResults/deriveEconomics during optimize(). Empty until the model is solved.
+        self._rawResults = {}
+        self._rawResults1dim = {}
+        # Additional summary rows contributed by expansion modules that run after
+        # setOptimalValues (currently the piecewise linear cost function, see
+        # registerExtraSummaryRows). Keyed by investment period name.
+        self._extraSummaryRows = {}
 
     ####################################################################################################################
     #                           Functions for declaring design and operation variables sets                            #
@@ -3789,6 +3797,8 @@ class ComponentModel(metaclass=ABCMeta):
         rawResults = {}
         # 1-dim companion frames (used by the economics/summary phase in setOptimalValues)
         self._rawResults1dim = {}
+        # drop rows contributed by expansion modules during a previous optimization
+        self._extraSummaryRows = {}
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
             rawResults[ipName] = {}
@@ -4464,6 +4474,35 @@ class ComponentModel(metaclass=ABCMeta):
     # of truth; the optimization summary is a separate view of the same data.
     # ------------------------------------------------------------------
 
+    def _requireRawResults(self, ip):
+        """Return ``self._rawResults[ip]``, with an explanatory error if it is not available.
+
+        The raw results dict is populated by :meth:`extractRawResults` /
+        :meth:`deriveEconomics` during ``esM.optimize()``. It is deliberately *not*
+        reconstructed when an EnergySystemModel is read back from a netCDF file
+        (:func:`fine.IOManagement.xarrayIO.readNetCDFtoEnergySystemModel` restores the
+        optimization summary and the ``*VariablesOptimum`` attributes only), so results loaded
+        from a file cannot be exported again without re-optimizing.
+
+        :param ip: investment period name (key into ``self._rawResults``).
+        :type ip: string
+
+        :return: the raw results of that investment period.
+        :rtype: dict
+        """
+        if not self._rawResults:
+            raise RuntimeError(
+                f"No raw optimization results available for '{type(self).__name__}'. They are "
+                "created by esM.optimize() and are not restored when an EnergySystemModel is "
+                "read from a netCDF file - re-optimize the model before exporting its results."
+            )
+        if ip not in self._rawResults:
+            raise KeyError(
+                f"No raw optimization results for investment period '{ip}' in "
+                f"'{type(self).__name__}'. Available: {sorted(self._rawResults)}."
+            )
+        return self._rawResults[ip]
+
     def _exportOptimumVarMap(self):
         """Map raw result keys to the optimum variable names used by the export.
 
@@ -4500,7 +4539,7 @@ class ComponentModel(metaclass=ABCMeta):
         :return: ``{componentName: {optimumVariableName: (values, None)}}``.
         :rtype: dict
         """
-        results_ip = self._rawResults[ip]
+        results_ip = self._requireRawResults(ip)
         out = {compName: {} for compName in self.componentsDict}
         for rawKey, optName, timeDependent, dimension in self._exportOptimumVarMap():
             frame = results_ip.get(rawKey)
@@ -4633,7 +4672,7 @@ class ComponentModel(metaclass=ABCMeta):
         :rtype: dict
         """
         compDict = self.componentsDict
-        results_ip = self._rawResults[ip]
+        results_ip = self._requireRawResults(ip)
         results1dim_ip = self._rawResults1dim[ip]
         plantUnit, unitApp = self._summaryPlantUnit()
 
@@ -4665,7 +4704,56 @@ class ComponentModel(metaclass=ABCMeta):
                     continue
                 series = self._nameResultSeries(pd.to_numeric(values), prop)
                 out[compName][prop] = (series, unit(compName) if callable(unit) else unit)
+
+        # Rows registered by expansion modules exist only for the components they apply to
+        # (unlike the fixed property set above, which is NaN-filled for 1-dim components), so
+        # they are only emitted where the component is actually present in the frame.
+        for prop, frame, unit in self._extraSummaryRows.get(ip, []):
+            for compName in compDict:
+                if frame is None or compName not in frame.index:
+                    continue
+                values = self._extractComponentResult(frame, compName, esM, mapC)
+                if values is None:
+                    continue
+                series = self._nameResultSeries(pd.to_numeric(values), prop)
+                out[compName][prop] = (series, unit(compName) if callable(unit) else unit)
         return out
+
+    def registerExtraSummaryRows(self, ip, rows):
+        """Publish result frames produced *after* :meth:`setOptimalValues` into the results dict.
+
+        Expansion modules that run once the component models are done (currently
+        :class:`fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModel`,
+        called from ``EnergySystemModel.optimize``) contribute additional result rows. They are
+        stored in ``self._rawResults[ip]`` so the dict stays the single source of truth, and
+        registered in ``self._extraSummaryRows`` so :meth:`getResultSummaryDict` exports them -
+        the caller builds its optimization summary rows from the very same frames.
+
+        :param ip: investment period name (key into ``self._rawResults``).
+        :type ip: string
+
+        :param rows: ``(property, frame, unit)`` triples - the same shape as
+            :meth:`_subclassSummaryFrames` - where ``frame`` is indexed by component with one
+            column per location and ``unit`` is a unit string or a ``component -> unit`` callable.
+        :type rows: list
+
+        :return: nothing; the frames are stored on the modeling class.
+        """
+        if not self._rawResults or ip not in self._rawResults or not rows:
+            return
+        if self.dimension != Dimension.ONE:
+            # The frames are indexed by location, while a 2-dim model's result frames are
+            # indexed by connection - there is no meaningful mapping, so nothing is published.
+            warnings.warn(
+                f"Extra result rows for the 2-dimensional modeling class "
+                f"'{type(self).__name__}' cannot be added to the result export.",
+                UserWarning,
+            )
+            return
+
+        for prop, frame, _ in rows:
+            self._rawResults[ip][prop] = frame
+        self._extraSummaryRows.setdefault(ip, []).extend(rows)
 
     def _nameResultSeries(self, series, name):
         """Set the variable name and dimension-specific index names for the export.

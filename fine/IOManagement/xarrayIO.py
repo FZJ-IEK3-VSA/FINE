@@ -1,4 +1,5 @@
 import time
+import warnings
 from pathlib import Path
 import pandas as pd
 import xarray as xr
@@ -10,6 +11,19 @@ from fine.enums import Dimension
 from fine.IOManagement import dictIO, utilsIO
 
 logger = logging.getLogger(__name__)
+
+
+def _warnDeprecatedOptSumOutputLevel(optSumOutputLevel):
+    """Warn that the ``optSumOutputLevel`` parameter of the result export has no effect anymore."""
+    if optSumOutputLevel is not None:
+        warnings.warn(
+            "'optSumOutputLevel' is deprecated and has no effect: the result export reads the "
+            "raw results dict instead of the optimization summary and therefore cannot apply "
+            "the summary's output-level filtering. The parameter will be removed in a future "
+            "release.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
 
 
 def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
@@ -66,15 +80,22 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
     return {"PerformanceSummary": summary_xr}
 
 
-def convertOptimizationOutputToDatasets(esM):
+def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=None):
     """Take esM instance output and convert it into an xarray dataset.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
 
+    :param optSumOutputLevel: deprecated and ignored. The export no longer re-parses the
+        optimization summary (it reads the raw results dict directly), so it cannot apply the
+        summary's output-level filtering. Passing it emits a DeprecationWarning.
+        |br| * the default value is None
+    :type optSumOutputLevel: None
+
     :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
     :rtype: xarray.dataset
     """
+    _warnDeprecatedOptSumOutputLevel(optSumOutputLevel)
     # Create the netCDF file and the xr.Dataset dict for all ips and components
     xr_dss = dict.fromkeys(esM.investmentPeriodNames)
     for ip in esM.investmentPeriodNames:
@@ -849,6 +870,7 @@ def writeEnergySystemModelToNetCDF(
     esM,
     outputFilePath="my_esm.nc",
     overwriteExisting=False,
+    optSumOutputLevel=None,
     groupPrefix=None,
     includeShadowPrices=False,
     shadowPriceConstraintStr="commodityBalanceConstraint",
@@ -865,6 +887,11 @@ def writeEnergySystemModelToNetCDF(
     :param overwriteExisting: Overwrite existing netCDF file
         |br| * the default value is False
     :type outputFileName: boolean
+
+    :param optSumOutputLevel: deprecated and ignored, see
+        :func:`convertOptimizationOutputToDatasets`.
+        |br| * the default value is None
+    :type optSumOutputLevel: None
 
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
@@ -884,6 +911,8 @@ def writeEnergySystemModelToNetCDF(
         for each component.
     :rtype: Dict[str, Dict[str, xr.Dataset]]
     """
+    _warnDeprecatedOptSumOutputLevel(optSumOutputLevel)
+
     if overwriteExisting:
         if Path(outputFilePath).is_file():
             Path(outputFilePath).unlink()
