@@ -627,22 +627,24 @@ def convertDatasetsToEnergySystemModel(datasets):
                     _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
 
+                    summary_optimum_mapping = {
+                        "capacity": "capacityVariablesOptimum",
+                        "commissioning": "commissioningVariablesOptimum",
+                        "decommissioning": "decommissioningVariablesOptimum",
+                        "operationTimeSeriesOptimum": "operationVariablesOptimum",
+                    }
+
                     for variable in datasets["Results"][ip][model][component]:
-                        if "Optimum" not in variable:
-                            continue
-                        opt_variable = variable
-                        xr_opt = None
-                        if opt_variable in datasets["Results"][ip][model][component]:
-                            xr_opt = datasets["Results"][ip][model][component][
-                                opt_variable
-                            ]
-                        else:
+                        if (
+                            "Optimum" not in variable
+                            and variable not in summary_optimum_mapping
+                        ):
                             continue
 
-                        if opt_variable in [
-                            "operationVariablesOptimum",
-                            "operationTimeSeriesOptimum",
-                        ]:
+                        opt_variable = summary_optimum_mapping.get(variable, variable)
+                        xr_opt = datasets["Results"][ip][model][component][variable]
+
+                        if opt_variable == "operationVariablesOptimum":
                             if "locationOut" in list(xr_opt.coords):
                                 df = (
                                     xr_opt.to_dataframe()
@@ -979,6 +981,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                 "optSummary",
                 "operationVariablesOptimum",
                 "capacityVariablesOptimum",
+                "commissioningVariablesOptimum",
+                "decommissioningVariablesOptimum",
                 "isBuiltVariablesOptimum",
                 "chargeOperationVariablesOptimum",
                 "dischargeOperationVariablesOptimum",
