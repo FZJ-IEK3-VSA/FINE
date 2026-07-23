@@ -3072,6 +3072,7 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
         hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval,
     )
 
+
 # ============================== START OF INFEASIBILITY CHECKS ==============================
 # Infeasibility pre-checks
 #
@@ -3083,6 +3084,7 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
 # unknown or unbounded quantities are resolved in favour of feasibility.
 # A reported problem therefore proves infeasibility, while a clean run is
 # no feasibility guarantee. Known blind spots are documented per check.
+
 
 def _getFirstInvestmentPeriodData(data):
     """Return the data of the first investment period.
@@ -3626,12 +3628,8 @@ def checkCommodityReachability(esM):
         if convModel:
             for comp in convModel.componentsDict.values():
                 factors = _getConversionFactors(comp)
-                inputs = {
-                    commod for commod, factor in factors.items() if factor < 0
-                }
-                outputs = {
-                    commod for commod, factor in factors.items() if factor > 0
-                }
+                inputs = {commod for commod, factor in factors.items() if factor < 0}
+                outputs = {commod for commod, factor in factors.items() if factor > 0}
                 for loc in _getEligibleLocations(comp, esM):
                     if all((commod, loc) in available for commod in inputs):
                         newlyAvailable = {
@@ -3741,11 +3739,7 @@ def checkJointInputDemand(esM, aggregate=True, tol=1e-6, maxIteration=50):
                     for commod, factor in factors.items()
                     if factor < 0
                 },
-                {
-                    commod: factor
-                    for commod, factor in factors.items()
-                    if factor > 0
-                },
+                {commod: factor for commod, factor in factors.items() if factor > 0},
                 _getCapacityPerLocation(comp, esM),
                 _getEligibleLocations(comp, esM),
             )
@@ -3892,9 +3886,9 @@ def checkJointInputDemand(esM, aggregate=True, tol=1e-6, maxIteration=50):
                             islands[inputCommodity][loc] for loc in locationsInIsland
                         }
                         if len(inputIslands) == 1:
-                            required[
-                                (inputCommodity, next(iter(inputIslands)))
-                            ] += operation * factor
+                            required[(inputCommodity, next(iter(inputIslands)))] += (
+                                operation * factor
+                            )
                     for outputCommodity, factor in outputs.items():
                         if outputCommodity != commodity:
                             outputIslands = {
@@ -4033,11 +4027,7 @@ def checkTimeStepBalance(esM, tol=1e-6, maxIteration=50):
                     for commod, factor in factors.items()
                     if factor < 0
                 },
-                {
-                    commod: factor
-                    for commod, factor in factors.items()
-                    if factor > 0
-                },
+                {commod: factor for commod, factor in factors.items() if factor > 0},
                 _getCapacityPerLocation(comp, esM),
                 _getEligibleLocations(comp, esM),
             )
@@ -4101,16 +4091,12 @@ def checkTimeStepBalance(esM, tol=1e-6, maxIteration=50):
                 for loc in eligibleLocations:
                     capacity = float(capacities.get(loc, np.inf))
                     operation = (
-                        np.inf
-                        if np.isinf(capacity)
-                        else capacity * hoursPerTimeStep
+                        np.inf if np.isinf(capacity) else capacity * hoursPerTimeStep
                     )
                     for inputCommodity, factor in inputs.items():
                         operation = min(
                             operation,
-                            pooledSupply[
-                                (inputCommodity, islands[inputCommodity][loc])
-                            ]
+                            pooledSupply[(inputCommodity, islands[inputCommodity][loc])]
                             / factor,
                         )
                     if operation > 0:
@@ -4278,7 +4264,9 @@ def runInfeasibilityPrechecks(esM, checks=INFEASIBILITY_PRECHECKS, raiseError=Tr
 
     return problems
 
+
 # ============================== END OF INFEASIBILITY CHECKS ==============================
+
 
 class _Solver:
     """Solver identifier with mutable value."""
