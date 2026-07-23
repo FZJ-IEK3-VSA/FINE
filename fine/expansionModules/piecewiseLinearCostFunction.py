@@ -661,12 +661,15 @@ class PiecewiseLinearCostFunctionModel:
         if getOptValue:
             cost_results = {ip: pd.DataFrame() for ip in esM.investmentPeriods}
             for moduleName in self.modulesDict.keys():
+                # Read from the modeling class' raw results dict, not from the optimization
+                # summary: the summary is a view of that dict and must not be used as a
+                # derivation input (see :meth:`_commissioningResults`). Reindexing to the
+                # sorted locations reproduces the summary's fixed column set, on which the
+                # ``len(commis[ip])`` and per-location lookups below rely.
                 commis = {
-                    ip: esM.getOptimizationSummary(
-                        esM.componentNames[moduleName], ip=esM.investmentPeriodNames[ip]
-                    )
-                    .loc[moduleName, "commissioning"]
-                    .iloc[0]
+                    ip: self._commissioningResults(
+                        esM, moduleName, esM.investmentPeriodNames[ip]
+                    ).reindex(sorted(esM.locations))
                     for ip in esM.investmentPeriods
                 }
                 for ip in esM.investmentPeriods:
@@ -969,11 +972,32 @@ class PiecewiseLinearCostFunctionModel:
         else:
             knowledgeStockLast = knowledgeStockLastIp[moduleName]
 
-        model = esM.componentModelingDict[esM.componentNames[moduleName]]
-        commissioning = model._rawResults1dim[esM.investmentPeriodNames[ip]][
-            "commissioning"
-        ].loc[moduleName]
+        commissioning = self._commissioningResults(
+            esM, moduleName, esM.investmentPeriodNames[ip]
+        )
         return knowledgeStockLast + commissioning
+
+    @staticmethod
+    def _commissioningResults(esM, moduleName, ipName):
+        """Commissioning of a module's component, read from the raw results dict.
+
+        The single place this module obtains commissioning from. It is deliberately *not* read
+        back from the optimization summary: the summary is a pure view of
+        ``ComponentModel._rawResults`` (see
+        :meth:`fine.component.ComponentModel.getResultSummaryDict`), so deriving values from it
+        would make this module depend on a presentation artifact - and on the summary having
+        been assembled first, which the ``EnergySystemModel.optimize`` call order happens to
+        guarantee but nothing enforces.
+
+        :param esM: EnergySystemModel instance.
+        :param moduleName: name of the module's component.
+        :param ipName: investment period name (key into ``_rawResults1dim``).
+
+        :return: commissioning per location.
+        :rtype: pandas.Series
+        """
+        model = esM.componentModelingDict[esM.componentNames[moduleName]]
+        return model._rawResults1dim[ipName]["commissioning"].loc[moduleName]
 
     def _resultUnit(self, esM, prop):
         """Unit of a pwlcf result row: a fixed string, or a ``module -> unit`` callable.
