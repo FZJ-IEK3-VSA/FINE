@@ -3317,10 +3317,13 @@ def _splitSourcesAndSinks(esM):
     :rtype: tuple of two lists
     """
     sources, sinks = [], []
-    srcSnkModel = esM.componentModelingDict.get("SourceSinkModel")
-    if srcSnkModel:
-        for comp in srcSnkModel.componentsDict.values():
-            (sources if comp.sign == 1 else sinks).append(comp)
+    for model in esM.componentModelingDict.values():
+        for comp in model.componentsDict.values():
+            sign = getattr(comp, "sign", None)
+            if sign == 1:
+                sources.append(comp)
+            elif sign == -1:
+                sinks.append(comp)
     return sources, sinks
 
 
@@ -3614,6 +3617,42 @@ def _hasConsistentTimeSeriesLength(esM, timeSeriesList):
         if timeSeries is not None
     )
 
+def _getConversionComponents(esM):
+    """Return all components which convert commodities, independent of
+    their modeling class. Conversion subclasses such as ConversionPartLoad
+    or ConversionDynamic use their own modeling class and would be missed
+    by a lookup of 'ConversionModel' alone.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: conversion components
+    :rtype: list
+    """
+    return [
+        comp
+        for model in esM.componentModelingDict.values()
+        for comp in model.componentsDict.values()
+        if hasattr(comp, "commodityConversionFactors")
+    ]
+
+
+def _getStorageComponents(esM):
+    """Return all components which store a commodity, independent of their
+    modeling class.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: storage components
+    :rtype: list
+    """
+    return [
+        comp
+        for model in esM.componentModelingDict.values()
+        for comp in model.componentsDict.values()
+        if hasattr(comp, "chargeEfficiency")
+    ]
 
 def checkCommodityReachability(esM):
     """Check whether every demanded commodity can be provided at its location.
@@ -3636,7 +3675,6 @@ def checkCommodityReachability(esM):
     """
     problems = []
     sources, sinks = _splitSourcesAndSinks(esM)
-    convModel = esM.componentModelingDict.get("ConversionModel")
 
     available = set()
     for comp in sources:
@@ -3674,29 +3712,28 @@ def checkCommodityReachability(esM):
     changed = True
     while changed:
         changed = False
-        if convModel:
-            for comp in convModel.componentsDict.values():
-                factors, isFlexible = _getScalarConversionFactors(comp)
-                inputs = {commod for commod, factor in factors.items() if factor < 0}
-                outputs = {commod for commod, factor in factors.items() if factor > 0}
-                for loc in _getEligibleLocations(comp, esM):
-                    # a flexible conversion only requires one commodity of
-                    # its input group, not all of them
-                    if isFlexible:
-                        inputsAvailable = not inputs or any(
-                            (commod, loc) in available for commod in inputs
-                        )
-                    else:
-                        inputsAvailable = all(
-                            (commod, loc) in available for commod in inputs
-                        )
-                    if inputsAvailable:
-                        newlyAvailable = {
-                            (commod, loc) for commod in outputs
-                        } - available
-                        if newlyAvailable:
-                            available |= newlyAvailable
-                            changed = True
+        for comp in convModel.componentsDict.values():
+            factors, isFlexible = _getScalarConversionFactors(comp)
+            inputs = {commod for commod, factor in factors.items() if factor < 0}
+            outputs = {commod for commod, factor in factors.items() if factor > 0}
+            for loc in _getEligibleLocations(comp, esM):
+                # a flexible conversion only requires one commodity of
+                # its input group, not all of them
+                if isFlexible:
+                    inputsAvailable = not inputs or any(
+                        (commod, loc) in available for commod in inputs
+                    )
+                else:
+                    inputsAvailable = all(
+                        (commod, loc) in available for commod in inputs
+                    )
+                if inputsAvailable:
+                    newlyAvailable = {
+                        (commod, loc) for commod in outputs
+                    } - available
+                    if newlyAvailable:
+                        available |= newlyAvailable
+                        changed = True
         for commodity, loc1, loc2 in transmissionEdges:
             if (commodity, loc1) in available and (commodity, loc2) not in available:
                 available.add((commodity, loc2))
@@ -3761,10 +3798,8 @@ def checkJointInputDemand(esM, aggregate=True, tol=1e-6, maxIteration=50):
     numberOfTimeSteps = esM.numberOfTimeSteps
 
     sources, sinks = _splitSourcesAndSinks(esM)
-    convModel = esM.componentModelingDict.get("ConversionModel")
-    storModel = esM.componentModelingDict.get("StorageModel")
-    conversions = list(convModel.componentsDict.values()) if convModel else []
-    storages = list(storModel.componentsDict.values()) if storModel else []
+    conversions = _getConversionComponents(esM)
+    storages = _getStorageComponents(esM)
 
     transmissionLinks = _getTransmissionLinks(esM)
     islands = _getTransmissionIslands(
@@ -4036,10 +4071,8 @@ def checkTimeStepBalance(esM, tol=1e-6, maxIteration=50):
     numberOfTimeSteps = esM.numberOfTimeSteps
 
     sources, sinks = _splitSourcesAndSinks(esM)
-    convModel = esM.componentModelingDict.get("ConversionModel")
-    storModel = esM.componentModelingDict.get("StorageModel")
-    conversions = list(convModel.componentsDict.values()) if convModel else []
-    storages = list(storModel.componentsDict.values()) if storModel else []
+    conversions = _getConversionComponents(esM)
+    storages = _getStorageComponents(esM)
 
     transmissionLinks = _getTransmissionLinks(esM)
     transmissionEdges = [
