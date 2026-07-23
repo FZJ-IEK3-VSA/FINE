@@ -3321,22 +3321,75 @@ def _splitSourcesAndSinks(esM):
     return sources, sinks
 
 
-def _getConversionFactors(comp):
-    """Return the commodity conversion factors as a flat dictionary.
+def _reduceConversionFactor(value):
+    """Reduce a location- or time-dependent conversion factor to a single
+    number. Inputs are reduced to their smallest and outputs to their
+    largest magnitude, so that the checks stay optimistic."""
+    if not isinstance(value, (pd.Series, pd.DataFrame)):
+        return float(value)
+    values = np.asarray(value, dtype=float).flatten()
+    values = values[~np.isnan(values)]
+    if len(values) == 0:
+        return 0.0
+    if float(max(values, key=abs)) < 0:
+        return float(min(values, key=abs))
+    return float(max(values, key=abs))
 
-    An investment-period-dependent nesting is unwrapped. It is
-    recognizable by integer keys instead of commodity names.
+
+def _getScalarConversionFactors(comp):
+    """Return the commodity conversion factors as a plain
+    {commodity: float} dictionary, together with a flag stating whether
+    the component uses flexible conversion.
+
+    An investment-period nesting is unwrapped, and location- or
+    time-dependent factors are reduced to a single number. For flexible
+    conversion components the commodity groups are flattened; the flag is
+    then True, because only one commodity of an input group is required.
 
     :param comp: conversion component of interest
     :type comp: Conversion instance
 
-    :return: conversion factors indexed by commodity
-    :rtype: dict
+    :return: conversion factors and flexible conversion flag
+    :rtype: tuple of dict and bool
     """
     factors = comp.commodityConversionFactors
-    if isinstance(factors, dict) and all(isinstance(key, int) for key in factors):
+    if isinstance(factors, dict) and not all(
+        isinstance(key, str) for key in factors
+    ):
         factors = _getFirstInvestmentPeriodData(factors)
-    return factors
+    if not isinstance(factors, dict):
+        return {}, False
+
+    flatFactors, isFlexible = {}, False
+    for commodity, value in factors.items():
+        if isinstance(value, dict):
+            isFlexible = True
+            for groupCommodity, groupValue in value.items():
+                flatFactors[groupCommodity] = _reduceConversionFactor(groupValue)
+        else:
+            flatFactors[commodity] = _reduceConversionFactor(value)
+    return flatFactors, isFlexible
+
+
+def _getTransmissionComponents(esM):
+    """Return all components which connect two locations, independent of
+    their modeling class. Transmission subclasses such as
+    LinearOptimalPowerFlow use their own modeling class and would be
+    missed by a lookup of 'TransmissionModel' alone.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: transmission components
+    :rtype: list
+    """
+    return [
+        comp
+        for model in esM.componentModelingDict.values()
+        for comp in model.componentsDict.values()
+        if getattr(comp, "dimension", None) == Dimension.TWO
+        and hasattr(comp, "commodity")
+    ]
 
 
 def _getTransmissionLinks(esM):
@@ -3360,12 +3413,8 @@ def _getTransmissionLinks(esM):
     """
     hoursPerTimeStep = esM.hoursPerTimeStep
     links = defaultdict(dict)
-    transModel = esM.componentModelingDict.get("TransmissionModel")
 
-    if transModel is None:
-        return {}
-
-    for comp in transModel.componentsDict.values():
+    for comp in _getTransmissionComponents(esM):
         eligibility = _getFirstInvestmentPeriodData(
             getattr(comp, "processedLocationalEligibility", None)
         )
@@ -3595,43 +3644,56 @@ def checkCommodityReachability(esM):
                 available.add((comp.commodity, loc))
 
     transmissionEdges = []
-    if transModel:
-        for comp in transModel.componentsDict.values():
+    for comp in _getTransmissionComponents(esM):
+        eligibility = _getFirstInvestmentPeriodData(
+            getattr(comp, "processedLocationalEligibility", None)
+        )
+        if eligibility is None:
             eligibility = _getFirstInvestmentPeriodData(
-                getattr(comp, "processedLocationalEligibility", None)
+                getattr(comp, "locationalEligibility", None)
             )
-            if eligibility is None:
-                eligibility = _getFirstInvestmentPeriodData(
-                    getattr(comp, "locationalEligibility", None)
-                )
-            if eligibility is not None:
-                locationPairs = [
-                    _parseTransmissionEdgeKey(edgeKey, esM.locations)
-                    for edgeKey, isEligible in eligibility.items()
-                    if isEligible > 0
-                ]
-            else:
-                locationPairs = [
-                    (loc1, loc2)
-                    for loc1 in esM.locations
-                    for loc2 in esM.locations
-                    if loc1 != loc2
-                ]
-            for loc1, loc2 in locationPairs:
-                # Transmission components can be operated in both directions
-                transmissionEdges.append((comp.commodity, loc1, loc2))
-                transmissionEdges.append((comp.commodity, loc2, loc1))
+        if eligibility is not None:
+            locationPairs = [
+                _parseTransmissionEdgeKey(edgeKey, esM.locations)
+                for edgeKey, isEligible in eligibility.items()
+                if isEligible > 0
+            ]
+        else:
+            locationPairs = [
+                (loc1, loc2)
+                for loc1 in esM.locations
+                for loc2 in esM.locations
+                if loc1 != loc2
+            ]
+        for loc1, loc2 in locationPairs:
+            # Transmission components can be operated in both directions
+            transmissionEdges.append((comp.commodity, loc1, loc2))
+            transmissionEdges.append((comp.commodity, loc2, loc1))
 
     changed = True
     while changed:
         changed = False
         if convModel:
             for comp in convModel.componentsDict.values():
-                factors = _getConversionFactors(comp)
-                inputs = {commod for commod, factor in factors.items() if factor < 0}
-                outputs = {commod for commod, factor in factors.items() if factor > 0}
+                factors, isFlexible = _getScalarConversionFactors(comp)
+                inputs = {
+                    commod for commod, factor in factors.items() if factor < 0
+                }
+                outputs = {
+                    commod for commod, factor in factors.items() if factor > 0
+                }
                 for loc in _getEligibleLocations(comp, esM):
-                    if all((commod, loc) in available for commod in inputs):
+                    # a flexible conversion only requires one commodity of
+                    # its input group, not all of them
+                    if isFlexible:
+                        inputsAvailable = not inputs or any(
+                            (commod, loc) in available for commod in inputs
+                        )
+                    else:
+                        inputsAvailable = all(
+                            (commod, loc) in available for commod in inputs
+                        )
+                    if inputsAvailable:
                         newlyAvailable = {
                             (commod, loc) for commod in outputs
                         } - available
