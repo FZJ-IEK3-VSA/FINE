@@ -6,10 +6,12 @@ def test_rollingHorizon(perfectForesight_test_esM):
         perfectForesight_test_esM,
         scenario_name="test",
         timeSeriesAggregation=True,
+        timeSeriesAggregationSettings={
+            "numberOfTypicalPeriods": 1,
+            "numberOfTimeStepsPerPeriod": 1,
+            "numberOfSegmentsPerPeriod": 1,
+        },
         numberOfInvestmentPeriodsForRollingHorizon=2,
-        numberOfTimeStepsPerPeriod=1,
-        numberOfSegments=1,
-        numberOfTypicalPeriods=1,
     )
 
     # check that commissioning of first year is in stock of second year

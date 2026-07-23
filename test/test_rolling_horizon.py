@@ -1,6 +1,15 @@
+import copy
+
 import pytest
 import fine as fn
-from fine.expansionModules.rollingHorizon import rollingHorizonOptimization
+from fine.expansionModules.rollingHorizon import (
+    rollingHorizonOptimization,
+    _DEFAULT_TSA_SETTINGS,
+    _cachedGroupExists,
+    _cachedIntervalConfigMismatches,
+    _cachedIntervalChainMismatches,
+    _stockCommissioningDiffers,
+)
 import numpy as np
 import pandas as pd
 
@@ -17,7 +26,7 @@ def _ts(value, n_steps=2):
     )
 
 
-def _build_esM():
+def _build_esM(edemand2020=2190):
     """Construct an esM whose components exercise all rolling horizon code paths.
 
     Source_cheap_then_expensive : stock accumulation + non-PerOperation dict param filtering
@@ -27,6 +36,10 @@ def _build_esM():
     FuelCell                    : time-constant CCF (line 196 else:pass)
     EDemand / H2Demand          : electricity and hydrogen sinks
     HeatDemand                  : growing demand forces new commissioning every period
+
+    edemand2020 lets a caller perturb the 2020 electricity demand (and thus the
+    resulting 2020 commissioning) while keeping every other component identical,
+    to build a "different chain" cache for the resume staleness tests below.
     """
     esM = fn.EnergySystemModel(
         locations={"PerfectLand"},
@@ -159,7 +172,7 @@ def _build_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateFix={
-                2020: _ts(2190),
+                2020: _ts(edemand2020),
                 2025: _ts(4380),
                 2030: _ts(6570),
                 2035: _ts(8760),
@@ -204,9 +217,6 @@ def rh_results():
         scenario_name="test",
         timeSeriesAggregation=False,
         numberOfInvestmentPeriodsForRollingHorizon=2,
-        numberOfTimeStepsPerPeriod=1,
-        numberOfSegments=1,
-        numberOfTypicalPeriods=1,
     )
 
 
@@ -304,6 +314,50 @@ def test_raises_when_write_excel_output_without_scenario_name():
             esM=_minimal_esM(4),
             numberOfInvestmentPeriodsForRollingHorizon=2,
             writeExcelOutput=True,
+            resultExportPath="some/path",
+        )
+
+
+def test_raises_when_write_netcdf_output_without_export_path():
+    """writeNetCDFOutput=True requires resultExportPath to be set."""
+    with pytest.raises(ValueError, match="resultExportPath"):
+        rollingHorizonOptimization(
+            esM=_minimal_esM(4),
+            scenario_name="err",
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            writeNetCDFOutput=True,
+        )
+
+
+def test_raises_when_write_netcdf_output_without_scenario_name():
+    """writeNetCDFOutput=True requires scenario_name to be set."""
+    with pytest.raises(ValueError, match="scenario_name"):
+        rollingHorizonOptimization(
+            esM=_minimal_esM(4),
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            writeNetCDFOutput=True,
+            resultExportPath="some/path",
+        )
+
+
+def test_raises_when_resume_without_export_path():
+    """resume=True implies netCDF caching and requires resultExportPath to be set."""
+    with pytest.raises(ValueError, match="resultExportPath"):
+        rollingHorizonOptimization(
+            esM=_minimal_esM(4),
+            scenario_name="err",
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            resume=True,
+        )
+
+
+def test_raises_when_resume_without_scenario_name():
+    """resume=True implies netCDF caching and requires scenario_name to be set."""
+    with pytest.raises(ValueError, match="scenario_name"):
+        rollingHorizonOptimization(
+            esM=_minimal_esM(4),
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            resume=True,
             resultExportPath="some/path",
         )
 
@@ -482,9 +536,6 @@ def rh_results_myopic():
         scenario_name="test_myopic",
         timeSeriesAggregation=False,
         numberOfInvestmentPeriodsForRollingHorizon=1,
-        numberOfTimeStepsPerPeriod=1,
-        numberOfSegments=1,
-        numberOfTypicalPeriods=1,
     )
 
 
@@ -639,9 +690,6 @@ def rh_results_co2_targets():
         scenario_name="test_co2_targets",
         timeSeriesAggregation=False,
         numberOfInvestmentPeriodsForRollingHorizon=1,
-        numberOfTimeStepsPerPeriod=1,
-        numberOfSegments=1,
-        numberOfTypicalPeriods=1,
     )
 
 
@@ -776,9 +824,6 @@ def rh_results_exceeded_lifetime():
         scenario_name="test_exceeded_lifetime",
         timeSeriesAggregation=False,
         numberOfInvestmentPeriodsForRollingHorizon=1,
-        numberOfTimeStepsPerPeriod=1,
-        numberOfSegments=1,
-        numberOfTypicalPeriods=1,
     )
 
 
@@ -806,3 +851,440 @@ def test_exceeded_lifetime_stock_dropped_by_2030(rh_results_exceeded_lifetime):
         .stockCommissioning
     )
     assert stock is None or 2020 not in stock
+
+
+# ─── timeSeriesAggregationSettings passthrough ─────────────────────────────────
+#
+# numberOfTypicalPeriods/numberOfTimeStepsPerPeriod/numberOfSegments/clusterMethod
+# used to be individual rollingHorizonOptimization parameters, which restricted
+# callers to only those tsam settings. They are now a single
+# timeSeriesAggregationSettings dict passed straight through to
+# EnergySystemModel.aggregateTemporally, so any tsam kwarg is reachable.
+
+
+def test_default_tsa_settings_match_original_hardcoded_values():
+    """_DEFAULT_TSA_SETTINGS preserves the values that used to be hardcoded,
+    so callers who don't pass timeSeriesAggregationSettings see unchanged
+    behavior.
+    """
+    assert _DEFAULT_TSA_SETTINGS == {
+        "numberOfTypicalPeriods": 7,
+        "numberOfTimeStepsPerPeriod": 24,
+        "numberOfSegmentsPerPeriod": 16,
+        "segmentation": True,
+        "clusterMethod": "hierarchical",
+        "sortValues": True,
+        "rescaleClusterPeriods": True,
+        "representationMethod": None,
+    }
+
+
+def test_partial_tsa_settings_override_merges_with_defaults():
+    """Passing only one key in timeSeriesAggregationSettings must not reset
+    the other tsam settings. numberOfTypicalPeriods is left at its default
+    (7), which the 2-time-step test system cannot satisfy (7*1 > 2),
+    proving the default is still active alongside the override.
+    """
+    esM = _build_esM()
+    with pytest.raises(
+        ValueError, match="product of the numberOfTypicalPeriods"
+    ):
+        rollingHorizonOptimization(
+            esM=esM,
+            scenario_name="test_partial_tsa",
+            timeSeriesAggregation=True,
+            timeSeriesAggregationSettings={"numberOfTimeStepsPerPeriod": 1},
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+        )
+
+
+@pytest.fixture(scope="module")
+def rh_results_tsa_custom():
+    """Override numberOfTypicalPeriods/numberOfTimeStepsPerPeriod/
+    numberOfSegmentsPerPeriod via timeSeriesAggregationSettings to reach
+    aggregateTemporally: the default values (7 typical periods, 24 time
+    steps per period) are impossible to satisfy for this 2-time-step test
+    system, so a successful run here proves the override was applied.
+    """
+    esM = _build_esM()
+    return rollingHorizonOptimization(
+        esM=esM,
+        scenario_name="test_tsa_custom",
+        timeSeriesAggregation=True,
+        timeSeriesAggregationSettings={
+            "numberOfTypicalPeriods": 2,
+            "numberOfTimeStepsPerPeriod": 1,
+            "numberOfSegmentsPerPeriod": 1,
+        },
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+
+
+def test_tsa_settings_passthrough_controls_clustering(rh_results_tsa_custom):
+    """The overridden values are the ones actually used for clustering."""
+    esM = rh_results_tsa_custom[2020]
+    assert len(esM.typicalPeriods) == 2
+    assert len(esM.timeStepsPerPeriod) == 1
+    assert len(esM.segmentsPerPeriod) == 1
+
+
+# ─── netCDF output (xarrayIO) and resume ───────────────────────────────────────
+#
+# writeExcelOutput used to be the only way to persist rolling horizon results.
+# writeNetCDFOutput saves every interval's full esM (input and output) into a
+# single shared netCDF file, one group per interval keyed by its start year
+# (consistent with perfect foresight's single-file output, unlike Excel's one
+# file per interval), which also enables resuming an interrupted run
+# (resume=True) instead of re-solving already completed intervals.
+
+
+def _shared_netcdf_path(dir_path, scenario_name="netcdf_cache"):
+    return dir_path / f"{scenario_name}_rollingHorizon.nc"
+
+
+def _write_cached_group(esM_obj, dir_path, startYear, scenario_name="netcdf_cache"):
+    """Write a single interval's esM into its own group of the shared netCDF
+    file, without touching any other group already there. Lets tests build
+    specific (partial, mixed-origin, ...) cache scenarios directly from
+    already-solved esM objects, without re-solving or copying files.
+    """
+    fn.writeEnergySystemModelToNetCDF(
+        esM_obj,
+        outputFilePath=str(_shared_netcdf_path(dir_path, scenario_name)),
+        overwriteExisting=False,
+        groupPrefix=str(startYear),
+    )
+
+
+@pytest.fixture(scope="module")
+def rh_netcdf_cache(tmp_path_factory):
+    """Run rolling horizon once with writeNetCDFOutput=True, producing one
+    shared netCDF file with one group per interval. Shared across the
+    netCDF/resume tests below to avoid re-solving the same model repeatedly.
+    """
+    export_dir = tmp_path_factory.mktemp("rh_netcdf_cache")
+    esM = _build_esM()
+    results = rollingHorizonOptimization(
+        esM=esM,
+        scenario_name="netcdf_cache",
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        writeNetCDFOutput=True,
+        resultExportPath=str(export_dir),
+    )
+    return results, export_dir
+
+
+def _commissioning(esM, year):
+    return (
+        esM.getOptimizationSummary("SourceSinkModel", ip=year)
+        .loc["Source_cheap_then_expensive", "commissioning"]
+        .iloc[0, 0]
+    )
+
+
+def test_write_netcdf_output_creates_one_shared_file_with_one_group_per_interval(
+    rh_netcdf_cache,
+):
+    """writeNetCDFOutput=True writes a single netCDF file, named after
+    scenario_name, holding one group per rolling horizon interval, keyed by
+    its start year -- mirroring perfect foresight's single-file output
+    instead of writing one file per interval.
+    """
+    _, export_dir = rh_netcdf_cache
+    netCDFPath = _shared_netcdf_path(export_dir)
+    assert netCDFPath.is_file()
+    for year in (2020, 2025, 2030):
+        assert _cachedGroupExists(netCDFPath, str(year))
+
+
+def test_netcdf_output_round_trips_optimization_summary(rh_netcdf_cache):
+    """A cached interval group, read back via xarrayIO, reproduces the same
+    commissioning values as the in-memory result it was written from.
+    """
+    results, export_dir = rh_netcdf_cache
+    loaded = fn.readNetCDFtoEnergySystemModel(
+        str(_shared_netcdf_path(export_dir)), groupPrefix="2020"
+    )
+    assert _commissioning(loaded, 2020) == pytest.approx(
+        _commissioning(results[2020], 2020)
+    )
+
+
+def _track_optimize_calls(monkeypatch):
+    """Patch EnergySystemModel.optimize to record which sub-esM's startYear
+    it was called on, without changing its behavior.
+    """
+    calls = []
+    original_optimize = fn.EnergySystemModel.optimize
+
+    def _tracking_optimize(self, *args, **kwargs):
+        calls.append(self.startYear)
+        return original_optimize(self, *args, **kwargs)
+
+    monkeypatch.setattr(fn.EnergySystemModel, "optimize", _tracking_optimize)
+    return calls
+
+
+def test_resume_skips_optimize_when_all_intervals_cached(
+    rh_netcdf_cache, monkeypatch
+):
+    """resume=True must load every interval from its cached group instead
+    of rebuilding and re-solving it, once the cache is fully populated.
+    This is the point of resuming a finished/interrupted run: no interval
+    should be solved twice.
+    """
+    original_results, export_dir = rh_netcdf_cache
+    optimize_calls = _track_optimize_calls(monkeypatch)
+
+    resumed_esM = _build_esM()
+    resumed_results = rollingHorizonOptimization(
+        esM=resumed_esM,
+        scenario_name="netcdf_cache",
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        resume=True,
+        resultExportPath=str(export_dir),
+    )
+
+    assert optimize_calls == []
+    assert set(resumed_results.keys()) == {2020, 2025, 2030}
+    for year in resumed_results:
+        assert _commissioning(resumed_results[year], year) == pytest.approx(
+            _commissioning(original_results[year], year)
+        )
+
+
+def test_resume_partial_cache_solves_only_missing_intervals(
+    rh_netcdf_cache, tmp_path, monkeypatch
+):
+    """If only the first interval's group exists (simulating a run
+    interrupted right after it), resuming must load that interval from
+    cache and only solve the remaining ones. The final results must match
+    an uninterrupted run exactly, proving stock bookkeeping is unaffected
+    by reloading (rather than re-solving) the earlier interval.
+    """
+    original_results, _ = rh_netcdf_cache
+    _write_cached_group(original_results[2020], tmp_path, 2020)
+    optimize_calls = _track_optimize_calls(monkeypatch)
+
+    resumed_esM = _build_esM()
+    resumed_results = rollingHorizonOptimization(
+        esM=resumed_esM,
+        scenario_name="netcdf_cache",
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        resume=True,
+        resultExportPath=str(tmp_path),
+    )
+
+    assert optimize_calls == [2025, 2030]
+    for year in (2020, 2025, 2030):
+        assert _commissioning(resumed_results[year], year) == pytest.approx(
+            _commissioning(original_results[year], year)
+        )
+
+
+def test_resume_raises_on_mismatched_cache(rh_netcdf_cache, tmp_path):
+    """If a cached interval's window size doesn't match what the current
+    call expects (e.g. numberOfInvestmentPeriodsForRollingHorizon changed
+    between runs), resuming from it must fail loudly instead of silently
+    producing an inconsistent result.
+    """
+    original_results, _ = rh_netcdf_cache
+    _write_cached_group(
+        original_results[2020], tmp_path, 2020, scenario_name="mismatch"
+    )
+    esM = _build_esM()
+    with pytest.raises(ValueError, match="does not match this call's configuration"):
+        rollingHorizonOptimization(
+            esM=esM,
+            scenario_name="mismatch",
+            numberOfInvestmentPeriodsForRollingHorizon=1,
+            resume=True,
+            resultExportPath=str(tmp_path),
+        )
+
+
+# ─── Cache validation helpers (unit-level, no solves) ──────────────────────────
+#
+# _cachedIntervalConfigMismatches / _cachedIntervalChainMismatches implement the
+# two safety checks resume relies on: a hard check that this call's own window
+# configuration matches the cache, and a soft check that the cache was actually
+# built from the same component set + accumulated stock as what was just
+# recomputed for it. Tested directly here since constructing real "stale cache"
+# scenarios end-to-end requires two full solves (covered separately below).
+
+
+class _FakeCachedEsm:
+    def __init__(self, startYear, numberOfInvestmentPeriods):
+        self.startYear = startYear
+        self.numberOfInvestmentPeriods = numberOfInvestmentPeriods
+
+
+def test_config_mismatch_detects_start_year_difference():
+    reasons = _cachedIntervalConfigMismatches(
+        _FakeCachedEsm(startYear=2020, numberOfInvestmentPeriods=2),
+        rollingHorizonYears=[2025, 2030],
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert any("startYear" in r for r in reasons)
+
+
+def test_config_mismatch_detects_window_size_difference():
+    reasons = _cachedIntervalConfigMismatches(
+        _FakeCachedEsm(startYear=2020, numberOfInvestmentPeriods=2),
+        rollingHorizonYears=[2020, 2025],
+        numberOfInvestmentPeriodsForRollingHorizon=1,
+    )
+    assert any("numberOfInvestmentPeriods" in r for r in reasons)
+
+
+def test_config_mismatch_empty_when_matching():
+    reasons = _cachedIntervalConfigMismatches(
+        _FakeCachedEsm(startYear=2020, numberOfInvestmentPeriods=2),
+        rollingHorizonYears=[2020, 2025],
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert reasons == []
+
+
+def test_stock_commissioning_differs_none_vs_none():
+    assert _stockCommissioningDiffers(None, None) is False
+
+
+def test_stock_commissioning_differs_none_vs_value():
+    stock = {2020: pd.Series({"PerfectLand": 1.0})}
+    assert _stockCommissioningDiffers(None, stock) is True
+    assert _stockCommissioningDiffers(stock, None) is True
+
+
+def test_stock_commissioning_differs_within_tolerance_is_not_a_difference():
+    fresh = {2020: pd.Series({"PerfectLand": 1.0000001})}
+    cached = {2020: pd.Series({"PerfectLand": 1.0000002})}
+    assert _stockCommissioningDiffers(fresh, cached) is False
+
+
+def test_stock_commissioning_differs_beyond_tolerance():
+    fresh = {2020: pd.Series({"PerfectLand": 1.0})}
+    cached = {2020: pd.Series({"PerfectLand": 1.1})}
+    assert _stockCommissioningDiffers(fresh, cached) is True
+
+
+def test_stock_commissioning_differs_on_different_years():
+    fresh = {2020: pd.Series({"PerfectLand": 1.0})}
+    cached = {2025: pd.Series({"PerfectLand": 1.0})}
+    assert _stockCommissioningDiffers(fresh, cached) is True
+
+
+def _tiny_esM_with_source(**sourceKwargs):
+    esM = _minimal_esM(2)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Src",
+            commodity="electricity",
+            **sourceKwargs,
+        )
+    )
+    return esM
+
+
+def test_chain_mismatch_detects_component_set_difference():
+    esM = _tiny_esM_with_source(hasCapacityVariable=False)
+    freshCompDict = {"Source": {}}
+    reasons = _cachedIntervalChainMismatches(esM, freshCompDict)
+    assert any("component set" in r for r in reasons)
+
+
+def test_chain_mismatch_detects_stock_difference():
+    esM = _tiny_esM_with_source(
+        hasCapacityVariable=True,
+        investPerCapacity=1,
+        interestRate=0.02,
+        economicLifetime=10,
+        stockCommissioning={2015: pd.Series({"PerfectLand": 5.0})},
+    )
+    _, cachedCompDict = fn.dictIO.exportToDict(esM)
+    freshCompDict = copy.deepcopy(cachedCompDict)
+    freshCompDict["Source"]["Src"]["stockCommissioning"] = {
+        2015: pd.Series({"PerfectLand": 999.0})
+    }
+    reasons = _cachedIntervalChainMismatches(esM, freshCompDict)
+    assert any("stockCommissioning" in r for r in reasons)
+
+
+def test_chain_mismatch_empty_when_matching():
+    esM = _tiny_esM_with_source(hasCapacityVariable=False)
+    _, cachedCompDict = fn.dictIO.exportToDict(esM)
+    reasons = _cachedIntervalChainMismatches(esM, cachedCompDict)
+    assert reasons == []
+
+
+# ─── Stale cache: end-to-end warn-discard-resolve, and monotonic fallback ──────
+
+
+@pytest.fixture(scope="module")
+def rh_netcdf_cache_perturbed(tmp_path_factory):
+    """Run a second full rolling horizon with a different 2020 electricity
+    demand, so its resulting 2020 commissioning -- and therefore the
+    stockCommissioning baked into its *later* cached intervals -- differs
+    from a chain that starts at rh_netcdf_cache's 2020 result. Used to
+    construct a genuinely stale cache group below, rather than just a
+    structurally-invalid one.
+    """
+    export_dir = tmp_path_factory.mktemp("rh_netcdf_cache_perturbed")
+    esM = _build_esM(edemand2020=2190 * 3)
+    results = rollingHorizonOptimization(
+        esM=esM,
+        scenario_name="netcdf_cache",
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        writeNetCDFOutput=True,
+        resultExportPath=str(export_dir),
+    )
+    return results, export_dir
+
+
+def test_resume_discards_stale_cache_and_solves_fresh(
+    rh_netcdf_cache, rh_netcdf_cache_perturbed, tmp_path, monkeypatch
+):
+    """Build a shared cache file where 2020 is consistent but 2025 was
+    actually produced by a *different* 2020 (the perturbed run) -- as if
+    an earlier interval got re-solved with different inputs between runs,
+    leaving a stale downstream cache group in place. 2030's group is left
+    as the ORIGINAL (2020-consistent) one.
+
+    Resuming must: (1) load 2020 from cache, (2) detect 2025's cache is
+    stale, warn, discard it, and solve 2025 fresh from the correct (2020-
+    consistent) chain, and (3) per the monotonic-fallback guard, also solve
+    2030 fresh even though its own cached group is individually consistent
+    -- because it was never validated against the freshly-solved 2025.
+    The final results must match an uninterrupted single run exactly,
+    proving the discard-and-resolve path is fully self-correcting.
+    """
+    original_results, _ = rh_netcdf_cache
+    perturbed_results, _ = rh_netcdf_cache_perturbed
+
+    _write_cached_group(original_results[2020], tmp_path, 2020)
+    _write_cached_group(perturbed_results[2025], tmp_path, 2025)
+    _write_cached_group(original_results[2030], tmp_path, 2030)
+
+    optimize_calls = _track_optimize_calls(monkeypatch)
+
+    resumed_esM = _build_esM()
+    with pytest.warns(UserWarning, match="stale"):
+        resumed_results = rollingHorizonOptimization(
+            esM=resumed_esM,
+            scenario_name="netcdf_cache",
+            timeSeriesAggregation=False,
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            resume=True,
+            resultExportPath=str(tmp_path),
+        )
+
+    assert optimize_calls == [2025, 2030]
+    for year in (2020, 2025, 2030):
+        assert _commissioning(resumed_results[year], year) == pytest.approx(
+            _commissioning(original_results[year], year)
+        )

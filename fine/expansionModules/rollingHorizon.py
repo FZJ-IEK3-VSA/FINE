@@ -1,32 +1,185 @@
+import warnings
+
+import pandas as pd
+from netCDF4 import Dataset
+
 import fine as fn
 from fine import utils
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
+from fine.IOManagement.xarrayIO import (
+    writeEnergySystemModelToNetCDF,
+    readNetCDFtoEnergySystemModel,
+)
 import copy
 from pathlib import Path
+
+
+_DEFAULT_TSA_SETTINGS = {
+    "numberOfTypicalPeriods": 7,
+    "numberOfTimeStepsPerPeriod": 24,
+    "numberOfSegmentsPerPeriod": 16,
+    "segmentation": True,
+    "clusterMethod": "hierarchical",
+    "sortValues": True,
+    "rescaleClusterPeriods": True,
+    "representationMethod": None,
+}
+
+
+def _cachedGroupExists(netCDFPath, groupPrefix):
+    """Check whether a given interval's group is already present in the
+    shared rolling horizon netCDF file, without loading it.
+    """
+    if not netCDFPath.is_file():
+        return False
+    with Dataset(str(netCDFPath), "r", format="NETCDF4") as rootgrp:
+        return groupPrefix in rootgrp.groups
+
+
+def _cachedIntervalConfigMismatches(
+    cachedEsm, rollingHorizonYears, numberOfInvestmentPeriodsForRollingHorizon
+):
+    """Check a cached interval's own configuration against what this call
+    explicitly asked for. A mismatch here (e.g. numberOfInvestmentPeriods
+    ForRollingHorizon changed between the interrupted and the resumed run)
+    is almost certainly a user error, so it is treated as fatal rather than
+    silently re-solved.
+    """
+    reasons = []
+    if cachedEsm.startYear != rollingHorizonYears[0]:
+        reasons.append(
+            f"cached startYear ({cachedEsm.startYear}) does not match the "
+            f"expected interval start year ({rollingHorizonYears[0]})"
+        )
+    if cachedEsm.numberOfInvestmentPeriods != numberOfInvestmentPeriodsForRollingHorizon:
+        reasons.append(
+            "cached numberOfInvestmentPeriods "
+            f"({cachedEsm.numberOfInvestmentPeriods}) does not match "
+            f"numberOfInvestmentPeriodsForRollingHorizon "
+            f"({numberOfInvestmentPeriodsForRollingHorizon})"
+        )
+    return reasons
+
+
+def _stockCommissioningDiffers(freshStock, cachedStock, tolerance=1e-5):
+    """Compare the stockCommissioning that was just recomputed for a
+    component going into this interval against what a cached interval was
+    actually built from. This is what encodes the accumulated result of
+    every prior interval in the chain, so a difference here means the
+    cache no longer corresponds to the chain currently being computed.
+    """
+    if freshStock is None and cachedStock is None:
+        return False
+    if (freshStock is None) != (cachedStock is None):
+        return True
+    if set(freshStock.keys()) != set(cachedStock.keys()):
+        return True
+    for year in freshStock:
+        freshSeries = pd.Series(freshStock[year]).sort_index()
+        cachedSeries = pd.Series(cachedStock[year]).sort_index()
+        if not freshSeries.index.equals(cachedSeries.index):
+            return True
+        if (freshSeries - cachedSeries).abs().max() > tolerance:
+            return True
+    return False
+
+
+def _cachedIntervalChainMismatches(cachedEsm, rollingHorizonCompDict):
+    """Check whether a cached interval was built from the same rolling
+    horizon chain (same components, same accumulated stock) as what was
+    just recomputed for it. Unlike a config mismatch, this is expected to
+    legitimately happen when resuming after upstream inputs changed or
+    after a gap forced an earlier interval to be re-solved differently, so
+    callers should treat it as a stale cache to discard and rebuild, not a
+    fatal error.
+    """
+    _, cachedCompDict = fn.dictIO.exportToDict(cachedEsm)
+
+    freshComponents = {
+        (classname, comp)
+        for classname in rollingHorizonCompDict
+        for comp in rollingHorizonCompDict[classname]
+    }
+    cachedComponents = {
+        (classname, comp)
+        for classname in cachedCompDict
+        for comp in cachedCompDict[classname]
+    }
+    if freshComponents != cachedComponents:
+        return ["cached interval's component set differs from the current esM"]
+
+    reasons = []
+    for classname, comp in freshComponents:
+        freshStock = rollingHorizonCompDict[classname][comp]["stockCommissioning"]
+        cachedStock = cachedCompDict[classname][comp]["stockCommissioning"]
+        if _stockCommissioningDiffers(freshStock, cachedStock):
+            reasons.append(
+                f"stockCommissioning of {classname} '{comp}' differs from "
+                "the cached interval"
+            )
+    return reasons
 
 
 def rollingHorizonOptimization(
     esM,
     numberOfInvestmentPeriodsForRollingHorizon,
     timeSeriesAggregation=True,
-    numberOfTypicalPeriods=7,
-    numberOfTimeStepsPerPeriod=24,
-    numberOfSegments=16,
-    clusterMethod="hierarchical",
+    timeSeriesAggregationSettings=None,
     solver="gurobi",
     optimizationSpecs="",
     writeExcelOutput=False,
+    writeNetCDFOutput=False,
+    resume=False,
     resultExportPath=None,
     scenario_name=None,
 ):
-    """If numberOfInvestmentPeriodsForRollingHorizon == numberOfInvestmentPeriods -> Perfect Foresight, If numberOfInvestmentPeriodsForRollingHorizon == 1 -> Foresight, else Rolling Horizon.
+    """If numberOfInvestmentPeriodsForRollingHorizon == 1 -> Myopic Foresight, If numberOfInvestmentPeriodsForRollingHorizon == numberOfInvestmentPeriods -> Perfect Foresight (raises an error), else Rolling Horizon.
 
     If writeExcelOutput is True, resultExportPath and scenario_name must be set, and the optimization summaries of each rolling horizon interval are written to Excel files there, named after scenario_name.
+
+    If writeNetCDFOutput is True, resultExportPath and scenario_name must be set, and the full esM (input and
+    output) of every rolling horizon interval is written to a single shared netCDF file there, named
+    "{scenario_name}_rollingHorizon.nc" - one group per interval, keyed by its start year (consistent with
+    the single-file output of perfect foresight, unlike writing one file per interval). If resume is False,
+    this file is cleared at the start of the call so a fresh run never mixes with stale groups from an
+    earlier, unrelated run.
+
+    If resume is True (implies writeNetCDFOutput), resultExportPath and scenario_name must be set. Before
+    optimizing an interval, its group in that file is checked for; if present, the interval is loaded from
+    there instead of being rebuilt and re-solved. This allows a rolling horizon run to be continued after
+    being interrupted, without re-solving already completed intervals. Unlike the resume=False case, the file
+    is never cleared up front, since the whole point is to keep prior intervals' groups around.
+
+    Cache safety: a cached interval whose own startYear/numberOfInvestmentPeriods does not match what this
+    call expects raises a ValueError (this is treated as a user error, e.g. calling with a different
+    numberOfInvestmentPeriodsForRollingHorizon than the interrupted run used). A cached interval whose
+    component set or accumulated stockCommissioning does not match what was just recomputed for it from the
+    current esM and the (possibly freshly solved) prior interval is instead treated as stale: it is discarded
+    with a warning and re-solved. Once any interval in the chain has been solved fresh for either reason,
+    every later interval is also solved fresh, even if its group already exists in the file - a cached group
+    surviving downstream of a point where the chain was regenerated is never trustworthy, since it was
+    necessarily built from a different predecessor.
+
+    :param timeSeriesAggregationSettings: keyword arguments passed directly to
+        EnergySystemModel.aggregateTemporally (e.g. numberOfTypicalPeriods, numberOfTimeStepsPerPeriod,
+        numberOfSegmentsPerPeriod, segmentation, clusterMethod, sortValues, rescaleClusterPeriods,
+        representationMethod, or any further tsam kwarg). Settings not given fall back to rolling-horizon
+        defaults; only used if timeSeriesAggregation is True.
+        |br| * the default value is None
+    :type timeSeriesAggregationSettings: dict or None
     """
-    if writeExcelOutput and resultExportPath is None:
-        raise ValueError("resultExportPath must be set if writeExcelOutput is True.")
-    if writeExcelOutput and scenario_name is None:
-        raise ValueError("scenario_name must be set if writeExcelOutput is True.")
+    saveNetCDF = writeNetCDFOutput or resume
+
+    if (writeExcelOutput or saveNetCDF) and resultExportPath is None:
+        raise ValueError(
+            "resultExportPath must be set if writeExcelOutput, writeNetCDFOutput or resume is True."
+        )
+    if (writeExcelOutput or saveNetCDF) and scenario_name is None:
+        raise ValueError(
+            "scenario_name must be set if writeExcelOutput, writeNetCDFOutput or resume is True."
+        )
+
+    tsaSettings = {**_DEFAULT_TSA_SETTINGS, **(timeSeriesAggregationSettings or {})}
 
     if esM.rollingHorizonStartYear is None:
         esM.rollingHorizonStartYear = esM.startYear
@@ -61,9 +214,20 @@ def rollingHorizonOptimization(
     # extract all information of original esM
     esmDict, compDict = fn.dictIO.exportToDict(esM)
 
+    # all intervals share a single netCDF file, one group per interval (keyed by
+    # its start year). A fresh (non-resumed) run starts from a clean file so it
+    # never mixes with stale groups left over from an earlier, unrelated run;
+    # a resumed run leaves the file untouched so prior intervals' groups survive.
+    netCDFPath = None
+    if saveNetCDF:
+        netCDFPath = Path(resultExportPath) / f"{scenario_name}_rollingHorizon.nc"
+        if not resume and netCDFPath.is_file():
+            netCDFPath.unlink()
+
     print("Starting rolling horizon optimization.")
 
     esM_results = {}
+    mustSolveFresh = False
     persistedStock = {
         classname: {
             comp: copy.deepcopy(compDict[classname][comp]["stockCommissioning"])
@@ -223,57 +387,108 @@ def rollingHorizonOptimization(
                     else:
                         pass
 
-        # 2. init esm with new startYear and numberOfInvestmentPeriods and add components
-        rollingHorizonEsmDict = esmDict.copy()
-        rollingHorizonEsmDict["startYear"] = rollingHorizonYears[0]
-        rollingHorizonEsmDict["numberOfInvestmentPeriods"] = (
-            numberOfInvestmentPeriodsForRollingHorizon
-        )
-        for param, value in rollingHorizonEsmDict.items():
-            if (
-                isinstance(value, dict)
-                and list(value.keys()) == esM.investmentPeriodNames
-            ):
-                rollingHorizonEsmDict[param] = {
-                    _year: _value
-                    for (_year, _value) in value.items()
-                    if _year in rollingHorizonYears
-                }
-        rollingHorizonEsm = fn.EnergySystemModel(**rollingHorizonEsmDict)
-        # add components per class
-        for classname in rollingHorizonCompDict:
-            for comp in rollingHorizonCompDict[classname]:
-                rollingHorizonEsm.add(
-                    getattr(fn, classname)(
-                        esM=rollingHorizonEsm,
-                        **rollingHorizonCompDict[classname][
-                            comp
-                        ],  # information of component
-                    )
-                )
+        # 2. check for a cached result of this interval (its own group in the
+        # shared netCDF file) to resume from. Once any interval has had to be
+        # (re-)solved, no later interval may be loaded from cache: a group
+        # surviving downstream of a regenerated predecessor was necessarily
+        # built from a different chain.
+        groupPrefix = str(rollingHorizonYears[0])
 
-        # 3. optimize the rolling horizon esM
-        if timeSeriesAggregation:
-            rollingHorizonEsm.aggregateTemporally(
-                numberOfTypicalPeriods=numberOfTypicalPeriods,
-                numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
-                numberOfSegmentsPerPeriod=numberOfSegments,
-                segmentation=True,
-                clusterMethod=clusterMethod,
-                solver=solver,
-                sortValues=True,
-                rescaleClusterPeriods=True,
-                representationMethod=None,
+        loadedFromCache = False
+        if (
+            resume
+            and not mustSolveFresh
+            and netCDFPath is not None
+            and _cachedGroupExists(netCDFPath, groupPrefix)
+        ):
+            candidateEsm = readNetCDFtoEnergySystemModel(
+                str(netCDFPath), groupPrefix=groupPrefix
             )
 
-        rollingHorizonEsm.optimize(
-            declaresOptimizationProblem=True,
-            timeSeriesAggregation=timeSeriesAggregation,
-            solver=solver,
-            optimizationSpecs=optimizationSpecs,
-        )
+            configMismatches = _cachedIntervalConfigMismatches(
+                candidateEsm,
+                rollingHorizonYears,
+                numberOfInvestmentPeriodsForRollingHorizon,
+            )
+            if configMismatches:
+                raise ValueError(
+                    f"Cached result in group '{groupPrefix}' of {netCDFPath} "
+                    f"does not match this call's configuration for interval "
+                    f"{rollingHorizonYears}: {'; '.join(configMismatches)}. "
+                    "Delete the cache or set resume=False to re-run this interval."
+                )
+
+            chainMismatches = _cachedIntervalChainMismatches(
+                candidateEsm, rollingHorizonCompDict
+            )
+            if chainMismatches:
+                warnings.warn(
+                    f"Cached result in group '{groupPrefix}' of {netCDFPath} is "
+                    f"stale and will be discarded and re-solved: "
+                    f"{'; '.join(chainMismatches)}."
+                )
+            else:
+                print(
+                    f"Resuming: loading cached result for {rollingHorizonYears} "
+                    f"from group '{groupPrefix}' of {netCDFPath}"
+                )
+                rollingHorizonEsm = candidateEsm
+                loadedFromCache = True
+
+        if not loadedFromCache:
+            mustSolveFresh = True
+            # 2a. init esm with new startYear and numberOfInvestmentPeriods and add components
+            rollingHorizonEsmDict = esmDict.copy()
+            rollingHorizonEsmDict["startYear"] = rollingHorizonYears[0]
+            rollingHorizonEsmDict["numberOfInvestmentPeriods"] = (
+                numberOfInvestmentPeriodsForRollingHorizon
+            )
+            for param, value in rollingHorizonEsmDict.items():
+                if (
+                    isinstance(value, dict)
+                    and list(value.keys()) == esM.investmentPeriodNames
+                ):
+                    rollingHorizonEsmDict[param] = {
+                        _year: _value
+                        for (_year, _value) in value.items()
+                        if _year in rollingHorizonYears
+                    }
+            rollingHorizonEsm = fn.EnergySystemModel(**rollingHorizonEsmDict)
+            # add components per class
+            for classname in rollingHorizonCompDict:
+                for comp in rollingHorizonCompDict[classname]:
+                    rollingHorizonEsm.add(
+                        getattr(fn, classname)(
+                            esM=rollingHorizonEsm,
+                            **rollingHorizonCompDict[classname][
+                                comp
+                            ],  # information of component
+                        )
+                    )
+
+            # 3. optimize the rolling horizon esM
+            if timeSeriesAggregation:
+                rollingHorizonEsm.aggregateTemporally(solver=solver, **tsaSettings)
+
+            rollingHorizonEsm.optimize(
+                declaresOptimizationProblem=True,
+                timeSeriesAggregation=timeSeriesAggregation,
+                solver=solver,
+                optimizationSpecs=optimizationSpecs,
+            )
 
         # 4. export optimization summaries
+        if saveNetCDF and not loadedFromCache:
+            # overwriteExisting=False: this call only ever touches its own
+            # group (groupPrefix); the other intervals' groups in the shared
+            # file must be left untouched.
+            writeEnergySystemModelToNetCDF(
+                rollingHorizonEsm,
+                outputFilePath=str(netCDFPath),
+                overwriteExisting=False,
+                groupPrefix=groupPrefix,
+            )
+
         # For all optimization than the last rolling horizon optimization, export only first year.
         # For the last rolling horizon interval, export all years.
         if writeExcelOutput:
