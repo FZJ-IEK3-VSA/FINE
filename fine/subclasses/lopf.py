@@ -350,39 +350,26 @@ class LOPFModel(TransmissionModel):
 
         :param name: name of the variables of which the optimal values should be returned:
 
-            * 'capacityVariables',
-            * 'isBuiltVariables',
-            * '_operationVariablesOptimum',
+            * 'capacityVariablesOptimum',
+            * 'isBuiltVariablesOptimum',
+            * 'operationVariablesOptimum',
+            * 'commissioningVariablesOptimum',
+            * 'decommissioningVariablesOptimum',
             * 'phaseAngleVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         :type name: string
         """
-        timeDependentMapping = {
-            "capacityVariablesOptimum": False,
-            "isBuiltVariablesOptimum": False,
-            "operationVariablesOptimum": True,
-            "phaseAngleVariablesOptimum": True,
+        phaseAngleEntry = {
+            "values": self._phaseAngleVariablesOptimum[ip],
+            "timeDependent": True,
+            "dimension": Dimension.ONE,
         }
+        if name == "phaseAngleVariablesOptimum":
+            return phaseAngleEntry
+        if name != "all":
+            return super().getOptimalValues(name, ip=ip)
 
-        dimensionMapping = {
-            "capacityVariablesOptimum": self.dimension,
-            "isBuiltVariablesOptimum": self.dimension,
-            "operationVariablesOptimum": self.dimension,
-            "phaseAngleVariablesOptimum": Dimension.ONE,
-        }
-
-        if name in timeDependentMapping:
-            return {
-                "values": getattr(self, f"_{name}")[ip],
-                "timeDependent": timeDependentMapping[name],
-                "dimension": dimensionMapping[name],
-            }
-        return {
-            valName: {
-                "values": getattr(self, f"_{valName}")[ip],
-                "timeDependent": timeDependentMapping[valName],
-                "dimension": dimensionMapping[valName],
-            }
-            for valName in timeDependentMapping
-        }
+        result = super().getOptimalValues("all", ip=ip)
+        result["phaseAngleVariablesOptimum"] = phaseAngleEntry
+        return result
