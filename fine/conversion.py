@@ -1738,9 +1738,9 @@ class ConversionModel(ComponentModel):
                 results_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
                 # fold the operation NPV contribution into NPVcontribution
                 if "NPVcontribution" in results_ip:
-                    results_ip["NPVcontribution"] = results_ip[
-                        "NPVcontribution"
-                    ].add(resultsNPV_opexOp[ip], fill_value=0)
+                    results_ip["NPVcontribution"] = results_ip["NPVcontribution"].add(
+                        resultsNPV_opexOp[ip], fill_value=0
+                    )
 
     def setOptimalValues(self, esM, pyM):
         """Set the optimal values of the components.
@@ -1758,6 +1758,7 @@ class ConversionModel(ComponentModel):
             esM, pyM, esM.locations, "physicalUnit"
         )
         self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
+        self._convertOptimalValueNames(esM)
 
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the conversion summary (operation rows + basic summary) as a view.

@@ -1026,9 +1026,10 @@ class TransmissionModel(ComponentModel):
                 # connections) to 0. That 0 matters: the connection-splitting stack() below
                 # drops NaN cells, so without this the NPVcontribution rows of unused
                 # connections would disappear. Reproduce the NaN->0 normalization.
-                if "NPVcontribution" in results_ip and not results_ip[
-                    "NPVcontribution"
-                ].empty:
+                if (
+                    "NPVcontribution" in results_ip
+                    and not results_ip["NPVcontribution"].empty
+                ):
                     results_ip["NPVcontribution"] = (
                         results_ip["NPVcontribution"].groupby(level=0).sum()
                     )
@@ -1050,6 +1051,7 @@ class TransmissionModel(ComponentModel):
             esM, pyM, mapC.keys(), "commodityUnit"
         )
         self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
+        self._convertOptimalValueNames(esM)
 
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the transmission summary (operation rows + basic summary) as a view.

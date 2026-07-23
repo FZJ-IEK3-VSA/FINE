@@ -1000,7 +1000,7 @@ class PiecewiseLinearCostFunctionModel:
         return model._rawResults1dim[ipName]["commissioning"].loc[moduleName]
 
     def _resultUnit(self, esM, prop):
-        """Unit of a pwlcf result row: a fixed string, or a ``module -> unit`` callable.
+        """Return the unit of a pwlcf result row: a fixed string, or a ``module -> unit`` callable.
 
         :rtype: string or callable
         """
@@ -1020,7 +1020,7 @@ class PiecewiseLinearCostFunctionModel:
         return "[" + getattr(comp, attribute) + suffix + "]"
 
     def _modulesOfModel(self, model, pwlcfType=None):
-        """Module names of a modeling class, optionally restricted to one pwlcf type.
+        """Return the module names of a modeling class, optionally restricted to one pwlcf type.
 
         :param pwlcfType: ``"etl"``, ``"eos"`` or ``None`` for both.
 

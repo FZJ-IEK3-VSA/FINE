@@ -611,7 +611,9 @@ def test_conversionPartLoad():
     # They carry an extra discretization-index level beyond location; regression guard for
     # issue #735 (previously they were dropped / collided on an anonymous stacked column).
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
-    ds = xrds["Results"][esM.investmentPeriodNames[0]]["ConversionPartLoadModel"]["PEMEC"]
+    ds = xrds["Results"][esM.investmentPeriodNames[0]]["ConversionPartLoadModel"][
+        "PEMEC"
+    ]
     for var in (
         "discretizationPointVariablesOptimum",
         "discretizationSegmentConVariablesOptimum",

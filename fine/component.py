@@ -3827,7 +3827,7 @@ class ComponentModel(metaclass=ABCMeta):
         self._extractSubclassRawResults(esM, pyM, rawResults)
 
     def _extractSubclassRawResults(self, esM, pyM, rawResults):
-        """Overridable hook for subclass specific raw variable extraction.
+        """Extract subclass specific raw variables (overridable hook).
 
         Subclasses add their variables (e.g. ``operation``) to ``rawResults`` in place and
         populate their own ``self._*VariablesOptimum`` attributes. The base implementation
@@ -4079,9 +4079,7 @@ class ComponentModel(metaclass=ABCMeta):
                 )
                 # invest is the sum of capacity expansion and isBuilt contributions
                 if "invest" in results_ip:
-                    results_ip["invest"] = results_ip["invest"].add(
-                        i_bin, fill_value=0
-                    )
+                    results_ip["invest"] = results_ip["invest"].add(i_bin, fill_value=0)
                 else:
                     results_ip["invest"] = i_bin
 
@@ -4098,9 +4096,7 @@ class ComponentModel(metaclass=ABCMeta):
                 if key in results_ip
             ]
             if tacParts:
-                results_ip["TAC"] = (
-                    pd.concat(tacParts).groupby(level=0).sum()
-                )
+                results_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
 
             # Net present value contribution
             npv = pd.DataFrame()
@@ -4133,7 +4129,7 @@ class ComponentModel(metaclass=ABCMeta):
                     frame.columns = frame.columns.set_names("location")
 
     def _deriveSubclassEconomics(self, esM, pyM, rawResults):
-        """Overridable hook for subclass specific economic (cost) contributions.
+        """Add subclass specific economic (cost) contributions (overridable hook).
 
         Subclasses add their cost frames (e.g. a storage's ``opexCharge``/``opexDischarge``)
         to ``rawResults`` in place and, where applicable, augment the aggregated ``TAC`` and
@@ -4197,8 +4193,49 @@ class ComponentModel(metaclass=ABCMeta):
         self.deriveEconomics(esM, pyM)
         return self._buildOptimizationSummary(esM, indexColumns, plantUnit, unitApp)
 
+    def _convertOptimalValueNames(self, esM):
+        """Rename the internal ``_*VariablesOptimum``/``_optSummary`` attributes to their
+        public names (e.g. ``_capacityVariablesOptimum`` -> ``capacityVariablesOptimum``).
+
+        For a perfect-foresight run the per-investment-period dict is kept as is; for a
+        single-year optimization it is unwrapped to the one dataframe it contains, so that
+        models built before the multi-investment-period support was added keep working.
+        Must be called after the subclass has set ``self._optSummary``.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the
+            components are modeled.
+        :type esM: EnergySystemModel instance
+        """
+        optimalValueParameters = [
+            "_optSummary",
+            "_stateOfChargeOperationVSariablesOptimum",
+            "_chargeOperationVariablesOptimum",
+            "_dischargeOperationVariablesOptimum",
+            "_phaseAngleVariablesOptimum",
+            "_operationVariablesOptimum",
+            "_discretizationPointVariablesOptimum",
+            "_discretizationSegmentConVariablesOptimum",
+            "_discretizationSegmentBinVariablesOptimum",
+            "_capacityVariablesOptimum",
+            "_isBuiltVariablesOptimum",
+            "_commissioningVariablesOptimum",
+            "_decommissioningVariablesOptimum",
+        ]
+
+        for key in optimalValueParameters:
+            if key not in self.__dict__:
+                continue
+            if esM.numberOfInvestmentPeriods == 1:
+                setattr(
+                    self,
+                    key.replace("_", ""),
+                    getattr(self, key)[esM.investmentPeriodNames[0]],
+                )
+            else:
+                setattr(self, key.replace("_", ""), getattr(self, key))
+
     def _connectionLocationMap(self, esM):
-        """Cached ``"locIn_locOut" -> (locIn, locOut)`` map for 2-dim connection splitting.
+        """Build (and cache) the ``"locIn_locOut" -> (locIn, locOut)`` map for 2-dim connection splitting.
 
         Built once per (component-model, location set) and rebuilt only if ``esM.locations``
         changes, avoiding the O(locations^2) rebuild on every summary/export call.
@@ -4409,9 +4446,9 @@ class ComponentModel(metaclass=ABCMeta):
                 if prop in perCellProps:
                     for component in frame.index:
                         for loc in frame.columns:
-                            optSummary_ip.loc[(component, prop, unit), loc] = (
-                                frame.loc[component, loc]
-                            )
+                            optSummary_ip.loc[(component, prop, unit), loc] = frame.loc[
+                                component, loc
+                            ]
                 else:
                     optSummary_ip.loc[
                         [(ix, prop, unit) for ix in frame.index],
@@ -4645,7 +4682,10 @@ class ComponentModel(metaclass=ABCMeta):
             if frame is None or frame.empty:
                 continue
             optSummary.loc[
-                [(ix, prop, unit(ix) if callable(unit) else unit) for ix in frame.index],
+                [
+                    (ix, prop, unit(ix) if callable(unit) else unit)
+                    for ix in frame.index
+                ],
                 frame.columns,
             ] = frame.values
         return framesByProp
@@ -4684,9 +4724,21 @@ class ComponentModel(metaclass=ABCMeta):
         # rows use the 1-dim companion frames; economic rows use the derived frames. The
         # economic units are shared with the summary via :meth:`_economicSummaryUnits`.
         designRows = [
-            ("capacity", results1dim_ip.get("capacity"), lambda c: plantUnitFn(c, unitApp)),
-            ("commissioning", results1dim_ip.get("commissioning"), lambda c: plantUnitFn(c, unitApp)),
-            ("decommissioning", results1dim_ip.get("decommissioning"), lambda c: plantUnitFn(c, unitApp)),
+            (
+                "capacity",
+                results1dim_ip.get("capacity"),
+                lambda c: plantUnitFn(c, unitApp),
+            ),
+            (
+                "commissioning",
+                results1dim_ip.get("commissioning"),
+                lambda c: plantUnitFn(c, unitApp),
+            ),
+            (
+                "decommissioning",
+                results1dim_ip.get("decommissioning"),
+                lambda c: plantUnitFn(c, unitApp),
+            ),
             ("isBuilt", results1dim_ip.get("isBuilt"), "[-]"),
         ]
         econRows = [
@@ -4703,7 +4755,10 @@ class ComponentModel(metaclass=ABCMeta):
                 if values is None:
                     continue
                 series = self._nameResultSeries(pd.to_numeric(values), prop)
-                out[compName][prop] = (series, unit(compName) if callable(unit) else unit)
+                out[compName][prop] = (
+                    series,
+                    unit(compName) if callable(unit) else unit,
+                )
 
         # Rows registered by expansion modules exist only for the components they apply to
         # (unlike the fixed property set above, which is NaN-filled for 1-dim components), so
@@ -4716,7 +4771,10 @@ class ComponentModel(metaclass=ABCMeta):
                 if values is None:
                     continue
                 series = self._nameResultSeries(pd.to_numeric(values), prop)
-                out[compName][prop] = (series, unit(compName) if callable(unit) else unit)
+                out[compName][prop] = (
+                    series,
+                    unit(compName) if callable(unit) else unit,
+                )
         return out
 
     def registerExtraSummaryRows(self, ip, rows):

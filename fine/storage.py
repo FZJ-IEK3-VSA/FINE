@@ -2088,17 +2088,17 @@ class StorageModel(ComponentModel):
             if results_ip["chargeOperation"] is not None:
                 results_ip["opexCharge"] = resultsTAC_opexOpCharge[ip]
                 if "NPVcontribution" in results_ip:
-                    results_ip["NPVcontribution"] = results_ip[
-                        "NPVcontribution"
-                    ].add(resultsNPV_opexOpCharge[ip], fill_value=0)
+                    results_ip["NPVcontribution"] = results_ip["NPVcontribution"].add(
+                        resultsNPV_opexOpCharge[ip], fill_value=0
+                    )
 
             # discharge opex contribution
             if results_ip["dischargeOperation"] is not None:
                 results_ip["opexDischarge"] = resultsTAC_opexOpDischarge[ip]
                 if "NPVcontribution" in results_ip:
-                    results_ip["NPVcontribution"] = results_ip[
-                        "NPVcontribution"
-                    ].add(resultsNPV_opexOpDischarge[ip], fill_value=0)
+                    results_ip["NPVcontribution"] = results_ip["NPVcontribution"].add(
+                        resultsNPV_opexOpDischarge[ip], fill_value=0
+                    )
 
             # add the charge/discharge opex to the total annual cost. Components without a
             # capacity variable have no base TAC frame, so it is built from the operation
@@ -2129,6 +2129,7 @@ class StorageModel(ComponentModel):
             esM, pyM, esM.locations, "commodityUnit", "*h"
         )
         self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
+        self._convertOptimalValueNames(esM)
 
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the storage summary (charge/discharge rows + basic summary) as a view.
