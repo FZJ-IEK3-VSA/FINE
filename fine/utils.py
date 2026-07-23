@@ -2,12 +2,15 @@ import logging
 import math
 import warnings
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 import gurobipy as gp
 
 import fine as fn
 from fine.enums import Dimension, VarType
+
+from collections import defaultdict
 
 
 def checkAndSetBalanceLimitID(balanceLimitID):
@@ -3324,7 +3327,8 @@ def _splitSourcesAndSinks(esM):
 def _reduceConversionFactor(value):
     """Reduce a location- or time-dependent conversion factor to a single
     number. Inputs are reduced to their smallest and outputs to their
-    largest magnitude, so that the checks stay optimistic."""
+    largest magnitude, so that the checks stay optimistic.
+    """
     if not isinstance(value, (pd.Series, pd.DataFrame)):
         return float(value)
     values = np.asarray(value, dtype=float).flatten()
@@ -3353,9 +3357,7 @@ def _getScalarConversionFactors(comp):
     :rtype: tuple of dict and bool
     """
     factors = comp.commodityConversionFactors
-    if isinstance(factors, dict) and not all(
-        isinstance(key, str) for key in factors
-    ):
+    if isinstance(factors, dict) and not all(isinstance(key, str) for key in factors):
         factors = _getFirstInvestmentPeriodData(factors)
     if not isinstance(factors, dict):
         return {}, False
@@ -3577,11 +3579,11 @@ def _getMaxTransportableFlow(supplyPerLocation, demandPerLocation, links, tol=1e
     for loc, demand in demandPerLocation.items():
         if demand > 0:
             graph.add_edge(loc, "_demand_", capacity=demand)
-    for locations, capacity in links.items():
+    for locations, linkCapacity in links.items():
         loc1, loc2 = sorted(locations)
-        capacity = min(capacity, bigCapacity)
-        graph.add_edge(loc1, loc2, capacity=capacity)
-        graph.add_edge(loc2, loc1, capacity=capacity)
+        boundedCapacity = min(linkCapacity, bigCapacity)
+        graph.add_edge(loc1, loc2, capacity=boundedCapacity)
+        graph.add_edge(loc2, loc1, capacity=boundedCapacity)
 
     if "_supply_" not in graph or "_demand_" not in graph:
         return 0.0, totalDemand
@@ -3635,7 +3637,6 @@ def checkCommodityReachability(esM):
     problems = []
     sources, sinks = _splitSourcesAndSinks(esM)
     convModel = esM.componentModelingDict.get("ConversionModel")
-    transModel = esM.componentModelingDict.get("TransmissionModel")
 
     available = set()
     for comp in sources:
@@ -3676,12 +3677,8 @@ def checkCommodityReachability(esM):
         if convModel:
             for comp in convModel.componentsDict.values():
                 factors, isFlexible = _getScalarConversionFactors(comp)
-                inputs = {
-                    commod for commod, factor in factors.items() if factor < 0
-                }
-                outputs = {
-                    commod for commod, factor in factors.items() if factor > 0
-                }
+                inputs = {commod for commod, factor in factors.items() if factor < 0}
+                outputs = {commod for commod, factor in factors.items() if factor > 0}
                 for loc in _getEligibleLocations(comp, esM):
                     # a flexible conversion only requires one commodity of
                     # its input group, not all of them
@@ -3792,11 +3789,15 @@ def checkJointInputDemand(esM, aggregate=True, tol=1e-6, maxIteration=50):
 
     conversionData = []
     for comp in conversions:
-        factors = _getConversionFactors(comp)
+        factors, isFlexible = _getScalarConversionFactors(comp)
+        # the input demand of a flexible conversion cannot be assigned to a
+        # single commodity, so it is not restricted by its inputs here
         conversionData.append(
             (
                 comp,
-                {
+                {}
+                if isFlexible
+                else {
                     commod: abs(factor)
                     for commod, factor in factors.items()
                     if factor < 0
@@ -4080,11 +4081,15 @@ def checkTimeStepBalance(esM, tol=1e-6, maxIteration=50):
 
     conversionData = []
     for comp in conversions:
-        factors = _getConversionFactors(comp)
+        factors, isFlexible = _getScalarConversionFactors(comp)
+        # the input demand of a flexible conversion cannot be assigned to a
+        # single commodity, so it is not restricted by its inputs here
         conversionData.append(
             (
                 comp,
-                {
+                {}
+                if isFlexible
+                else {
                     commod: abs(factor)
                     for commod, factor in factors.items()
                     if factor < 0
