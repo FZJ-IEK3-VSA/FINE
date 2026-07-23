@@ -38,7 +38,7 @@ class Source(Component):
         opexPerOperation=0,
         commodityCost=0,
         commodityRevenue=0,
-        commodityCostTimeSeries=None,
+        # commodityCostTimeSeries=None,
         commodityRevenueTimeSeries=None,
         opexPerCapacity=0,
         opexIfBuilt=0,
@@ -278,8 +278,9 @@ class Source(Component):
         )
 
         # commodityCost
+        print("commodityCost-----", commodityCost)
         self.commodityCost = commodityCost
-        self.processedCommodityCost = utils.checkAndSetInvestmentPeriodCostParameter(
+        self.processedCommodityCost, self.fullCommodityCostTimeSeries = utils.processCommodityCost(
             esM,
             name,
             commodityCost,
@@ -288,16 +289,20 @@ class Source(Component):
             esM.investmentPeriods,
         )
 
+        print(self.processedCommodityCost)
+
         # commodityCostTimeSeries
-        if isinstance(self.processedCommodityCost, dict):
-            self.fullCommodityCostTimeSeries = self.processedCommodityCost
-        else:
-            self.commodityCostTimeSeries = commodityCostTimeSeries
-            self.fullCommodityCostTimeSeries = (
-                utils.checkAndSetInvestmentPeriodCostTimeSeries(
-                    esM, name, commodityCostTimeSeries, locationalEligibility
-                )
-            )
+        # if isinstance(self.processedCommodityCost, dict):
+        #     print(self.processedCommodityCost)
+        #     self.fullCommodityCostTimeSeries = self.processedCommodityCost
+        # else:
+        # self.commodityCostTimeSeries = commodityCostTimeSeries
+        # self.fullCommodityCostTimeSeries = (
+        #     utils.checkAndSetInvestmentPeriodCostTimeSeries(
+        #         esM, name, commodityCostTimeSeries, locationalEligibility
+        #     )
+        # )
+        print(self.fullCommodityCostTimeSeries)
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)            
 
