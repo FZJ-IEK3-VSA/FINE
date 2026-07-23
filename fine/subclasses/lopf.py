@@ -1,5 +1,6 @@
 from fine.transmission import Transmission, TransmissionModel
 from fine import utils
+from fine.enums import ComponentAbbreviation, Dimension, VarType
 import pyomo.environ as pyomo
 import pandas as pd
 
@@ -118,8 +119,8 @@ class LOPFModel(TransmissionModel):
 
     def __init__(self):
         super().__init__()
-        self.abbrvName = "lopf"
-        self.dimension = "2dim"
+        self.abbrvName = ComponentAbbreviation.LOPF
+        self.dimension = Dimension.TWO
         self._operationVariablesOptimum = {}
         self._phaseAngleVariablesOptimum = {}
 
@@ -324,8 +325,8 @@ class LOPFModel(TransmissionModel):
             ipName = esM.investmentPeriodNames[ip]
             optVal_ = utils.formatOptimizationOutput(
                 phaseAngleVar.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
@@ -341,7 +342,7 @@ class LOPFModel(TransmissionModel):
         netCDF/xarray export before the results-dict refactor.
         """
         return super()._exportOptimumVarMap() + [
-            ("phaseAngle", "phaseAngleVariablesOptimum", True, "1dim"),
+            ("phaseAngle", "phaseAngleVariablesOptimum", True, Dimension.ONE),
         ]
 
     def getOptimalValues(self, name="all", ip=0):
@@ -368,7 +369,7 @@ class LOPFModel(TransmissionModel):
             "capacityVariablesOptimum": self.dimension,
             "isBuiltVariablesOptimum": self.dimension,
             "operationVariablesOptimum": self.dimension,
-            "phaseAngleVariablesOptimum": "1dim",
+            "phaseAngleVariablesOptimum": Dimension.ONE,
         }
 
         if name in timeDependentMapping:

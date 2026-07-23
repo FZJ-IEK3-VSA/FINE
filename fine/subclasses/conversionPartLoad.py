@@ -1,4 +1,5 @@
 from fine.conversion import Conversion, ConversionModel
+from fine.enums import ComponentAbbreviation, Dimension, VarType
 from fine.utils import checkDataFrameConversionFactor, checkCallableConversionFactor
 from fine import utils
 import pyomo.environ as pyomo
@@ -364,8 +365,8 @@ class ConversionPartLoadModel(ConversionModel):
 
     def __init__(self):
         super().__init__()
-        self.abbrvName = "partLoad"
-        self.dimension = "1dim"
+        self.abbrvName = ComponentAbbreviation.PART_LOAD
+        self.dimension = Dimension.ONE
         self._operationVariablesOptimum = {}
         self._discretizationPointVariablesOptimum = {}
         self._discretizationSegmentConVariablesOptimum = {}
@@ -887,8 +888,8 @@ class ConversionPartLoadModel(ConversionModel):
             for varName, pyomoVar, optimumAttr in discretizationVars:
                 optVal_ = utils.formatOptimizationOutput(
                     pyomoVar.get_values(),
-                    "operationVariables",
-                    "1dim",
+                    VarType.OPERATION,
+                    Dimension.ONE,
                     ip,
                     esM.periodsOrder[ip],
                     esM=esM,

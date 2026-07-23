@@ -1,4 +1,5 @@
 from fine.component import Component, ComponentModel
+from fine.enums import ComponentAbbreviation, CostType, Dimension, FncType, VarType
 from fine import utils
 import pyomo.environ as pyomo
 import warnings
@@ -267,7 +268,7 @@ class Storage(Component):
             self,
             esM,
             name,
-            dimension="1dim",
+            dimension=Dimension.ONE,
             hasCapacityVariable=hasCapacityVariable,
             capacityVariableDomain=capacityVariableDomain,
             capacityPerPlantUnit=capacityPerPlantUnit,
@@ -338,7 +339,7 @@ class Storage(Component):
                 esM,
                 name,
                 opexPerChargeOperation,
-                "1dim",
+                Dimension.ONE,
                 locationalEligibility,
                 esM.investmentPeriods,
             )
@@ -351,7 +352,7 @@ class Storage(Component):
                 esM,
                 name,
                 opexPerDischargeOperation,
-                "1dim",
+                Dimension.ONE,
                 locationalEligibility,
                 esM.investmentPeriods,
             )
@@ -596,8 +597,8 @@ class StorageModel(ComponentModel):
     def __init__(self):
         """Create a StorageModel class instance."""
         super().__init__()
-        self.abbrvName = "stor"
-        self.dimension = "1dim"
+        self.abbrvName = ComponentAbbreviation.STORAGE
+        self.dimension = Dimension.ONE
         self._chargeOperationVariablesOptimum = {}
         self._dischargeOperationVariablesOptimum = {}
         self._stateOfChargeOperationVariablesOptimum = {}
@@ -1864,7 +1865,7 @@ class StorageModel(ComponentModel):
         opexOp1 = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerChargeOperation"],
             "chargeOp",
             "operationVarDict",
@@ -1872,7 +1873,7 @@ class StorageModel(ComponentModel):
         opexOp2 = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerDischargeOperation"],
             "dischargeOp",
             "operationVarDict",
@@ -1925,8 +1926,8 @@ class StorageModel(ComponentModel):
             # charge operation
             optVal_charge = utils.formatOptimizationOutput(
                 chargeOp.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
@@ -1937,8 +1938,8 @@ class StorageModel(ComponentModel):
             # discharge operation
             optVal_discharge = utils.formatOptimizationOutput(
                 dischargeOp.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
@@ -1950,8 +1951,8 @@ class StorageModel(ComponentModel):
             if not pyM.hasTSA:
                 optVal = utils.formatOptimizationOutput(
                     SOC.get_values(),
-                    "operationVariables",
-                    "1dim",
+                    VarType.OPERATION,
+                    Dimension.ONE,
                     ip,
                     esM.periodsOrder[ip],
                     esM=esM,
@@ -2041,42 +2042,42 @@ class StorageModel(ComponentModel):
         resultsTAC_opexOpCharge = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerChargeOperation"],
             "chargeOp",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
         resultsNPV_opexOpCharge = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerChargeOperation"],
             "chargeOp",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
         resultsTAC_opexOpDischarge = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerDischargeOperation"],
             "dischargeOp",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
         resultsNPV_opexOpDischarge = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerDischargeOperation"],
             "dischargeOp",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
 
         for ip in esM.investmentPeriods:

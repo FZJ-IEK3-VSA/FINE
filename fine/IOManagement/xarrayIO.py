@@ -6,6 +6,7 @@ from netCDF4 import Dataset
 import logging
 
 from fine import utils
+from fine.enums import Dimension
 from fine.IOManagement import dictIO, utilsIO
 
 logger = logging.getLogger(__name__)
@@ -116,7 +117,7 @@ def convertOptimizationOutputToDatasets(esM):
                 if list(xr_dss[ip][name][component].data_vars) == []:
                     # Delete components that have not been built.
                     del xr_dss[ip][name][component]
-                elif esM.componentModelingDict[name].dimension == "2dim":
+                elif esM.componentModelingDict[name].dimension == Dimension.TWO:
                     xr_dss[ip][name][component].coords["locationOut"] = (
                         xr_dss[ip][name][component].coords["locationOut"].astype(str)
                     )

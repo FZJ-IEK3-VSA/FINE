@@ -1,6 +1,7 @@
 import warnings
 
 from fine.component import Component, ComponentModel
+from fine.enums import ComponentAbbreviation, CostType, Dimension, FncType, VarType
 from fine import utils
 import pyomo.environ as pyomo
 import pandas as pd
@@ -205,7 +206,7 @@ class Transmission(Component):
             self.isBuiltFix,
             hasCapacityVariable,
             operationTimeSeries,
-            "2dim",
+            Dimension.TWO,
         )
 
         self._mapC, self._mapL, self._mapI = {}, {}, {}
@@ -272,7 +273,7 @@ class Transmission(Component):
             self,
             esM,
             name,
-            dimension="2dim",
+            dimension=Dimension.TWO,
             hasCapacityVariable=hasCapacityVariable,
             capacityVariableDomain=capacityVariableDomain,
             capacityPerPlantUnit=capacityPerPlantUnit,
@@ -407,7 +408,7 @@ class Transmission(Component):
             esM,
             name,
             self.opexPerOperation,
-            "2dim",
+            Dimension.TWO,
             self.locationalEligibility,
             esM.investmentPeriods,
         )
@@ -415,7 +416,7 @@ class Transmission(Component):
         # operationRateMax
         self.operationRateMax = operationRateMax
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, operationRateMax, self.locationalEligibility, "2dim"
+            esM, name, operationRateMax, self.locationalEligibility, Dimension.TWO
         )
         self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
@@ -423,7 +424,7 @@ class Transmission(Component):
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, operationRateFix, self.locationalEligibility, "2dim"
+            esM, name, operationRateFix, self.locationalEligibility, Dimension.TWO
         )
         self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
@@ -520,8 +521,8 @@ class TransmissionModel(ComponentModel):
     def __init__(self):
         """Create a TransmissionModel class instance."""
         super().__init__()
-        self.abbrvName = "trans"
-        self.dimension = "2dim"
+        self.abbrvName = ComponentAbbreviation.TRANSMISSION
+        self.dimension = Dimension.TWO
         self._operationVariablesOptimum = {}
         self._isBuiltVariablesOptimum = {}
 
@@ -899,7 +900,12 @@ class TransmissionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDictOut"
+            pyM,
+            esM,
+            FncType.TD,
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDictOut",
         )
 
         capexCap = self.getEconomicsDesign(
@@ -954,16 +960,16 @@ class TransmissionModel(ComponentModel):
             values = opVar.get_values()
             optVal = utils.formatOptimizationOutput(
                 values,
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
             )
             optVal_ = utils.formatOptimizationOutput(
                 values,
-                "operationVariables",
-                "2dim",
+                VarType.OPERATION,
+                Dimension.TWO,
                 ip,
                 esM.periodsOrder[ip],
                 compDict=compDict,
@@ -991,12 +997,12 @@ class TransmissionModel(ComponentModel):
         resultsNPV_opexOp = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerOperation"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
 
         for ip in esM.investmentPeriods:
@@ -1077,7 +1083,7 @@ class TransmissionModel(ComponentModel):
                     "capexIfBuilt",
                     "opexCap",
                     "opexIfBuilt",
-                    "TAC",
+                    CostType.TAC,
                 ]:
                     data = optSummaryBasic[ipName].loc[compName, cost]
                     optSummaryBasic[ipName].loc[compName, cost] = (data).values
