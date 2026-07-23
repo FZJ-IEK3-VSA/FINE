@@ -1744,6 +1744,7 @@ class EnergySystemModel:
         timeSeriesAggregation=False,
         relaxIsBuiltBinary=False,
         relevanceThreshold=None,
+        runInfeasibilityPrechecks=True,
     ):
         """Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
         instance is built and filled with.
@@ -1771,6 +1772,12 @@ class EnergySystemModel:
         :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
+
+        :param runInfeasibilityPrechecks: states if the model should be checked for setups
+            which are provably infeasible before the optimization problem is declared.
+            A detected problem raises a ValueError.
+            |br| * the default value is True
+        :type runInfeasibilityPrechecks: boolean
         """
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -1785,6 +1792,14 @@ class EnergySystemModel:
             segmentation = self.segmentation
         else:
             segmentation = False
+
+        ################################################################################################################
+        #                                         Run feasibility pre-check                                            #
+        ################################################################################################################
+
+        # Detect provably infeasible model setups before building the problem
+        if runInfeasibilityPrechecks:
+            utils.runInfeasibilityPrechecks(self)
 
         ################################################################################################################
         #                           Initialize mathematical model (ConcreteModel) instance                             #
@@ -1900,6 +1915,7 @@ class EnergySystemModel:
         warmstart=False,
         relevanceThreshold=None,
         includePerformanceSummary=False,
+        runInfeasibilityPrechecks=True,
     ):
         """Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
         A pyomo instance is optimized with the specified inputs, and the optimization results are further
@@ -1986,6 +2002,12 @@ class EnergySystemModel:
             |br| * the default value is False
         :type includePerformanceSummary: boolean
 
+        :param runInfeasibilityPrechecks: states if the model should be checked for setups
+            which are provably infeasible before the optimization problem is declared.
+            A detected problem raises a ValueError.
+            |br| * the default value is True
+        :type runInfeasibilityPrechecks: boolean
+
         Last edited: November 16, 2023
         |br| @author: FINE Developer Team (FZJ IEK-3)
         """
@@ -1997,6 +2019,7 @@ class EnergySystemModel:
                 timeSeriesAggregation=timeSeriesAggregation,
                 relaxIsBuiltBinary=relaxIsBuiltBinary,
                 relevanceThreshold=relevanceThreshold,
+                runInfeasibilityPrechecks=runInfeasibilityPrechecks,
             )
         elif self.pyM is None:
             raise TypeError(
