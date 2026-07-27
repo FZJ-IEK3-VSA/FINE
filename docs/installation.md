@@ -9,7 +9,7 @@ In the following, you find information on:
 
 - how to install the package from conda-forge ([Installation from conda-forge](#installation-from-conda-forge))
 - how to install the package from PyPI ([Installation from PyPI](#installation-from-pypi))
-- how to ([select and activate a solver](#installation-of-an-optimization-solver))
+- how to ([select and activate a solver](#optimization-solver))
 
 ## Installation from conda-forge
 

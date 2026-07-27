@@ -15,21 +15,11 @@ CODE_OF_CONDUCT_DST = Path("CODE_OF_CONDUCT.md")
 
 EXAMPLES_SRC = Path("examples")
 EXAMPLES_DST = Path("docs/examples")
-COPY_EXTENSIONS = {".ipynb", ".xlsx", ".csv", ".png", ".jpg", ".svg", ".json", ".nc"}
-
-
-def on_page_content(html, page, config, files) -> str:
-    """Rewrite image paths in docs/index.md that originate from the README snippet.
-
-    README.md uses ``./docs/<file>`` paths so images render on GitHub.
-    pymdownx.snippets expands the snippet *during* markdown conversion, which
-    runs after on_page_markdown, so path rewriting must happen here in the
-    rendered HTML instead.
-    """
-    if page.file.src_path == "index.md":
-        html = html.replace('src="./docs/', 'src="./')
-        html = html.replace("src='./docs/", "src='./")
-    return html
+# Compared against `Path.suffix.lower()` — the match must be case-insensitive.
+# Several example figures are committed with an uppercase ".PNG" suffix, and a
+# case-sensitive check silently skipped them, so the images 404'd on the built
+# site while still resolving on a case-insensitive local filesystem.
+COPY_EXTENSIONS = {".ipynb", ".xlsx", ".csv", ".png", ".jpg", ".jpeg", ".svg", ".json", ".nc"}
 
 
 def on_pre_build(config) -> None:
@@ -45,7 +35,7 @@ def on_pre_build(config) -> None:
         print(f"Warning: could not fetch remote Code of Conduct: {exc}")
 
     for src in sorted(EXAMPLES_SRC.rglob("*")):
-        if src.is_file() and src.suffix in COPY_EXTENSIONS:
+        if src.is_file() and src.suffix.lower() in COPY_EXTENSIONS:
             dst = EXAMPLES_DST / src.relative_to(EXAMPLES_SRC)
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)

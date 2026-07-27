@@ -1,15 +1,20 @@
 <!-- markdownlint-disable line-length no-inline-html -->
 # ETHOS.FINE - Framework for Integrated Energy System Assessment
-<table style="border:0; border-collapse:collapse;">
-	<tr>
-		<td style="border:0;">
-			<img src="./docs/fine_logo_v19_no_overlap.svg" alt="ETHOS.FINE logo" width="180px">
-		</td>
-		<td style="border:0;">
-			<a href="https://www.fz-juelich.de/en/ice/ice-2"><img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/JSA-Header.svg?raw=True" alt="Logo für Forschungszentrum Juelich - Juelich System Analysis" width="300px"></a>
-		</td>
-	</tr>
-</table>
+<!-- logo:header:start -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/fine_logo_v19_dark.svg">
+    <img src="./docs/fine_logo_v19_no_overlap.svg" alt="ETHOS.FINE logo" width="180">
+  </picture>
+  &nbsp;&nbsp;
+  <a href="https://www.fz-juelich.de/en/ice/ice-2">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/ICE2_Logos/JSA-Header-dark.svg">
+      <img src="https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/ICE2_Logos/JSA-Header.svg" alt="Jülich Systems Analysis" width="300">
+    </picture>
+  </a>
+</p>
+<!-- logo:header:end -->
 
 [![.github/workflows/test_push.yml](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml/badge.svg)](https://github.com/FZJ-IEK3-VSA/FINE/actions/workflows/test_push.yml)
 [![Version](https://img.shields.io/pypi/v/FINE.svg)](https://pypi.python.org/pypi/FINE)
@@ -30,7 +35,7 @@ ETHOS.FINE is used for the modelling of a diverse group of optimization problems
 If you want to use ETHOS.FINE in a published work, please [**kindly cite following publication**](https://joss.theoj.org/papers/10.21105/joss.06274). The python package which provides the time series aggregation module and its corresponding literature can be found [here](https://github.com/FZJ-IEK3-VSA/tsam).
 
 ## Installation 
-There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge. In all of the following variants it is recommended to install your dependencies from conda-forge as the ecosystem is better tested and maintained. For more information on installation specifics and comparison between the different options, have a look at the [installation documentation](https://vsa-fine.readthedocs.io/en/develop/installation.html). In the following first the [preqrequisites](#Preqrequisites) for the installation are presented. Then the recommended [installation](#Installation from conda-forge (Recommended)) is shown. If you want to work on the source code of FINE, see [Editable install from conda-forge](#editable-install-from-conda-forge).
+There are several options for the installation of ETHOS.FINE. You can install it via PyPI or from conda-forge. In all of the following variants it is recommended to install your dependencies from conda-forge as the ecosystem is better tested and maintained. For more information on installation specifics and comparison between the different options, have a look at the [installation documentation](https://vsa-fine.readthedocs.io/en/develop/installation.html). In the following first the [prerequisites](#prerequisites) for the installation are presented. Then the recommended [installation](#installation-from-conda-forge-recommended) is shown. If you want to work on the source code of FINE, see [Editable install from conda-forge](#editable-install-from-conda-forge).
 
 
 
@@ -64,7 +69,7 @@ Activate venv environment on Windows
 .venv\Scripts\activate
 ```
 
-Find more information on creating virtual environments with venv [here](https://vsa-fine.readthedocs.io/en/develop/installation.html#installation-of-an-optimization-solver).  
+Find more information on creating virtual environments with venv [here](https://vsa-fine.readthedocs.io/en/develop/installation.html#installation-from-pypi).  
 
 ```bash
 python -m pip install fine
@@ -128,7 +133,7 @@ python -m pip install --no-deps --editable .
 
 ### Editable install from pypi
 
-If you do not want to use conda-forge consider the steps in section [Installation from PyPI](#Installation-from-PyPI) and install ETHOS.FINE as editable install and with developer dependencies with
+If you do not want to use conda-forge consider the steps in section [Installation from PyPI](#installation-from-pypi) and install ETHOS.FINE as editable install and with developer dependencies with
 
 ```bash
 python -m venv .venv
@@ -193,10 +198,17 @@ Please respect our [code of conduct](https://github.com/FZJ-IEK3-VSA/README_asse
 ## Acknowledgement
 This work was initially supported by the Helmholtz Association under the Joint Initiative ["Energy System 2050   A Contribution of the Research Field Energy"](https://www.helmholtz.de/en/research/energy/energy_system_2050/). 
 
-The authors also gratefully acknowledge financial support by the Federal Ministry for Economic Affairs and Energy of Germany as part of the project METIS (project number 03ET4064, 2018-2022).
+The authors also gratefully acknowledge financial support by the Federal Ministry for Economic Affairs and Energy of Germany as part of the [project METIS (project number 03ET4064, 2018-2022)](https://www.fz-juelich.de/de/ice/ice-2/projekte/metis).
 
 This work was supported by the Helmholtz Association under the program ["Energy System Design"](https://www.helmholtz.de/en/research/research-fields/energy/energy-system-design/).
 
-<p float="left">
-<a href="https://www.helmholtz.de/en/"><img src="https://www.helmholtz.de/fileadmin/user_upload/05_aktuelles/Marke_Design/logos/HG_LOGO_S_ENG_RGB.jpg" alt="Helmholtz Logo" width="200px"></a>
+<p align="left">
+  <!-- logo:helmholtz:start -->
+  <a href="https://www.helmholtz.de/en/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/Helmholtz_Logos/Helmholtz-Logo-White-RGB.svg">
+      <img src="https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/Helmholtz_Logos/Helmholtz-Logo-Dark-Blue-RGB.svg" alt="Helmholtz Association" width="200">
+    </picture>
+  </a>
+  <!-- logo:helmholtz:end -->
 </p>
