@@ -39,3 +39,22 @@ def on_pre_build(config) -> None:
             dst = EXAMPLES_DST / src.relative_to(EXAMPLES_SRC)
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
+
+
+def on_page_context(context, page, config, nav):
+    """Point "Edit this page" at where the example notebooks really live.
+
+    on_pre_build stages ``examples/`` into ``docs/examples/``, and that copy is
+    gitignored, so MkDocs derives an edit URL under ``docs/examples/`` — a path
+    that does not exist in the repository and 404s on GitHub. The notebooks
+    themselves live in ``examples/`` at the repository root.
+
+    ``docs/examples/index.md`` is a real tracked file, so it is left alone; only
+    the staged ``.ipynb`` pages are rewritten. Spaces are percent-encoded while
+    we are here: two of the notebook filenames contain them, which otherwise
+    yields a malformed URL.
+    """
+    src_path = page.file.src_path.replace("\\", "/")
+    if page.edit_url and src_path.startswith("examples/") and src_path.endswith(".ipynb"):
+        page.edit_url = page.edit_url.replace("/docs/examples/", "/examples/").replace(" ", "%20")
+    return context
