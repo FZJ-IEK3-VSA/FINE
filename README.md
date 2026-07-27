@@ -4,13 +4,13 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./docs/fine_logo_v19_dark.svg">
-    <img src="./docs/fine_logo_v19_no_overlap.svg" alt="ETHOS.FINE logo" width="180">
+    <img src="./docs/fine_logo_v19_no_overlap.svg" alt="ETHOS.FINE logo" height="80">
   </picture>
   &nbsp;&nbsp;
   <a href="https://www.fz-juelich.de/en/ice/ice-2">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/ICE2_Logos/JSA-Header-dark.svg">
-      <img src="https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/ICE2_Logos/JSA-Header.svg" alt="Jülich Systems Analysis" width="300">
+      <img src="https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/ICE2_Logos/JSA-Header.svg" alt="Jülich Systems Analysis" height="80">
     </picture>
   </a>
 </p>
