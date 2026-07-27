@@ -19,7 +19,17 @@ EXAMPLES_DST = Path("docs/examples")
 # Several example figures are committed with an uppercase ".PNG" suffix, and a
 # case-sensitive check silently skipped them, so the images 404'd on the built
 # site while still resolving on a case-insensitive local filesystem.
-COPY_EXTENSIONS = {".ipynb", ".xlsx", ".csv", ".png", ".jpg", ".jpeg", ".svg", ".json", ".nc"}
+COPY_EXTENSIONS = {
+    ".ipynb",
+    ".xlsx",
+    ".csv",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".svg",
+    ".json",
+    ".nc",
+}
 
 
 def on_pre_build(config) -> None:
@@ -55,6 +65,12 @@ def on_page_context(context, page, config, nav):
     yields a malformed URL.
     """
     src_path = page.file.src_path.replace("\\", "/")
-    if page.edit_url and src_path.startswith("examples/") and src_path.endswith(".ipynb"):
-        page.edit_url = page.edit_url.replace("/docs/examples/", "/examples/").replace(" ", "%20")
+    if (
+        page.edit_url
+        and src_path.startswith("examples/")
+        and src_path.endswith(".ipynb")
+    ):
+        page.edit_url = page.edit_url.replace("/docs/examples/", "/examples/").replace(
+            " ", "%20"
+        )
     return context

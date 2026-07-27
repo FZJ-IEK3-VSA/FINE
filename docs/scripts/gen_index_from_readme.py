@@ -25,7 +25,9 @@ README = Path("README.md")
 
 # Content wrapped in these HTML comments is shown on GitHub (where the comments
 # are invisible) but removed from the generated docs home page.
-README_ONLY = re.compile(r"<!-- readme-only:start -->.*?<!-- readme-only:end -->\n{0,2}", re.DOTALL)
+README_ONLY = re.compile(
+    r"<!-- readme-only:start -->.*?<!-- readme-only:end -->\n{0,2}", re.DOTALL
+)
 
 # --- Theme-aware logos -------------------------------------------------------
 # On GitHub the README switches logos between light and dark with the HTML
@@ -49,7 +51,9 @@ README_ONLY = re.compile(r"<!-- readme-only:start -->.*?<!-- readme-only:end -->
 # site Material's ".md-typeset img" rule (specificity 0,1,1) sets `height: auto`
 # and the images also carry a "hero-logo--NAME" class that extra.css sizes at a
 # higher specificity. Keep the two in agreement.
-_JSA_LOGOS = "https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/ICE2_Logos"
+_JSA_LOGOS = (
+    "https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/ICE2_Logos"
+)
 _HELMHOLTZ_LOGOS = "https://raw.githubusercontent.com/FZJ-IEK3-VSA/README_assets/v.1.0.0/Helmholtz_Logos"
 
 LOGO_BLOCKS = {
@@ -97,8 +101,7 @@ def _readme_to_index(text: str) -> str:
     # Rewrite the repo-root 'docs/' prefixes to be relative to the docs root.
     text = text.replace("./docs/", "./")  # HTML/Markdown asset paths
     text = text.replace("](docs/", "](")  # Markdown links
-    text = text.replace("`docs/", "`")  # inline-code folder mentions
-    return text
+    return text.replace("`docs/", "`")  # inline-code folder mentions
 
 
 with mkdocs_gen_files.open("index.md", "w") as fd:
