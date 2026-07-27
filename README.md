@@ -196,11 +196,8 @@ Our work focuses on independent, interdisciplinary research in energy, the bioec
 Please respect our [code of conduct](https://github.com/FZJ-IEK3-VSA/README_assets/blob/main/CODE_CONDUCT.md).
 
 ## Acknowledgement
-This work was initially supported by the Helmholtz Association under the Joint Initiative ["Energy System 2050   A Contribution of the Research Field Energy"](https://www.helmholtz.de/en/research/energy/energy_system_2050/). 
 
-The authors also gratefully acknowledge financial support by the Federal Ministry for Economic Affairs and Energy of Germany as part of the [project METIS (project number 03ET4064, 2018-2022)](https://www.fz-juelich.de/de/ice/ice-2/projekte/metis).
-
-This work was supported by the Helmholtz Association under the program ["Energy System Design"](https://www.helmholtz.de/en/research/research-fields/energy/energy-system-design/).
+This work received primary support from the Helmholtz Association through the Joint Initiative ["Energy System 2050: A Contribution of the Research Field Energy"](https://www.helmholtz.de/en/research/energy/energy_system_2050/) and the program ["Energy System Design"](https://www.helmholtz.de/en/research/research-fields/energy/energy-system-design/). 
 
 <p align="left">
   <!-- logo:helmholtz:start -->
@@ -212,3 +209,5 @@ This work was supported by the Helmholtz Association under the program ["Energy 
   </a>
   <!-- logo:helmholtz:end -->
 </p>
+
+The authors also gratefully acknowledge financial support by the Federal Ministry for Economic Affairs and Energy of Germany as part of the [project METIS (project number 03ET4064, 2018-2022)](https://www.fz-juelich.de/de/ice/ice-2/projekte/metis).
