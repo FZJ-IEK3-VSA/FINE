@@ -167,7 +167,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 "decommissioningVariablesOptimum",
             }
             rename_optimum_variables = {
-                "operationVariablesOptimum": "operationTimeSeriesOptimum",
+                "operationVariablesOptimum": "operationTimeSeries",
             }
             for key, d in data.items():
                 if key in duplicate_optimum_variables:
