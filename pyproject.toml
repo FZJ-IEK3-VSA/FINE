@@ -57,7 +57,7 @@ requires-python = ">=3.10,<3.15"
 develop = [
     "mkdocs>=1.6,<=1.6.1",
     "mkdocs-material>=9.5,<=9.7.6",
-    "mkdocstrings>=0.25,<=1.0.4",
+    "mkdocstrings>=0.25,<=1.0.6",
     "mkdocstrings-python>=1.10,<=2.0.4",
     "mkdocs-jupyter>=0.25,<=0.26.3",
     "mkdocs-gen-files>=0.5,<=0.6.1",
