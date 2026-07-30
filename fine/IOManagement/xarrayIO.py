@@ -528,13 +528,18 @@ def convertDatasetsToEnergySystemModel(datasets):
             dischargeOperationVariablesOptimum_dict = {}
             stateOfChargeOperationVariablesOptimum_dict = {}
 
+            # variables that only hold optimum values (no corresponding
+            # optSummary property), even though their name doesn't contain
+            # "Optimum" (renamed to avoid duplicate data in the datasets)
+            optimum_only_variables = {"operationTimeSeries"}
+
             for ip in datasets["Results"].keys():
                 # read opt Summary
                 optSum_df = pd.DataFrame([])
                 for component in datasets["Results"][ip][model]:
                     optSum_df_comp = pd.DataFrame([])
                     for variable in datasets["Results"][ip][model][component]:
-                        if "Optimum" in variable:
+                        if "Optimum" in variable or variable in optimum_only_variables:
                             continue
                         if "locationOut" in list(
                             datasets["Results"][ip][model][component].coords
@@ -632,7 +637,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                         "capacity": "capacityVariablesOptimum",
                         "commissioning": "commissioningVariablesOptimum",
                         "decommissioning": "decommissioningVariablesOptimum",
-                        "operationTimeSeriesOptimum": "operationVariablesOptimum",
+                        "operationTimeSeries": "operationVariablesOptimum",
                     }
 
                     for variable in datasets["Results"][ip][model][component]:
