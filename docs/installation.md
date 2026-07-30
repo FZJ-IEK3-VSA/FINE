@@ -9,7 +9,7 @@ In the following, you find information on:
 
 - how to install the package from conda-forge ([Installation from conda-forge](#installation-from-conda-forge))
 - how to install the package from PyPI ([Installation from PyPI](#installation-from-pypi))
-- how to ([select and activate a solver](#installation-of-an-optimization-solver))
+- how to ([select and activate a solver](#optimization-solver))
 
 ## Installation from conda-forge
 
@@ -81,7 +81,7 @@ python -m pip install --editable .[develop]
 ## Optimization solver
 
 ### Selection of an Optimization Solver
-At its core, ETHOS.FINE creates an optimisation problem via the [PYOMO](https://pyomo.readthedocs.io/) interface. In theory, any MILP solver supported by Pyomo can be used with ETHOS.FINE, but it has only been tested with [GUROBI](http://www.gurobi.com/), [HiGHS](https://highs.dev/) and [GLPK](https://www.gnu.org/software/glpk/). If you want to solve large problems, it is highly recommended that you use [GUROBI](http://www.gurobi.com/) due to its superior performance. However, a proprietary licence is required to use GUROBI for larger optimisation problems, but this is available free of charge to academics. If you do not want or cannot use a GUROBI licence, you can use HiGHS (which is slower than GUROBI but faster than GLPK) or GLPK, which do not require paid licences.
+At its core, ETHOS.FINE creates an optimisation problem via the [PYOMO](https://pyomo.readthedocs.io/) interface. In theory, any MILP solver supported by Pyomo can be used with ETHOS.FINE, but it has only been tested with [GUROBI](https://www.gurobi.com/), [HiGHS](https://highs.dev/) and [GLPK](https://www.gnu.org/software/glpk/). If you want to solve large problems, it is highly recommended that you use [GUROBI](https://www.gurobi.com/) due to its superior performance. However, a proprietary licence is required to use GUROBI for larger optimisation problems, but this is available free of charge to academics. If you do not want or cannot use a GUROBI licence, you can use HiGHS (which is slower than GUROBI but faster than GLPK) or GLPK, which do not require paid licences.
 
 ### GUROBI
 
