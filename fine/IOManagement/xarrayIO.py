@@ -517,6 +517,7 @@ def convertDatasetsToEnergySystemModel(datasets):
         # get startyear to find model classes
         startyear = list(datasets["Results"].keys())[0]
         for model, comps in datasets["Results"][startyear].items():
+            componentModel = esM.componentModelingDict[model]
             optSum = {}
             operationVariablesOptimum_dict = {}
             capacityVariablesOptimum_dict = {}
@@ -605,7 +606,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                     )
                 optSum[int(ip)] = optSum_df
 
-                setattr(esM.componentModelingDict[model], "_optSummary", optSum)
+                componentModel._optSummary = optSum
 
                 # read optimal Values (3 types exist)
                 operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
@@ -924,57 +925,33 @@ def convertDatasetsToEnergySystemModel(datasets):
                 if stateOfChargeOperationVariablesOptimum_dict[int(ip)].empty:
                     stateOfChargeOperationVariablesOptimum_dict[int(ip)] = None
 
-            setattr(
-                esM.componentModelingDict[model],
-                "_operationVariablesOptimum",
-                operationVariablesOptimum_dict,
+            componentModel._operationVariablesOptimum = operationVariablesOptimum_dict
+            componentModel._capacityVariablesOptimum = capacityVariablesOptimum_dict
+            componentModel._isBuiltVariablesOptimum = isBuiltVariablesOptimum_dict
+            componentModel._commissioningVariablesOptimum = (
+                commissioningVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_capacityVariablesOptimum",
-                capacityVariablesOptimum_dict,
+            componentModel._decommissioningVariablesOptimum = (
+                decommissioningVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_isBuiltVariablesOptimum",
-                isBuiltVariablesOptimum_dict,
+            componentModel._chargeOperationVariablesOptimum = (
+                chargeOperationVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_commissioningVariablesOptimum",
-                commissioningVariablesOptimum_dict,
+            componentModel._dischargeOperationVariablesOptimum = (
+                dischargeOperationVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_decommissioningVariablesOptimum",
-                decommissioningVariablesOptimum_dict,
-            )
-            setattr(
-                esM.componentModelingDict[model],
-                "_chargeOperationVariablesOptimum",
-                chargeOperationVariablesOptimum_dict,
-            )
-            setattr(
-                esM.componentModelingDict[model],
-                "_dischargeOperationVariablesOptimum",
-                dischargeOperationVariablesOptimum_dict,
-            )
-            setattr(
-                esM.componentModelingDict[model],
-                "_stateOfChargeOperationVariablesOptimum",
-                stateOfChargeOperationVariablesOptimum_dict,
+            componentModel._stateOfChargeOperationVariablesOptimum = (
+                stateOfChargeOperationVariablesOptimum_dict
             )
 
             # if only one investment period -> keep optimal values unchanged for end user
             def setFinalOptimalValues(esM, name):
                 if len(esM.investmentPeriodNames) == 1:
-                    data = getattr(esM.componentModelingDict[model], "_" + name)
-                    setattr(
-                        esM.componentModelingDict[model], name, data[int(startyear)]
-                    )
+                    data = getattr(componentModel, "_" + name)
+                    setattr(componentModel, name, data[int(startyear)])
                 else:
-                    data = getattr(esM.componentModelingDict[model], "_" + name)
-                    setattr(esM.componentModelingDict[model], name, data)
+                    data = getattr(componentModel, "_" + name)
+                    setattr(componentModel, name, data)
                 return esM
 
             optimalParameters = [
@@ -1052,7 +1029,7 @@ def writeEnergySystemModelToNetCDF(
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
-        if hasattr(esM, "performanceSummary"):
+        if "performanceSummary" in vars(esM):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
             xr_dss_output["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
@@ -1099,7 +1076,7 @@ def writeEnergySystemModelToDatasets(
             "Input": xr_dss_input["Input"],
             "Parameters": xr_dss_input["Parameters"],
         }
-        if hasattr(esM, "performanceSummary"):
+        if "performanceSummary" in vars(esM):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
             xr_dss_results["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
