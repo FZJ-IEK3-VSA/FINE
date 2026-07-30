@@ -3001,10 +3001,9 @@ def checkAndSetFlowShares(comp, esM):
 
 def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
     """Get parameters for uneven lifetimes."""
-    ipEconomicLifetime = getattr(esM.getComponent(compName), "ipEconomicLifetime")[loc]
-    ipTechnicalLifetime = getattr(esM.getComponent(compName), "ipTechnicalLifetime")[
-        loc
-    ]
+    comp = esM.getComponent(compName)
+    ipEconomicLifetime = comp.ipEconomicLifetime[loc]
+    ipTechnicalLifetime = comp.ipTechnicalLifetime[loc]
 
     # A) Fix operational costs for design variables.
     # Fix operation costs are applied over the entire operational time.

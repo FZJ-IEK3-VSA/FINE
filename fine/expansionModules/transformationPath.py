@@ -208,11 +208,11 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                         - nbOfRepresentedYears
                     )
                     # If lifetime is shorter than number of represented years, skip component
-                    if any(getattr(stockComp, "lifetime") <= 0):
+                    if any(stockComp.lifetime <= 0):
                         continue
 
                     # If capacities are installed, set the values as capacityFix.
-                    if getattr(stockComp, "capacityFix") is None:
+                    if stockComp.capacityFix is None:
                         if isinstance(compValues.loc[comp], pd.DataFrame):
                             stockComp.processedCapacityFix = {}
                             stockComp.processedCapacityFix[0] = (
@@ -235,10 +235,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                     ].lifetime -= nbOfRepresentedYears
                     # If lifetime is exceeded, remove component from the energySystemModel instance
                     if any(
-                        getattr(
-                            esM.componentModelingDict[mdl].componentsDict[comp],
-                            "lifetime",
-                        )
+                        esM.componentModelingDict[mdl].componentsDict[comp].lifetime
                         <= 0
                     ):
                         esM.removeComponent(comp)
