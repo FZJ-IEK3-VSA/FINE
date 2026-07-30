@@ -6,6 +6,7 @@ from netCDF4 import Dataset
 import logging
 
 from fine import utils
+from fine.enums import Dimension
 from fine.IOManagement import dictIO, utilsIO
 
 logger = logging.getLogger(__name__)
@@ -30,44 +31,18 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
     # STEP 1. Get the esm and component dicts
     esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
 
-    # STEP 2. Get the iteration dicts
-    ip = esM.investmentPeriods
-    (
-        df_iteration_dict,
-        series_iteration_dict,
-        constants_iteration_dict,
-    ) = utilsIO.generateIterationDicts(component_dict, ip)
-
-    # STEP 3. Initiate xarray dataset
-    xr_dss = dict.fromkeys(component_dict.keys())
-    for classname in component_dict:
-        xr_dss[classname] = {
-            component: xr.Dataset() for component in component_dict[classname]
-        }
-
-    # STEP 3.1 get _mapC for all transmission components
+    # STEP 2. get _mapC for all transmission components
     _mapC_dict = {}
     for transmission_class in ["LinearOptimalPowerFlow", "Transmission"]:
         for tech in component_dict[transmission_class].keys():
             _mapC_dict[tech] = esM.getComponent(tech)._mapC
 
-    # STEP 4. Add all df variables to xr_ds
-    xr_dss = utilsIO.addDFVariablesToXarray(
-        xr_dss, component_dict, df_iteration_dict, _mapC_dict, list(esM.locations)
+    # STEP 3. Convert component_dict into per-component xarray datasets
+    xr_dss = utilsIO.convertComponentDictToXarrayDict(
+        component_dict, _mapC_dict, sorted(esm_dict["locations"])
     )
 
-    # STEP 5. Add all series variables to xr_ds
-    locations = sorted(esm_dict["locations"])
-    xr_dss = utilsIO.addSeriesVariablesToXarray(
-        xr_dss, component_dict, series_iteration_dict, locations
-    )
-
-    # STEP 6. Add all constant value variables to xr_ds
-    xr_dss = utilsIO.addConstantsToXarray(
-        xr_dss, component_dict, constants_iteration_dict, useProcessedValues
-    )
-
-    # STEP 7. Add the data present in esm_dict as xarray attributes
+    # STEP 4. Add the data present in esm_dict as xarray attributes
     # (These attributes contain esM init info).
     attributes_xr = xr.Dataset()
     attributes_xr.attrs = esm_dict
@@ -123,7 +98,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             oL = optSumOutputLevel
             oL_ = oL[name] if isinstance(oL, dict) else oL
             optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
-            if esM.componentModelingDict[name].dimension == "1dim":
+            if esM.componentModelingDict[name].dimension == Dimension.ONE:
                 for component in optSum.index.get_level_values(0).unique():
                     variables = optSum.loc[component].index.get_level_values(0)
                     units = optSum.loc[component].index.get_level_values(1)
@@ -147,7 +122,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             combine_attrs="drop_conflicts",
                             join="outer",
                         )
-            elif esM.componentModelingDict[name].dimension == "2dim":
+            elif esM.componentModelingDict[name].dimension == Dimension.TWO:
                 for component in optSum.index.get_level_values(0).unique():
                     variables = optSum.loc[component].index.get_level_values(0)
                     units = optSum.loc[component].index.get_level_values(1)
@@ -189,9 +164,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 if d["values"] is None:
                     continue
                 if d["timeDependent"]:
-                    if d["dimension"] == "1dim":
+                    if d["dimension"] == Dimension.ONE:
                         dataTD1dim.append(d["values"]), indexTD1dim.append(key)
-                    elif d["dimension"] == "2dim":
+                    elif d["dimension"] == Dimension.TWO:
                         dataTD2dim.append(d["values"]), indexTD2dim.append(key)
                 else:
                     dataTI.append(d["values"]), indexTI.append(key)
@@ -235,7 +210,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             # Time independent data
             if dataTI:
                 # One dimensional
-                if esM.componentModelingDict[name].dimension == "1dim":
+                if esM.componentModelingDict[name].dimension == Dimension.ONE:
                     names = ["Variable type", "Component"]
                     dfTI = pd.concat(dataTI, keys=indexTI, names=names)
                     for variable in dfTI.index.get_level_values(0).unique():
@@ -251,7 +226,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                                 [xr_dss[ip][name][component], xr_da], join="outer"
                             )
                 # Two dimensional
-                elif esM.componentModelingDict[name].dimension == "2dim":
+                elif esM.componentModelingDict[name].dimension == Dimension.TWO:
                     names = ["Variable type", "Component", "Location"]
                     dfTI = pd.concat(dataTI, keys=indexTI, names=names)
                     for variable in dfTI.index.get_level_values(0).unique():
@@ -272,7 +247,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                 if list(xr_dss[ip][name][component].data_vars) == []:
                     # Delete components that have not been built.
                     del xr_dss[ip][name][component]
-                elif esM.componentModelingDict[name].dimension == "2dim":
+                elif esM.componentModelingDict[name].dimension == Dimension.TWO:
                     xr_dss[ip][name][component].coords["locationOut"] = (
                         xr_dss[ip][name][component].coords["locationOut"].astype(str)
                     )
@@ -530,6 +505,7 @@ def convertDatasetsToEnergySystemModel(datasets):
         # get startyear to find model classes
         startyear = list(datasets["Results"].keys())[0]
         for model, comps in datasets["Results"][startyear].items():
+            componentModel = esM.componentModelingDict[model]
             optSum = {}
             operationVariablesOptimum_dict = {}
             capacityVariablesOptimum_dict = {}
@@ -618,7 +594,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                     )
                 optSum[int(ip)] = optSum_df
 
-                setattr(esM.componentModelingDict[model], "_optSummary", optSum)
+                componentModel._optSummary = optSum
 
                 # read optimal Values (3 types exist)
                 operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
@@ -932,57 +908,33 @@ def convertDatasetsToEnergySystemModel(datasets):
                 if stateOfChargeOperationVariablesOptimum_dict[int(ip)].empty:
                     stateOfChargeOperationVariablesOptimum_dict[int(ip)] = None
 
-            setattr(
-                esM.componentModelingDict[model],
-                "_operationVariablesOptimum",
-                operationVariablesOptimum_dict,
+            componentModel._operationVariablesOptimum = operationVariablesOptimum_dict
+            componentModel._capacityVariablesOptimum = capacityVariablesOptimum_dict
+            componentModel._isBuiltVariablesOptimum = isBuiltVariablesOptimum_dict
+            componentModel._commissioningVariablesOptimum = (
+                commissioningVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_capacityVariablesOptimum",
-                capacityVariablesOptimum_dict,
+            componentModel._decommissioningVariablesOptimum = (
+                decommissioningVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_isBuiltVariablesOptimum",
-                isBuiltVariablesOptimum_dict,
+            componentModel._chargeOperationVariablesOptimum = (
+                chargeOperationVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_commissioningVariablesOptimum",
-                commissioningVariablesOptimum_dict,
+            componentModel._dischargeOperationVariablesOptimum = (
+                dischargeOperationVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_decommissioningVariablesOptimum",
-                decommissioningVariablesOptimum_dict,
-            )
-            setattr(
-                esM.componentModelingDict[model],
-                "_chargeOperationVariablesOptimum",
-                chargeOperationVariablesOptimum_dict,
-            )
-            setattr(
-                esM.componentModelingDict[model],
-                "_dischargeOperationVariablesOptimum",
-                dischargeOperationVariablesOptimum_dict,
-            )
-            setattr(
-                esM.componentModelingDict[model],
-                "_stateOfChargeOperationVariablesOptimum",
-                stateOfChargeOperationVariablesOptimum_dict,
+            componentModel._stateOfChargeOperationVariablesOptimum = (
+                stateOfChargeOperationVariablesOptimum_dict
             )
 
             # if only one investment period -> keep optimal values unchanged for end user
             def setFinalOptimalValues(esM, name):
                 if len(esM.investmentPeriodNames) == 1:
-                    data = getattr(esM.componentModelingDict[model], "_" + name)
-                    setattr(
-                        esM.componentModelingDict[model], name, data[int(startyear)]
-                    )
+                    data = getattr(componentModel, "_" + name)
+                    setattr(componentModel, name, data[int(startyear)])
                 else:
-                    data = getattr(esM.componentModelingDict[model], "_" + name)
-                    setattr(esM.componentModelingDict[model], name, data)
+                    data = getattr(componentModel, "_" + name)
+                    setattr(componentModel, name, data)
                 return esM
 
             optimalParameters = [
@@ -1058,7 +1010,7 @@ def writeEnergySystemModelToNetCDF(
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
-        if hasattr(esM, "performanceSummary"):
+        if "performanceSummary" in vars(esM):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
             xr_dss_output["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
@@ -1105,7 +1057,7 @@ def writeEnergySystemModelToDatasets(
             "Input": xr_dss_input["Input"],
             "Parameters": xr_dss_input["Parameters"],
         }
-        if hasattr(esM, "performanceSummary"):
+        if "performanceSummary" in vars(esM):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
             xr_dss_results["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"

@@ -1,4 +1,5 @@
 from fine import utils, utilsPWLCF
+from fine.enums import ComponentAbbreviation, CostType
 import math
 import pyomo.environ as pyomo
 from pyomo.core import Piecewise
@@ -166,7 +167,7 @@ class PiecewiseLinearCostFunctionModel:
     """
 
     def __init__(self):
-        self.abbrvName = "pwlcf"
+        self.abbrvName = ComponentAbbreviation.PWLCF
         self.modulesDict = {}
 
     def declareSets(self, esM, pyM):
@@ -530,7 +531,7 @@ class PiecewiseLinearCostFunctionModel:
         esM,
         pyM,
         getOptValue=False,
-        getOptValueCostType="TAC",
+        getOptValueCostType=CostType.TAC,
     ):
         """Get the economic contribution to the cost function of pwlcf components.
 
@@ -562,12 +563,9 @@ class PiecewiseLinearCostFunctionModel:
         loc = list(esM.locations)[0]
 
         for moduleName, module in self.modulesDict.items():
-            ipEconomicLifetime = getattr(
-                esM.getComponent(moduleName), "ipEconomicLifetime"
-            ).mean()
-            ipTechnicalLifetime = getattr(
-                esM.getComponent(moduleName), "ipTechnicalLifetime"
-            ).mean()
+            comp = esM.getComponent(moduleName)
+            ipEconomicLifetime = comp.ipEconomicLifetime.mean()
+            ipTechnicalLifetime = comp.ipTechnicalLifetime.mean()
 
             (fullCostIntervals, costInLastEconInterval, costInLastTechInterval) = (
                 utils.getParametersForUnevenLifetimes(
@@ -681,12 +679,12 @@ class PiecewiseLinearCostFunctionModel:
                             / len(commis[ip])
                             for y in componentYears[moduleName]
                         )
-                        if getOptValueCostType == "NPV":
+                        if getOptValueCostType == CostType.NPV:
                             cost_results[ip].loc[moduleName, _loc] = (
                                 cContrSum
                                 * utils.discountFactor(esM, ip, moduleName, _loc)
                             )
-                        elif getOptValueCostType == "TAC":
+                        elif getOptValueCostType == CostType.TAC:
                             cost_results[ip].loc[moduleName, _loc] = (
                                 cContrSum
                                 / utils.annuityPresentValueFactor(
@@ -867,10 +865,10 @@ class PiecewiseLinearCostFunctionModel:
         :type pyM: pyomo ConcreteModel
         """
         tac = self.getEconomicsPwlcf(
-            esM, pyM, getOptValue=True, getOptValueCostType="TAC"
+            esM, pyM, getOptValue=True, getOptValueCostType=CostType.TAC
         )
         npv = self.getEconomicsPwlcf(
-            esM, pyM, getOptValue=True, getOptValueCostType="NPV"
+            esM, pyM, getOptValue=True, getOptValueCostType=CostType.NPV
         )
         invest = self.getEconomicsPwlcf(
             esM, pyM, getOptValue=True, getOptValueCostType="invest"
@@ -920,24 +918,28 @@ class PiecewiseLinearCostFunctionModel:
                 tuples = list(
                     map(
                         lambda x: (
-                            x[0],
-                            x[1],
-                            "["
-                            + getattr(
-                                self.modulesDict[x[0]].comp,
-                                unitDict[
+                            (
+                                x[0],
+                                x[1],
+                                "["
+                                + getattr(
+                                    self.modulesDict[x[0]].comp,
+                                    unitDict[
+                                        self.modulesDict[x[0]]
+                                        .comp.modelingClass()
+                                        .abbrvName
+                                    ][0],
+                                )
+                                + unitDict[
                                     self.modulesDict[x[0]]
                                     .comp.modelingClass()
                                     .abbrvName
-                                ][0],
+                                ][1]
+                                + "]",
                             )
-                            + unitDict[
-                                self.modulesDict[x[0]].comp.modelingClass().abbrvName
-                            ][1]
-                            + "]",
-                        )
-                        if x[1] == "knowledgeStock_ETL"
-                        else x,
+                            if x[1] == "knowledgeStock_ETL"
+                            else x
+                        ),
                         tuples,
                     )
                 )

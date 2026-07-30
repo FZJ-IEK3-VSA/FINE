@@ -9,7 +9,10 @@ import gurobi_logtools as glt
 import pandas as pd
 import psutil
 import pyomo.environ as pyomo
+from pyomo.common.errors import ApplicationError
 from pyomo import opt
+from pyomo.contrib.appsi.base import LegacySolverInterface
+from pyomo.contrib.appsi.solvers import Highs
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from fine import utils
@@ -415,6 +418,7 @@ class EnergySystemModel:
         # The costUnit parameter (string) is the parameter in which all cost input parameter have to be specified.
         self.componentNames = {}
         self.componentModelingDict = {}
+        self.sharedPotentialDict = {}
         self.costUnit = costUnit
 
         ################################################################################################################
@@ -501,6 +505,18 @@ class EnergySystemModel:
                 + str(self.componentNames.keys())
             )
         modelingClass = self.componentNames[componentName]
+
+        # Remove component from sharedPotentialDict if present
+        keys_to_delete = [
+            key
+            for key, comps in self.sharedPotentialDict.items()
+            if componentName in comps
+        ]
+        for key in keys_to_delete:
+            self.sharedPotentialDict[key].remove(componentName)
+            if not self.sharedPotentialDict[key]:
+                del self.sharedPotentialDict[key]
+
         removedComp = dict()
         # If track: Return a dictionary including the name of the removed component and the component instance
         if track:
@@ -784,7 +800,7 @@ class EnergySystemModel:
         :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
             The optimization solver to be chosen.
             |br| * the default value is 'gurobi'
-        :type solver: string, Options: 'gurobi', 'glpk'
+        :type solver: string, Options: 'gurobi', 'highs', 'glpk'
 
         :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable.
 
@@ -1012,39 +1028,10 @@ class EnergySystemModel:
 
         # clustering of the time series data per investment period individually
         for ip in self.investmentPeriods:
-            timeSeriesData, weightDict = [], {}
-            for mdlName, mdl in self.componentModelingDict.items():
-                for compName, comp in mdl.componentsDict.items():
-                    (
-                        compTimeSeriesData,
-                        compWeightDict,
-                    ) = comp.getDataForTimeSeriesAggregation(ip)
-                    if compTimeSeriesData is not None:
-                        (
-                            timeSeriesData.append(compTimeSeriesData),
-                            weightDict.update(compWeightDict),
-                        )
-            timeSeriesData = pd.concat(timeSeriesData, axis=1)
-            # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
-            timeSeriesData.index = pd.date_range(
-                "2050-01-01 00:30:00",
-                periods=len(self.totalTimeSteps),
-                freq=(str(self.hoursPerTimeStep) + "h"),
-                tz="Europe/Berlin",
+            timeSeriesData, weightDict, zero_data_cols = (
+                self.createTimeSeriesDataForAggregation(ip)
             )
 
-            # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
-            # call) depending on whether segmentation is activated or not
-            timeSeriesData = timeSeriesData.reindex(
-                sorted(timeSeriesData.columns), axis=1
-            )
-            # find data with only zeros
-            zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
-            # drop columns with only zeros
-            timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
-            weightDict = {
-                k: v for k, v in weightDict.items() if k not in zero_data_cols
-            }
             if segmentation:
                 clusterClass = TimeSeriesAggregation(
                     timeSeries=timeSeriesData,
@@ -1144,6 +1131,49 @@ class EnergySystemModel:
         utils.output(
             "\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verboseLogLevel, 0
         )
+
+    def createTimeSeriesDataForAggregation(
+        self,
+        ip,
+    ) -> tuple[pd.DataFrame, dict, pd.Index]:
+        """Create and return the time series data, weights, and zero-data columns for aggregation.
+
+        Returns:
+            tuple[pd.DataFrame, dict, pd.Index]: Time series data, weight dictionary,
+            and columns containing only zero values.
+
+        """
+        timeSeriesData, weightDict = [], {}
+        for mdlName, mdl in self.componentModelingDict.items():
+            for compName, comp in mdl.componentsDict.items():
+                (
+                    compTimeSeriesData,
+                    compWeightDict,
+                ) = comp.getDataForTimeSeriesAggregation(ip)
+                if compTimeSeriesData is not None:
+                    (
+                        timeSeriesData.append(compTimeSeriesData),
+                        weightDict.update(compWeightDict),
+                    )
+        timeSeriesData = pd.concat(timeSeriesData, axis=1)
+        # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
+        timeSeriesData.index = pd.date_range(
+            "2050-01-01 00:30:00",
+            periods=len(self.totalTimeSteps),
+            freq=(str(self.hoursPerTimeStep) + "h"),
+            tz="Europe/Berlin",
+        )
+
+        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
+        # call) depending on whether segmentation is activated or not
+        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
+        # find data with only zeros
+        zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
+        # drop columns with only zeros
+        timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
+        weightDict = {k: v for k, v in weightDict.items() if k not in zero_data_cols}
+
+        return timeSeriesData, weightDict, zero_data_cols
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """Set and initialize basic time parameters and sets.
@@ -1393,7 +1423,7 @@ class EnergySystemModel:
                                 componentsOfBalanceLimit[balanceLimitID],
                             )
 
-            setattr(pyM, "yearlyBalanceLimitDict", yearlyBalanceLimitDict)
+            pyM.yearlyBalanceLimitDict = yearlyBalanceLimitDict
 
             def yearlyBalanceLimitConstraint(pyM, ID, loc, ip, lowerBound, value):
                 # yearly restriction
@@ -1462,7 +1492,7 @@ class EnergySystemModel:
                         componentsOfBalanceLimit[balanceLimitID],
                     )
 
-            setattr(pyM, "pathwayBalanceLimitDict", pathwayBalanceLimitDict)
+            pyM.pathwayBalanceLimitDict = pathwayBalanceLimitDict
 
             def pathwayBalanceLimitConstraint(pyM, ID, loc, lowerBound, value):
                 # pathway restriction
@@ -1513,22 +1543,6 @@ class EnergySystemModel:
             "Declaring shared potential constraint...", self.verboseLogLevel, 0
         )
 
-        # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
-        # potential)
-        potentialDict = {}
-        for ip in self.investmentPeriods:
-            for mdl in self.componentModelingDict.values():
-                for compName, comp in mdl.componentsDict.items():
-                    if comp.sharedPotentialID is not None:
-                        [
-                            potentialDict.setdefault(
-                                (comp.sharedPotentialID, loc, ip), []
-                            ).append(compName)
-                            for loc in comp.processedLocationalEligibility.index
-                            if comp.processedCapacityMax[ip][loc] != 0
-                        ]
-        pyM.sharedPotentialDict = potentialDict
-
         # Define and initialize constraints for each instance and location where components have to share an available
         # potential. Sum up the relative contributions to the shared potential and ensure that the total share is
         # <= 100%. For this, get the contributions to the shared potential for the corresponding ID and
@@ -1543,7 +1557,7 @@ class EnergySystemModel:
             )
 
         pyM.ConstraintSharedPotentials = pyomo.Constraint(
-            pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
+            self.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
         )
 
     def declareComponentLinkedQuantityConstraints(self, pyM):
@@ -2046,13 +2060,13 @@ class EnergySystemModel:
         # Order of possible solvers in solverList defines the priority of chosen default solver.
         solverList = [
             ImplementedSolvers.STANDARD_SOLVER.value,
-            ImplementedSolvers.GLPK.value,
+            ImplementedSolvers.HIGHS.value,
         ]
 
         if solver != "None":
             try:
                 opt.SolverFactory(solver).available()
-            except Exception:
+            except (ApplicationError, ValueError, OSError):
                 solver = "None"
 
         if solver == "None":
@@ -2068,7 +2082,7 @@ class EnergySystemModel:
                                 self.verboseLogLevel,
                                 0,
                             )
-                    except Exception:
+                    except (ApplicationError, ValueError, OSError):
                         pass
 
         if solver == "None":
@@ -2100,7 +2114,24 @@ class EnergySystemModel:
 
             else:
                 optimizer = opt.SolverFactory(solver, solver_io="python")
+        elif solver == ImplementedSolvers.HIGHS.value:
+            # Handle cases with no duals without exceptions in highs
+            class LegacyHighs(LegacySolverInterface, Highs):
+                def get_duals(self, cons_to_load=None):
+                    if self._sol is None or not self._sol.dual_valid:
+                        return {}
+                    return super().get_duals(cons_to_load)
 
+            optimizer = LegacyHighs()
+            if optimizationSpecs is not None:
+                solver_options = opt.OptSolver._options_string_to_dict(
+                    optimizationSpecs
+                )
+
+                for k, v in solver_options.items():
+                    optimizer.highs_options[k] = v
+            if timeLimit is not None:
+                optimizer.highs_options["time_limit"] = timeLimit
         else:
             optimizer = opt.SolverFactory(solver)
 
