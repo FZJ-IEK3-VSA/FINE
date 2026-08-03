@@ -160,7 +160,19 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
             dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
             dataTI, indexTI = [], []
+
+            duplicate_optimum_variables = {
+                "capacityVariablesOptimum",
+                "commissioningVariablesOptimum",
+                "decommissioningVariablesOptimum",
+            }
+            rename_optimum_variables = {
+                "operationVariablesOptimum": "operationTimeSeries",
+            }
             for key, d in data.items():
+                if key in duplicate_optimum_variables:
+                    continue
+
                 if d["values"] is None:
                     continue
                 if d["timeDependent"]:
@@ -180,7 +192,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         dfTD1dim.loc[variable].index.get_level_values(0).unique()
                     ):
                         df = dfTD1dim.loc[(variable, component)].T.stack()
-                        df.name = variable
+                        df.name = rename_optimum_variables.get(variable, variable)
                         df.index.rename(["time", "location"], inplace=True)
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
@@ -198,7 +210,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                     ):
                         df = dfTD2dim.loc[(variable, component)].stack()
 
-                        df.name = variable
+                        df.name = rename_optimum_variables.get(variable, variable)
                         df.index.rename(
                             ["locationIn", "locationOut", "time"], inplace=True
                         )
@@ -505,6 +517,7 @@ def convertDatasetsToEnergySystemModel(datasets):
         # get startyear to find model classes
         startyear = list(datasets["Results"].keys())[0]
         for model, comps in datasets["Results"][startyear].items():
+            componentModel = esM.componentModelingDict[model]
             optSum = {}
             operationVariablesOptimum_dict = {}
             capacityVariablesOptimum_dict = {}
@@ -515,13 +528,18 @@ def convertDatasetsToEnergySystemModel(datasets):
             dischargeOperationVariablesOptimum_dict = {}
             stateOfChargeOperationVariablesOptimum_dict = {}
 
+            # variables that only hold optimum values (no corresponding
+            # optSummary property), even though their name doesn't contain
+            # "Optimum" (renamed to avoid duplicate data in the datasets)
+            optimum_only_variables = {"operationTimeSeries"}
+
             for ip in datasets["Results"].keys():
                 # read opt Summary
                 optSum_df = pd.DataFrame([])
                 for component in datasets["Results"][ip][model]:
                     optSum_df_comp = pd.DataFrame([])
                     for variable in datasets["Results"][ip][model][component]:
-                        if "Optimum" in variable:
+                        if "Optimum" in variable or variable in optimum_only_variables:
                             continue
                         if "locationOut" in list(
                             datasets["Results"][ip][model][component].coords
@@ -593,7 +611,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                     )
                 optSum[int(ip)] = optSum_df
 
-                setattr(esM.componentModelingDict[model], "_optSummary", optSum)
+                componentModel._optSummary = optSum
 
                 # read optimal Values (3 types exist)
                 operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
@@ -615,17 +633,22 @@ def convertDatasetsToEnergySystemModel(datasets):
                     _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
 
+                    summary_optimum_mapping = {
+                        "capacity": "capacityVariablesOptimum",
+                        "commissioning": "commissioningVariablesOptimum",
+                        "decommissioning": "decommissioningVariablesOptimum",
+                        "operationTimeSeries": "operationVariablesOptimum",
+                    }
+
                     for variable in datasets["Results"][ip][model][component]:
-                        if "Optimum" not in variable:
+                        if (
+                            "Optimum" not in variable
+                            and variable not in summary_optimum_mapping
+                        ):
                             continue
-                        opt_variable = variable
-                        xr_opt = None
-                        if opt_variable in datasets["Results"][ip][model][component]:
-                            xr_opt = datasets["Results"][ip][model][component][
-                                opt_variable
-                            ]
-                        else:
-                            continue
+
+                        opt_variable = summary_optimum_mapping.get(variable, variable)
+                        xr_opt = datasets["Results"][ip][model][component][variable]
 
                         if opt_variable == "operationVariablesOptimum":
                             if "locationOut" in list(xr_opt.coords):
@@ -907,63 +930,41 @@ def convertDatasetsToEnergySystemModel(datasets):
                 if stateOfChargeOperationVariablesOptimum_dict[int(ip)].empty:
                     stateOfChargeOperationVariablesOptimum_dict[int(ip)] = None
 
-            setattr(
-                esM.componentModelingDict[model],
-                "_operationVariablesOptimum",
-                operationVariablesOptimum_dict,
+            componentModel._operationVariablesOptimum = operationVariablesOptimum_dict
+            componentModel._capacityVariablesOptimum = capacityVariablesOptimum_dict
+            componentModel._isBuiltVariablesOptimum = isBuiltVariablesOptimum_dict
+            componentModel._commissioningVariablesOptimum = (
+                commissioningVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_capacityVariablesOptimum",
-                capacityVariablesOptimum_dict,
+            componentModel._decommissioningVariablesOptimum = (
+                decommissioningVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_isBuiltVariablesOptimum",
-                isBuiltVariablesOptimum_dict,
+            componentModel._chargeOperationVariablesOptimum = (
+                chargeOperationVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_commissioningVariablesOptimum",
-                commissioningVariablesOptimum_dict,
+            componentModel._dischargeOperationVariablesOptimum = (
+                dischargeOperationVariablesOptimum_dict
             )
-            setattr(
-                esM.componentModelingDict[model],
-                "_decommissioningVariablesOptimum",
-                decommissioningVariablesOptimum_dict,
-            )
-            setattr(
-                esM.componentModelingDict[model],
-                "_chargeOperationVariablesOptimum",
-                chargeOperationVariablesOptimum_dict,
-            )
-            setattr(
-                esM.componentModelingDict[model],
-                "_dischargeOperationVariablesOptimum",
-                dischargeOperationVariablesOptimum_dict,
-            )
-            setattr(
-                esM.componentModelingDict[model],
-                "_stateOfChargeOperationVariablesOptimum",
-                stateOfChargeOperationVariablesOptimum_dict,
+            componentModel._stateOfChargeOperationVariablesOptimum = (
+                stateOfChargeOperationVariablesOptimum_dict
             )
 
             # if only one investment period -> keep optimal values unchanged for end user
             def setFinalOptimalValues(esM, name):
                 if len(esM.investmentPeriodNames) == 1:
-                    data = getattr(esM.componentModelingDict[model], "_" + name)
-                    setattr(
-                        esM.componentModelingDict[model], name, data[int(startyear)]
-                    )
+                    data = getattr(componentModel, "_" + name)
+                    setattr(componentModel, name, data[int(startyear)])
                 else:
-                    data = getattr(esM.componentModelingDict[model], "_" + name)
-                    setattr(esM.componentModelingDict[model], name, data)
+                    data = getattr(componentModel, "_" + name)
+                    setattr(componentModel, name, data)
                 return esM
 
             optimalParameters = [
                 "optSummary",
                 "operationVariablesOptimum",
                 "capacityVariablesOptimum",
+                "commissioningVariablesOptimum",
+                "decommissioningVariablesOptimum",
                 "isBuiltVariablesOptimum",
                 "chargeOperationVariablesOptimum",
                 "dischargeOperationVariablesOptimum",
@@ -1033,7 +1034,7 @@ def writeEnergySystemModelToNetCDF(
     writeDatasetsToNetCDF(xr_dss_input, outputFilePath, groupPrefix=groupPrefix)
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)
-        if hasattr(esM, "performanceSummary"):
+        if "performanceSummary" in vars(esM):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
             xr_dss_output["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
@@ -1080,7 +1081,7 @@ def writeEnergySystemModelToDatasets(
             "Input": xr_dss_input["Input"],
             "Parameters": xr_dss_input["Parameters"],
         }
-        if hasattr(esM, "performanceSummary"):
+        if "performanceSummary" in vars(esM):
             xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
             xr_dss_results["PerformanceSummary"] = xr_dss_performance[
                 "PerformanceSummary"
