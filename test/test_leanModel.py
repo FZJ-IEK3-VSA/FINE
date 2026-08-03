@@ -15,6 +15,7 @@ import pandas as pd
 
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 sys.path.append(
     str(
@@ -53,8 +54,7 @@ def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibil
     data = getData()
 
     esM = esM_init
-    # Wind (onshore)
-    # Delete operationRateMax and capacityMax data corresponding to cluster_0
+    # Wind (onshore): Delete operationRateMax and capacityMax data corresponding to cluster_0
     data["Wind (onshore), operationRateMax"].drop("cluster_0", axis=1, inplace=True)
     data["Wind (onshore), capacityMax"].drop("cluster_0", inplace=True)
 
@@ -103,36 +103,50 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
     _locationalEligibility = locationalEligibility.copy()
     _locationalEligibility.update({"cluster_0": 0})
 
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Wind (onshore)",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            operationRateMax=data["Wind (onshore), operationRateMax"],
-            capacityMax=data["Wind (onshore), capacityMax"],
-            investPerCapacity=1.1,
-            opexPerCapacity=1.1 * 0.02,
-            interestRate=0.08,
-            economicLifetime=20,
-            locationalEligibility=_locationalEligibility,
+    if "Wind (onshore)" in esM.componentNames:
+        with pytest.warns(
+            UserWarning, match="Component identifier Wind \\(onshore\\) already exists"
+        ):
+            esM.updateComponent(
+                componentName="Wind (onshore)",
+                updateAttrs={
+                    "operationRateMax": data["Wind (onshore), operationRateMax"],
+                    "capacityMax": data["Wind (onshore), capacityMax"],
+                    "locationalEligibility": _locationalEligibility,
+                },
+            )
+    else:
+        esM.add(
+            fn.Source(
+                esM=esM,
+                name="Wind (onshore)",
+                commodity="electricity",
+                hasCapacityVariable=True,
+                operationRateMax=data["Wind (onshore), operationRateMax"],
+                capacityMax=data["Wind (onshore), capacityMax"],
+                investPerCapacity=1.1,
+                opexPerCapacity=1.1 * 0.02,
+                interestRate=0.08,
+                economicLifetime=20,
+                locationalEligibility=_locationalEligibility,
+            )
         )
-    )
 
     # 2. Electrolyzers
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="Electroylzers",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
-            hasCapacityVariable=True,
-            investPerCapacity=0.5,
-            opexPerCapacity=0.5 * 0.025,
-            interestRate=0.08,
-            economicLifetime=10,
+    if "Electroylzers" not in esM.componentNames:
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name="Electroylzers",
+                physicalUnit=r"GW$_{el}$",
+                commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
+                hasCapacityVariable=True,
+                investPerCapacity=0.5,
+                opexPerCapacity=0.5 * 0.025,
+                interestRate=0.08,
+                economicLifetime=10,
+            )
         )
-    )
 
     # 3. Pumped hydro storage
     # Delete capacityFix data corresponding to cluster_7
@@ -141,25 +155,60 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
     _locationalEligibility = locationalEligibility.copy()
     _locationalEligibility.update({"cluster_7": 0})
 
+    if "Pumped hydro storage" in esM.componentNames:
+        with pytest.warns(
+            UserWarning,
+            match="Component identifier Pumped hydro storage already exists",
+        ):
+            esM.updateComponent(
+                componentName="Pumped hydro storage",
+                updateAttrs={
+                    "capacityFix": data["Pumped hydro storage, capacityFix"],
+                    "locationalEligibility": _locationalEligibility,
+                },
+            )
+    else:
+        esM.add(
+            fn.Storage(
+                esM=esM,
+                name="Pumped hydro storage",
+                commodity="electricity",
+                chargeEfficiency=0.88,
+                dischargeEfficiency=0.88,
+                hasCapacityVariable=True,
+                selfDischarge=1 - (1 - 0.00375) ** (1 / (30 * 24)),
+                chargeRate=0.16,
+                dischargeRate=0.12,
+                capacityFix=data["Pumped hydro storage, capacityFix"],
+                investPerCapacity=0,
+                opexPerCapacity=0.000153,
+                locationalEligibility=_locationalEligibility,
+            )
+        )
+
+    # 4. Lithium ion batteries
     esM.add(
         fn.Storage(
             esM=esM,
-            name="Pumped hydro storage",
+            name="Li-ion batteries",
             commodity="electricity",
-            chargeEfficiency=0.88,
-            dischargeEfficiency=0.88,
             hasCapacityVariable=True,
-            selfDischarge=1 - (1 - 0.00375) ** (1 / (30 * 24)),
-            chargeRate=0.16,
-            dischargeRate=0.12,
-            capacityFix=data["Pumped hydro storage, capacityFix"],
-            investPerCapacity=0,
-            opexPerCapacity=0.000153,
-            locationalEligibility=_locationalEligibility,
+            chargeEfficiency=0.95,
+            cyclicLifetime=10000,
+            dischargeEfficiency=0.95,
+            selfDischarge=1 - (1 - 0.03) ** (1 / (30 * 24)),
+            chargeRate=1,
+            dischargeRate=1,
+            doPreciseTsaModeling=False,
+            investPerCapacity=0.151,
+            opexPerCapacity=0.002,
+            interestRate=0.08,
+            economicLifetime=22,
+            opexPerChargeOperation=0.0001,
         )
     )
 
-    # 4. DC cables
+    # 5. DC cables
     # NOTE: looks like for transmission components, this is already handled
     ## pass pd.Series instead of pd.DataFrame to test if it works fine
     losses = {}
@@ -171,19 +220,32 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
     losses = pd.Series(losses)
     losses = losses[losses > 0]
 
-    esM.add(
-        fn.Transmission(
-            esM=esM,
-            name="DC cables",
-            commodity="electricity",
-            losses=losses,
-            distances=data["DC cables, distances"],
-            hasCapacityVariable=True,
-            capacityFix=data["DC cables, capacityFix"],
+    if "DC cables" in esM.componentNames:
+        with pytest.warns(
+            UserWarning, match="Component identifier DC cables already exists"
+        ):
+            esM.updateComponent(
+                componentName="DC cables",
+                updateAttrs={
+                    "losses": losses,
+                    "distances": data["DC cables, distances"],
+                    "capacityFix": data["DC cables, capacityFix"],
+                },
+            )
+    else:
+        esM.add(
+            fn.Transmission(
+                esM=esM,
+                name="DC cables",
+                commodity="electricity",
+                losses=losses,
+                distances=data["DC cables, distances"],
+                hasCapacityVariable=True,
+                capacityFix=data["DC cables, capacityFix"],
+            )
         )
-    )
 
-    # 5. Hydrogen sinks
+    # 6. Hydrogen sinks
     # Delete operationRateFix data corresponding to cluster_3
     data["Hydrogen demand, operationRateFix"].drop("cluster_3", axis=1, inplace=True)
 
@@ -191,27 +253,41 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
     _locationalEligibility.update({"cluster_3": 0})
 
     FCEV_penetration = 0.5
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="Hydrogen demand",
-            commodity="hydrogen",
-            hasCapacityVariable=False,
-            operationRateFix=data["Hydrogen demand, operationRateFix"]
-            * FCEV_penetration,
-            locationalEligibility=_locationalEligibility,
+    if "Hydrogen demand" in esM.componentNames:
+        with pytest.warns(
+            UserWarning, match="Component identifier Hydrogen demand already exists"
+        ):
+            esM.updateComponent(
+                componentName="Hydrogen demand",
+                updateAttrs={
+                    "operationRateFix": data["Hydrogen demand, operationRateFix"]
+                    * FCEV_penetration,
+                    "locationalEligibility": _locationalEligibility,
+                },
+            )
+    else:
+        esM.add(
+            fn.Sink(
+                esM=esM,
+                name="Hydrogen demand",
+                commodity="hydrogen",
+                hasCapacityVariable=False,
+                operationRateFix=data["Hydrogen demand, operationRateFix"]
+                * FCEV_penetration,
+                locationalEligibility=_locationalEligibility,
+            )
         )
-    )
 
-    esM.add(  # just add because esM_init contains balanceLimit for CO2. Does nothing
-        fn.Source(
-            esM=esM,
-            name="CO2 from enviroment",
-            commodity="CO2",
-            hasCapacityVariable=False,
-            balanceLimitID="CO2 limit",
+    if "CO2 from enviroment" not in esM.componentNames:
+        esM.add(  # just add because esM_init contains balanceLimit for CO2. Does nothing
+            fn.Source(
+                esM=esM,
+                name="CO2 from environment",
+                commodity="CO2",
+                hasCapacityVariable=False,
+                balanceLimitID="CO2 limit",
+            )
         )
-    )
 
     esM.aggregateTemporally(
         numberOfTypicalPeriods=3,
@@ -221,4 +297,7 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
         rescaleClusterPeriods=True,
     )
 
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )

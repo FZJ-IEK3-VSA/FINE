@@ -1,6 +1,7 @@
 import warnings
 
 from fine.component import Component, ComponentModel
+from fine.enums import ComponentAbbreviation, CostType, Dimension, FncType, VarType
 from fine import utils
 import pyomo.environ as pyomo
 import pandas as pd
@@ -146,13 +147,18 @@ class Transmission(Component):
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
         """
-        # TODO add unit checks
-        self.capacityMax = capacityMax
-        self.capacityMin = capacityMin
-        self.capacityFix = capacityFix
-        self.commissioningMax = commissioningMax
-        self.commissioningMin = commissioningMin
-        self.commissioningFix = commissioningFix
+        self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
+        self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
+        self.capacityFix = utils.checkCapacityOrCommissioningTransmission(capacityFix)
+        self.commissioningMax = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMax
+        )
+        self.commissioningMin = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMin
+        )
+        self.commissioningFix = utils.checkCapacityOrCommissioningTransmission(
+            commissioningFix
+        )
 
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)
@@ -201,7 +207,7 @@ class Transmission(Component):
             self.isBuiltFix,
             hasCapacityVariable,
             operationTimeSeries,
-            "2dim",
+            Dimension.TWO,
         )
 
         self._mapC, self._mapL, self._mapI = {}, {}, {}
@@ -269,7 +275,7 @@ class Transmission(Component):
             self,
             esM,
             name,
-            dimension="2dim",
+            dimension=Dimension.TWO,
             hasCapacityVariable=hasCapacityVariable,
             capacityVariableDomain=capacityVariableDomain,
             capacityPerPlantUnit=capacityPerPlantUnit,
@@ -404,7 +410,7 @@ class Transmission(Component):
             esM,
             name,
             self.opexPerOperation,
-            "2dim",
+            Dimension.TWO,
             self.locationalEligibility,
             esM.investmentPeriods,
         )
@@ -412,7 +418,7 @@ class Transmission(Component):
         # operationRateMax
         self.operationRateMax = operationRateMax
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, operationRateMax, self.locationalEligibility, "2dim"
+            esM, name, operationRateMax, self.locationalEligibility, Dimension.TWO
         )
         self.aggregatedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateMax = dict.fromkeys(esM.investmentPeriods)
@@ -420,10 +426,17 @@ class Transmission(Component):
         # operationRateFix
         self.operationRateFix = operationRateFix
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, operationRateFix, self.locationalEligibility, "2dim"
+            esM, name, operationRateFix, self.locationalEligibility, Dimension.TWO
         )
         self.aggregatedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
         self.processedOperationRateFix = dict.fromkeys(esM.investmentPeriods)
+
+        utils.checkOperationRateForCapacityVariable(
+            name,
+            self.hasCapacityVariable,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+        )
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
@@ -439,8 +452,9 @@ class Transmission(Component):
         utils.isPositiveNumber(tsaWeight)
         self.tsaWeight = tsaWeight
 
-        # set processed location eligiblity # TODO implement check and set
-        self.processedLocationalEligibility = self.locationalEligibility
+        self.processedLocationalEligibility = (
+            self.locationalEligibility
+        )  # checks already during setting of locationalEligibility
 
     def setTimeSeriesData(self, hasTSA):
         """Set the maximum operation rate and fixed operation rate depending on whether a time series analysis is requested or not.
@@ -509,8 +523,8 @@ class TransmissionModel(ComponentModel):
     def __init__(self):
         """Create a TransmissionModel class instance."""
         super().__init__()
-        self.abbrvName = "trans"
-        self.dimension = "2dim"
+        self.abbrvName = ComponentAbbreviation.TRANSMISSION
+        self.dimension = Dimension.TWO
         self._operationVariablesOptimum = {}
         self._isBuiltVariablesOptimum = {}
 
@@ -1091,7 +1105,12 @@ class TransmissionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDictOut"
+            pyM,
+            esM,
+            FncType.TD,
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDictOut",
         )
 
         capexCap = self.getEconomicsDesign(
@@ -1156,22 +1175,22 @@ class TransmissionModel(ComponentModel):
         resultsTAC_opexOp = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerOperation"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
         resultsNPV_opexOp = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerOperation"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
         for ip in esM.investmentPeriods:
             for compName, comp in compDict.items():
@@ -1181,7 +1200,7 @@ class TransmissionModel(ComponentModel):
                     "capexIfBuilt",
                     "opexCap",
                     "opexIfBuilt",
-                    "TAC",
+                    CostType.TAC,
                 ]:
                     data = optSummaryBasic[esM.investmentPeriodNames[ip]].loc[
                         compName, cost
@@ -1193,16 +1212,16 @@ class TransmissionModel(ComponentModel):
             # Set optimal operation variables and append optimization summary
             optVal = utils.formatOptimizationOutput(
                 opVar.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
             )
             optVal_ = utils.formatOptimizationOutput(
                 opVar.get_values(),
-                "operationVariables",
-                "2dim",
+                VarType.OPERATION,
+                Dimension.TWO,
                 ip,
                 esM.periodsOrder[ip],
                 compDict=compDict,
@@ -1210,12 +1229,13 @@ class TransmissionModel(ComponentModel):
             )
             self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
 
-            props = ["operation", "opexOp", "NPV_opexOp"]
+            props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
-                props[1]: ["[" + esM.costUnit + "/a]"],
+                props[0]: ["[-*h]"],
+                props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
+                props[3]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1233,7 +1253,7 @@ class TransmissionModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] == "operation"
+                        if x[1] == "operation" or "operation_annual"
                         else x
                     ),
                     tuples,
@@ -1251,18 +1271,23 @@ class TransmissionModel(ComponentModel):
 
                 optSummary.loc[
                     [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-                optSummary.loc[
-                    [
                         (ix, "operation", "[" + compDict[ix].commodityUnit + "*h]")
                         for ix in opSum.index
                     ],
                     opSum.columns,
                 ] = opSum.values
+
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "operation_annual",
+                            "[" + compDict[ix].commodityUnit + "*h/a]",
+                        )
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values / esM.numberOfYears
 
                 tac_ox = resultsTAC_opexOp[ip]
                 optSummary.loc[
@@ -1323,7 +1348,7 @@ class TransmissionModel(ComponentModel):
             optSummary.index = pd.MultiIndex.from_tuples(indexNew)
             optSummary = optSummary.unstack(level=-1)
             names = list(optSummaryBasic[esM.investmentPeriodNames[ip]].index.names)
-            names.append("LocationIn")
+            names.append("locationIn")
             optSummary.index.set_names(names, inplace=True)
             self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
 

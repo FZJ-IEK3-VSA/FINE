@@ -1,4 +1,12 @@
 from fine.component import Component, ComponentModel
+from fine.enums import (
+    ComponentAbbreviation,
+    CostType,
+    Dimension,
+    FncType,
+    RampingType,
+    VarType,
+)
 from fine import utils
 import warnings
 import pandas as pd
@@ -125,9 +133,25 @@ class Conversion(Component):
         :type commodityConversionFactors:
 
             * dictionary, assigns commodities (string) to a conversion factors
-              (float/int, pandas.Series indexed by locations, or pandas.DataFrame time series)
+                (float/int, pandas.Series indexed by locations, or pandas.DataFrame
+                with locations as columns and time steps as index)
             * dictionary with investment periods as key and one of the first option  as value
-            * dictionary with tuple of (commissioning year, investment period) as key and one of the first option above as value
+            * dictionary with tuple of (commissioning year, investment period) as key and one
+                of the first option above as value
+
+        Example:
+                {
+                    2025: {'electricity': -1,
+                        'hydrogen': pd.DataFrame(
+                            {'ElectrolyzerLocation': [0.5, 0.6, 0.7, ...],
+                                'IndustryLocation':     [1.0, 0.9, 0.8, ...]},
+                            index=esM.totalTimeSteps)},
+                    2030: {'electricity': -1,
+                        'hydrogen': pd.DataFrame(
+                            {'ElectrolyzerLocation': [0.6, 0.7, 0.8, ...],
+                                'IndustryLocation':     [0.9, 0.8, 0.7, ...]},
+                            index=esM.totalTimeSteps)}
+                }
 
         **Default arguments:**
 
@@ -255,7 +279,7 @@ class Conversion(Component):
             self,
             esM,
             name,
-            dimension="1dim",
+            dimension=Dimension.ONE,
             hasCapacityVariable=hasCapacityVariable,
             capacityVariableDomain=capacityVariableDomain,
             capacityPerPlantUnit=capacityPerPlantUnit,
@@ -293,7 +317,7 @@ class Conversion(Component):
             esM,
             name,
             opexPerOperation,
-            "1dim",
+            Dimension.ONE,
             locationalEligibility,
             esM.investmentPeriods,
         )
@@ -301,14 +325,14 @@ class Conversion(Component):
         # check for operationRateMax and operationRateFix
         if operationRateMax is not None and operationRateFix is not None:
             operationRateMax = None
-            if esM.verbose < 2:
+            if esM.verboseLogLevel < 2:
                 warnings.warn(
                     "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
                     + "The operationRateMax time series was set to None."
                 )
         if operationRateMin is not None and operationRateFix is not None:
             operationRateMin = None
-            if esM.verbose < 2:
+            if esM.verboseLogLevel < 2:
                 warnings.warn(
                     "If operationRateFix is specified, the operationRateMin parameter is not required.\n"
                     + "The operationRateMin time series was set to None."
@@ -346,6 +370,14 @@ class Conversion(Component):
         self.processedOperationRateFix = {}
         
         self.componentLimitID = componentLimitID
+
+        utils.checkOperationRateForCapacityVariable(
+            name,
+            self.hasCapacityVariable,
+            self.fullOperationRateMin,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+        )
 
         self.rampUpMax = rampUpMax
         self.rampDownMax = rampDownMax
@@ -446,17 +478,6 @@ class Conversion(Component):
                         if hasTSA
                         else self.fullCommodityConversionFactors[timeInfo][commod]
                     )
-        if hasTSA:
-            if any(
-                x is not None
-                for x in [
-                    self.rampUpMax,
-                    self.rampDownMax,
-                ]
-            ):
-                raise ValueError(
-                    "Time series aggregation is not supported for rampUpMax and rampDownMax."
-                )
 
     def getDataForTimeSeriesAggregation(self, ip):
         """Get the required data if a time series aggregation is requested.
@@ -595,8 +616,8 @@ class ConversionModel(ComponentModel):
     def __init__(self):
         """Create a ConversionModel class instance."""
         super().__init__()
-        self.abbrvName = "conv"
-        self.dimension = "1dim"
+        self.abbrvName = ComponentAbbreviation.CONVERSION
+        self.dimension = Dimension.ONE
         self._operationVariablesOptimum = {}
 
     ####################################################################################################################
@@ -977,10 +998,12 @@ class ConversionModel(ComponentModel):
             |br| * the default value is None.
 
         """
-        if rampingType not in ["rampDownMax", "rampUpMax"]:
+        try:
+            rampingType = RampingType(rampingType)
+        except ValueError as exc:
             raise ValueError(
                 f"Ramping type {rampingType} is not valid. Please choose between rampDownMax and rampUpMax."
-            )
+            ) from exc
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -994,7 +1017,7 @@ class ConversionModel(ComponentModel):
 
         constrSetRamp = getattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName)
 
-        factor = 1 if rampingType == "rampDownMax" else -1
+        factor = 1 if rampingType == RampingType.DOWN_MAX else -1
 
         if not pyM.hasSegmentation:
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
@@ -1005,7 +1028,7 @@ class ConversionModel(ComponentModel):
             rampRateMax = getattr(compDict[compName], rampingType)
             isCyclic = getattr(compDict[compName], "useTemporalCyclicConstraints")
             timeStepLength = (
-                esM.timeStepsPerPeriod[ip].to_dict()[p, t]
+                esM.hoursPerSegment[ip][p, t]
                 if pyM.hasSegmentation
                 else esM.hoursPerTimeStep
             )
@@ -1036,6 +1059,52 @@ class ConversionModel(ComponentModel):
             pyM,
             f"Constr{rampingType}_{abbrvName}",
             pyomo.Constraint(constrSetRamp, pyM.intraYearTimeSet, rule=ramping),
+        )
+
+    def interPeriodRamping(self, esM, pyM, rampingType):
+        """Add inter-period ramping constraints for operation variables.
+        This enforces a maximum allowed change in the dispatch between the last time step of period p–1 and the first time step of period p.
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+
+        if not hasattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName):
+            return
+
+        opVar = getattr(pyM, "op_" + abbrvName)
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        constrSetRamp = getattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName)
+
+        factor = 1 if rampingType == RampingType.DOWN_MAX else -1
+
+        if not pyM.hasSegmentation:
+            numberOfTimeSteps = len(esM.timeStepsPerPeriod)
+        else:
+            numberOfTimeSteps = len(esM.segmentsPerPeriod)
+
+        def ramping_inter_period(pyM, loc, compName, ip, p, t):
+            rampRateMax = getattr(compDict[compName], rampingType)
+            timeStepLength = (
+                esM.hoursPerSegment[ip][p, t]
+                if pyM.hasSegmentation
+                else esM.hoursPerTimeStep
+            )
+            if p != 0 and t == 0:
+                return (
+                    factor
+                    * (
+                        opVar[loc, compName, ip, p - 1, numberOfTimeSteps - 1]
+                        - opVar[loc, compName, ip, p, t]
+                    )
+                    <= rampRateMax * timeStepLength * capVar[loc, compName, ip]
+                )
+            return pyomo.Constraint.Skip
+
+        setattr(
+            pyM,
+            f"ConstrInterPeriod_{rampingType}_{abbrvName}",
+            pyomo.Constraint(
+                constrSetRamp, pyM.intraYearTimeSet, rule=ramping_inter_period
+            ),
         )
 
     def declareSets(self, esM, pyM):
@@ -1217,8 +1286,11 @@ class ConversionModel(ComponentModel):
             isOperationCommisYearDepending=True,
         )
 
-        self.declareRampingConstraints(pyM, esM, rampingType="rampUpMax")
-        self.declareRampingConstraints(pyM, esM, rampingType="rampDownMax")
+        self.declareRampingConstraints(pyM, esM, rampingType=RampingType.UP_MAX)
+        self.declareRampingConstraints(pyM, esM, rampingType=RampingType.DOWN_MAX)
+        if pyM.hasTSA:
+            self.interPeriodRamping(esM, pyM, rampingType=RampingType.UP_MAX)
+            self.interPeriodRamping(esM, pyM, rampingType=RampingType.DOWN_MAX)
 
         ################################################################################################################
         #                                    Declare pathway constraints                                               #
@@ -1631,6 +1703,8 @@ class ConversionModel(ComponentModel):
                 return commodCommodityConversionFactors
             if isinstance(commodCommodityConversionFactors, pd.Series):
                 return commodCommodityConversionFactors.loc[loc]
+            if isinstance(commodCommodityConversionFactors, pd.DataFrame):
+                return float(commodCommodityConversionFactors.at[(p, t), loc])
             return commodCommodityConversionFactors[loc][p, t]
 
         # 1.a get balance for components, which do not have commodity conversions varying with the commissioning year
@@ -1748,7 +1822,12 @@ class ConversionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
+            pyM,
+            esM,
+            FncType.TD,
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
         )
 
         return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
@@ -1778,42 +1857,43 @@ class ConversionModel(ComponentModel):
         resultsTAC_opexOp = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerOperation"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
         resultsNPV_opexOp = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerOperation"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
 
         for ip in esM.investmentPeriods:
             # Set optimal operation variables and append optimization summary
             optVal = utils.formatOptimizationOutput(
                 opVar.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
             )
             self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
 
-            props = ["operation", "opexOp", "NPV_opexOp"]
+            props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
-                props[1]: ["[" + esM.costUnit + "/a]"],
+                props[0]: ["[-*h]"],
+                props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
+                props[3]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1831,7 +1911,7 @@ class ConversionModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].physicalUnit),
                         )
-                        if x[1] == "operation"
+                        if x[1] == "operation" or "operation_annual"
                         else x
                     ),
                     tuples,
@@ -1854,18 +1934,23 @@ class ConversionModel(ComponentModel):
                 # operation
                 optSummary.loc[
                     [
-                        (ix, "operation", "[" + compDict[ix].physicalUnit + "*h/a]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-                optSummary.loc[
-                    [
                         (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")
                         for ix in opSum.index
                     ],
                     opSum.columns,
                 ] = opSum.values
+
+                optSummary.loc[
+                    [
+                        (
+                            ix,
+                            "operation_annual",
+                            "[" + compDict[ix].physicalUnit + "*h/a]",
+                        )
+                        for ix in opSum.index
+                    ],
+                    opSum.columns,
+                ] = opSum.values / esM.numberOfYears
 
                 # operation cost - TAC
                 tac_ox = resultsTAC_opexOp[ip]

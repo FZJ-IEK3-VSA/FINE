@@ -2,6 +2,9 @@ from fine import utils
 from fine.IOManagement import standardIO
 import pandas as pd
 import copy
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def optimizeSimpleMyopic(
@@ -112,8 +115,10 @@ def optimizeSimpleMyopic(
     )
     utils.checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets)
     utils.checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps)
-    print("Number of optimization runs: ", nbOfSteps + 1)
-    print("Number of years represented by one optimization: ", nbOfRepresentedYears)
+    logger.info("Number of optimization runs: %s", nbOfSteps + 1)
+    logger.info(
+        "Number of years represented by one optimization: %s", nbOfRepresentedYears
+    )
     mileStoneYear = startYear
     if trackESMs:
         myopicResults = dict()
@@ -203,11 +208,11 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                         - nbOfRepresentedYears
                     )
                     # If lifetime is shorter than number of represented years, skip component
-                    if any(getattr(stockComp, "lifetime") <= 0):
+                    if any(stockComp.lifetime <= 0):
                         continue
 
                     # If capacities are installed, set the values as capacityFix.
-                    if getattr(stockComp, "capacityFix") is None:
+                    if stockComp.capacityFix is None:
                         if isinstance(compValues.loc[comp], pd.DataFrame):
                             stockComp.processedCapacityFix = {}
                             stockComp.processedCapacityFix[0] = (
@@ -230,10 +235,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                     ].lifetime -= nbOfRepresentedYears
                     # If lifetime is exceeded, remove component from the energySystemModel instance
                     if any(
-                        getattr(
-                            esM.componentModelingDict[mdl].componentsDict[comp],
-                            "lifetime",
-                        )
+                        esM.componentModelingDict[mdl].componentsDict[comp].lifetime
                         <= 0
                     ):
                         esM.removeComponent(comp)

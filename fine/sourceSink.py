@@ -1,4 +1,5 @@
 from fine.component import Component, ComponentModel
+from fine.enums import ComponentAbbreviation, CostType, Dimension, FncType, VarType
 from fine import utils
 import pandas as pd
 import warnings
@@ -221,7 +222,7 @@ class Source(Component):
             self,
             esM,
             name,
-            dimension="1dim",
+            dimension=Dimension.ONE,
             hasCapacityVariable=hasCapacityVariable,
             capacityVariableDomain=capacityVariableDomain,
             capacityPerPlantUnit=capacityPerPlantUnit,
@@ -259,10 +260,14 @@ class Source(Component):
             commodity,
             esM.commodityUnitsDict[commodity],
         )
-        # TODO check value and type correctness
-        self.balanceLimitID = balanceLimitID
+        self.balanceLimitID = utils.checkAndSetBalanceLimitID(balanceLimitID)
+        # NOTE: componentLimitID is NOT run through checkAndSetBalanceLimitID —
+        # the componentLimit feature allows a list of IDs per component, which
+        # that validator rejects (it accepts only str or None).
         self.componentLimitID = componentLimitID
-        self.pathwayBalanceLimitID = pathwayBalanceLimitID
+        self.pathwayBalanceLimitID = utils.checkAndSetBalanceLimitID(
+            pathwayBalanceLimitID
+        )
         self.sign = 1
         self.modelingClass = SourceSinkModel
 
@@ -272,7 +277,7 @@ class Source(Component):
             esM,
             name,
             opexPerOperation,
-            "1dim",
+            Dimension.ONE,
             locationalEligibility,
             esM.investmentPeriods,
         )
@@ -283,7 +288,7 @@ class Source(Component):
             esM,
             name,
             commodityCost,
-            "1dim",
+            Dimension.ONE,
             locationalEligibility,
             esM.investmentPeriods,
         )
@@ -294,7 +299,7 @@ class Source(Component):
             esM,
             name,
             commodityRevenue,
-            "1dim",
+            Dimension.ONE,
             locationalEligibility,
             esM.investmentPeriods,
         )
@@ -351,7 +356,7 @@ class Source(Component):
                 and self.fullOperationRateMax[ip] is not None
             ):
                 self.fullOperationRateMax[ip] = None
-                if esM.verbose < 2:
+                if esM.verboseLogLevel < 2:
                     warnings.warn(
                         "If operationRateFix is specified, the operationRateMax parameter is not required.\n"
                         + "The operationRateMax time series of investment period "
@@ -362,12 +367,20 @@ class Source(Component):
                 and self.fullOperationRateMin[ip] is not None
             ):
                 self.fullOperationRateMin[ip] = None
-                if esM.verbose < 2:
+                if esM.verboseLogLevel < 2:
                     warnings.warn(
                         "If operationRateFix is specified, the operationRateMin parameter is not required.\n"
                         + "The operationRateMin time series of investment period "
                         + f"'{esM.investmentPeriodNames[ip]}' was set to None."
                     )
+
+        utils.checkOperationRateForCapacityVariable(
+            name,
+            self.hasCapacityVariable,
+            self.fullOperationRateMin,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+        )
 
         # partLoadMin
         self.processedPartLoadMin = utils.checkAndSetPartLoadMin(
@@ -626,8 +639,8 @@ class SourceSinkModel(ComponentModel):
     def __init__(self):
         """Create a SourceSinkModel class instance."""
         super().__init__()
-        self.abbrvName = "srcSnk"
-        self.dimension = "1dim"
+        self.abbrvName = ComponentAbbreviation.SOURCE_SINK
+        self.dimension = Dimension.ONE
         self._operationVariablesOptimum = {}
 
     ####################################################################################################################
@@ -1045,18 +1058,28 @@ class SourceSinkModel(ComponentModel):
         :type pym: pyomo ConcreteModel
         """
         opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
+            pyM,
+            esM,
+            FncType.TD,
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
         )
         commodCost = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedCommodityCost"], "op", "operationVarDict"
+            pyM, esM, FncType.TD, ["processedCommodityCost"], "op", "operationVarDict"
         )
         commodRevenue = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedCommodityRevenue"], "op", "operationVarDict"
+            pyM,
+            esM,
+            FncType.TD,
+            ["processedCommodityRevenue"],
+            "op",
+            "operationVarDict",
         )
         commodCostTimeSeries = self.getEconomicsOperation(
             pyM,
             esM,
-            "TimeSeries",
+            FncType.TIME_SERIES,
             ["processedCommodityCostTimeSeries"],
             "op",
             "operationVarDict",
@@ -1064,7 +1087,7 @@ class SourceSinkModel(ComponentModel):
         commodRevenueTimeSeries = self.getEconomicsOperation(
             pyM,
             esM,
-            "TimeSeries",
+            FncType.TIME_SERIES,
             ["processedCommodityRevenueTimeSeries"],
             "op",
             "operationVarDict",
@@ -1103,102 +1126,102 @@ class SourceSinkModel(ComponentModel):
         resultsTAC_opexOp = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerOperation"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
         resultsTAC_commodCost = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedCommodityCost"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
         resultsTAC_commodRevenue = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedCommodityRevenue"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
         resultsTAC_commodCostTimeSeries = self.getEconomicsOperation(
             pyM,
             esM,
-            "TimeSeries",
+            FncType.TIME_SERIES,
             ["processedCommodityCostTimeSeries"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
         resultsTAC_commodRevenueTimeSeries = self.getEconomicsOperation(
             pyM,
             esM,
-            "TimeSeries",
+            FncType.TIME_SERIES,
             ["processedCommodityRevenueTimeSeries"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="TAC",
+            getOptValueCostType=CostType.TAC,
         )
         resultsNPV_opexOp = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedOpexPerOperation"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
         resultsNPV_commodCost = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedCommodityCost"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
         resultsNPV_commodRevenue = self.getEconomicsOperation(
             pyM,
             esM,
-            "TD",
+            FncType.TD,
             ["processedCommodityRevenue"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
         resultsNPV_commodCostTimeSeries = self.getEconomicsOperation(
             pyM,
             esM,
-            "TimeSeries",
+            FncType.TIME_SERIES,
             ["processedCommodityCostTimeSeries"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
         resultsNPV_commodRevenueTimeSeries = self.getEconomicsOperation(
             pyM,
             esM,
-            "TimeSeries",
+            FncType.TIME_SERIES,
             ["processedCommodityRevenueTimeSeries"],
             "op",
             "operationVarDict",
             getOptValue=True,
-            getOptValueCostType="NPV",
+            getOptValueCostType=CostType.NPV,
         )
 
         for ip in esM.investmentPeriods:
@@ -1208,8 +1231,8 @@ class SourceSinkModel(ComponentModel):
             # Set optimal operation variables and append optimization summary
             optVal = utils.formatOptimizationOutput(
                 opVar.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
@@ -1219,6 +1242,7 @@ class SourceSinkModel(ComponentModel):
 
             props = [
                 "operation",
+                "operation_annual",
                 "opexOp",
                 "commodCosts",
                 "commodRevenues",
@@ -1228,13 +1252,14 @@ class SourceSinkModel(ComponentModel):
             ]
             # Unit dict: Specify units for props
             units = {
-                props[0]: ["[-*h]", "[-*h/a]"],
-                props[1]: ["[" + esM.costUnit + "/a]"],
+                props[0]: ["[-*h]"],
+                props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
                 props[3]: ["[" + esM.costUnit + "/a]"],
                 props[4]: ["[" + esM.costUnit + "/a]"],
                 props[5]: ["[" + esM.costUnit + "/a]"],
                 props[6]: ["[" + esM.costUnit + "/a]"],
+                props[7]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1252,18 +1277,21 @@ class SourceSinkModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].commodityUnit),
                         )
-                        if x[1] == "operation"
+                        if x[1] == "operation" or "operation_annual"
                         else x
                     ),
                     tuples,
                 )
             )
+
             mIndex = pd.MultiIndex.from_tuples(
                 tuples, names=["Component", "Property", "Unit"]
             )
+
             optSummary = pd.DataFrame(
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
+
             if optVal is not None:
                 # operation
                 opSum = optVal.sum(axis=1).unstack(-1)
@@ -1276,7 +1304,11 @@ class SourceSinkModel(ComponentModel):
                 ] = opSum.values
                 optSummary.loc[
                     [
-                        (ix, "operation", "[" + compDict[ix].commodityUnit + "*h/a]")
+                        (
+                            ix,
+                            "operation_annual",
+                            "[" + compDict[ix].commodityUnit + "*h/a]",
+                        )
                         for ix in opSum.index
                     ],
                     opSum.columns,

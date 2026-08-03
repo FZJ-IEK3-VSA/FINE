@@ -1,19 +1,21 @@
 import fine as fn
 from fine import utils
+from fine.enums import Dimension
 import pandas as pd
-import ast
 import datetime
-import inspect
 import time
 import warnings
 from functools import wraps
+import logging
 import matplotlib.patches as mpatches
+
+logger = logging.getLogger(__name__)
 
 
 # abbreviated class names necessary for saving into excel files as sheet names are restricted by string length
 abbreviatedClassName = {
     "ConversionDynamicModel": "ConvDyn",
-    "ConversionPartLoad": "ConvPartLoad",
+    "ConversionPartLoadModel": "ConvPartLoad",
 }
 
 
@@ -43,7 +45,9 @@ def timer(func):
         before = time.perf_counter()
         rv = func(*args, **kwargs)
         after = time.perf_counter()
-        print(f"elapsed time for {func.__name__}: {(after - before) / 60:.2f} minutes")
+        logger.debug(
+            "elapsed time for %s: %.2f minutes", func.__name__, (after - before) / 60
+        )
         return rv
 
     return f
@@ -85,7 +89,7 @@ def writeOptimizationOutputToExcel(
             _outputFileName = outputFileName + f"_{ip}"
         else:
             _outputFileName = outputFileName
-        utils.output("\nWriting output to Excel... ", esM.verbose, 0)
+        utils.output("\nWriting output to Excel... ", esM.verboseLogLevel, 0)
         _t = time.time()
         writer = pd.ExcelWriter(_outputFileName + ".xlsx")
 
@@ -95,7 +99,7 @@ def writeOptimizationOutputToExcel(
             else:
                 abbreviatedName = name[:-5]  # last 5 letters are "Model" and cut off
 
-            utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
+            utils.output("\tProcessing " + name + " ...", esM.verboseLogLevel, 0)
             oL = optSumOutputLevel
             oL_ = oL[name] if isinstance(oL, dict) else oL
 
@@ -117,9 +121,9 @@ def writeOptimizationOutputToExcel(
                 if d["values"] is None:
                     continue
                 if d["timeDependent"]:
-                    if d["dimension"] == "1dim":
+                    if d["dimension"] == Dimension.ONE:
                         dataTD1dim.append(d["values"]), indexTD1dim.append(key)
-                    elif d["dimension"] == "2dim":
+                    elif d["dimension"] == Dimension.TWO:
                         dataTD2dim.append(d["values"]), indexTD2dim.append(key)
                 else:
                     dataTI.append(d["values"]), indexTI.append(key)
@@ -135,7 +139,7 @@ def writeOptimizationOutputToExcel(
                         writer, sheet_name=abbreviatedName + "_TDoptVar_1dim"
                     )
             if dataTD2dim:
-                names = ["Variable", "Component", "LocationIn", "LocationOut"]
+                names = ["Variable", "Component", "locationIn", "locationOut"]
                 dfTD2dim = pd.concat(dataTD2dim, keys=indexTD2dim, names=names)
                 if oL_ == 1:
                     dfTD2dim = dfTD2dim.loc[
@@ -146,9 +150,9 @@ def writeOptimizationOutputToExcel(
                         writer, sheet_name=abbreviatedName + "_TDoptVar_2dim"
                     )
             if dataTI:
-                if esM.componentModelingDict[name].dimension == "1dim":
+                if esM.componentModelingDict[name].dimension == Dimension.ONE:
                     names = ["Variable type", "Component"]
-                elif esM.componentModelingDict[name].dimension == "2dim":
+                elif esM.componentModelingDict[name].dimension == Dimension.TWO:
                     names = ["Variable type", "Component", "Location"]
                 dfTI = pd.concat(dataTI, keys=indexTI, names=names)
                 if oL_ == 1:
@@ -177,213 +181,11 @@ def writeOptimizationOutputToExcel(
 
             segmentDuration.index.set_names(names="segmentNumber", inplace=True)
             segmentDuration.to_excel(writer, sheet_name="Misc", startrow=3)
-        utils.output("\tSaving file...", esM.verbose, 0)
+        utils.output("\tSaving file...", esM.verboseLogLevel, 0)
         writer.close()
-        utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verbose, 0)
-
-
-def readEnergySystemModelFromExcel(fileName="scenarioInput.xlsx", engine="openpyxl"):
-    """Read energy system model from excel file.
-
-    **Default arguments:**
-
-    :param fileName: excel file name or path (including .xlsx ending)
-        |br| * the default value is 'scenarioInput.xlsx'
-    :type fileName: string
-
-    :param engine: Used engine for reading the excel file. Please consider that the corresponding
-        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
-        For further information see the documentation of pandas.read_excel().
-
-        * 'openpyxl' supports newer Excel file formats
-        * 'xlrd' supports old-style Excel files (.xls)
-        * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
-
-        |br| * the default value is 'openpyxl'.
-    :type engine: string
-
-    :return: esM, esMData - an EnergySystemModel class instance and general esMData as a Series
-    """
-    file = pd.ExcelFile(fileName, engine=engine)
-    esMData = (
-        pd.read_excel(
-            file,
-            sheet_name="EnergySystemModel",
-            index_col=0,
+        utils.output(
+            "Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0
         )
-        .squeeze("columns")
-        .dropna(axis="index", how="all")
-    )
-    esMData = esMData.apply(
-        lambda v: ast.literal_eval(v) if isinstance(v, str) and v[0] == "{" else v
-    )
-
-    if not hasattr(inspect, "getargspec"):
-        inspect.getargspec = inspect.getfullargspec
-
-    kw = inspect.getargspec(fn.EnergySystemModel.__init__).args
-    esM = fn.EnergySystemModel(**esMData[esMData.index.isin(kw)])
-
-    for comp in esMData["componentClasses"]:
-        data = pd.read_excel(file, sheet_name=comp).dropna(axis="index", how="all")
-        dataKeys = set(data["name"].values)
-        if comp + "LocSpecs" in file.sheet_names:
-            dataLoc = (
-                pd.read_excel(file, sheet_name=comp + "LocSpecs", index_col=[0, 1, 2])
-                .dropna(axis="columns", how="all")
-                .sort_index()
-            )
-            dataLocKeys = set(dataLoc.index.get_level_values(0).unique())
-            if not dataLocKeys <= dataKeys:
-                raise ValueError(
-                    "Invalid key(s) detected in " + comp + "\n", dataLocKeys - dataKeys
-                )
-            if dataLoc.isnull().any().any():
-                raise ValueError("NaN values in " + comp + "LocSpecs data detected.")
-        if comp + "TimeSeries" in file.sheet_names:
-            dataTS = (
-                pd.read_excel(file, sheet_name=comp + "TimeSeries", index_col=[0, 1, 2])
-                .dropna(axis="columns", how="all")
-                .sort_index()
-            )
-            dataTSKeys = set(dataTS.index.get_level_values(0).unique())
-            if not dataTSKeys <= dataKeys:
-                raise ValueError(
-                    "Invalid key(s) detected in " + comp + "\n", dataTSKeys - dataKeys
-                )
-            if dataTS.isnull().any().any():
-                raise ValueError("NaN values in " + comp + "TimeSeries data detected.")
-
-        for key, row in data.iterrows():
-            temp = row.dropna()
-            temp = temp.drop(temp[temp == "None"].index)
-            temp = temp.apply(
-                lambda v: ast.literal_eval(v)
-                if isinstance(v, str) and v[0] == "{"
-                else v
-            )
-
-            if comp + "LocSpecs" in file.sheet_names:
-                dataLoc_ = dataLoc[dataLoc.index.get_level_values(0) == temp["name"]]
-                for ix in dataLoc_.index.get_level_values(1).unique():
-                    temp[ix] = dataLoc.loc[(temp["name"], ix)].squeeze()
-
-            if comp + "TimeSeries" in file.sheet_names:
-                dataTS_ = dataTS[dataTS.index.get_level_values(0) == temp["name"]]
-                for ix in dataTS_.index.get_level_values(1).unique():
-                    temp[ix] = dataTS_.loc[(temp["name"], ix)].T
-
-            kwargs = temp
-            esM.add(getattr(fn, comp)(esM, **kwargs))
-
-    return esM, esMData
-
-
-def energySystemModelRunFromExcel(fileName="scenarioInput.xlsx", engine="openpyxl"):
-    """Run an energy system model from excel file.
-
-    **Default arguments:**
-
-    :param fileName: excel file name or path (including .xlsx ending)
-        |br| * the default value is 'scenarioInput.xlsx'
-    :type fileName: string
-
-    :param engine: Used engine for reading the excel file. Please consider that the corresponding
-        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
-        For further information see the documentation of pandas.read_excel().
-
-        * 'openpyxl' supports newer Excel file formats
-        * 'xlrd' supports old-style Excel files (.xls)
-        * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
-
-        |br| * the default value is 'openpyxl'.
-    :type engine: string
-
-    :return: esM - an EnergySystemModel class instance and general esMData as a Series
-    """
-    esM, esMData = readEnergySystemModelFromExcel(fileName, engine=engine)
-
-    if esMData["cluster"] != {}:
-        esM.aggregateTemporally(**esMData["cluster"])
-    esM.optimize(**esMData["optimize"])
-
-    writeOptimizationOutputToExcel(esM, **esMData["output"])
-    return esM
-
-
-def readOptimizationOutputFromExcel(
-    esM, fileName="scenarioOutput.xlsx", engine="openpyxl"
-):
-    """Read optimization output from an excel file.
-
-    :param esM: EnergySystemModel instance which includes the setting of the optimized model
-    :type esM: EnergySystemModel instance
-
-    **Default arguments:**
-
-    :param fileName: excel file name oder path (including .xlsx ending) to an execl file written by
-        writeOptimizationOutputToExcel()
-        |br| * the default value is 'scenarioOutput.xlsx'
-    :type fileName: string
-
-    :param engine: Used engine for reading the excel file. Please consider that the corresponding
-        python package has to be installed. openpyxl and xlrd are already part of the requirements of FINE.
-        For further information see the documentation of pandas.read_excel().
-
-        * 'openpyxl' supports newer Excel file formats
-        * 'xlrd' supports old-style Excel files (.xls)
-        * 'odf' supports OpenDocument file formats (.odf, .ods, .odt)
-
-        |br| * the default value is 'openpyxl'.
-    :type engine: string
-
-    :return: esM - an EnergySystemModel class instance
-    """
-    # Read excel file with optimization output
-    file = pd.ExcelFile(fileName, engine=engine)
-    # Check if optimization output matches the given energy system model (sufficient condition)
-    utils.checkModelClassEquality(esM, file)
-    utils.checkComponentsEquality(esM, file)
-    # set attributes of esM
-    for mdl in esM.componentModelingDict.keys():
-        dim = esM.componentModelingDict[mdl].dimension
-        idColumns1dim = [0, 1, 2]
-        idColumns2dim = [0, 1, 2, 3]
-        idColumns = idColumns1dim if "1" in dim else idColumns2dim
-        setattr(
-            esM.componentModelingDict[mdl],
-            "optSummary",
-            pd.read_excel(
-                fileName,
-                sheet_name=mdl[0:-5] + "OptSummary_" + dim,
-                index_col=idColumns,
-                engine=engine,
-            ),
-        )
-        sheets = []
-        sheets += (
-            sheet
-            for sheet in file.sheet_names
-            if mdl[0:-5] in sheet and "optVar" in sheet
-        )
-        if len(sheets) > 0:
-            for sheet in sheets:
-                if "TDoptVar_1dim" in sheet:
-                    index_col = idColumns1dim
-                elif "TIoptVar_1dim" in sheet:
-                    index_col = idColumns1dim[:-1]
-                elif "TDoptVar_2dim" in sheet:
-                    index_col = idColumns2dim
-                elif "TIoptVar_2dim" in sheet:
-                    index_col = idColumns2dim[:-1]
-                else:
-                    continue
-                optVal = pd.read_excel(
-                    fileName, sheet_name=sheet, index_col=index_col, engine=engine
-                )
-                for var in optVal.index.levels[0]:
-                    setattr(esM.componentModelingDict[mdl], var, optVal.loc[var])
-    return esM
 
 
 def getDualValues(pyM):
@@ -437,6 +239,19 @@ def getShadowPrices(
 
     :return: Pandas Series with the dual values of the specified constraint
     """
+    if esM.numberOfInvestmentPeriods > 1:
+        warnings.warn(
+            "Shadow prices obtained via getShadowPrices() are in present-value (NPV) units when "
+            "multiple investment periods are used. The LP objective is the sum of discounted costs "
+            "across all investment periods, so the dual value of the commodity balance for period "
+            f"ip={ip} reflects [currency_present_value / commodity_unit], not the "
+            "[currency_in_period_ip / commodity_unit] a user would typically expect. "
+            "Converting to per-period units is not straightforward because the discount factor is "
+            "component-specific (each component may have a different interest rate).",
+            UserWarning,
+            stacklevel=2,
+        )
+
     if dualValues is None:
         dualValues = getDualValues(esM.pyM)
 
@@ -1208,10 +1023,11 @@ def plotLocationalColorMap(
     excluded_regions = [item for item in regions_data if item not in regions_gdf]
 
     if len(excluded_regions) > 0:
-        print(
-            f"Missing regions: {compName} - {variableName} \n",
-            "The following regions are not plotted as they are not contained in the provided shapefile: \n",
-            f"{excluded_regions} \n",
+        logger.warning(
+            "Missing regions: %s - %s. The following regions are not plotted as they are not contained in the provided shapefile: %s",
+            compName,
+            variableName,
+            excluded_regions,
         )
 
     if perArea:
@@ -1317,13 +1133,12 @@ def plotPieChart(
     Total_degree = 360
 
     for region in shapefile[indexColumn_in_shp]:  # LOOP OVER REGIONS
-        xValue = float(
-            shapefile.loc[shapefile[indexColumn_in_shp] == region].centroid.x.values
-        )
-        yValue = float(
-            shapefile.loc[shapefile[indexColumn_in_shp] == region].centroid.y.values
-        )
+        centroid = shapefile.loc[
+            shapefile[indexColumn_in_shp] == region, "centroid"
+        ].iloc[0]
 
+        xValue = float(centroid.x)
+        yValue = float(centroid.y)
         total_property_value = regional_property_sum[region]
 
         theta1 = 0

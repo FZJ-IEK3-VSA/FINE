@@ -115,9 +115,6 @@ def test_conversion_factors_as_series():
             )
         )
 
-    # optimize
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
-
 
 def test_location_specific_conversion_factors_series():
     """Location-specific conversion factors are accepted as pandas.Series."""

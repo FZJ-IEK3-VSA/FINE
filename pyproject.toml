@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.5.0"
+version = "2.6.0"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
@@ -28,41 +28,50 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-keywords = ["energy assesment", "energy system", "optimization"]
+keywords = ["energy assessment", "energy system", "optimization"]
 dependencies = [
+    "geopandas>=1.0.0,<=1.1.4",
     "openpyxl<=3.1.5",
-    "matplotlib<=3.9.2",
+    "matplotlib<=3.11.0",
     "xlrd>=1.2.0,<=2.0.2",
-    "pyomo>=6.8,<=6.9.4",
-    "numpy>=1.22,<=2.3.3",
-    "pandas>=1.4,<=2.2.3",
-    "scipy>=1.7.2,<=1.16.2",
-    "scikit-learn>=1.2,<=1.7.2",
-    "xarray>=2022.3.0,<=2025.10.1,!=2024.10.0,!=2024.11.0,!=2025.1.*,!=2025.3.*,!=2025.9.*",
-    "rasterio>=1.3.0,<=1.4.3,!=1.3.0.post1",
-    "netcdf4>1.5.8,<=1.7.3",
-    "tsam>=2.0.1,<=3.3.0",
-    "pwlf>=2.0.4,<=2.5.1",
-    "psutil>=5.8.0,<=7.1.0",
-    "gurobi-logtools>=3.0.0,<=3.2.0",
-    "ipykernel<=6.29.5",
+    "pyomo>=6.8.1,<=6.10.1",
+    "numpy>=1.22,<=2.5.0",
+    "pandas>=2.2.0,<3.0.0",
+    "scipy>=1.7.2,<=1.17.1",
+    "scikit-learn>=1.3.0,<=1.9.0",
+    "xarray>=2023.4.1,<=2026.7.0,!=2024.10.0,!=2024.11.0,!=2025.1,!=2025.3,!=2025.9",
+    "rasterio>=1.3.7,<=1.5.0,!=1.3.0.post1",
+    "netcdf4>1.5.8,<=1.7.4",
+    "tsam>=3.4.2,<=3.4.2",
+    "pwlf>=2.5.0,<=2.5.3",
+    "psutil>=5.8.0,<=7.2.2",
+    "gurobi-logtools>=3.2.0,<=4.0.1",
+    "ipykernel<=7.2.0",
+    "gurobipy<=13.0.2",
+    "highspy>=1.13.1,<=1.15.1",
 ]
 # <=3.13 translates to <=3.13.0, why the <3.14 is used
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.15"
 
 [project.optional-dependencies]
 develop = [
-    "sphinx<=7.4.4",
-    "sphinx_rtd_theme<=2.0.0",
-    "myst-parser<=2.0.0",
-    "pytest<=8.3.3",
-    "pytest-cov<=4.1.0",
-    "pytest-xdist<=3.6.1",
+    "mkdocs>=1.6,<=1.6.1",
+    "mkdocs-material>=9.5,<=9.7.6",
+    "mkdocstrings>=0.25,<=1.0.6",
+    "mkdocstrings-python>=1.10,<=2.0.5",
+    "mkdocs-jupyter>=0.25,<=0.26.3",
+    "mkdocs-gen-files>=0.5,<=0.6.1",
+    "mkdocs-literate-nav>=0.6,<=0.6.3",
+    "mkdocs-section-index>=0.3,<=0.3.12",
+    "griffe>=0.45,<=2.1.0",
+    "pytest<=9.1.1",
+    "pytest-cov<=7.1.0",
+    "pytest-xdist<=3.8.0",
     "nbval<=0.11.0",
-    "ruff<0.7.0",
+    "ruff<=0.13.1",
 ]
 
-#Configureation options
+# Configuration options
 # https://docs.pytest.org/en/7.1.x/reference/reference.html#configuration-options
 [tool.pytest.ini_options]
 testpaths = ["test"]
@@ -70,10 +79,22 @@ console_output_style = "progress"
 # How to configure Filterwarning:
 # https://docs.python.org/3/library/warnings.html#warning-filter
 # action:message:category:module:line
-# Omit a field by add ing ":" for each omitted field
+# Omit a field by adding ":" for each omitted field
 # Actions are: "default"
 # "error", "ignore", "always", "module", "once"
-filterwarnings = []
+filterwarnings = ["default::Warning:fine.*", "ignore::Warning:matplotlib"]
+
+[tool.coverage.run]
+source_pkgs = ["fine"]
+omit = ["fine/tests/*", "examples/*", "docs/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]
 
 [project.urls]
 homepage = "https://www.fz-juelich.de/en/ice/ice-2/research-1/open_source/fine"
@@ -84,7 +105,20 @@ documentation = "https://vsa-fine.readthedocs.io/en/master/"
 extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
-select = ["F", "PL", "R", "ARG", "RET", "E", "W", "UP", "ICN", "TID", "D", "PTH"]
+select = [
+    "F",
+    "PL",
+    "R",
+    "ARG",
+    "RET",
+    "E",
+    "W",
+    "UP",
+    "ICN",
+    "TID",
+    "D",
+    "PTH",
+]
 # See https://docs.astral.sh/ruff/rules for explanations
 ignore = [
     "D200",    # One-line docstring should fit on one line
@@ -100,7 +134,9 @@ ignore = [
     "PLR2004", # Magic value used in comparison, consider replacing `2` with a constant variable
     "ARG001",
     "ARG002",
-    "E501", # Lines to long 
+    "E501",    # Lines to long
+    "D203",    # Incompatible with D211 (no blank line before class docstring)
+    "D213",    # Incompatible with D212 (multi-line summary on first line)
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -1,17 +1,11 @@
 from fine.conversion import Conversion, ConversionModel
+from fine.enums import ComponentAbbreviation, Dimension
 from fine import utils
 import pyomo.environ as pyomo
-import pandas as pd
-
-import warnings
-
-# ruff: noqa
 
 
 class ConversionDynamic(Conversion):
-    """
-    Extension of the conversion class with more specific ramping behavior
-    """
+    """Extension of the conversion class with more specific ramping behavior."""
 
     def __init__(
         self,
@@ -24,8 +18,7 @@ class ConversionDynamic(Conversion):
         useTemporalCyclicConstraints=True,
         **kwargs,
     ):
-        """
-        Constructor for creating a ConversionDynamic class instance.
+        r"""Create a ConversionDynamic class instance.
         The ConversionDynamic component specific input arguments are described below. The Conversion
         specific input arguments are described in the Conversion class and the general component
         input arguments are described in the Component class.
@@ -34,19 +27,19 @@ class ConversionDynamic(Conversion):
 
         :param downTimeMin: if specified, indicates minimal down time of the component [hours].
             |br| * the default value is None
-        :type downTimeMin: None or integer value in range \]0,numberOfTimeSteps*hoursPerTimeStep\]
+        :type downTimeMin: None or integer value in range [0,numberOfTimeSteps*hoursPerTimeStep]
 
         :param upTimeMin: if specified, indicates minimal up time of the component [hours].
             |br| * the default value is None
-        :type upTimeMin: None or integer value in range \[0,numberOfTimeSteps*hoursPerTimeStep\]
+        :type upTimeMin: None or integer value in range [0,numberOfTimeSteps*hoursPerTimeStep]
 
         :param useTemporalCyclicConstraints: If True, the temporal cyclic constraints are used.
             This means that the operation of the first time steps are mathematically linked to the operation of the last time steps.
             |br| * the default value is True
         :type useTemporalCyclicConstraints: boolean
 
-        :param \*\*kwargs: All other keyword arguments of the conversion class can be defined as well.
-        :type \*\*kwargs: Check Conversion Class documentation.
+        :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
+        :type **kwargs: Check Conversion Class documentation.
         """
         Conversion.__init__(
             self, esM, name, physicalUnit, commodityConversionFactors, **kwargs
@@ -64,35 +57,17 @@ class ConversionDynamic(Conversion):
             )
 
     def setTimeSeriesData(self, hasTSA):
-        """
-        Function for setting the maximum operation rate and fixed operation rate depending on whether a time series
+        """Set the maximum operation rate and fixed operation rate depending on whether a time series
         analysis is requested or not.
 
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
         super().setTimeSeriesData(hasTSA)
-        if hasTSA:
-            if any(
-                x is not None
-                for x in [
-                    self.upTimeMin,
-                    self.downTimeMin,
-                ]
-            ):
-                raise ValueError(
-                    "Time series aggregation is not supported for conversion dynamic components."
-                )
-            # Information for refactoring:
-            # Time series aggregation is currently not supported for conversion dynamic class.
-            # The current constraints link the last time step / segment to the first time step / segment of the same TSA period.
-            # The order of periods over a year is not considered.
-            # For upTimeMin and downTimeMin, the constraint must consider the length of the time step / segments in future.
 
 
 class ConversionDynamicModel(ConversionModel):
-    """
-    A ConversionDynamicModel class instance will be instantly created if a ConversionDynamic class instance is initialized.
+    """A ConversionDynamicModel class instance will be instantly created if a ConversionDynamic class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the ConversionDynamic
     class instance. These declarations are necessary for the modeling and optimization of the energy system model.
     The ConversionDynamicModel class inherits from the ConversionModel class.
@@ -100,13 +75,12 @@ class ConversionDynamicModel(ConversionModel):
 
     def __init__(self):
         super().__init__()
-        self.abbrvName = "conv_dyn"
-        self.dimension = "1dim"
+        self.abbrvName = ComponentAbbreviation.CONVERSION_DYNAMIC
+        self.dimension = Dimension.ONE
         self._operationVariablesOptimum = {}
 
     def declareSets(self, esM, pyM):
-        """
-        Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
+        """Declare sets and dictionaries: design variable sets, operation variable set, operation mode sets and
         linked components dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -145,8 +119,7 @@ class ConversionDynamicModel(ConversionModel):
     ####################################################################################################################
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
-        """
-        Declare design and operation variables
+        """Declare design and operation variables.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -185,8 +158,7 @@ class ConversionDynamicModel(ConversionModel):
     ####################################################################################################################
 
     def minimumTimeConstraints(self, pyM, esM, timeType):
-        """
-        Internal function to handle both minimum up and down time constraints.
+        """Define minimum up and down time constraints.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -197,7 +169,7 @@ class ConversionDynamicModel(ConversionModel):
         :param timeType: Type of time constraint to set up. Can be either "upTimeMin" or "downTimeMin"
             |br| * the default value is None.
         """
-        if not timeType in ["upTimeMin", "downTimeMin"]:
+        if timeType not in ["upTimeMin", "downTimeMin"]:
             raise ValueError(
                 f"Time type {timeType} is not valid. Please choose between upTimeMin and downTimeMin."
             )
@@ -223,7 +195,7 @@ class ConversionDynamicModel(ConversionModel):
             isCyclic = getattr(compDict[compName], "useTemporalCyclicConstraints")
             if t == 0 and not isCyclic:
                 return pyomo.Constraint.Skip
-            elif t == 0:
+            if t == 0:
                 return (
                     opVarBin[loc, compName, ip, p, t]
                     - opVarBin[loc, compName, ip, p, numberOfTimeSteps - 1]
@@ -231,14 +203,13 @@ class ConversionDynamicModel(ConversionModel):
                     + opVarStopBin[loc, compName, ip, p, t]
                     == 0
                 )
-            else:
-                return (
-                    opVarBin[loc, compName, ip, p, t]
-                    - opVarBin[loc, compName, ip, p, t - 1]
-                    - opVarStartBin[loc, compName, ip, p, t]
-                    + opVarStopBin[loc, compName, ip, p, t]
-                    == 0
-                )
+            return (
+                opVarBin[loc, compName, ip, p, t]
+                - opVarBin[loc, compName, ip, p, t - 1]
+                - opVarStartBin[loc, compName, ip, p, t]
+                + opVarStopBin[loc, compName, ip, p, t]
+                == 0
+            )
 
         setattr(
             pyM,
@@ -272,28 +243,23 @@ class ConversionDynamicModel(ConversionModel):
                         opVarStopBin[loc, compName, ip, p, t_down]
                         for t_down in range(fromTimeStep, toTimeStep)
                     )
-                else:
-                    return opVarBin[loc, compName, ip, p, t] <= 1 - pyomo.quicksum(
-                        opVarStopBin[loc, compName, ip, p, t_down]
-                        for t_down in range(0, t)
-                    ) - pyomo.quicksum(
-                        opVarStopBin[loc, compName, ip, p, t_down]
-                        for t_down in range(fromTimeStepPrevious, toTimeStepPrevious)
-                    )
-            else:  # upTimeMin
-                if t >= timeMinTimeSteps:
-                    return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
-                        opVarStartBin[loc, compName, ip, p, t_up]
-                        for t_up in range(fromTimeStep, toTimeStep)
-                    )
-                else:
-                    return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
-                        opVarStartBin[loc, compName, ip, p, t_up]
-                        for t_up in range(0, t)
-                    ) + pyomo.quicksum(
-                        opVarStartBin[loc, compName, ip, p, t_up]
-                        for t_up in range(fromTimeStepPrevious, toTimeStepPrevious)
-                    )
+                return opVarBin[loc, compName, ip, p, t] <= 1 - pyomo.quicksum(
+                    opVarStopBin[loc, compName, ip, p, t_down] for t_down in range(0, t)
+                ) - pyomo.quicksum(
+                    opVarStopBin[loc, compName, ip, p, t_down]
+                    for t_down in range(fromTimeStepPrevious, toTimeStepPrevious)
+                )
+            if t >= timeMinTimeSteps:  # upTimeMin
+                return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
+                    opVarStartBin[loc, compName, ip, p, t_up]
+                    for t_up in range(fromTimeStep, toTimeStep)
+                )
+            return opVarBin[loc, compName, ip, p, t] >= pyomo.quicksum(
+                opVarStartBin[loc, compName, ip, p, t_up] for t_up in range(0, t)
+            ) + pyomo.quicksum(
+                opVarStartBin[loc, compName, ip, p, t_up]
+                for t_up in range(fromTimeStepPrevious, toTimeStepPrevious)
+            )
 
         setattr(
             pyM,
@@ -302,8 +268,7 @@ class ConversionDynamicModel(ConversionModel):
         )
 
     def declareComponentConstraints(self, esM, pyM):
-        """
-        Declare time independent and dependent constraints.
+        """Declare time independent and dependent constraints.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance

@@ -1,4 +1,5 @@
 import inspect
+import logging
 
 import fine as fn
 import pandas as pd
@@ -7,10 +8,12 @@ from fine.utils import buildFullTimeSeries
 import pandas as pd
 from fine import utils
 
+logger = logging.getLogger(__name__)
+
 
 def reconstruct_full_timeseries(esM, timeseries, ip):
     """Reconstruct the full timeseries from the time series aggregation (TSA) results."""
-    print("Reconstructing timeseries from TSA")
+    logger.debug("Reconstructing timeseries from TSA")
 
     # switch first index level and column level
     df = timeseries.copy()
@@ -50,6 +53,8 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
             esmDict[arg] = _data
 
     compDict = utilsIO.PowerDict()
+    if esM.isTimeSeriesDataClustered:
+        logger.info("Reconstructing timeseries from TSA")
     # Loop over all component models
     for componentModel in esM.componentModelingDict.values():
         # Loop over all components belonging to the model

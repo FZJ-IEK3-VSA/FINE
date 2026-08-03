@@ -4,6 +4,8 @@ import fine as fn
 import numpy as np
 import pytest
 
+from fine.utils import ImplementedSolvers
+
 
 def test_checkSimultaneousChargeDischarge():
     """Test a minimal example, with two regions and 10 days, where simultaneous charge and discharge occurs."""
@@ -142,7 +144,10 @@ def test_checkSimultaneousChargeDischarge():
     )
 
     with pytest.warns(UserWarning, match="Charge and discharge at the same time"):
-        esM.optimize(timeSeriesAggregation=False, solver="glpk")
+        esM.optimize(
+            timeSeriesAggregation=False,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
     # Get the charge and discharge time series of the Batteries and use the check in the utils.
     tsCharge = esM.componentModelingDict[
         "StorageModel"
@@ -205,13 +210,13 @@ def test_check_and_set_cost_parameter():
     ).equals(valid_series_1dim.astype(float))
 
     # Test with NaN in integer data (1dim)
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         assert utils.checkAndSetCostParameter(
             esM, "testParam", np.nan, "1dim", None
         ).equals(pd.Series([np.nan], index=esM.locations))
 
     # Test with NaN in series data (2dim)
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         invalid_series_with_nan = pd.Series([10, np.nan], index=["loc1", "loc2"])
         assert utils.checkAndSetCostParameter(
             esM, "testParam", invalid_series_with_nan, "2dim", None
