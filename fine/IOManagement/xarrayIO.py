@@ -1960,10 +1960,26 @@ def writeDatasetsToZarr(
     }
 
     def _chunk(ds, chunk=False):
+        # EVERY dim must be chunked, not just the four named above. Zarr requires
+        # uniform chunk sizes (except the final chunk) along every axis, and a
+        # dataset coming out of robust_concat carries the ragged dask chunks of
+        # the concatenation. `was_none_mask`/`dimension_mask` are the ones that
+        # bite: they are built with `xr.DataArray.from_series` over a `parameter`
+        # index (utilsIO.addParameterDimensionsToXarray), so NONE of their dims
+        # appear in master_chunk_scheme. The old filter therefore produced an
+        # empty dict, left the array completely unchunked, and handed zarr chunks
+        # like ((1,)*42, (49, 1, 1, 19)) -> "Zarr requires uniform chunk sizes".
+        # Defaulting unlisted dims to 'auto' keeps the deliberate 1000-step time
+        # chunk and the bounded-size behaviour argued for above, while
+        # guaranteeing uniformity on every other axis.
         if not chunk:
-            return ds
+            # A real fallback: re-chunk uniformly rather than returning `ds`
+            # untouched. Returning it unchanged made the except-branch retry in
+            # the callers below a no-op — it re-raised the identical error, so a
+            # chunking failure was never actually recoverable.
+            return ds.chunk("auto")
         actual_chunks_for_this_ds = {
-            dim: size for dim, size in master_chunk_scheme.items() if dim in ds.dims
+            dim: master_chunk_scheme.get(dim, "auto") for dim in ds.dims
         }
 
         # Apply the valid, filtered chunking scheme
