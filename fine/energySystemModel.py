@@ -2176,7 +2176,7 @@ class EnergySystemModel:
         # Declare constraint for componentLimit
         _t = time.time()
         self.declareComponentBalanceLimitConstraints(pyM, timeSeriesAggregation)
-        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verbose, 0)
+        utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", self.verboseLogLevel, 0)
 
         ################################################################################################################
         #                                         Declare objective function                                           #
@@ -2403,7 +2403,7 @@ class EnergySystemModel:
                 os.makedirs(self.LP_savepath)
             LP_file_path = os.path.join(self.LP_savepath, "model.lp")
             utils.output(
-                "Saving LP file to: " + LP_file_path, self.verbose, 0
+                "Saving LP file to: " + LP_file_path, self.verboseLogLevel, 0
             )
             from pyomo.opt import ProblemFormat
             self.pyM.write(LP_file_path, format=ProblemFormat.cpxlp)
