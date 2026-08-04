@@ -1,9 +1,11 @@
 import json
+import shutil
 import time
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
@@ -1427,3 +1429,588 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
 
     # xarray dataset to esm
     return convertDatasetsToEnergySystemModel(xr_dss)
+
+
+def _make_datasets_lazy(data_dict, chunks="auto", _path=()):
+    """Turn the in-memory arrays of a nested dataset dictionary into dask arrays.
+
+    ``chunks`` must never be None. ``Dataset.chunk(None)`` does not pick a sensible
+    size, it puts the whole array into a single dask chunk. For a reconstructed
+    time series that chunk can pass 2 GB, which the Blosc codec refuses, and a
+    single chunk also rules out a streamed write. "auto" bounds a chunk by dask's
+    target size, 128 MiB by default.
+
+    ``_path`` is the dictionary key path down to the current dataset, and it is
+    passed to ``chunk`` as the ``token``. Without a token, xarray names each dask
+    array by hashing the whole array content, sha1 over every byte, which dominates
+    the save time for large result arrays that are already in memory. A dictionary
+    path is unique, so it is as safe a name as a content hash, and it costs nothing
+    to compute.
+
+    :param data_dict: nested dictionary of xarray datasets
+    :type data_dict: dict
+
+    :param chunks: dask chunk sizes, or "auto"
+    :type chunks: string or dict
+
+    :param _path: key path to the current dataset, used to build the dask token
+    :type _path: tuple
+
+    :return: the same structure, with every dataset chunked
+    :rtype: dict
+    """
+    if isinstance(data_dict, dict):
+        return {
+            key: _make_datasets_lazy(value, chunks, _path=(*_path, str(key)))
+            for key, value in data_dict.items()
+        }
+
+    if isinstance(data_dict, xr.Dataset):
+        try:
+            return data_dict.chunk(chunks, token="/".join(_path) if _path else None)
+        except (ValueError, TypeError, NotImplementedError) as error:
+            logger.warning("Could not chunk the dataset at %s: %s", _path, error)
+            return data_dict
+
+    return data_dict
+
+
+# Chunk sizes used when a dataset is written to Zarr.
+#
+# Zarr needs a uniform chunk size along every axis except in the last chunk, and
+# a dataset that comes out of a concatenation carries the ragged chunks of that
+# concatenation. Every dimension therefore has to be chunked, not only the ones
+# named here: the two mask variables are indexed by "parameter", which appears in
+# no scheme, and leaving them unchunked produced chunks like ((1,)*42, (49,1,1,19)).
+#
+# "auto" rather than -1 for the spatial and technology axes: -1 keeps a whole
+# dimension in one chunk, which is unbounded. For a large model a single chunk of
+# (1000 time steps x every location x every location x every component) passes 2 GB,
+# which the Blosc codec refuses ("Codec does not support buffers of > 2147483647
+# bytes"). "auto" keeps the deliberate 1000-step time chunk and lets dask size the
+# rest so a chunk stays near 128 MiB whatever the model size.
+ZARR_CHUNK_SCHEME = {
+    "time": 1000,
+    "space": "auto",
+    "space_2": "auto",
+    "technology": "auto",
+}
+
+# fill value written for float variables when replaceFillValue is set
+ZARR_FLOAT_FILL_VALUE = -9999.0
+
+# dimension the components of one model class are concatenated along
+ZARR_COMPONENT_DIMENSION = "technology"
+
+
+def _zarrCompressorEncoding(compressionAlgorithm, compressionLevel):
+    """Build the per variable Zarr encoding that selects the Blosc compressor.
+
+    zarr 2 takes a numcodecs codec under the key "compressor". zarr 3 renamed the
+    key to "compressors" and wants a codec from zarr.codecs, and it rejects a raw
+    numcodecs object with "Expected a BytesBytesCodec". FINE supports both, so the
+    key and the codec are chosen from the installed version rather than pinned.
+
+    :param compressionAlgorithm: Blosc compressor name, e.g. "zstd"
+    :type compressionAlgorithm: string
+
+    :param compressionLevel: Blosc compression level, 1 to 9
+    :type compressionLevel: int
+
+    :return: the encoding entries to merge into each variable's encoding
+    :rtype: dict
+    """
+    import zarr  # noqa: PLC0415 - optional dependency, imported where it is used
+
+    if int(zarr.__version__.split(".")[0]) >= 3:
+        from zarr.codecs import BloscCodec, BloscShuffle  # noqa: PLC0415
+
+        return {
+            "compressors": [
+                BloscCodec(
+                    cname=compressionAlgorithm,
+                    clevel=compressionLevel,
+                    shuffle=BloscShuffle.shuffle,
+                )
+            ]
+        }
+
+    from numcodecs import Blosc  # noqa: PLC0415
+
+    return {
+        "compressor": Blosc(
+            cname=compressionAlgorithm,
+            clevel=compressionLevel,
+            shuffle=Blosc.SHUFFLE,
+        )
+    }
+
+
+def _normaliseDtypes(dataset):
+    """Give every variable and coordinate of a dataset a dtype Zarr can store.
+
+    Zarr has no object dtype. A variable whose values are all strings becomes a
+    unicode array, anything else numeric becomes float64, and a value that cannot
+    be read as a number becomes NaN.
+
+    :param dataset: dataset to normalise. It is copied, not changed in place.
+    :type dataset: xr.Dataset
+
+    :return: the normalised dataset
+    :rtype: xr.Dataset
+    """
+    dataset = dataset.copy()
+
+    for name, variable in dataset.data_vars.items():
+        if variable.dtype == object:
+            dataset[name] = _castObjectArray(variable)
+
+    for name, coordinate in dataset.coords.items():
+        if coordinate.dtype == object:
+            dataset = dataset.assign_coords({name: _castObjectArray(coordinate)})
+
+    return dataset
+
+
+def _castObjectArray(data_array):
+    """Cast one object-dtype array to a string or a numeric array."""
+    values = data_array.values.flatten()
+    present = [value for value in values if value is not None and pd.notna(value)]
+    if present and all(isinstance(value, str) for value in present):
+        return data_array.astype("U")
+    try:
+        return data_array.astype("float64")
+    except (ValueError, TypeError):
+        numeric = pd.to_numeric(data_array.values.ravel(), errors="coerce")
+        return xr.DataArray(
+            numeric.reshape(data_array.shape),
+            dims=data_array.dims,
+            coords=data_array.coords,
+            name=data_array.name,
+        )
+
+
+def _concatComponents(components, dimension=ZARR_COMPONENT_DIMENSION):
+    """Concatenate the datasets of one model class along a component dimension.
+
+    The components of a class do not all carry the same variables, so the
+    concatenation joins on the union and fills what is missing. A variable that is
+    a string somewhere has to be a string everywhere, otherwise the concatenation
+    produces an object array that Zarr cannot store.
+
+    :param components: {component name: xr.Dataset}
+    :type components: dict
+
+    :param dimension: name of the dimension the components are stacked along
+    :type dimension: string
+
+    :return: the concatenated dataset, or None if there is nothing to concatenate
+    :rtype: xr.Dataset or None
+    """
+    if not components:
+        return None
+
+    names = list(components)
+    # copy before touching the dtypes: these datasets belong to the caller, and
+    # writeEnergySystemModelToDatasetsBoth hands the same Results datasets to the
+    # netCDF assembler as well
+    datasets = [_normaliseDtypes(components[name]) for name in names]
+
+    if len(datasets) == 1:
+        return datasets[0].expand_dims({dimension: [names[0]]})
+
+    isString = {}
+    for dataset in datasets:
+        for name, variable in dataset.data_vars.items():
+            isString[name] = isString.get(name, False) or np.issubdtype(
+                variable.dtype, np.str_
+            )
+
+    allVariables = set()
+    for dataset in datasets:
+        allVariables.update(dataset.data_vars)
+
+    standardised = []
+    for original in datasets:
+        dataset = original.copy()
+        for name in dataset.data_vars:
+            dataset[name] = dataset[name].astype("U" if isString[name] else "float64")
+        template = next(iter(dataset.data_vars.values()), None)
+        if template is None:
+            continue
+        for name in allVariables - set(dataset.data_vars):
+            # a component that does not carry this variable gets an empty entry,
+            # so every dataset going into the concatenation has the same variables
+            if isString[name]:
+                dataset[name] = xr.full_like(template, "", dtype="U")
+            else:
+                dataset[name] = xr.full_like(template, np.nan, dtype="float64")
+        standardised.append(dataset)
+
+    if not standardised:
+        return None
+
+    concatenated = xr.concat(
+        standardised,
+        dim=pd.Index(names, name=dimension),
+        join="outer",
+        coords="minimal",
+        fill_value=np.nan,
+    )
+    return _normaliseDtypes(concatenated)
+
+
+def _chunkForZarr(dataset, useScheme=True):
+    """Chunk a dataset so Zarr can write it.
+
+    :param dataset: dataset to chunk
+    :type dataset: xr.Dataset
+
+    :param useScheme: states if ZARR_CHUNK_SCHEME is applied. False falls back to
+        letting dask choose every chunk, which is the retry after a chunking failure.
+    :type useScheme: boolean
+
+    :return: the chunked dataset
+    :rtype: xr.Dataset
+    """
+    if not useScheme:
+        return dataset.chunk("auto")
+    return dataset.chunk(
+        {dim: ZARR_CHUNK_SCHEME.get(dim, "auto") for dim in dataset.dims}
+    )
+
+
+def _writeZarr(dataset, path, compressorEncoding, replaceFillValue):
+    """Write one dataset to one Zarr group, retrying with plain chunking on failure.
+
+    :param dataset: dataset to write
+    :type dataset: xr.Dataset
+
+    :param path: path of the Zarr group
+    :type path: string
+
+    :param compressorEncoding: encoding entries from :func:`_zarrCompressorEncoding`
+    :type compressorEncoding: dict
+
+    :param replaceFillValue: states if float variables get an explicit fill value
+    :type replaceFillValue: boolean
+    """
+
+    def _encoding(chunked):
+        encoding = {}
+        for name, variable in chunked.data_vars.items():
+            encoding[name] = dict(compressorEncoding)
+            if replaceFillValue and np.issubdtype(variable.dtype, np.floating):
+                encoding[name]["_FillValue"] = ZARR_FLOAT_FILL_VALUE
+        return encoding
+
+    try:
+        chunked = _chunkForZarr(dataset, useScheme=True)
+        chunked.to_zarr(path, mode="w", encoding=_encoding(chunked))
+    except (ValueError, TypeError) as chunkingError:
+        logger.warning(
+            "Writing %s with the standard chunk scheme failed (%s). Retrying with "
+            "chunks chosen by dask.",
+            path,
+            chunkingError,
+        )
+        chunked = _chunkForZarr(dataset, useScheme=False)
+        try:
+            chunked.to_zarr(path, mode="w", encoding=_encoding(chunked))
+        except (ValueError, TypeError) as retryError:
+            raise ValueError(
+                f"Could not write {path} to Zarr, with the standard chunk scheme "
+                "or without it."
+            ) from retryError
+
+
+def convertOptimizationInputToDatasetsZarr(
+    esM, useProcessedValues=False, esm_dict=None, component_dict=None
+):
+    """Take esM instance input and convert it into xarray datasets for Zarr.
+
+    The result differs from :func:`convertOptimizationInputToDatasets` in how the
+    shape of a parameter is recorded: a dimension mask and a was-none mask instead
+    of a prefix on the variable name. See the dimension mask section of
+    :mod:`fine.IOManagement.utilsIO`.
+
+    **Required arguments:**
+
+    :param esM: EnergySystemModel instance in which the model is held
+    :type esM: EnergySystemModel instance
+
+    **Default arguments:**
+
+    :param useProcessedValues: True if the raw values should be over-written by processed values,
+        False otherwise
+        |br| * the default value is False
+    :type useProcessedValues: boolean
+
+    :param esm_dict: an esM dict already exported by dictIO.exportToDict. Given together with
+        component_dict, the export is not repeated, which matters because it rebuilds the full
+        time series of an aggregated model. This lets a caller that also needs
+        convertOptimizationInputToDatasets pay for the export once.
+        |br| * the default value is None
+    :type esm_dict: None or dict
+
+    :param component_dict: a component dict already exported, see esm_dict
+        |br| * the default value is None
+    :type component_dict: None or dict
+
+    :return: the esM input as xarray datasets
+    :rtype: dict
+    """
+    if esm_dict is None or component_dict is None:
+        esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
+
+    _mapC_dict = {
+        tech: esM.getComponent(tech)._mapC for tech in component_dict["Transmission"]
+    }
+
+    component_dict = utilsIO.processComponentDict(
+        component_dict, sorted(esM.locations), _mapC_dict
+    )
+    dimension_mask = utilsIO.createParameterDimensionDict(component_dict)
+    was_none_mask = utilsIO.createWasNoneMask(component_dict)
+    component_dict = utilsIO.replaceNoneValuesForXarray(component_dict)
+
+    xr_dss = utilsIO.convertComponentDictToXarrayDictZarr(component_dict)
+    xr_dss = utilsIO.addParameterMasksToXarray(xr_dss, dimension_mask, was_none_mask)
+
+    attributes_xr = xr.Dataset()
+    attributes_xr.attrs = esm_dict
+
+    return {"Input": xr_dss, "Parameters": attributes_xr}
+
+
+def writeDatasetsToZarr(
+    datasets,
+    output_zarr_path="my_esm.zarr",
+    overwrite_existing=True,
+    compression_level=5,
+    compression_algorithm="zstd",
+    replace_fill_value=False,
+):
+    """Write a nested dictionary of xarray datasets to a Zarr store.
+
+    The components of a model class are concatenated into one dataset along a
+    "technology" dimension, so the store holds a handful of large arrays instead of
+    thousands of small ones. That is what makes it fast to read a single variable
+    across all components.
+
+    **Required arguments:**
+
+    :param datasets: nested dictionary of xarray datasets holding the esM data
+    :type datasets: dict
+
+    **Default arguments:**
+
+    :param output_zarr_path: path of the Zarr store directory
+        |br| * the default value is "my_esm.zarr"
+    :type output_zarr_path: string or pathlib.Path
+
+    :param overwrite_existing: states if an existing store at that path is removed first
+        |br| * the default value is True
+    :type overwrite_existing: boolean
+
+    :param compression_level: Blosc compression level, 1 to 9. Higher compresses more and
+        writes more slowly.
+        |br| * the default value is 5
+    :type compression_level: int
+
+    :param compression_algorithm: Blosc compressor name, e.g. "zstd" or "lz4"
+        |br| * the default value is "zstd"
+    :type compression_algorithm: string
+
+    :param replace_fill_value: states if float variables are written with an explicit fill
+        value instead of NaN
+        |br| * the default value is False
+    :type replace_fill_value: boolean
+    """
+    output_zarr_path = Path(output_zarr_path)
+    if overwrite_existing and output_zarr_path.exists():
+        shutil.rmtree(output_zarr_path)
+    output_zarr_path.mkdir(parents=True, exist_ok=True)
+
+    startTime = time.time()
+    compressorEncoding = _zarrCompressorEncoding(
+        compression_algorithm, compression_level
+    )
+    lazy_datasets = _make_datasets_lazy(datasets, chunks="auto")
+
+    for model_class, components in lazy_datasets["Input"].items():
+        consolidated = _concatComponents(components)
+        if consolidated is not None:
+            _writeZarr(
+                consolidated,
+                f"{output_zarr_path}/Input/{model_class}",
+                compressorEncoding,
+                replace_fill_value,
+            )
+
+    for ip, models in lazy_datasets.get("Results", {}).items():
+        for model_class, components in models.items():
+            consolidated = _concatComponents(components)
+            if consolidated is not None:
+                _writeZarr(
+                    consolidated,
+                    f"{output_zarr_path}/Results/{ip}/{model_class}",
+                    compressorEncoding,
+                    replace_fill_value,
+                )
+
+    parameters = serialiseDatasetsForWriting(
+        {"Parameters": lazy_datasets["Parameters"]}
+    )
+    parameters["Parameters"].to_zarr(f"{output_zarr_path}/Parameters", mode="w")
+    if "PerformanceSummary" in lazy_datasets:
+        lazy_datasets["PerformanceSummary"].to_zarr(
+            f"{output_zarr_path}/PerformanceSummary", mode="w"
+        )
+
+    # A model class is a directory in the store, and a directory listing has no
+    # order. Record the order the classes were written in, so a model read back
+    # holds its components in the order it had before, as the netCDF format does.
+    structure = {
+        "Input": list(lazy_datasets["Input"]),
+        "Results": {
+            str(ip): list(models)
+            for ip, models in lazy_datasets.get("Results", {}).items()
+        },
+    }
+    with (output_zarr_path / STRUCTURE_FILE_NAME).open("w") as structureFile:
+        json.dump(structure, structureFile, indent=2)
+
+    logger.debug("Wrote the Zarr store in %.4f sec", time.time() - startTime)
+
+
+def readZarrToDatasets(zarr_path, lazy_load=True, chunks=None):
+    """Read a Zarr store written by :func:`writeDatasetsToZarr` back into datasets.
+
+    **Required arguments:**
+
+    :param zarr_path: path of the Zarr store directory
+    :type zarr_path: string or pathlib.Path
+
+    **Default arguments:**
+
+    :param lazy_load: states if the data is read on demand, as dask arrays, instead of at once
+        |br| * the default value is True
+    :type lazy_load: boolean
+
+    :param chunks: dask chunk sizes used when reading lazily
+        |br| * the default value is None
+    :type chunks: None or dict
+
+    :return: the nested dictionary of datasets, with one dataset per model class
+    :rtype: dict
+    """
+    zarr_path = Path(zarr_path)
+    if not zarr_path.exists():
+        raise FileNotFoundError(f"Zarr store not found at: {zarr_path}")
+
+    loader = xr.open_dataset if lazy_load else xr.load_dataset
+    xr_dss = {}
+
+    structure = {}
+    structure_path = zarr_path / STRUCTURE_FILE_NAME
+    if structure_path.exists():
+        with structure_path.open() as structureFile:
+            structure = json.load(structureFile)
+
+    def _orderedGroups(path, order):
+        """List the subdirectories of a store group in the order they were written."""
+        present = {group.name: group for group in path.iterdir() if group.is_dir()}
+        names = [name for name in order if name in present]
+        names += sorted(set(present) - set(names))
+        return [(name, present[name]) for name in names]
+
+    input_path = zarr_path / "Input"
+    if input_path.exists():
+        xr_dss["Input"] = {
+            name: loader(group, engine="zarr", chunks=chunks)
+            for name, group in _orderedGroups(input_path, structure.get("Input", []))
+        }
+
+    results_path = zarr_path / "Results"
+    if results_path.exists():
+        results_order = structure.get("Results", {})
+        xr_dss["Results"] = {
+            ip_name: {
+                name: loader(group, engine="zarr", chunks=chunks)
+                for name, group in _orderedGroups(
+                    ip_path, results_order.get(ip_name, [])
+                )
+            }
+            for ip_name, ip_path in _orderedGroups(results_path, list(results_order))
+        }
+
+    for group in ("Parameters", "PerformanceSummary"):
+        group_path = zarr_path / group
+        if group_path.exists():
+            xr_dss[group] = loader(group_path, engine="zarr")
+
+    return xr_dss
+
+
+def readZarrToEnergySystemModel(zarr_path):
+    """Read a Zarr store written by :func:`writeDatasetsToZarr` back into an esM.
+
+    The store keeps the shape of each parameter in a dimension mask rather than in
+    a prefix on the variable name, and it holds one dataset per model class rather
+    than one per component. Both are undone here, which leaves exactly the layout
+    :func:`convertDatasetsToEnergySystemModel` reads, so there is one reader and
+    not two.
+
+    :param zarr_path: path of the Zarr store directory
+    :type zarr_path: string or pathlib.Path
+
+    :return: esM - EnergySystemModel instance
+    :rtype: EnergySystemModel instance
+    """
+    datasets = readZarrToDatasets(zarr_path, lazy_load=False)
+    datasets["Input"] = utilsIO.convertZarrDatasetsToPrefixedDatasets(datasets["Input"])
+    return convertDatasetsToEnergySystemModel(datasets)
+
+
+def writeEnergySystemModelToDatasetsBoth(esM, optSumOutputLevel=0):
+    """Build the netCDF and the Zarr view of a model from one export.
+
+    Both views start from dictIO.exportToDict, which rebuilds the full time series
+    of a temporally aggregated model and is the expensive step. Calling
+    writeEnergySystemModelToDatasets and its Zarr counterpart separately pays for
+    it twice.
+
+    **Required arguments:**
+
+    :param esM: EnergySystemModel instance in which the optimized model is held
+    :type esM: EnergySystemModel instance
+
+    **Default arguments:**
+
+    :param optSumOutputLevel: output level of the optimization summary
+        |br| * the default value is 0
+    :type optSumOutputLevel: int (0,1,2)
+
+    :return: the datasets in the netCDF layout and the datasets in the Zarr layout
+    :rtype: tuple of two dicts
+    """
+    esm_dict, component_dict = dictIO.exportToDict(esM)
+
+    netcdf_input = convertOptimizationInputToDatasets(esM)
+    zarr_input = convertOptimizationInputToDatasetsZarr(
+        esM, esm_dict=esm_dict, component_dict=component_dict
+    )
+
+    extra = {}
+    if esM.objectiveValue is not None:
+        extra.update(convertOptimizationOutputToDatasets(esM, optSumOutputLevel))
+    if "performanceSummary" in vars(esM):
+        extra.update(convertPerformanceSummaryToDatasets(esM))
+
+    def _assemble(input_datasets):
+        datasets = dict(input_datasets)
+        datasets.update(extra)
+        return datasets
+
+    return _assemble(netcdf_input), _assemble(zarr_input)

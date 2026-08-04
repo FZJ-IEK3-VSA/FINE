@@ -645,3 +645,82 @@ def test_balanceLimit_netcdf_roundtrip(tmp_path):
 
     assert esm_from_netcdf.balanceLimit is not None
     assert_frame_equal(esm_original.balanceLimit, esm_from_netcdf.balanceLimit)
+
+
+def test_esm_input_to_zarr_and_back(minimal_test_esM, tmp_path):
+    """Write an esM to a Zarr store and read it back.
+
+    The Zarr layout records the shape of every parameter in a dimension mask and
+    stacks the components of a class into one dataset, so this exercises both the
+    mask layer and the concatenation.
+    """
+    store = str(tmp_path / "test_esM.zarr")
+
+    esm_original = minimal_test_esM
+    datasets = xrIO.convertOptimizationInputToDatasetsZarr(esm_original)
+    xrIO.writeDatasetsToZarr(datasets, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    compare_esm_inputs(esm_original, esm_from_zarr)
+
+
+def test_esm_input_with_componentLimit_to_zarr_and_back(tmp_path):
+    """The Zarr round trip has to carry componentLimit as well."""
+    store = str(tmp_path / "test_esM.zarr")
+
+    esm_original = _esM_with_component_limit()
+    datasets = xrIO.convertOptimizationInputToDatasetsZarr(esm_original)
+    xrIO.writeDatasetsToZarr(datasets, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    compare_esm_inputs(esm_original, esm_from_zarr)
+    assert_frame_equal(esm_original.componentLimit, esm_from_zarr.componentLimit)
+    assert esm_from_zarr.getComponent("PV").componentLimitID == [
+        "capLimit",
+        "opLimit",
+    ]
+
+
+def test_writeEnergySystemModelToDatasetsBoth_agrees_with_the_separate_writers(
+    minimal_test_esM,
+):
+    """One export has to give the same two views as two separate exports.
+
+    writeEnergySystemModelToDatasetsBoth shares a single dictIO.exportToDict
+    between the netCDF and the Zarr conversion. If the Zarr assembler changed the
+    datasets it was handed, the netCDF view would silently differ from the one the
+    netCDF writer builds on its own.
+    """
+    esm = minimal_test_esM
+    esm.optimize()
+
+    netcdf_both, zarr_both = xrIO.writeEnergySystemModelToDatasetsBoth(esm)
+    netcdf_alone = xrIO.writeEnergySystemModelToDatasets(esm)
+
+    assert set(netcdf_both) == set(netcdf_alone)
+    assert set(zarr_both) == set(netcdf_alone)
+
+    for model, components in netcdf_alone["Input"].items():
+        for component, dataset in components.items():
+            xr.testing.assert_identical(dataset, netcdf_both["Input"][model][component])
+
+
+def test_zarr_compressor_encoding_matches_the_installed_zarr():
+    """The compressor encoding has to follow the zarr major version.
+
+    zarr 2 takes a numcodecs codec under "compressor". zarr 3 renamed the key to
+    "compressors" and rejects a raw numcodecs object. FINE supports both, and CI
+    and the cluster environment do not run the same one, so this asserts against
+    whichever is installed rather than against a fixed expectation.
+    """
+    zarr = pytest.importorskip("zarr")
+
+    encoding = xrIO._zarrCompressorEncoding("zstd", 5)
+
+    if int(zarr.__version__.split(".")[0]) >= 3:
+        assert list(encoding) == ["compressors"]
+        assert len(encoding["compressors"]) == 1
+    else:
+        assert list(encoding) == ["compressor"]
+        assert encoding["compressor"].cname == "zstd"
+        assert encoding["compressor"].clevel == 5
