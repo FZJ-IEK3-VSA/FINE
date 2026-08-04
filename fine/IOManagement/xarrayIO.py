@@ -1,5 +1,9 @@
+import json
 import time
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 from pathlib import Path
+
 import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
@@ -59,6 +63,11 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
         if isinstance(value, pd.Timestamp):
             logger.debug("Converting timestamp: %s", value)
             df.loc[idx] = value.strftime("%Y-%m-%d %H:%M:%S")
+        # a netCDF attribute cannot hold a dict, so write its repr. This is one
+        # way: the summary is a record of the run and is never read back into a
+        # model, so the dict is not rebuilt on read.
+        elif isinstance(value, dict):
+            df.loc[idx] = str(value)
     summary_dict = df.to_dict()
     summary_xr = xr.Dataset()
     summary_xr.attrs = summary_dict
@@ -275,6 +284,255 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
     return {"Results": xr_dss}
 
 
+def serialiseDatasetsForWriting(datasets):
+    """Convert the attributes of every dataset in the tree into writable types.
+
+    :func:`writeDatasetsToNetCDF` does this per group as it writes. The folder
+    writer hands whole datasets to worker processes, so it has to be done up
+    front instead.
+
+    :param datasets: nested dictionary of xarray datasets holding the esM data
+    :type datasets: dict
+
+    :return: the same dictionary, with the attributes converted in place
+    :rtype: dict
+    """
+    for group in datasets:
+        if group in ("Parameters", "PerformanceSummary"):
+            utilsIO.serialiseDatasetAttributes(datasets[group])
+    return datasets
+
+
+# Name of the file that records the folder layout written by
+# writeDatasetsToNetCDFfolder, so the reader can rebuild the nested dictionary.
+STRUCTURE_FILE_NAME = "structure.json"
+
+# Name of the netCDF file inside each leaf directory.
+DATASET_FILE_NAME = "data.nc"
+
+
+def _saveSingleDataset(task):
+    """Write one dataset to one file. Top level, so it can be sent to a worker process.
+
+    :param task: the file path, the dataset, the per variable encoding and the write mode
+    :type task: tuple
+
+    :return: the file path that was written
+    :rtype: string
+    """
+    filePath, dataset, encoding, mode = task
+    dataset.to_netcdf(
+        filePath,
+        encoding={var: encoding for var in dataset.data_vars},
+        mode=mode,
+    )
+    return filePath
+
+
+def writeDatasetsToNetCDFfolder(
+    datasets,
+    base_path="my_esm",
+    compression=True,
+    parallel=False,
+    chunks=None,
+    mode="w",
+):
+    """Write a nested dictionary of xarray datasets to a folder tree.
+
+    Each dataset goes into its own netCDF file, one directory level per
+    dictionary level, with the leaf file named ``data.nc``. A ``structure.json``
+    next to them records the layout as paths relative to ``base_path``, which is
+    what :func:`readNetCDFfolderToDatasets` reads back.
+
+    Compared with one large netCDF file this writes and reads much faster on a
+    parallel file system, because the files are independent.
+
+    **Required arguments:**
+
+    :param datasets: nested dictionary of xarray datasets holding the esM data
+    :type datasets: dict
+
+    **Default arguments:**
+
+    :param base_path: directory the tree is written into. It is created if it does not exist.
+        |br| * the default value is "my_esm"
+    :type base_path: string or pathlib.Path
+
+    :param compression: states if the variables are written with zlib compression
+        |br| * the default value is True
+    :type compression: boolean
+
+    :param parallel: states if the files are written by a pool of worker processes.
+        Worth it for many large datasets, wasteful for a small model.
+        |br| * the default value is False
+    :type parallel: boolean
+
+    :param chunks: dask chunk sizes applied to every dataset before writing, e.g. {"time": 100}
+        |br| * the default value is None
+    :type chunks: None or dict
+
+    :param mode: netCDF write mode, "w" to overwrite or "a" to append
+        |br| * the default value is "w"
+    :type mode: string
+
+    :return: the same nested structure, with the relative file path in place of each dataset
+    :rtype: dict
+    """
+    base_path = Path(base_path)
+    base_path.mkdir(parents=True, exist_ok=True)
+
+    encoding = {"zlib": True, "complevel": 5, "shuffle": True} if compression else {}
+    save_tasks = []
+
+    def collect_save_tasks(item, current_path):
+        if isinstance(item, dict):
+            structure = {}
+            for key, value in item.items():
+                new_path = current_path / str(key)
+                new_path.mkdir(exist_ok=True)
+                structure[key] = collect_save_tasks(value, new_path)
+            return structure
+
+        if isinstance(item, xr.Dataset):
+            filePath = current_path / DATASET_FILE_NAME
+            if chunks is not None:
+                item = item.chunk(chunks)
+            save_tasks.append((str(filePath), item, encoding, mode))
+            # the structure file holds relative paths, so the tree can be moved
+            return str(filePath.relative_to(base_path))
+
+        raise ValueError(
+            f"Cannot write an object of type {type(item)} to a netCDF folder. "
+            "Only nested dictionaries of xarray datasets are supported."
+        )
+
+    datasets = serialiseDatasetsForWriting(datasets)
+    structure = collect_save_tasks(datasets, base_path)
+
+    with (base_path / STRUCTURE_FILE_NAME).open("w") as structureFile:
+        json.dump(structure, structureFile, indent=2)
+
+    if parallel and save_tasks:
+        with ProcessPoolExecutor() as executor:
+            list(executor.map(_saveSingleDataset, save_tasks))
+    else:
+        for task in save_tasks:
+            _saveSingleDataset(task)
+
+    return structure
+
+
+def _loadSingleDataset(path, chunks=None, lazy_load=False):
+    """Read one dataset from one file. Top level, so it can be sent to a worker process.
+
+    :param path: path of the netCDF file
+    :type path: string
+
+    :param chunks: dask chunk sizes, e.g. {"time": 100}
+    :type chunks: None or dict
+
+    :param lazy_load: states if the file stays open and the data is read on demand
+    :type lazy_load: boolean
+
+    :return: the dataset
+    :rtype: xr.Dataset
+    """
+    if lazy_load:
+        return xr.open_dataset(path, chunks=chunks)
+    return xr.load_dataset(path, chunks=chunks)
+
+
+def _rebuildFolderStructure(item, loaded_datasets):
+    """Put the loaded datasets back into the nested structure that was written.
+
+    :param item: the structure as read from structure.json
+    :type item: dict or string
+
+    :param loaded_datasets: the datasets, keyed by their relative path
+    :type loaded_datasets: dict
+
+    :return: the nested dictionary of datasets
+    :rtype: dict or xr.Dataset
+    """
+    if isinstance(item, dict):
+        return {
+            key: _rebuildFolderStructure(value, loaded_datasets)
+            for key, value in item.items()
+        }
+    if isinstance(item, str):
+        return loaded_datasets[item]
+    raise ValueError(f"Unsupported entry in {STRUCTURE_FILE_NAME}: {type(item)}")
+
+
+def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None, lazy_load=False):
+    """Read back a folder tree written by :func:`writeDatasetsToNetCDFfolder`.
+
+    **Required arguments:**
+
+    :param base_path: directory holding the tree and its structure.json
+    :type base_path: string or pathlib.Path
+
+    **Default arguments:**
+
+    :param parallel: states if the files are read by a pool of worker processes.
+        Not compatible with lazy_load, which needs the files to stay open in this process.
+        |br| * the default value is True
+    :type parallel: boolean
+
+    :param chunks: dask chunk sizes, e.g. {"time": 100}
+        |br| * the default value is None
+    :type chunks: None or dict
+
+    :param lazy_load: states if the data is read on demand instead of at once. Keeps the
+        memory use down for a model that does not fit in memory.
+        |br| * the default value is False
+    :type lazy_load: boolean
+
+    :return: the nested dictionary of datasets that was written
+    :rtype: dict
+    """
+    base_path = Path(base_path)
+
+    with (base_path / STRUCTURE_FILE_NAME).open() as structureFile:
+        structure = json.load(structureFile)
+
+    paths_to_load = []
+
+    def collect_all_paths(item):
+        if isinstance(item, dict):
+            for value in item.values():
+                collect_all_paths(value)
+        elif isinstance(item, str):
+            paths_to_load.append(str(base_path / item))
+
+    collect_all_paths(structure)
+
+    load_fn = partial(_loadSingleDataset, chunks=chunks, lazy_load=lazy_load)
+
+    if lazy_load and parallel:
+        # a lazily read dataset keeps a file handle in the process that opened it,
+        # so it cannot be handed back from a worker process
+        logger.debug("lazy_load is set, reading in this process instead of in parallel")
+        parallel = False
+
+    if parallel and paths_to_load:
+        with ProcessPoolExecutor() as executor:
+            results = executor.map(load_fn, paths_to_load)
+            loaded_datasets = dict(
+                zip(
+                    (str(Path(path).relative_to(base_path)) for path in paths_to_load),
+                    results,
+                )
+            )
+    else:
+        loaded_datasets = {
+            str(Path(path).relative_to(base_path)): load_fn(path)
+            for path in paths_to_load
+        }
+
+    return _rebuildFolderStructure(structure, loaded_datasets)
+
+
 def writeDatasetsToNetCDF(
     datasets,
     outputFilePath="my_esm.nc",
@@ -327,62 +585,7 @@ def writeDatasetsToNetCDF(
     for group in datasets.keys():
         if group in ("Parameters", "PerformanceSummary"):
             xarray_dataset = datasets[group]
-            _xarray_dataset = (
-                xarray_dataset.copy()
-            )  # Copying to avoid errors due to change of size during iteration
-
-            for attr_name, attr_value in _xarray_dataset.attrs.items():
-                # if the attribute is set, convert into sorted list
-                if isinstance(attr_value, set):
-                    xarray_dataset.attrs[attr_name] = sorted(
-                        xarray_dataset.attrs[attr_name]
-                    )
-
-                # if the attribute is dict, convert into a "flattened" list
-                elif isinstance(attr_value, dict):
-                    xarray_dataset.attrs[attr_name] = list(
-                        f"{k} : {v}"
-                        for (k, v) in xarray_dataset.attrs[attr_name].items()
-                    )
-
-                # if the attribute is pandas series, add a new attribute corresponding
-                # to each row.
-                elif isinstance(attr_value, pd.Series):
-                    for idx, value in attr_value.items():
-                        xarray_dataset.attrs.update({f"{attr_name}.{idx}": value})
-
-                    # Delete the original attribute
-                    del xarray_dataset.attrs[attr_name]
-
-                # if the attribute is pandas df, add a new attribute corresponding
-                # to each row by converting the column into a numpy array.
-                elif isinstance(attr_value, pd.DataFrame):
-                    _df = attr_value
-                    _df = _df.reindex(sorted(_df.columns), axis=1)
-                    for idx, row in _df.iterrows():
-                        xarray_dataset.attrs.update(
-                            {f"{attr_name}.{idx}": row.to_numpy().astype(str)}
-                        )
-                        if attr_name == "balanceLimit":
-                            xarray_dataset.attrs.update(
-                                {f"{attr_name}_columns": _df.columns.tolist()}
-                            )
-                            xarray_dataset.attrs.update(
-                                {f"{attr_name}_dtypes": _df.dtypes.astype(str).tolist()}
-                            )
-
-                    # Delete the original attribute
-                    del xarray_dataset.attrs[attr_name]
-
-                # if the attribute is bool, add a corresponding string
-                elif isinstance(attr_value, bool):
-                    xarray_dataset.attrs[attr_name] = (
-                        "True" if attr_value is True else "False"
-                    )
-
-                # if the attribute is None, add a corresponding string
-                elif attr_value is None:
-                    xarray_dataset.attrs[attr_name] = "None"
+            utilsIO.serialiseDatasetAttributes(xarray_dataset)
 
             if groupPrefix:
                 group_path = f"{groupPrefix}/{group}"

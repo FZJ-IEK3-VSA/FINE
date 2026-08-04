@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 import pandas as pd
@@ -435,3 +437,67 @@ def test_shadow_price_with_multiple_ip(perfectForesight_test_esM):
     assert isinstance(sp, xr.DataArray)
     assert set(["ip", "component", "space", "time"]).issubset(set(sp.dims))
     assert list(sp.coords["ip"].values) == esM.investmentPeriodNames
+
+
+def _roundtrip_through_netcdf_folder(esm, base_path, **kwargs):
+    """Write an optimized esM to a netCDF folder and read it back into an esM."""
+    esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm)
+    xrIO.writeDatasetsToNetCDFfolder(esm_datasets, base_path=base_path)
+    read_datasets = xrIO.readNetCDFfolderToDatasets(base_path=base_path, **kwargs)
+    return xrIO.convertDatasetsToEnergySystemModel(read_datasets)
+
+
+@pytest.mark.parametrize("parallel", [False, True])
+def test_esm_output_to_netcdf_folder_and_back(minimal_test_esM, tmp_path, parallel):
+    """Optimize an esM, write it to a netCDF folder and read it back.
+
+    The folder format writes one file per dataset instead of one large file.
+    Both the serial and the parallel read have to give the same esM back.
+    """
+    esm_original = minimal_test_esM
+    esm_original.optimize()
+
+    esm_from_folder = _roundtrip_through_netcdf_folder(
+        esm_original, str(tmp_path / "test_esM"), parallel=parallel
+    )
+
+    compare_esm_inputs(esm_original, esm_from_folder)
+    compare_esm_outputs(esm_original, esm_from_folder)
+
+
+def test_esm_output_to_netcdf_folder_and_back_lazy(minimal_test_esM, tmp_path):
+    """The same round trip, with the data read on demand instead of at once."""
+    esm_original = minimal_test_esM
+    esm_original.optimize()
+
+    esm_from_folder = _roundtrip_through_netcdf_folder(
+        esm_original, str(tmp_path / "test_esM"), lazy_load=True, parallel=False
+    )
+
+    compare_esm_inputs(esm_original, esm_from_folder)
+    compare_esm_outputs(esm_original, esm_from_folder)
+
+
+def test_netcdf_folder_structure_file_holds_relative_paths(minimal_test_esM, tmp_path):
+    """structure.json has to stay free of absolute paths, so the tree can be moved."""
+    base_path = tmp_path / "test_esM"
+    esm_datasets = xrIO.writeEnergySystemModelToDatasets(minimal_test_esM)
+    xrIO.writeDatasetsToNetCDFfolder(esm_datasets, base_path=str(base_path))
+
+    with (base_path / "structure.json").open() as structureFile:
+        structure = json.load(structureFile)
+
+    paths = []
+
+    def collect(item):
+        if isinstance(item, dict):
+            for value in item.values():
+                collect(value)
+        else:
+            paths.append(item)
+
+    collect(structure)
+    assert paths, "the structure file has to name at least one dataset"
+    for path in paths:
+        assert not path.startswith("/")
+        assert (base_path / path).is_file()

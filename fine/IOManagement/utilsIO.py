@@ -291,6 +291,75 @@ def convertComponentDictToXarrayDict(component_dict, _mapC_dict, locations):
     return xr_dss
 
 
+def serialiseDatasetAttributes(xarray_dataset):
+    """Convert the attributes of a dataset into types a netCDF file can hold.
+
+    Sets become sorted lists, dicts become flattened lists, pandas objects are
+    split into one attribute per row, and booleans and None become strings. The
+    dataset is changed in place. :func:`utilsIO.processXarrayAttributes` is the
+    inverse.
+
+    :param xarray_dataset: dataset whose attributes are converted
+    :type xarray_dataset: xr.Dataset
+
+    :return: the same dataset, for convenience
+    :rtype: xr.Dataset
+    """
+    _xarray_dataset = (
+        xarray_dataset.copy()
+    )  # Copying to avoid errors due to change of size during iteration
+
+    for attr_name, attr_value in _xarray_dataset.attrs.items():
+        # if the attribute is set, convert into sorted list
+        if isinstance(attr_value, set):
+            xarray_dataset.attrs[attr_name] = sorted(xarray_dataset.attrs[attr_name])
+
+        # if the attribute is dict, convert into a "flattened" list
+        elif isinstance(attr_value, dict):
+            xarray_dataset.attrs[attr_name] = list(
+                f"{k} : {v}" for (k, v) in xarray_dataset.attrs[attr_name].items()
+            )
+
+        # if the attribute is pandas series, add a new attribute corresponding
+        # to each row.
+        elif isinstance(attr_value, pd.Series):
+            for idx, value in attr_value.items():
+                xarray_dataset.attrs.update({f"{attr_name}.{idx}": value})
+
+            # Delete the original attribute
+            del xarray_dataset.attrs[attr_name]
+
+        # if the attribute is pandas df, add a new attribute corresponding
+        # to each row by converting the column into a numpy array.
+        elif isinstance(attr_value, pd.DataFrame):
+            _df = attr_value
+            _df = _df.reindex(sorted(_df.columns), axis=1)
+            for idx, row in _df.iterrows():
+                xarray_dataset.attrs.update(
+                    {f"{attr_name}.{idx}": row.to_numpy().astype(str)}
+                )
+                if attr_name == "balanceLimit":
+                    xarray_dataset.attrs.update(
+                        {f"{attr_name}_columns": _df.columns.tolist()}
+                    )
+                    xarray_dataset.attrs.update(
+                        {f"{attr_name}_dtypes": _df.dtypes.astype(str).tolist()}
+                    )
+
+            # Delete the original attribute
+            del xarray_dataset.attrs[attr_name]
+
+        # if the attribute is bool, add a corresponding string
+        elif isinstance(attr_value, bool):
+            xarray_dataset.attrs[attr_name] = "True" if attr_value is True else "False"
+
+        # if the attribute is None, add a corresponding string
+        elif attr_value is None:
+            xarray_dataset.attrs[attr_name] = "None"
+
+    return xarray_dataset
+
+
 def processXarrayAttributes(xarray_dataset):
     """Convert non-serializable data types such as sets, dicts, bools, pandas DataFrames/Series, and NoneType to lists
     or strings when saving, and convert them back to their original formats when setting up the esM instance.
