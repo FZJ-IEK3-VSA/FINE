@@ -435,3 +435,147 @@ def test_shadow_price_with_multiple_ip(perfectForesight_test_esM):
     assert isinstance(sp, xr.DataArray)
     assert set(["ip", "component", "space", "time"]).issubset(set(sp.dims))
     assert list(sp.coords["ip"].values) == esM.investmentPeriodNames
+
+
+def _esM_with_component_limit():
+    """Build a small two-region esM that uses every componentLimit argument."""
+    locations = {"R1", "R2"}
+    esM = fn.EnergySystemModel(
+        locations=locations,
+        commodities={"electricity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        hoursPerTimeStep=2190,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        componentLimit=pd.DataFrame(
+            index=["capLimit", "opLimit"],
+            columns=["value", "bound", "type", "commodity", "ip", "ipEnd"],
+            data=[
+                [100.0, "upper", "capacity", None, 0, None],
+                [5000.0, "upper", "operation", None, 0, None],
+            ],
+        ),
+        componentLimitEligibility=pd.DataFrame(
+            index=sorted(locations),
+            columns=["capLimit", "opLimit"],
+            data=[[1, 1], [1, 0]],
+        ),
+        componentLimitEligibility2dim=pd.DataFrame(
+            index=pd.MultiIndex.from_tuples([("R1", "R2"), ("R2", "R1")]),
+            columns=["gridLimit"],
+            data=[[1], [1]],
+        ),
+        componentLimitGrouping=pd.DataFrame(
+            index=sorted(locations),
+            columns=["capLimit"],
+            data=[["DE"], ["FR"]],
+        ),
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            # a multi-entry componentLimitID has to survive the round trip too
+            componentLimitID=["capLimit", "opLimit"],
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame([[1.0, 1.0]] * 4, columns=sorted(locations)),
+        )
+    )
+    return esM
+
+
+def test_componentLimit_netcdf_roundtrip(tmp_path):
+    """Write an esM that uses componentLimit to netCDF and read it back.
+
+    The four esM level componentLimit arguments and the per component
+    componentLimitID all have to come back unchanged.
+    """
+    test_esM = str(tmp_path / "test_esM.nc")
+
+    esm_original = _esM_with_component_limit()
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original, outputFilePath=test_esM, overwriteExisting=True
+    )
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
+
+    compare_esm_inputs(esm_original, esm_from_netcdf)
+
+    assert_frame_equal(esm_original.componentLimit, esm_from_netcdf.componentLimit)
+    assert_frame_equal(
+        esm_original.componentLimitEligibility,
+        esm_from_netcdf.componentLimitEligibility,
+    )
+    assert_frame_equal(
+        esm_original.componentLimitEligibility2dim,
+        esm_from_netcdf.componentLimitEligibility2dim,
+    )
+    assert_frame_equal(
+        esm_original.componentLimitGrouping, esm_from_netcdf.componentLimitGrouping
+    )
+    assert esm_from_netcdf.getComponent("PV").componentLimitID == [
+        "capLimit",
+        "opLimit",
+    ]
+
+
+def test_balanceLimit_netcdf_roundtrip(tmp_path):
+    """Write an esM that uses balanceLimit to netCDF and read it back.
+
+    balanceLimit used to come back as None, because it was only rebuilt when the
+    file held no balanceLimit at all.
+    """
+    test_esM = str(tmp_path / "test_esM.nc")
+    locations = {"R1", "R2"}
+
+    esm_original = fn.EnergySystemModel(
+        locations=locations,
+        commodities={"electricity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        hoursPerTimeStep=2190,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        balanceLimit=pd.DataFrame(
+            index=["CO2"],
+            columns=["R1", "R2", "lowerBound"],
+            data=[[100.0, 200.0, False]],
+        ),
+    )
+    esm_original.add(
+        fn.Source(
+            esM=esm_original,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            balanceLimitID="CO2",
+        )
+    )
+    esm_original.add(
+        fn.Sink(
+            esM=esm_original,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame([[1.0, 1.0]] * 4, columns=sorted(locations)),
+        )
+    )
+
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original, outputFilePath=test_esM, overwriteExisting=True
+    )
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
+
+    assert esm_from_netcdf.balanceLimit is not None
+    assert_frame_equal(esm_original.balanceLimit, esm_from_netcdf.balanceLimit)

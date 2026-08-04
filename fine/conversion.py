@@ -56,6 +56,7 @@ class Conversion(Component):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        componentLimitID=None,
         commissioningDependentCcf=False,
         emissionFactors=None,
         flowShares=None,
@@ -273,6 +274,13 @@ class Conversion(Component):
             |br| * the default value is True
         :type useTemporalCyclicConstraints: boolean
 
+
+        :param componentLimitID: ID(s) of the componentLimit(s) this component contributes to (out of the
+            componentLimits introduced in the esM). Unlike balanceLimitID, several IDs may be given, because a
+            component may be part of several component limits at once.
+            |br| * the default value is None
+        :type componentLimitID: None, string or list of strings
+
         """
         Component.__init__(
             self,
@@ -367,6 +375,8 @@ class Conversion(Component):
         )
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
+
+        self.componentLimitID = utils.checkAndSetComponentLimitID(componentLimitID)
 
         utils.checkOperationRateForCapacityVariable(
             name,
@@ -1517,6 +1527,171 @@ class ConversionModel(ComponentModel):
                 pyM.intraYearTimeSet,
                 rule=flow_share_constr,
             ),
+        )
+
+    def getComponentLimitContribution(
+        self,
+        esM,
+        pyM,
+        timeSeriesAggregation,
+        ip,
+        loc,
+        componentNames,
+        limitType,
+        commodity,
+    ):
+        """Get the contribution of this component class to a componentLimit.
+
+        See :func:`EnergySystemModel.declareComponentLimitConstraints` for the
+        constraint the contribution enters. The annual operation is signed:
+
+        - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
+        - A Sink contributes with a negative sign. Example: Sale of electricity
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+
+        :type timeSeriesAggregation: boolean
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+
+        :param componentNames: Names of components which contribute to the component limit
+        :type componentNames: list
+
+        :param limitType: Quantity the componentLimit applies to. One of "operation"
+            (annual operation), "capacity" (installed capacity) or "commissioning"
+            (newly commissioned capacity).
+        :type limitType: string
+
+        :returns: the summed contribution as a pyomo expression, or None if no
+            component of this class contributes at this location
+        :rtype: pyomo expression or None
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+
+        def getFactor(commodCommodityConversionFactors, loc, p, t):
+            if isinstance(commodCommodityConversionFactors, (int, float)):
+                return commodCommodityConversionFactors
+            return commodCommodityConversionFactors[loc][p, t]
+
+        if limitType == "operation":
+            opVar = getattr(pyM, "op_" + abbrvName)
+
+            if timeSeriesAggregation:
+                periods = esM.typicalPeriods
+                if esM.segmentation:
+                    timeSteps = esM.segmentsPerPeriod
+                else:
+                    timeSteps = esM.timeStepsPerPeriod
+            else:
+                periods = esM.periods
+                timeSteps = esM.totalTimeSteps
+
+            if isinstance(ip, (list, tuple)):
+                start_ip, end_ip = ip
+                relevant_indices = [
+                    idx
+                    for idx, ip in enumerate(esM.investmentPeriods)
+                    if start_ip <= ip <= end_ip
+                ]
+                balance = sum(
+                    opVar[loc, compName, i, p, t]
+                    * (
+                        getFactor(
+                            compDict[compName].processedCommodityConversionFactors[i][
+                                commodity
+                            ],
+                            loc,
+                            p,
+                            t,
+                        )
+                        if commodity not in ["None", None]
+                        else 1
+                    )
+                    * esM.periodOccurrences[i][p]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                    for i in relevant_indices
+                    for p in periods
+                    for t in timeSteps
+                )
+            else:
+                balance = sum(
+                    opVar[loc, compName, ip, p, t]
+                    * (
+                        getFactor(
+                            compDict[compName].processedCommodityConversionFactors[ip][
+                                commodity
+                            ],
+                            loc,
+                            p,
+                            t,
+                        )
+                        if commodity not in ["None", None]
+                        else 1
+                    )
+                    * esM.periodOccurrences[ip][p]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                    for p in periods
+                    for t in timeSteps
+                )
+            if isinstance(balance, int) or isinstance(balance, float):
+                return None
+            return balance
+        if limitType == "capacity":
+            capVar = getattr(pyM, "cap_" + abbrvName)
+            balance = sum(
+                capVar[loc, compName, ip]
+                for compName in compDict.keys()
+                if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
+            )
+            if isinstance(balance, int) or isinstance(balance, float):
+                return None
+            return balance
+        if limitType == "commissioning":
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            if isinstance(ip, (list, tuple)):
+                start_ip, end_ip = ip
+                relevant_indices = [
+                    idx
+                    for idx, ip in enumerate(esM.investmentPeriods)
+                    if start_ip <= ip <= end_ip
+                ]
+                balance = sum(
+                    commisVar[loc, compName, i]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                    for i in relevant_indices
+                )
+            else:
+                balance = sum(
+                    commisVar[loc, compName, ip]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                )
+            if isinstance(balance, int) or isinstance(balance, float):
+                return None
+            return balance
+        raise ValueError(
+            "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
         )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):

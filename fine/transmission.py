@@ -48,6 +48,7 @@ class Transmission(Component):
         floorTechnicalLifetime=True,
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
+        componentLimitID=None,
         stockCommissioning=None,
         pwlcfParameters=None,
     ):
@@ -145,6 +146,12 @@ class Transmission(Component):
         :param pathwayBalanceLimitID: similar to balanceLimitID just as restriction over the entire pathway.
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
+
+        :param componentLimitID: ID(s) of the componentLimit(s) this component contributes to (out of the
+            componentLimits introduced in the esM). Unlike balanceLimitID, several IDs may be given, because a
+            component may be part of several component limits at once.
+            |br| * the default value is None
+        :type componentLimitID: None, string or list of strings
         """
         self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
         self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
@@ -268,6 +275,7 @@ class Transmission(Component):
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
         self.balanceLimitID = balanceLimitID
         self.pathwayBalanceLimitID = pathwayBalanceLimitID
+        self.componentLimitID = utils.checkAndSetComponentLimitID(componentLimitID)
 
         Component.__init__(
             self,
@@ -742,9 +750,9 @@ class TransmissionModel(ComponentModel):
             "op_bin",
         )
         # Operation [physicalUnit*h] is limited by minimum part Load
-        self.additionalMinPartLoad(
-            pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
-        )
+        # self.additionalMinPartLoad(
+        #     pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
+        # )
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
@@ -889,6 +897,198 @@ class TransmissionModel(ComponentModel):
             for p in periods
             for t in timeSteps
         )
+
+    def getComponentLimitContribution(
+        self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, limitType
+    ):
+        """Get the contribution of this component class to a componentLimit.
+
+        See :func:`EnergySystemModel.declareComponentLimitConstraints` for the
+        constraint the contribution enters. The transmitted amount is signed:
+
+        - If commodity is transferred out of region a negative sign is used.
+        - If commodity is transferred into region a positive sign is used and losses are considered.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+
+        :type timeSeriesAggregation: boolean
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
+
+        :param loc: Name of the regarded location(s) (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+
+        :param componentNames: Names of components which contribute to the component limit
+        :type componentNames: list
+
+        :param limitType: Quantity the componentLimit applies to. One of "operation"
+            (annual operation), "capacity" (installed capacity) or "commissioning"
+            (newly commissioned capacity).
+        :type limitType: string
+
+        :returns: the summed contribution as a pyomo expression, or None if no
+            component of this class contributes at this location
+        :rtype: pyomo expression or None
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        capVar = getattr(pyM, "cap_" + abbrvName)
+        opVar = getattr(pyM, "op_" + abbrvName)
+        opVarDictIn = getattr(pyM, "operationVarDictIn_" + abbrvName)
+        opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
+
+        if timeSeriesAggregation:
+            periods = esM.typicalPeriods
+            if esM.segmentation:
+                timeSteps = esM.segmentsPerPeriod
+            else:
+                timeSteps = esM.timeStepsPerPeriod
+        else:
+            periods = esM.periods
+            timeSteps = esM.totalTimeSteps
+        if limitType == "operation":
+            loc_list = loc
+            if isinstance(ip, (list, tuple)):
+                start_ip, end_ip = ip
+                relevant_indices = [
+                    idx
+                    for idx, _ip in enumerate(esM.investmentPeriods)
+                    if start_ip <= _ip <= end_ip
+                ]
+            else:
+                relevant_indices = [ip]
+
+            aut_list = []
+            for locInGroup in loc_list:
+                # what enters the location group from outside it, after losses
+                inflow = sum(
+                    opVar[loc_ + "_" + locInGroup, compName, i, p, t]
+                    * (
+                        1
+                        - compDict[compName].losses[loc_ + "_" + locInGroup]
+                        * compDict[compName].distances[loc_ + "_" + locInGroup]
+                    )
+                    * esM.periodOccurrences[i][p]
+                    for i in relevant_indices
+                    for loc_ in opVarDictIn[i][locInGroup].keys()
+                    if loc_ not in loc_list
+                    for compName in opVarDictIn[i][locInGroup][loc_]
+                    if compName in componentNames
+                    for p in periods
+                    for t in timeSteps
+                )
+                # what leaves the location group
+                outflow = sum(
+                    opVar[locInGroup + "_" + loc_, compName, i, p, t]
+                    * esM.periodOccurrences[i][p]
+                    for i in relevant_indices
+                    for loc_ in opVarDictOut[i][locInGroup].keys()
+                    if loc_ not in loc_list
+                    for compName in opVarDictOut[i][locInGroup][loc_]
+                    if compName in componentNames
+                    for p in periods
+                    for t in timeSteps
+                )
+                aut_list.append(inflow - outflow)
+            aut = sum(aut_list)
+        elif limitType == "capacity":
+            # `loc` is either a list of (locFrom, locTo) connections, which comes
+            # from componentLimitEligibility2dim, or a single region name, which
+            # comes from componentLimitEligibility. In the second case the
+            # capacity of every connection touching the region is counted; the
+            # caller then sums over the eligible regions, so a connection with
+            # both ends eligible is seen twice and the halving below removes the
+            # double count. A connection with only one eligible end therefore
+            # counts half, which is what "half of this line lies inside the
+            # limited area" means.
+            if isinstance(loc[0], tuple):
+                aut_list = []
+                for loc0, loc1 in loc:
+                    aut = sum(
+                        capVar[loc1 + "_" + loc0, compName, ip]
+                        for compName in opVarDictIn[ip][loc0].get(loc1, {})
+                        if compName in componentNames
+                    ) + sum(
+                        capVar[loc0 + "_" + loc1, compName, ip]
+                        for compName in opVarDictIn[ip][loc0].get(loc1, {})
+                        if compName in componentNames
+                    )
+                    aut = aut / 2
+                    aut_list.append(aut)
+                aut = sum(aut_list)
+            else:  # across all regions
+                aut = sum(
+                    capVar[loc_ + "_" + loc, compName, ip]
+                    for loc_ in opVarDictIn[ip][loc].keys()
+                    for compName in opVarDictIn[ip][loc][loc_]
+                    if compName in componentNames
+                ) + sum(
+                    capVar[loc + "_" + loc_, compName, ip]
+                    for loc_ in opVarDictOut[ip][loc].keys()
+                    for compName in opVarDictOut[ip][loc][loc_]
+                    if compName in componentNames
+                )
+                aut = aut / 2
+        elif limitType == "commissioning":
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            if isinstance(ip, (list, tuple)):
+                start_ip, end_ip = ip
+                relevant_indices = [
+                    idx
+                    for idx, ip in enumerate(esM.investmentPeriods)
+                    if start_ip <= ip <= end_ip
+                ]
+            else:
+                relevant_indices = [ip]
+
+            if isinstance(loc[0], tuple):
+                # For a specific set of connections (loc0 <-> loc1)
+                aut_list = []
+                for loc0, loc1 in loc:
+                    _aut = sum(
+                        commisVar[loc1 + "_" + loc0, compName, i]
+                        for i in relevant_indices
+                        for compName in opVarDictIn[i][loc0].get(loc1, {})
+                        if compName in componentNames
+                    ) + sum(
+                        commisVar[loc0 + "_" + loc1, compName, i]
+                        for i in relevant_indices
+                        for compName in opVarDictIn[i][loc0].get(loc1, {})
+                        if compName in componentNames
+                    )
+                    _aut = _aut / 2
+                    aut_list.append(_aut)
+                aut = sum(aut_list)
+            else:
+                # For a specific region (sum of all incoming/outgoing)
+                aut = sum(
+                    commisVar[loc_ + "_" + loc, compName, i]
+                    for i in relevant_indices
+                    for loc_ in opVarDictIn[i][loc].keys()
+                    for compName in opVarDictIn[i][loc][loc_]
+                    if compName in componentNames
+                ) + sum(
+                    commisVar[loc + "_" + loc_, compName, i]
+                    for i in relevant_indices
+                    for loc_ in opVarDictOut[i][loc].keys()
+                    for compName in opVarDictOut[i][loc][loc_]
+                    if compName in componentNames
+                )
+                aut = aut / 2
+        else:
+            raise ValueError(
+                "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
+            )
+        return aut
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """Get contribution to the objective function.

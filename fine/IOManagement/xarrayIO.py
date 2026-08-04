@@ -357,22 +357,9 @@ def writeDatasetsToNetCDF(
                 # if the attribute is pandas df, add a new attribute corresponding
                 # to each row by converting the column into a numpy array.
                 elif isinstance(attr_value, pd.DataFrame):
-                    _df = attr_value
-                    _df = _df.reindex(sorted(_df.columns), axis=1)
-                    for idx, row in _df.iterrows():
-                        xarray_dataset.attrs.update(
-                            {f"{attr_name}.{idx}": row.to_numpy().astype(str)}
-                        )
-                        if attr_name == "balanceLimit":
-                            xarray_dataset.attrs.update(
-                                {f"{attr_name}_columns": _df.columns.tolist()}
-                            )
-                            xarray_dataset.attrs.update(
-                                {f"{attr_name}_dtypes": _df.dtypes.astype(str).tolist()}
-                            )
-
-                    # Delete the original attribute
-                    del xarray_dataset.attrs[attr_name]
+                    utilsIO.addDataFrameAttributeToXarray(
+                        xarray_dataset, attr_name, attr_value
+                    )
 
                 # if the attribute is bool, add a corresponding string
                 elif isinstance(attr_value, bool):

@@ -6,6 +6,186 @@ import operator
 from fine.IOManagement.standardIO import getShadowPrices
 
 
+# A netCDF attribute cannot hold a DataFrame, so an EnergySystemModel argument
+# that is one is written as a string attribute per index entry plus the column
+# names, the column dtypes and the index. On read it is rebuilt from exactly
+# those parts. The names of the attributes written that way are listed in this
+# attribute, so the read side does not have to know them in advance.
+DATAFRAME_ATTRIBUTE_REGISTRY = "_dataframeAttributes"
+
+# fallback registry for files written before DATAFRAME_ATTRIBUTE_REGISTRY existed
+DATAFRAME_ESM_ATTRIBUTES = ("balanceLimit",)
+
+# separator between the levels of a MultiIndex entry in an attribute name.
+# componentLimitEligibility2dim is indexed by (locFrom, locTo) connections.
+_INDEX_LEVEL_SEPARATOR = " -> "
+
+# values a None or a NaN turns into once the row is stringified for netCDF
+_MISSING_VALUE_STRINGS = ("None", "nan", "NaN", "NaT", "<NA>", "")
+
+
+def _asList(value):
+    """Read a netCDF attribute back as a list.
+
+    netCDF collapses a one-element array attribute to a scalar on read, so a
+    one-column DataFrame would come back as a bare string. Wrap such a value
+    instead of letting ``list()`` split it into characters.
+
+    :param value: attribute value as read from the file
+    :type value: string, numpy array or list
+
+    :return: the value as a list
+    :rtype: list
+    """
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [] if value == "" else [value]
+    return list(value)
+
+
+def encodeDataFrameAttributeIndex(index):
+    """Encode the index of a DataFrame esM attribute as a list of strings.
+
+    :param index: index of the DataFrame
+    :type index: pd.Index or pd.MultiIndex
+
+    :return: one string per index entry, in the order of the index
+    :rtype: list of strings
+    """
+    if isinstance(index, pd.MultiIndex):
+        return [
+            _INDEX_LEVEL_SEPARATOR.join(str(level) for level in entry)
+            for entry in index
+        ]
+    return [str(entry) for entry in index]
+
+
+def decodeDataFrameAttributeIndex(encodedIndex, nlevels):
+    """Rebuild the index of a DataFrame esM attribute from its encoded form.
+
+    :param encodedIndex: index entries as written by encodeDataFrameAttributeIndex
+    :type encodedIndex: list of strings
+
+    :param nlevels: number of index levels, 1 for a flat index
+    :type nlevels: int
+
+    :return: the rebuilt index
+    :rtype: pd.Index or pd.MultiIndex
+    """
+    if nlevels > 1:
+        return pd.MultiIndex.from_tuples(
+            [tuple(entry.split(_INDEX_LEVEL_SEPARATOR)) for entry in encodedIndex]
+        )
+    return pd.Index(list(encodedIndex))
+
+
+def addDataFrameAttributeToXarray(xarray_dataset, attr_name, dataframe):
+    """Write one DataFrame esM attribute into the attributes of an xarray dataset.
+
+    The DataFrame is split into one attribute per index entry, holding that row as
+    an array of strings, plus the column names, the column dtypes and the encoded
+    index. The original attribute is removed.
+
+    :param xarray_dataset: dataset whose attributes are written to
+    :type xarray_dataset: xr.Dataset
+
+    :param attr_name: name of the esM attribute, e.g. "balanceLimit"
+    :type attr_name: string
+
+    :param dataframe: value of the attribute
+    :type dataframe: pd.DataFrame
+    """
+    # keep the column order: it is written out explicitly, and a DataFrame that
+    # comes back with its columns reordered does not compare equal to the original
+    _df = dataframe
+    encodedIndex = encodeDataFrameAttributeIndex(_df.index)
+    for encodedEntry, (_, row) in zip(encodedIndex, _df.iterrows()):
+        xarray_dataset.attrs[f"{attr_name}.{encodedEntry}"] = row.to_numpy().astype(str)
+    xarray_dataset.attrs[f"{attr_name}_columns"] = _df.columns.tolist()
+    xarray_dataset.attrs[f"{attr_name}_dtypes"] = _df.dtypes.astype(str).tolist()
+    # an empty list is not a valid netCDF attribute, so an empty DataFrame is
+    # written as an empty string and read back as an empty DataFrame
+    xarray_dataset.attrs[f"{attr_name}_index"] = encodedIndex or ""
+    xarray_dataset.attrs[f"{attr_name}_index_nlevels"] = _df.index.nlevels
+    registry = list(xarray_dataset.attrs.get(DATAFRAME_ATTRIBUTE_REGISTRY, []))
+    xarray_dataset.attrs[DATAFRAME_ATTRIBUTE_REGISTRY] = sorted(
+        set(registry) | {attr_name}
+    )
+    del xarray_dataset.attrs[attr_name]
+
+
+def extractDataFrameAttributesFromXarray(attrs):
+    """Rebuild every DataFrame esM attribute from the attributes of an xarray dataset.
+
+    This is the inverse of :func:`addDataFrameAttributeToXarray`. Which attributes
+    to rebuild is read from the registry attribute the write side leaves behind, so
+    that a new DataFrame argument on EnergySystemModel needs no change here.
+
+    :param attrs: attributes of the read dataset
+    :type attrs: dict
+
+    :return: the rebuilt DataFrames per attribute name, and the attribute keys
+        that were consumed and have to be dropped
+    :rtype: tuple of a dict and a list of strings
+    """
+    dataframes = {}
+    consumedKeys = [DATAFRAME_ATTRIBUTE_REGISTRY]
+    if DATAFRAME_ATTRIBUTE_REGISTRY in attrs:
+        attributeNames = _asList(attrs[DATAFRAME_ATTRIBUTE_REGISTRY])
+    else:
+        attributeNames = DATAFRAME_ESM_ATTRIBUTES
+    for attr_name in attributeNames:
+        columnsKey = f"{attr_name}_columns"
+        if columnsKey not in attrs:
+            continue
+
+        columns = _asList(attrs[columnsKey])
+        dtypes = _asList(attrs.get(f"{attr_name}_dtypes"))
+        nlevels = int(attrs.get(f"{attr_name}_index_nlevels", 1))
+        rowPrefix = f"{attr_name}."
+
+        # older files carry no _index attribute; fall back to the row keys
+        if f"{attr_name}_index" in attrs:
+            encodedIndex = _asList(attrs[f"{attr_name}_index"])
+        else:
+            encodedIndex = sorted(
+                key[len(rowPrefix) :] for key in attrs if key.startswith(rowPrefix)
+            )
+
+        consumedKeys.extend(
+            [
+                columnsKey,
+                f"{attr_name}_dtypes",
+                f"{attr_name}_index",
+                f"{attr_name}_index_nlevels",
+            ]
+        )
+        consumedKeys.extend(rowPrefix + entry for entry in encodedIndex)
+
+        data = [_asList(attrs[rowPrefix + entry]) for entry in encodedIndex]
+        df = pd.DataFrame(
+            data=data,
+            index=decodeDataFrameAttributeIndex(encodedIndex, nlevels),
+            columns=columns,
+        )
+        for column, dtype in zip(df.columns, dtypes):
+            if dtype == "bool":
+                # astype(bool) on a string is True for every non-empty string,
+                # so "False" would come back as True
+                df[column] = df[column] == "True"
+            elif df[column].dtype == object and dtype == "object":
+                # a None or a NaN became a string on the way out; turn it back,
+                # otherwise "None" would read as a set value
+                df[column] = df[column].where(
+                    ~df[column].isin(_MISSING_VALUE_STRINGS), None
+                )
+            else:
+                df[column] = df[column].astype(dtype)
+        dataframes[attr_name] = df
+    return dataframes, consumedKeys
+
+
 def getFromDict(dataDict, mapList):
     """Get value from a dict by a list, which contains the dict keys.
 
@@ -307,39 +487,18 @@ def processXarrayAttributes(xarray_dataset):
     dot_attrs_dict = PowerDict()
     keys_to_delete = []
 
-    # STEP 1. Loop through each attribute, convert datatypes
+    # STEP 1. Rebuild the DataFrame attributes, which were written as one string
+    # attribute per index entry, and take their parts out of the way
+    dataframe_attrs, dataframe_keys = extractDataFrameAttributesFromXarray(
+        _xarray_dataset.attrs
+    )
+    keys_to_delete.extend(dataframe_keys)
+    consumed_keys = set(dataframe_keys)
+
+    # STEP 2. Loop through the remaining attributes and convert datatypes,
     # or append to dot_attrs_dict for conversion in a later step
-    balanceLimit_dict = {}
-    balanceLimit_columns = None
-    balanceLimit_dtypes = {}
-    hasBalanceLimit = False
     for attr_name, attr_value in _xarray_dataset.attrs.items():
-        if "balanceLimit" in attr_name:
-            if attr_name == "balanceLimit_index":
-                keys_to_delete.append("balanceLimit_index")
-                continue
-            if attr_name == "balanceLimit_columns":
-                balanceLimit_columns = attr_value
-                keys_to_delete.append("balanceLimit_columns")
-            elif attr_name == "balanceLimit_dtypes":
-                balanceLimit_dtypes = attr_value
-                keys_to_delete.append("balanceLimit_dtypes")
-            else:
-                balanceLimit_dict[attr_name.replace("balanceLimit.", "")] = attr_value
-                keys_to_delete.append(attr_name)
-                hasBalanceLimit = True
-
-    if hasBalanceLimit:
-        balanceLimit_df = None
-    else:
-        balanceLimit_df = pd.DataFrame(
-            data=balanceLimit_dict, index=balanceLimit_columns
-        ).T
-        for column, dtype in zip(balanceLimit_df.columns, balanceLimit_dtypes):
-            balanceLimit_df[column] = balanceLimit_df[column].astype(dtype)
-
-    for attr_name, attr_value in _xarray_dataset.attrs.items():
-        if "balanceLimit" in attr_name:
+        if attr_name in consumed_keys:
             continue
         if attr_name in ["locations", "commodities"] and isinstance(attr_value, str):
             xarray_dataset.attrs[attr_name] = set([attr_value])
@@ -385,7 +544,7 @@ def processXarrayAttributes(xarray_dataset):
 
             keys_to_delete.append(attr_name)
 
-    # STEP 2. Reconstruct pandas series or df for each item in dot_attrs_dict
+    # STEP 3. Reconstruct pandas series or df for each item in dot_attrs_dict
     if len(dot_attrs_dict) > 0:
         for new_attr_name, new_attr_dict in dot_attrs_dict.items():
             if all(
@@ -408,9 +567,9 @@ def processXarrayAttributes(xarray_dataset):
 
         # cleaning up the many keys
     for key in keys_to_delete:
-        xarray_dataset.attrs.pop(key)
+        xarray_dataset.attrs.pop(key, None)
 
-    xarray_dataset.attrs["balanceLimit"] = balanceLimit_df
+    xarray_dataset.attrs.update(dataframe_attrs)
 
     return xarray_dataset
 
@@ -582,6 +741,16 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
         var_value.dtype == "int8"
     ):  # NOTE: when saving to netcdf, the bool values are changed to int8 sometimes
         var_value = var_value.astype("bool")
+
+    # a dimensionless attribute whose value is a list, such as componentLimitID,
+    # is stored as a one-dimensional array. It has no scalar to unwrap and no
+    # empty-string case to skip.
+    if var_value.ndim > 0:
+        class_name, comp_name = component.split("; ")
+        key_list = getKeyHierarchyOfNestedDict(variable)
+        key_list[0] = key_list[0][3:]
+        setInDict(component_dict[class_name][comp_name], key_list, var_value.tolist())
+        return component_dict
 
     if (
         not var_value == ""

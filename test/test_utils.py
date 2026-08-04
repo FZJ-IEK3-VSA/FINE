@@ -258,3 +258,31 @@ def test_locational_eligibility_keeps_zero_capacity_bound():
     assert eligibility["R1"] == 1
     assert eligibility["R2"] == 1, "a capacity bound of 0 must not drop the location"
     assert eligibility["R3"] == 0, "a location without a bound stays ineligible"
+
+
+def test_preprocess2dimData_drops_pairs_missing_from_data():
+    """A mapC pair that the data does not cover must not become a NaN row.
+
+    preprocess2dimData looks every mapC pair up in the given matrix. A pair the
+    matrix does not describe used to end up in the result as NaN, which later
+    reads as a value of 0 rather than as "no connection here".
+    """
+    data = pd.DataFrame(
+        [[0.0, 5.0, np.nan], [5.0, 0.0, 7.0], [np.nan, 7.0, 0.0]],
+        index=["R1", "R2", "R3"],
+        columns=["R1", "R2", "R3"],
+    )
+    mapC = {
+        "R1_R2": ("R1", "R2"),
+        "R2_R1": ("R2", "R1"),
+        "R2_R3": ("R2", "R3"),
+        "R3_R2": ("R3", "R2"),
+        # R1 and R3 are not connected, so the matrix has no value for them
+        "R1_R3": ("R1", "R3"),
+        "R3_R1": ("R3", "R1"),
+    }
+
+    result = utils.preprocess2dimData(data, mapC=mapC)
+
+    assert sorted(result.index) == ["R1_R2", "R2_R1", "R2_R3", "R3_R2"]
+    assert not result.isna().any()

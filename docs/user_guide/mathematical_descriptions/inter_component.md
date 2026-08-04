@@ -52,3 +52,60 @@ $$
      \text{sharedPotentialID}_\text{c}=\text{i} \right\}~.
 \end{aligned}
 $$
+
+## Component Limits
+
+A component limit bounds the summed capacity, commissioning or annual operation of a *group of components* over
+a *group of locations*. It answers questions such as "how much wind capacity may stand in these regions
+together" or "how much may these technologies produce in this year in total".
+
+A component joins a limit by naming the limit's identifier in its own parameter
+$\text{componentLimitID}_\text{c}$. Unlike $\text{balanceLimitID}_\text{c}$, this parameter takes a *list* of
+identifiers, so one component may belong to several limits at once.
+
+Let $\mathcal{J}^\text{ID}$ be the set of all component limit identifiers. For each
+$\text{j}\in\mathcal{J}^\text{ID}$ let
+
+$$
+\begin{aligned}
+    &\mathcal{C}^\text{j} = \left\{ \text{c} ~\vert~ \forall~ \text{c}\in\mathcal{C}:
+     \text{j}\in\text{componentLimitID}_\text{c} \right\}
+\end{aligned}
+$$
+
+be the components that carry the identifier, and let $\mathcal{L}^\text{j}$ be the locations marked eligible
+for it in $\text{componentLimitEligibility}$, or the connections marked eligible in
+$\text{componentLimitEligibility2dim}$. The component limit constraint is then, for every row of
+$\text{componentLimit}$ and its investment period $\text{ip}$,
+
+$$
+\begin{aligned}
+    &\sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} \sum\limits_{\text{l}~\in~\mathcal{L}^\text{j}}
+    E^\text{comp}_\text{c,l,ip} ~\lesseqgtr~ \text{value}_\text{j}~,
+\end{aligned}
+$$
+
+where $\lesseqgtr$ is $\leq$, $\geq$ or $=$ for a $\text{bound}$ of `"upper"`, `"lower"` or `"fixed"`, and
+$E^\text{comp}$ is
+
+- the installed capacity $k_\text{c,l,ip}$ for a $\text{type}$ of `"capacity"`,
+- the newly commissioned capacity for a $\text{type}$ of `"commissioning"`,
+- the annual operation for a $\text{type}$ of `"operation"`.
+
+A row may span a range of investment periods by setting $\text{ipEnd}$, in which case the sum also runs over
+the periods from $\text{ip}$ to $\text{ipEnd}$. A `"capacity"` row cannot do this, because an installed
+capacity is a stock and not an additive quantity; use `"commissioning"` there.
+
+### Component limit or balance limit?
+
+The two constraints have similar names but bound different things.
+
+| | $\text{balanceLimit}$ | $\text{componentLimit}$ |
+|---|---|---|
+| Bounded quantity | the signed commodity balance $E^\text{source} - E^\text{sink} + E^\text{imp} - E^\text{exp}$ | the capacity, commissioning or operation of a named set of components |
+| Component classes | Source, Sink and Transmission | Source, Sink, Storage, Conversion and Transmission |
+| Constraints produced | one per location, plus one for the total | one over the sum of all eligible locations |
+| Identifier per component | a single string | a list of strings |
+
+Use $\text{balanceLimit}$ for a commodity budget, such as a CO$_2$ cap or an import volume. Use
+$\text{componentLimit}$ for a cap on how much of a set of technologies may be built or run.
