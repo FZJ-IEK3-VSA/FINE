@@ -1068,10 +1068,17 @@ def setLocationalEligibility(
         regions = data[firstYear].index
     _data = pd.Series(index=sorted(regions), data=0)
 
-    # set location eligibility to 1 if capacity bound exists
+    # Set location eligibility to 1 if a capacity bound exists.
+    # The test is `>= 0`, not `> 0`: a bound of exactly 0 is still a bound. It
+    # states "this component exists here, with a capacity of zero", which is not
+    # the same as "this component does not exist here". With `> 0` such a
+    # location was dropped from the model, so its capacity and operation
+    # variables never appeared in the results and the component could not
+    # contribute 0 to any constraint that sums over its locations. Locations
+    # with no bound at all keep eligibility 0, because NaN fails both tests.
     for ip in esM.investmentPeriods:
         if data[ip] is not None:
-            loc_idx = data[ip][data[ip] > 0].index
+            loc_idx = data[ip][data[ip] >= 0].index
             _data[loc_idx] = 1
 
     return _data

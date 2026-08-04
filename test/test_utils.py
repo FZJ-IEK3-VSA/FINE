@@ -221,3 +221,40 @@ def test_check_and_set_cost_parameter():
         assert utils.checkAndSetCostParameter(
             esM, "testParam", invalid_series_with_nan, "2dim", None
         ).equals(invalid_series_with_nan, index=esM.locations)
+
+
+def test_locational_eligibility_keeps_zero_capacity_bound():
+    """Locations with a capacity bound of exactly 0 must stay eligible.
+
+    A bound of 0 is a bound: it states that the component exists at that
+    location with a capacity of zero. Before this behaviour, such locations were
+    dropped from the model, so the component had no capacity or operation
+    variable there at all.
+    """
+    esM = fn.EnergySystemModel(
+        locations={"R1", "R2", "R3"},
+        commodities={"electricity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        hoursPerTimeStep=2190,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            # R2 is capped to zero, R3 has no bound at all.
+            capacityMax=pd.Series({"R1": 10.0, "R2": 0.0, "R3": np.nan}),
+        )
+    )
+
+    eligibility = esM.getComponent("PV").processedLocationalEligibility
+
+    assert eligibility["R1"] == 1
+    assert eligibility["R2"] == 1, "a capacity bound of 0 must not drop the location"
+    assert eligibility["R3"] == 0, "a location without a bound stays ineligible"
