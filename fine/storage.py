@@ -60,6 +60,7 @@ class Storage(Component):
         floorTechnicalLifetime=True,
         socOffsetDown=-1,
         socOffsetUp=-1,
+        componentLimitID=None,
         stockCommissioning=None,
         pwlcfParameters=None,
     ):
@@ -263,6 +264,13 @@ class Storage(Component):
             |br| * the default value is -1
         :type socOffsetUp: float
 
+
+        :param componentLimitID: ID(s) of the componentLimit(s) this component contributes to (out of the
+            componentLimits introduced in the esM). Unlike balanceLimitID, several IDs may be given, because a
+            component may be part of several component limits at once.
+            |br| * the default value is None
+        :type componentLimitID: None, string or list of strings
+
         """
         Component.__init__(
             self,
@@ -321,6 +329,7 @@ class Storage(Component):
         self.socOffsetUp = socOffsetUp
         self.socOffsetDown = socOffsetDown
         self.modelingClass = StorageModel
+        self.componentLimitID = utils.checkAndSetComponentLimitID(componentLimitID)
 
         self.fullStateOfChargeMin = utils.checkAndSetInvestmentPeriodTimeSeries(
             esM, name, stateOfChargeMin, locationalEligibility
@@ -1676,6 +1685,24 @@ class StorageModel(ComponentModel):
             "dischargeOp_bin",
         )
 
+        # Couple binary operation variable to operation variable
+        self.binaryOperation(
+            pyM,
+            "ConstrCharge",
+            "chargeOpConstrSet",
+            "partLoadMin",
+            "chargeOp",
+            "chargeOp_bin",
+        )
+        self.binaryOperation(
+            pyM,
+            "ConstrDischarge",
+            "dischargeOpConstrSet",
+            "partLoadMin",
+            "dischargeOp",
+            "dischargeOp_bin",
+        )
+
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM,
@@ -1720,15 +1747,15 @@ class StorageModel(ComponentModel):
             "processedDischargeOpRateMax",
         )
         # Operation [physicalUnit*h] is limited by minimum part Load
-        self.additionalMinPartLoad(
-            pyM,
-            esM,
-            "ConstrDischarge",
-            "dischargeOpConstrSet",
-            "dischargeOp",
-            "dischargeOp_bin",
-            "cap",
-        )
+        # self.additionalMinPartLoad(
+        #     pyM,
+        #     esM,
+        #     "ConstrDischarge",
+        #     "dischargeOpConstrSet",
+        #     "dischargeOp",
+        #     "dischargeOp_bin",
+        #     "cap",
+        # )
 
         # Cyclic constraint enforcing that all storages have the same state of charge at the the beginning of the first
         # and the end of the last time step
@@ -1799,6 +1826,100 @@ class StorageModel(ComponentModel):
                 and comp.processedLocationalEligibility[loc] == 1
                 for comp in self.componentsDict.values()
             ]
+        )
+
+    def getComponentLimitContribution(
+        self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, limitType
+    ):
+        """Get the contribution of this component class to a componentLimit.
+
+        See :func:`EnergySystemModel.declareComponentLimitConstraints` for the
+        constraint the contribution enters. The annual operation is signed:
+
+        - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
+        - A Sink contributes with a negative sign. Example: Sale of electricity
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: esM - EnergySystemModel class instance
+
+        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pym: pyomo ConcreteModel
+
+        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
+
+            (a) the full time series (False) or
+            (b) clustered time series data (True).
+
+        :type timeSeriesAggregation: boolean
+
+        :param ip: investment period of transformation path analysis.
+        :type ip: int
+
+        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
+        :type loc: string
+
+        :param componentNames: Names of components which contribute to the component limit
+        :type componentNames: list
+
+        :param limitType: Quantity the componentLimit applies to. One of "operation"
+            (annual operation), "capacity" (installed capacity) or "commissioning"
+            (newly commissioned capacity).
+        :type limitType: string
+
+        :returns: the summed contribution as a pyomo expression, or None if no
+            component of this class contributes at this location
+        :rtype: pyomo expression or None
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+        if limitType == "operation":
+            # A storage has a charge and a discharge operation variable, so
+            # "annual operation" is ambiguous for it in a way it is not for the
+            # other component classes. Raise instead of contributing nothing:
+            # a silent zero contribution would make the limit look satisfied.
+            raise NotImplementedError(
+                "A componentLimit with type='operation' is not supported for "
+                "Storage components. Use type='capacity' or type='commissioning', "
+                "or remove the Storage components from the componentLimitID."
+            )
+        if limitType == "capacity":
+            capVar = getattr(pyM, "cap_" + abbrvName)
+            balance = sum(
+                capVar[loc, compName, ip]
+                for compName in compDict.keys()
+                if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
+            )
+            if isinstance(balance, int) or isinstance(balance, float):
+                return None
+            return balance
+        if limitType == "commissioning":
+            commisVar = getattr(pyM, "commis_" + abbrvName)
+            if isinstance(ip, (list, tuple)):
+                start_ip, end_ip = ip
+                relevant_indices = [
+                    idx
+                    for idx, ip in enumerate(esM.investmentPeriods)
+                    if start_ip <= ip <= end_ip
+                ]
+                balance = sum(
+                    commisVar[loc, compName, i]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                    for i in relevant_indices
+                )
+            else:
+                balance = sum(
+                    commisVar[loc, compName, ip]
+                    for compName in compDict.keys()
+                    if compName in componentNames
+                    and compDict[compName].processedLocationalEligibility[loc] == 1
+                )
+            if isinstance(balance, int) or isinstance(balance, float):
+                return None
+            return balance
+        raise ValueError(
+            "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
         )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
