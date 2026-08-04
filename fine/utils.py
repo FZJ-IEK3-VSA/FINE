@@ -17,6 +17,11 @@ def checkAndSetBalanceLimitID(balanceLimitID):
     raise ValueError("The input argument needs to be a string or None.")
 
 
+# componentLimit bounds whose right-hand side is a fraction of the eligible
+# total, and therefore itself a decision variable, rather than a fixed number
+SHARE_BOUNDS = ("shareMax", "shareMin")
+
+
 def checkAndSetComponentLimitID(componentLimitID):
     """Check the componentLimitID of a component and normalise it to a list.
 
@@ -1746,7 +1751,11 @@ def checkAndSetComponentLimit(
         esM.investmentPeriodNames,
     )
 
-    validBounds = ["lower", "upper", "fixed"]
+    # "lower"/"upper"/"fixed" compare against a fixed number; "shareMax"/"shareMin"
+    # compare against a fraction of the eligible total, so their right-hand side is
+    # itself a decision variable
+    absoluteBounds = ["lower", "upper", "fixed"]
+    validBounds = absoluteBounds + list(SHARE_BOUNDS)
     validTypes = ["capacity", "commissioning", "operation"]
 
     processedComponentLimit = None
@@ -1840,6 +1849,37 @@ def checkAndSetComponentLimit(
         # from here on the columns hold internal investment period indices
         _componentLimit["ip"] = _componentLimit["ip"].map(ip_map)
         _componentLimit["ipEnd"] = _componentLimit["ipEnd"].map(ip_map)
+
+        shareRows = _componentLimit[_componentLimit["bound"].isin(SHARE_BOUNDS)]
+        if not shareRows.empty:
+            # the share is a fraction, so anything outside [0, 1] is either
+            # vacuous or forces the group to zero, and is far more likely a typo
+            outOfRange = sorted(
+                str(ID)
+                for ID, row in shareRows.iterrows()
+                if not 0 <= float(row["value"]) <= 1
+            )
+            if outOfRange:
+                raise ValueError(
+                    "A share bound ('shareMax'/'shareMin') takes a fraction "
+                    "between 0 and 1. The componentLimitID(s) "
+                    f"{outOfRange} are outside that range."
+                )
+            # a share is a fraction of what a set of regions produces or builds.
+            # The 2-dim eligibility describes transmission connections, for which
+            # a per-group share has no meaning.
+            if _componentLimitEligibility2dim is not None:
+                forbidden = sorted(
+                    set(shareRows.index).intersection(
+                        set(_componentLimitEligibility2dim.columns)
+                    )
+                )
+                if forbidden:
+                    raise ValueError(
+                        "Share bounds ('shareMax'/'shareMin') are not supported for "
+                        "transmission components (componentLimitEligibility2dim). "
+                        f"Offending componentLimitID(s): {forbidden}."
+                    )
 
         # An installed capacity is a stock, so it cannot be summed over a range of
         # investment periods. "commissioning" is the additive quantity and is the

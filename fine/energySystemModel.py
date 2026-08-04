@@ -284,8 +284,9 @@ class EnergySystemModel:
 
             Required columns:
 
-            * "value": the bound, as a float, in the unit of the limited quantity
-            * "bound": "lower", "upper" or "fixed"
+            * "value": the bound. For "lower", "upper" and "fixed" it is a float in the unit of the
+              limited quantity. For "shareMax" and "shareMin" it is a fraction between 0 and 1.
+            * "bound": "lower", "upper", "fixed", "shareMax" or "shareMin"
             * "type": "capacity", "commissioning" or "operation"
             * "commodity": the commodity a Conversion contributes in, or None
 
@@ -295,6 +296,17 @@ class EnergySystemModel:
             * "ipEnd": the last investment period of a range, for perfect foresight. Only valid together with
               type="commissioning" or type="operation", because an installed capacity is a stock and cannot be
               summed over periods.
+
+            The bounds "shareMax" and "shareMin" state a share instead of an absolute amount. They bound
+            each group of regions against the eligible total, which keeps a technology from concentrating
+            in one place:
+
+            .. math::
+                \sum_{c \in ID} \sum_{r \in G} E^{comp}_{c,r,ip} \; \{\leq, \geq\} \;
+                value \cdot \sum_{c \in ID} \sum_{r \in R_{ID}} E^{comp}_{c,r,ip}
+
+            The groups :math:`G` come from componentLimitGrouping. Without a grouping each eligible
+            region is its own group.
 
             .. note::
                 componentLimit is not the same constraint as balanceLimit, despite the similar name. Use
@@ -332,8 +344,10 @@ class EnergySystemModel:
 
         :param componentLimitGrouping: maps every location to a group label (e.g. a country code) per
             componentLimitID. It is a pd.DataFrame whose index holds the locations of the model and whose columns
-            are componentLimitIDs. It is stored with the model and does not change the lower, upper or fixed
-            bounds above.
+            are componentLimitIDs. The share bounds "shareMax" and "shareMin" build one constraint per group,
+            so a grouping by country turns a per-region share into a per-country share. A location without a
+            label, and an ID without a column, is its own group. The grouping does not change the "lower",
+            "upper" or "fixed" bounds.
 
             |br| * the default value is None
         :type componentLimitGrouping: None, pd.DataFrame or dictionary with investment periods years as keys and
@@ -1580,27 +1594,62 @@ class EnergySystemModel:
                 contributions.extend(_contributions)
             return sum(c for c in contributions if c is not None)
 
+        def _resolveGroups(componentLimitID, locs):
+            """Bucket the eligible locations of a share-limited ID into groups.
+
+            If componentLimitGrouping holds a column for the ID, the locations are
+            bucketed by their group label, e.g. by country. Otherwise, and for a
+            location without a label, the location is its own group.
+            """
+            grouping = self.processedComponentLimitGrouping
+            if grouping is None or componentLimitID not in grouping.columns:
+                return {loc: [loc] for loc in locs}
+            groups = {}
+            for loc in locs:
+                label = grouping.loc[loc, componentLimitID]
+                if pd.isnull(label):
+                    label = loc
+                groups.setdefault(label, []).append(loc)
+            return groups
+
         # collect one entry per componentLimit row, keyed by everything the pyomo
         # constraint rule needs to rebuild the expression
         yearlyComponentLimitDict = {}
+        componentShareLimitDict = {}
         for componentLimitID, data in self.processedComponentLimit.iterrows():
             locs = self._eligibleComponentLimitLocations(componentLimitID)
             if not locs:
                 continue
-            yearlyComponentLimitDict.setdefault(
-                (
-                    componentLimitID,
-                    data["ip"],
-                    data["ipEnd"],
-                    data["bound"],
-                    data["type"],
-                    float(data["value"]),
-                    data["commodity"],
-                ),
-                [componentsOfComponentLimit[componentLimitID], locs],
+            key = (
+                componentLimitID,
+                data["ip"],
+                data["ipEnd"],
+                data["bound"],
+                data["type"],
+                float(data["value"]),
+                data["commodity"],
             )
+            if data["bound"] in utils.SHARE_BOUNDS:
+                # one constraint per group. The eligible locations are both the
+                # groups on the left-hand side and the total on the right.
+                for groupLabel, groupLocs in _resolveGroups(
+                    componentLimitID, locs
+                ).items():
+                    componentShareLimitDict.setdefault(
+                        (*key, groupLabel),
+                        [
+                            componentsOfComponentLimit[componentLimitID],
+                            groupLocs,
+                            locs,
+                        ],
+                    )
+            else:
+                yearlyComponentLimitDict.setdefault(
+                    key, [componentsOfComponentLimit[componentLimitID], locs]
+                )
 
         pyM.yearlyComponentLimitDict = yearlyComponentLimitDict
+        pyM.componentShareLimitDict = componentShareLimitDict
 
         def yearlyComponentLimitConstraint(
             pyM, ID, ip, ipEnd, bound, limitType, value, commodity
@@ -1621,6 +1670,30 @@ class EnergySystemModel:
         pyM.yearlyComponentLimitConstraint = pyomo.Constraint(
             pyM.yearlyComponentLimitDict.keys(),
             rule=yearlyComponentLimitConstraint,
+        )
+
+        def componentShareLimitConstraint(
+            pyM, ID, ip, ipEnd, bound, limitType, value, commodity, group
+        ):
+            componentNames, groupLocs, allLocs = componentShareLimitDict[
+                (ID, ip, ipEnd, bound, limitType, value, commodity, group)
+            ]
+            groupSum = _limitExpr(
+                groupLocs, componentNames, ip, ipEnd, limitType, commodity
+            )
+            # no decision variable in this group -> nothing to constrain
+            if isinstance(groupSum, (int, float)):
+                return pyomo.Constraint.Skip
+            totalSum = _limitExpr(
+                allLocs, componentNames, ip, ipEnd, limitType, commodity
+            )
+            if bound == "shareMax":
+                return groupSum <= value * totalSum
+            return groupSum >= value * totalSum
+
+        pyM.componentShareLimitConstraint = pyomo.Constraint(
+            pyM.componentShareLimitDict.keys(),
+            rule=componentShareLimitConstraint,
         )
 
     def _collectComponentLimitComponents(self, componentLimitIDs):

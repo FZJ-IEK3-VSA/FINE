@@ -92,6 +92,29 @@ $E^\text{comp}$ is
 - the newly commissioned capacity for a $\text{type}$ of `"commissioning"`,
 - the annual operation for a $\text{type}$ of `"operation"`.
 
+### Share bounds
+
+The bounds `"shareMax"` and `"shareMin"` state a share of the eligible total instead of an absolute amount.
+They keep a technology from concentrating in one place. Let $\mathcal{G}$ be a group of eligible locations.
+The share constraint is then, for every group,
+
+$$
+\begin{aligned}
+    &\sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} \sum\limits_{\text{l}~\in~\mathcal{G}}
+    E^\text{comp}_\text{c,l,ip} ~\lesseqgtr~ \text{value}_\text{j} \cdot
+    \sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} \sum\limits_{\text{l}~\in~\mathcal{L}^\text{j}}
+    E^\text{comp}_\text{c,l,ip}~,
+\end{aligned}
+$$
+
+with $\leq$ for `"shareMax"` and $\geq$ for `"shareMin"`. Both sides are decision variables, so the bound is
+a ratio and not a fixed amount. $\text{value}_\text{j}$ is a fraction between 0 and 1.
+
+The groups come from $\text{componentLimitGrouping}$, a table that maps every location to a group label per
+identifier. A grouping by country turns a per-region share into a per-country share. A location without a
+label, and an identifier without a column, is its own group. Share bounds are not available for transmission
+connections, because a share of a set of connections has no meaning.
+
 A row may span a range of investment periods by setting $\text{ipEnd}$, in which case the sum also runs over
 the periods from $\text{ip}$ to $\text{ipEnd}$. A `"capacity"` row cannot do this, because an installed
 capacity is a stock and not an additive quantity; use `"commissioning"` there.
