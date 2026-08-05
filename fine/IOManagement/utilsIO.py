@@ -1,4 +1,4 @@
-import copy
+import json
 import logging
 import operator
 from functools import reduce  # forward compatibility for Python 3
@@ -635,377 +635,424 @@ def processXarrayAttributes(xarray_dataset):
 
 
 # --------------------------------------------------------------------------- #
-# Dimension mask layout
+# The stacked layout
 #
-# The netCDF format encodes the shape of a component parameter in a prefix on
-# the variable name ("0d_", "1d_", "2d_", "ts_"). The Zarr format cannot do
-# that, because it concatenates all components of a class into one dataset and
-# a name has to mean the same thing for every one of them. It stores two extra
-# variables per component instead, both indexed by a "parameter" coordinate:
+# The netCDF layout holds one dataset per component and encodes the shape of a
+# parameter in a prefix on the variable name ("0d_", "1d_", "2d_", "ts_"). The
+# Zarr layout holds one dataset per model class, with the components
+# concatenated along a "component" dimension, so a handful of large arrays take
+# the place of thousands of small ones. A name has to mean the same thing for
+# every component of the class, so the prefix cannot survive that. Two mask
+# variables over (component, parameter) take its place:
 #
-#   dimension_mask  the shape of the parameter, as one of the codes below
-#   was_none_mask   whether the parameter was None before it was written
+#   variable_present  False means this component did not hold this parameter
+#   variable_dims     the index names, comma joined and in order, "" for a scalar
 #
-# The was-none mask is what makes the round trip exact. xarray has no None, so
-# a None parameter is written as NaN and would come back as NaN, which is a
-# different thing: capacityMax=None means "unbounded", capacityMax=NaN means
-# "bounded by a missing number".
+# variable_dims holds the index names, that is the dimensions plus the scalar
+# coordinates, not the dimensions alone. The netCDF builder calls squeeze(), so a
+# component that uses a single location holds "space" as a scalar coordinate. The
+# dimensions alone would report a scalar and rebuild the wrong name.
+#
+# :func:`stackComponents` and :func:`unstackComponents` are the inverse pair.
+# Together they replace the was-none mask the format used to carry: a parameter
+# that was None is written as NaN, and an all-NaN variable is skipped by
+# :func:`~fine.IOManagement.xarrayIO.convertDatasetsToEnergySystemModel`, which
+# leaves the parameter at its default, None.
+#
+# Known limitation: the masks restore a missing variable, they do not restore a
+# missing coordinate. Concatenating along "component" widens every variable to
+# the union of the components' coordinates, so a component that uses two of five
+# locations comes back padded to five. The netCDF layout has the same limitation.
 # --------------------------------------------------------------------------- #
 
-# shape codes stored in dimension_mask
-DIMENSION_SCALAR = 0
-DIMENSION_TIME = 1
-DIMENSION_SPACE = 2
-DIMENSION_SPACE_SPACE2 = 3
-DIMENSION_TIME_SPACE = 4
-DIMENSION_TIME_SPACE_SPACE2 = 5
-DIMENSION_UNKNOWN = -1
+# dimension the components of one model class are concatenated along
+COMPONENT_DIMENSION = "component"
 
-# the netCDF variable-name prefix each shape code corresponds to, which is what
-# lets the Zarr reader hand its data to the netCDF reader
-DIMENSION_TO_PREFIX = {
-    DIMENSION_SCALAR: "0d_",
-    DIMENSION_TIME: "ts_",
-    DIMENSION_SPACE: "1d_",
-    DIMENSION_SPACE_SPACE2: "2d_",
-    DIMENSION_TIME_SPACE: "ts_",
-    DIMENSION_TIME_SPACE_SPACE2: "ts_",
-}
-
-# index names, as a set, to shape code
-_DIMENSION_NAMES_TO_CODE = {
-    frozenset({"time", "space", "space_2"}): DIMENSION_TIME_SPACE_SPACE2,
-    frozenset({"time", "space"}): DIMENSION_TIME_SPACE,
-    frozenset({"space", "space_2"}): DIMENSION_SPACE_SPACE2,
-    frozenset({"space"}): DIMENSION_SPACE,
-    frozenset({"time"}): DIMENSION_TIME,
-}
+# dimension the two mask variables are indexed by
+PARAMETER_DIMENSION = "parameter"
 
 # the two mask variables themselves are not component parameters
-MASK_VARIABLES = ("dimension_mask", "was_none_mask")
+PRESENCE_MASK = "variable_present"
+DIMENSION_MASK = "variable_dims"
+MASK_VARIABLES = (PRESENCE_MASK, DIMENSION_MASK)
+
+# group attribute that says whether the variable names carry a netCDF prefix. It
+# is true for Input and false for Results, so the reader needs no rule of its own
+# about which group is which.
+PREFIXED_ATTRIBUTE = "fine_variables_prefixed"
+
+# group attribute holding the per component, per variable attributes as JSON. The
+# unit of a result variable lives there, and it differs between the components of
+# one class, so a concatenation would drop all but the first.
+VARIABLE_ATTRIBUTES = "fine_variable_attributes"
+
+# separator between the index names in the variable_dims mask
+_DIMENSION_SEPARATOR = ","
+
+# index names in the order the netCDF layout puts them in
+INDEX_NAMES = ("time", "space", "space_2")
+
+# the index names each netCDF prefix allows. squeeze() turns a length-1 dimension
+# into a scalar coordinate, and the merge that follows attaches that coordinate to
+# every variable of the component, including the ones it never belonged to. In a
+# single location model every variable therefore carries a scalar "space". The
+# prefix is what says which ones it belongs to.
+_PREFIX_INDEX_NAMES = {
+    "0d_": frozenset(),
+    "1d_": frozenset({"space"}),
+    "2d_": frozenset({"space", "space_2"}),
+    "ts_": frozenset({"time", "space", "space_2"}),
+}
 
 
-def inferParameterDimension(parameter_value):
-    """Get the shape code of one component parameter.
+def netcdfPrefixForDims(dims):
+    """Get the netCDF variable name prefix for a set of index names.
 
-    :param parameter_value: value of the parameter, as it appears in the component dict
-    :type parameter_value: any
+    This is the one place the netCDF naming rule lives. It mirrors
+    :func:`_leafToIndexedData`, which is what builds the names in the first
+    place. A list valued parameter such as componentLimitID is written as a
+    one-dimensional array over an unnamed dimension, so it falls to "0d_".
 
-    :return: one of the DIMENSION_* codes
-    :rtype: int
+    :param dims: index names of the variable, that is its dimensions plus its
+        scalar coordinates
+    :type dims: iterable of strings
+
+    :return: one of "0d_", "1d_", "2d_" and "ts_"
+    :rtype: string
     """
-    if isinstance(parameter_value, (pd.DataFrame, pd.Series)):
-        names = frozenset(parameter_value.index.names)
-        return _DIMENSION_NAMES_TO_CODE.get(names, DIMENSION_UNKNOWN)
-    # None, numbers, strings, booleans and lists are all dimensionless here: a
-    # list is written as a one-dimensional array of its entries, exactly as the
-    # netCDF path does it
-    return DIMENSION_SCALAR
+    names = {str(name) for name in dims}
+    if "time" in names:
+        return "ts_"
+    if {"space", "space_2"} <= names:
+        return "2d_"
+    if "space" in names:
+        return "1d_"
+    return "0d_"
 
 
-def createParameterDimensionDict(component_dict):
-    """Get the shape code of every parameter of every component.
+def indexNamesOfVariable(data_array, netcdfPrefix=None):
+    """Get the index names of one variable, dimensions and scalar coordinates.
 
-    :param component_dict: dictionary containing information about the esM instance's components
-    :type component_dict: dict
+    :param data_array: the variable, as it sits in the dataset of one component
+    :type data_array: xr.DataArray
 
-    :return: {classname: {component: {parameter: dimension code}}}
-    :rtype: dict
+    :param netcdfPrefix: the prefix of the netCDF variable name, if the name
+        carries one. It decides which scalar coordinates belong to the variable.
+        |br| * the default value is None
+    :type netcdfPrefix: None or string
+
+    :return: the index names, in the order the netCDF layout puts them in
+    :rtype: list of strings
     """
-    return {
-        classname: {
-            component: {
-                parameter: inferParameterDimension(value)
-                for parameter, value in parameters.items()
-            }
-            for component, parameters in components.items()
-        }
-        for classname, components in component_dict.items()
-    }
+    names = [str(dim) for dim in data_array.dims]
+    allowed = _PREFIX_INDEX_NAMES.get(netcdfPrefix)
+    for name in INDEX_NAMES:
+        if name in names or name not in data_array.coords:
+            continue
+        if data_array.coords[name].ndim != 0:
+            continue
+        if allowed is not None and name not in allowed:
+            continue
+        names = _insertIndexName(names, name)
+    return names
 
 
-def createWasNoneMask(component_dict):
-    """Record which parameters were None, so the read side can restore them.
+def _insertIndexName(names, name):
+    """Put a recovered index name where the netCDF layout would have put it."""
+    position = INDEX_NAMES.index(name)
+    for index, existing in enumerate(names):
+        if existing not in INDEX_NAMES or INDEX_NAMES.index(existing) > position:
+            return [*names[:index], name, *names[index:]]
+    return [*names, name]
 
-    :param component_dict: dictionary containing information about the esM instance's components
-    :type component_dict: dict
 
-    :return: {classname: {component: {parameter: bool}}}
-    :rtype: dict
+def _castObjectArray(data_array):
+    """Cast one object-dtype array to a string or a numeric array.
+
+    Zarr has no object dtype. A variable whose values are all strings becomes a
+    unicode array, anything else becomes float64, and a value that cannot be read
+    as a number becomes NaN.
     """
-    return {
-        classname: {
-            component: {
-                parameter: value is None for parameter, value in parameters.items()
-            }
-            for component, parameters in components.items()
-        }
-        for classname, components in component_dict.items()
-    }
-
-
-def replaceNoneValuesForXarray(component_dict):
-    """Replace every None in the component dict with NaN, which xarray can hold.
-
-    Which parameters those were is recorded by :func:`createWasNoneMask`
-    beforehand, so :func:`readZarrComponentDatasets` can put the None back.
-
-    :param component_dict: dictionary containing information about the esM instance's components
-    :type component_dict: dict
-
-    :return: a copy with the None values replaced
-    :rtype: dict
-    """
-    modified = copy.deepcopy(component_dict)
-    for classname, components in component_dict.items():
-        for component, parameters in components.items():
-            for parameter, value in parameters.items():
-                if value is None:
-                    modified[classname][component][parameter] = np.nan
-    return modified
-
-
-def processComponentDict(component_dict, locations, _mapC_dict):
-    """Give every component parameter a named index, ready for ``.to_xarray()``.
-
-    This is the Zarr counterpart of :func:`_leafToIndexedData`. It does the same
-    reshaping, but writes the result back into the component dict under the plain
-    parameter name instead of returning a prefix, because the Zarr format carries
-    the shape in the dimension mask rather than in the name.
-
-    :param component_dict: dictionary containing information about the esM instance's components
-    :type component_dict: dict
-
-    :param locations: sorted esM locations
-    :type locations: list
-
-    :param _mapC_dict: mapping of Transmission component -> location tuple lookup
-    :type _mapC_dict: dict
-
-    :return: a copy in which every non-scalar parameter carries named index levels
-    :rtype: dict
-    """
-    processed = copy.deepcopy(component_dict)
-    for classname, components in component_dict.items():
-        isTransmission = classname in ["Transmission", "LinearOptimalPowerFlow"]
-        for component, parameters in components.items():
-            for parameter, value in parameters.items():
-                if isinstance(value, dict):
-                    # a nested parameter, e.g. an ip- or commodity-dependent
-                    # conversion factor, becomes one dotted entry per leaf
-                    for key_list in getListsOfKeyPathsInNestedDict(
-                        {parameter: value}, variable_name=parameter
-                    ):
-                        dotted = ".".join(map(str, key_list))
-                        processed[classname][component][dotted] = getFromDict(
-                            parameters, key_list
-                        )
-                    processed[classname][component].pop(parameter, None)
-                elif isinstance(value, pd.DataFrame):
-                    processed[classname][component][parameter] = _nameDataFrameIndex(
-                        value, component, locations, _mapC_dict, isTransmission
-                    )
-                elif isinstance(value, pd.Series):
-                    processed[classname][component][parameter] = _nameSeriesIndex(
-                        value, locations, isTransmission
-                    )
-    return processed
-
-
-def _nameDataFrameIndex(value, component, locations, _mapC_dict, isTransmission):
-    """Stack a parameter DataFrame into a Series with named index levels."""
-    stacked = value.stack()
-    if isTransmission and not set(value.index).issubset(set(locations)):
-        # a transmission time series is indexed by time and by the packed
-        # "locFrom_locTo" connection, which _mapC splits into two levels
-        time_index = stacked.index.get_level_values(0)
-        space_index = stacked.index.get_level_values(1)
-        stacked.index = pd.MultiIndex.from_tuples(
-            [
-                (time_index[i], *_mapC_dict[component][space_index[i]])
-                for i in range(len(space_index))
-            ],
-            names=["time", "space", "space_2"],
+    values = data_array.values.flatten()
+    present = [value for value in values if value is not None and pd.notna(value)]
+    if present and all(isinstance(value, str) for value in present):
+        return data_array.astype("U")
+    if present and all(isinstance(value, (bool, np.bool_)) for value in present):
+        # a boolean parameter has to stay boolean. hasIsBuiltBinaryVariable=0.0 is
+        # rejected by the component constructor, which wants a bool.
+        return data_array.astype(bool)
+    try:
+        return data_array.astype("float64")
+    except (ValueError, TypeError):
+        numeric = pd.to_numeric(data_array.values.ravel(), errors="coerce")
+        return xr.DataArray(
+            numeric.reshape(data_array.shape),
+            dims=data_array.dims,
+            coords=data_array.coords,
+            name=data_array.name,
+            attrs=data_array.attrs,
         )
-        return stacked
-    if isTransmission:
-        stacked.index.set_names(["space", "space_2"], inplace=True)
-        return stacked
-    if "Period" in stacked.index.names:
-        stacked = stacked.droplevel(0)
-    stacked.index.set_names(["time", "space"], inplace=True)
+
+
+def _normaliseDtypes(dataset):
+    """Give every variable and coordinate of a dataset a dtype Zarr can store.
+
+    :param dataset: dataset to normalise. It is copied, not changed in place.
+    :type dataset: xr.Dataset
+
+    :return: the normalised dataset
+    :rtype: xr.Dataset
+    """
+    dataset = dataset.copy()
+
+    for name, variable in dataset.data_vars.items():
+        if variable.dtype == object:
+            dataset[name] = _castObjectArray(variable)
+
+    for name, coordinate in dataset.coords.items():
+        if coordinate.dtype == object:
+            dataset = dataset.assign_coords({name: _castObjectArray(coordinate)})
+
+    return dataset
+
+
+def _expandIndexNames(data_array, indexNames):
+    """Undo squeeze(), so a per-component scalar coordinate never reaches the concat.
+
+    A scalar coordinate cannot be concatenated with a dimension of the same name,
+    and it is dropped by the concatenation. Turn it back into the length-1
+    dimension it was before squeeze(), and put the dimensions into the order the
+    netCDF layout uses, which is the order the netCDF reader unstacks them in.
+
+    :param data_array: the variable, as it sits in the dataset of one component
+    :type data_array: xr.DataArray
+
+    :param indexNames: index names of the variable, see :func:`indexNamesOfVariable`
+    :type indexNames: list of strings
+
+    :return: the variable with one dimension per index name and no other coordinate
+    :rtype: xr.DataArray
+    """
+    scalars = {
+        name: data_array.coords[name].item()
+        for name in indexNames
+        if name not in data_array.dims
+    }
+    attrs = dict(data_array.attrs)
+    data_array = data_array.reset_coords(drop=True)
+    for name, value in scalars.items():
+        data_array = data_array.expand_dims({name: [value]})
+    if list(data_array.dims) != list(indexNames):
+        data_array = data_array.transpose(*indexNames)
+    data_array.attrs = attrs
+    return data_array
+
+
+def stackComponents(components, prefixed):
+    """Concatenate the datasets of one model class into one stacked dataset.
+
+    This is the inverse of :func:`unstackComponents`.
+
+    :param components: the datasets of the class, {component name: xr.Dataset}
+    :type components: dict
+
+    :param prefixed: states if the variable names carry a netCDF prefix, which is
+        the case for Input and not for Results
+    :type prefixed: boolean
+
+    :return: the stacked dataset, or None if there is nothing to concatenate
+    :rtype: xr.Dataset or None
+    """
+    if not components:
+        return None
+
+    names = list(components)
+    prepared = {}
+    indexNames = {}
+    attributes = {}
+
+    for component in names:
+        dataset = components[component]
+        prepared[component] = {}
+        indexNames[component] = {}
+        attributes[component] = {}
+        for name, variable in dataset.data_vars.items():
+            prefix = str(name)[:3] if prefixed else None
+            parameter = str(name)[3:] if prefixed else str(name)
+            wanted = indexNamesOfVariable(variable, prefix)
+            indexNames[component][parameter] = wanted
+            prepared[component][parameter] = _expandIndexNames(variable, wanted)
+            if variable.attrs:
+                attributes[component][parameter] = dict(variable.attrs)
+
+    parameters = sorted({name for entry in indexNames.values() for name in entry})
+    datasets = _standardiseForConcat(prepared, names, parameters)
+
+    if len(datasets) == 1:
+        stacked = datasets[0].expand_dims({COMPONENT_DIMENSION: [names[0]]})
+    else:
+        stacked = xr.concat(
+            datasets,
+            dim=pd.Index(names, name=COMPONENT_DIMENSION),
+            join="outer",
+            coords="minimal",
+            fill_value=np.nan,
+        )
+    stacked = _normaliseDtypes(stacked)
+
+    maskDims = [COMPONENT_DIMENSION, PARAMETER_DIMENSION]
+    maskCoords = {COMPONENT_DIMENSION: names, PARAMETER_DIMENSION: parameters}
+    stacked[PRESENCE_MASK] = xr.DataArray(
+        np.array(
+            [
+                [name in indexNames[component] for name in parameters]
+                for component in names
+            ],
+            dtype=bool,
+        ).reshape(len(names), len(parameters)),
+        dims=maskDims,
+        coords=maskCoords,
+    )
+    stacked[DIMENSION_MASK] = xr.DataArray(
+        np.array(
+            [
+                [
+                    _DIMENSION_SEPARATOR.join(indexNames[component].get(name, ()))
+                    for name in parameters
+                ]
+                for component in names
+            ],
+            dtype="U",
+        ).reshape(len(names), len(parameters)),
+        dims=maskDims,
+        coords=maskCoords,
+    )
+    stacked.attrs[PREFIXED_ATTRIBUTE] = bool(prefixed)
+    stacked.attrs[VARIABLE_ATTRIBUTES] = json.dumps(attributes)
     return stacked
 
 
-def _nameSeriesIndex(value, locations, isTransmission):
-    """Give a parameter Series named index levels."""
-    if isTransmission:
-        stacked = transform1dSeriesto2dDataFrame(value, locations).stack()
-        stacked.index.set_names(["space", "space_2"], inplace=True)
-        return stacked
-    if set(value.index.values).issubset(set(locations)):
-        return value.rename_axis("space")
-    # a time series without a space level, which only a single node model has.
-    # Give it the location back, so it has the same shape as everywhere else.
-    series = value.rename_axis("time")
-    series = pd.concat({locations[0]: series}, names=["space"])
-    return series.reorder_levels(["time", "space"])
+def _standardiseForConcat(prepared, names, parameters):
+    """Give every component the same variables with the same dtypes.
 
+    A variable that is a string for one component has to be a string for all of
+    them, otherwise the concatenation produces an object array that Zarr cannot
+    store. A variable that is boolean for every component stays boolean, because
+    the component constructors reject a float where they want a bool. A component
+    that does not hold a variable gets a scalar placeholder, which the presence
+    mask marks as absent.
 
-def convertComponentDictToXarrayDictZarr(component_dict):
-    """Convert a processed component dict into one xarray dataset per component.
+    :param prepared: {component: {parameter: xr.DataArray}}
+    :type prepared: dict
 
-    :param component_dict: component dict as returned by :func:`processComponentDict`
-    :type component_dict: dict
+    :param names: the component names, in the order they are concatenated
+    :type names: list of strings
 
-    :return: {classname: {component: xr.Dataset}}
-    :rtype: dict
+    :param parameters: every parameter name of the class, sorted
+    :type parameters: list of strings
+
+    :return: one dataset per component, ready to concatenate
+    :rtype: list of xr.Dataset
     """
-    xr_dss = {}
-    for classname, components in component_dict.items():
-        xr_dss[classname] = {}
-        for component, parameters in components.items():
-            data_vars = {}
-            for parameter in sorted(parameters):
-                value = parameters[parameter]
-                if isinstance(value, pd.Series):
-                    data_vars[parameter] = xr.DataArray.from_series(value)
-                elif isinstance(value, (list, tuple)):
-                    # a list valued parameter, e.g. componentLimitID, becomes a
-                    # one-dimensional array, as it does on the netCDF path
-                    data_vars[parameter] = xr.DataArray(list(value))
-                else:
-                    data_vars[parameter] = xr.DataArray(value)
-            xr_dss[classname][component] = xr.Dataset(data_vars)
-    return xr_dss
-
-
-def addParameterMasksToXarray(xr_dss, dimension_mask, was_none_mask):
-    """Add the dimension mask and the was-none mask to every component dataset.
-
-    Both are indexed by a "parameter" coordinate holding the parameter names in
-    a fixed order, so the two masks and the data line up after the components of
-    a class are concatenated.
-
-    :param xr_dss: {classname: {component: xr.Dataset}}
-    :type xr_dss: dict
-
-    :param dimension_mask: shape code per parameter, see :func:`createParameterDimensionDict`
-    :type dimension_mask: dict
-
-    :param was_none_mask: None flag per parameter, see :func:`createWasNoneMask`
-    :type was_none_mask: dict
-
-    :return: the same dict, with both masks added to every dataset
-    :rtype: dict
-    """
-    for classname, components in xr_dss.items():
-        for component, dataset in components.items():
-            dimensions = dimension_mask.get(classname, {}).get(component, {})
-            wasNone = was_none_mask.get(classname, {}).get(component, {})
-            if not dimensions:
-                continue
-            parameters = sorted(dimensions)
-            dataset["dimension_mask"] = xr.DataArray(
-                [dimensions[parameter] for parameter in parameters],
-                coords={"parameter": parameters},
-                dims=["parameter"],
+    cast = {
+        component: {
+            parameter: (
+                _castObjectArray(variable) if variable.dtype == object else variable
             )
-            dataset["was_none_mask"] = xr.DataArray(
-                [wasNone.get(parameter, True) for parameter in parameters],
-                coords={"parameter": parameters},
-                dims=["parameter"],
-            )
-    return xr_dss
+            for parameter, variable in variables.items()
+        }
+        for component, variables in prepared.items()
+    }
+
+    dtypes = {}
+    for parameter in parameters:
+        found = [
+            variables[parameter].dtype
+            for variables in cast.values()
+            if parameter in variables
+        ]
+        if any(np.issubdtype(dtype, np.str_) for dtype in found):
+            dtypes[parameter] = "U"
+        elif all(dtype is np.dtype(bool) for dtype in found):
+            dtypes[parameter] = bool
+        else:
+            dtypes[parameter] = "float64"
+
+    empty = {"U": "", bool: False, "float64": np.nan}
+    datasets = []
+    for component in names:
+        variables = {}
+        for parameter in parameters:
+            variable = cast[component].get(parameter)
+            if variable is None:
+                variables[parameter] = xr.DataArray(empty[dtypes[parameter]])
+            else:
+                variables[parameter] = variable.astype(dtypes[parameter])
+        datasets.append(xr.Dataset(variables))
+    return datasets
 
 
-def extractParameterMasksFromXarray(dataset):
-    """Read the two masks back out of one component dataset.
+def unstackComponents(dataset):
+    """Split a stacked dataset back into one dataset per component.
 
-    :param dataset: dataset of a single component
+    This is the inverse of :func:`stackComponents`. It restores the netCDF
+    variable names when the group was written from prefixed names, so the result
+    is exactly what
+    :func:`~fine.IOManagement.xarrayIO.convertDatasetsToEnergySystemModel` reads.
+
+    :param dataset: one stacked model class, as written by :func:`stackComponents`
     :type dataset: xr.Dataset
 
-    :return: the shape code per parameter and the None flag per parameter
-    :rtype: tuple of two dicts
-    """
-    if "dimension_mask" not in dataset:
-        return {}, {}
-    parameters = [str(name) for name in dataset.coords["parameter"].values]
-    dimensions = dict(
-        zip(parameters, [int(code) for code in dataset["dimension_mask"].values])
-    )
-    if "was_none_mask" in dataset:
-        wasNone = dict(
-            zip(parameters, [bool(flag) for flag in dataset["was_none_mask"].values])
-        )
-    else:
-        wasNone = dict.fromkeys(parameters, False)
-    return dimensions, wasNone
-
-
-def convertZarrDatasetsToPrefixedDatasets(zarr_input):
-    """Turn the Zarr input layout back into the layout the netCDF reader expects.
-
-    The Zarr layout holds one dataset per component class, with the components
-    concatenated along a "technology" dimension and the parameter shapes in a
-    dimension mask. The netCDF layout holds one dataset per component, with the
-    shape in a prefix on each variable name. This splits the first apart and
-    renames the variables, so that :func:`convertDatasetsToEnergySystemModel` can
-    read a Zarr store without a second reader of its own.
-
-    A parameter the was-none mask marks as None is dropped rather than renamed,
-    because the netCDF reader treats an absent variable as None.
-
-    :param zarr_input: the "Input" part of a Zarr store, {classname: xr.Dataset}
-    :type zarr_input: dict
-
-    :return: {classname: {component: xr.Dataset}} with prefixed variable names
+    :return: {component name: xr.Dataset}
     :rtype: dict
     """
+    prefixed = _asBool(dataset.attrs.get(PREFIXED_ATTRIBUTE, False))
+    attributes = json.loads(dataset.attrs.get(VARIABLE_ATTRIBUTES, "{}"))
+
+    components = [str(name) for name in dataset[COMPONENT_DIMENSION].values]
+    parameters = [str(name) for name in dataset[PARAMETER_DIMENSION].values]
+    present = np.asarray(dataset[PRESENCE_MASK].values)
+    recorded = np.asarray(dataset[DIMENSION_MASK].values)
+
     xr_dss = {}
-    for classname, dataset in zarr_input.items():
-        xr_dss[classname] = {}
-        components = [str(name) for name in dataset.coords["technology"].values]
-        for component in components:
-            componentDataset = dataset.sel(technology=component, drop=True)
-            dimensions, wasNone = extractParameterMasksFromXarray(componentDataset)
-            data_vars = {}
-            for parameter, code in dimensions.items():
-                if wasNone.get(parameter, False) or parameter not in componentDataset:
-                    continue
-                prefix = DIMENSION_TO_PREFIX.get(code)
-                if prefix is None:
-                    logger.warning(
-                        "Skipping parameter %s of component %s: unknown dimension "
-                        "code %s.",
-                        parameter,
-                        component,
-                        code,
-                    )
-                    continue
-                data_vars[f"{prefix}{parameter}"] = _dropPaddingDimensions(
-                    componentDataset[parameter], code
-                )
-            xr_dss[classname][component] = xr.Dataset(data_vars)
+    for index, component in enumerate(components):
+        componentDataset = dataset.isel({COMPONENT_DIMENSION: index}, drop=True)
+        componentAttributes = attributes.get(component, {})
+        data_vars = {}
+        for position, parameter in enumerate(parameters):
+            if not bool(present[index, position]):
+                continue
+            if parameter not in componentDataset.data_vars:
+                continue
+            wanted = [
+                name
+                for name in str(recorded[index, position]).split(_DIMENSION_SEPARATOR)
+                if name
+            ]
+            variable = componentDataset[parameter].reset_coords(drop=True)
+            for dim in variable.dims:
+                # a dimension the parameter never had. Take the first entry rather
+                # than dropna: a genuine NaN is not padding, and dropna cannot tell
+                # the two apart.
+                if dim not in wanted:
+                    variable = variable.isel({dim: 0}, drop=True)
+            variable.attrs = dict(componentAttributes.get(parameter, {}))
+            name = parameter
+            if prefixed:
+                # squeeze() again, because that is what the prefixed layout holds.
+                # The Results layout is never squeezed, so it is left alone.
+                variable = variable.squeeze()
+                name = f"{netcdfPrefixForDims(wanted)}{parameter}"
+            data_vars[name] = variable
+        xr_dss[component] = xr.Dataset(data_vars)
     return xr_dss
 
 
-def _dropPaddingDimensions(data_array, code):
-    """Remove the "parameter" coordinate and the padding a concatenation added.
-
-    Concatenating the components of a class along "technology" widens every
-    variable to the union of all components' coordinates, so a component that
-    does not use a location gets a NaN column there. Dropping the all-NaN entries
-    restores what the component itself held.
-    """
-    data_array = data_array.reset_coords(drop=True)
-    if code == DIMENSION_SCALAR:
-        return data_array
-    for dim in data_array.dims:
-        if dim == "parameter":
-            continue
-        data_array = data_array.dropna(dim=dim, how="all")
-    return data_array
+def _asBool(value):
+    """Read a group attribute back as a bool, whether it was stored as one or not."""
+    if isinstance(value, str):
+        return value == "True"
+    return bool(value)
 
 
 def addTimeSeriesVariableToDict(

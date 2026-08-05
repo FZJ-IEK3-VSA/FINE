@@ -1255,12 +1255,67 @@ def writeEnergySystemModelToNetCDF(
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0)
 
 
+def convertEnergySystemModelToDatasets(
+    esM,
+    optSumOutputLevel=0,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
+):
+    """Convert an esM instance (input and, if it was optimized, output) into datasets.
+
+    This is the one export. Every writer starts here, and every storage format is
+    built from the result, so a model has one canonical layout whatever it is
+    written to.
+
+    **Required arguments:**
+
+    :param esM: EnergySystemModel instance in which the model is held
+    :type esM: EnergySystemModel instance
+
+    **Default arguments:**
+
+    :param optSumOutputLevel: Output level of the optimization summary (see
+        EnergySystemModel). Either an integer (0,1,2) which holds for all model
+        classes or a dictionary with model class names as keys and an integer
+        (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
+        |br| * the default value is 0
+    :type optSumOutputLevel: int (0,1,2) or dict
+
+    :param includeShadowPrices: states if the shadow prices are part of the result
+        |br| * the default value is False
+    :type includeShadowPrices: boolean
+
+    :param shadowPriceConstraintStr: name of the constraint the shadow prices are
+        taken from
+        |br| * the default value is "commodityBalanceConstraint"
+    :type shadowPriceConstraintStr: string
+
+    :return: the esM data in xarray dataset format, keyed by group
+    :rtype: dict
+    """
+    datasets = convertOptimizationInputToDatasets(esM)
+
+    if esM.objectiveValue is not None:  # model was optimized
+        datasets.update(convertOptimizationOutputToDatasets(esM, optSumOutputLevel))
+        if "performanceSummary" in vars(esM):
+            datasets.update(convertPerformanceSummaryToDatasets(esM))
+        if includeShadowPrices:
+            datasets["ShadowPrices"] = utilsIO.getShadowPriceXarray(
+                esM, constraint_str=shadowPriceConstraintStr
+            )
+
+    return datasets
+
+
 def writeEnergySystemModelToDatasets(
     esM,
     includeShadowPrices=False,
     shadowPriceConstraintStr="commodityBalanceConstraint",
 ):
     """Convert esM instance (input and output) into a xarray dataset.
+
+    Deprecated. Call :func:`convertEnergySystemModelToDatasets`, which carries the
+    optimization summary output level as well.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
@@ -1277,34 +1332,11 @@ def writeEnergySystemModelToDatasets(
         dataset format
     :rtype: xr.DataSet
     """
-    if esM.objectiveValue is not None:  # model was optimized
-        xr_dss_output = convertOptimizationOutputToDatasets(esM)
-        xr_dss_input = convertOptimizationInputToDatasets(esM)
-
-        xr_dss_results = {
-            "Results": xr_dss_output["Results"],
-            "Input": xr_dss_input["Input"],
-            "Parameters": xr_dss_input["Parameters"],
-        }
-        if "performanceSummary" in vars(esM):
-            xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
-            xr_dss_results["PerformanceSummary"] = xr_dss_performance[
-                "PerformanceSummary"
-            ]
-
-        if includeShadowPrices:
-            xr_dss_shadowPrices = utilsIO.getShadowPriceXarray(
-                esM, constraint_str=shadowPriceConstraintStr
-            )
-            xr_dss_results["ShadowPrices"] = xr_dss_shadowPrices
-    else:
-        xr_dss_input = convertOptimizationInputToDatasets(esM)
-        xr_dss_results = {
-            "Input": xr_dss_input["Input"],
-            "Parameters": xr_dss_input["Parameters"],
-        }
-
-    return xr_dss_results
+    return convertEnergySystemModelToDatasets(
+        esM,
+        includeShadowPrices=includeShadowPrices,
+        shadowPriceConstraintStr=shadowPriceConstraintStr,
+    )
 
 
 def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
@@ -1413,7 +1445,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
     return xr_dss
 
 
-def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
+def readNetCDFToEnergySystemModel(filePath, groupPrefix=None):
     """Convert netCDF file into an EnergySystemModel instance.
 
     :param filePath: file name of netCDF file (can include full path) in which
@@ -1429,6 +1461,11 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
 
     # xarray dataset to esm
     return convertDatasetsToEnergySystemModel(xr_dss)
+
+
+# the older spelling, with the lower case "to". It is alone among all of them, so
+# the name above is the one to use, and this stays for the callers that have it.
+readNetCDFtoEnergySystemModel = readNetCDFToEnergySystemModel
 
 
 def _make_datasets_lazy(data_dict, chunks="auto", _path=()):
@@ -1483,7 +1520,7 @@ def _make_datasets_lazy(data_dict, chunks="auto", _path=()):
 # named here: the two mask variables are indexed by "parameter", which appears in
 # no scheme, and leaving them unchunked produced chunks like ((1,)*42, (49,1,1,19)).
 #
-# "auto" rather than -1 for the spatial and technology axes: -1 keeps a whole
+# "auto" rather than -1 for the spatial and component axes: -1 keeps a whole
 # dimension in one chunk, which is unbounded. For a large model a single chunk of
 # (1000 time steps x every location x every location x every component) passes 2 GB,
 # which the Blosc codec refuses ("Codec does not support buffers of > 2147483647
@@ -1493,14 +1530,20 @@ ZARR_CHUNK_SCHEME = {
     "time": 1000,
     "space": "auto",
     "space_2": "auto",
-    "technology": "auto",
+    utilsIO.COMPONENT_DIMENSION: "auto",
 }
 
 # fill value written for float variables when replaceFillValue is set
 ZARR_FLOAT_FILL_VALUE = -9999.0
 
 # dimension the components of one model class are concatenated along
-ZARR_COMPONENT_DIMENSION = "technology"
+ZARR_COMPONENT_DIMENSION = utilsIO.COMPONENT_DIMENSION
+
+# name the ShadowPrices DataArray is stored under inside its own Zarr group
+ZARR_SHADOW_PRICE_VARIABLE = "shadowPrices"
+
+# version of the Zarr layout, recorded in structure.json
+ZARR_FORMAT_VERSION = 1
 
 
 def _zarrCompressorEncoding(compressionAlgorithm, compressionLevel):
@@ -1544,120 +1587,6 @@ def _zarrCompressorEncoding(compressionAlgorithm, compressionLevel):
             shuffle=Blosc.SHUFFLE,
         )
     }
-
-
-def _normaliseDtypes(dataset):
-    """Give every variable and coordinate of a dataset a dtype Zarr can store.
-
-    Zarr has no object dtype. A variable whose values are all strings becomes a
-    unicode array, anything else numeric becomes float64, and a value that cannot
-    be read as a number becomes NaN.
-
-    :param dataset: dataset to normalise. It is copied, not changed in place.
-    :type dataset: xr.Dataset
-
-    :return: the normalised dataset
-    :rtype: xr.Dataset
-    """
-    dataset = dataset.copy()
-
-    for name, variable in dataset.data_vars.items():
-        if variable.dtype == object:
-            dataset[name] = _castObjectArray(variable)
-
-    for name, coordinate in dataset.coords.items():
-        if coordinate.dtype == object:
-            dataset = dataset.assign_coords({name: _castObjectArray(coordinate)})
-
-    return dataset
-
-
-def _castObjectArray(data_array):
-    """Cast one object-dtype array to a string or a numeric array."""
-    values = data_array.values.flatten()
-    present = [value for value in values if value is not None and pd.notna(value)]
-    if present and all(isinstance(value, str) for value in present):
-        return data_array.astype("U")
-    try:
-        return data_array.astype("float64")
-    except (ValueError, TypeError):
-        numeric = pd.to_numeric(data_array.values.ravel(), errors="coerce")
-        return xr.DataArray(
-            numeric.reshape(data_array.shape),
-            dims=data_array.dims,
-            coords=data_array.coords,
-            name=data_array.name,
-        )
-
-
-def _concatComponents(components, dimension=ZARR_COMPONENT_DIMENSION):
-    """Concatenate the datasets of one model class along a component dimension.
-
-    The components of a class do not all carry the same variables, so the
-    concatenation joins on the union and fills what is missing. A variable that is
-    a string somewhere has to be a string everywhere, otherwise the concatenation
-    produces an object array that Zarr cannot store.
-
-    :param components: {component name: xr.Dataset}
-    :type components: dict
-
-    :param dimension: name of the dimension the components are stacked along
-    :type dimension: string
-
-    :return: the concatenated dataset, or None if there is nothing to concatenate
-    :rtype: xr.Dataset or None
-    """
-    if not components:
-        return None
-
-    names = list(components)
-    # copy before touching the dtypes: these datasets belong to the caller, and
-    # writeEnergySystemModelToDatasetsBoth hands the same Results datasets to the
-    # netCDF assembler as well
-    datasets = [_normaliseDtypes(components[name]) for name in names]
-
-    if len(datasets) == 1:
-        return datasets[0].expand_dims({dimension: [names[0]]})
-
-    isString = {}
-    for dataset in datasets:
-        for name, variable in dataset.data_vars.items():
-            isString[name] = isString.get(name, False) or np.issubdtype(
-                variable.dtype, np.str_
-            )
-
-    allVariables = set()
-    for dataset in datasets:
-        allVariables.update(dataset.data_vars)
-
-    standardised = []
-    for original in datasets:
-        dataset = original.copy()
-        for name in dataset.data_vars:
-            dataset[name] = dataset[name].astype("U" if isString[name] else "float64")
-        template = next(iter(dataset.data_vars.values()), None)
-        if template is None:
-            continue
-        for name in allVariables - set(dataset.data_vars):
-            # a component that does not carry this variable gets an empty entry,
-            # so every dataset going into the concatenation has the same variables
-            if isString[name]:
-                dataset[name] = xr.full_like(template, "", dtype="U")
-            else:
-                dataset[name] = xr.full_like(template, np.nan, dtype="float64")
-        standardised.append(dataset)
-
-    if not standardised:
-        return None
-
-    concatenated = xr.concat(
-        standardised,
-        dim=pd.Index(names, name=dimension),
-        join="outer",
-        coords="minimal",
-        fill_value=np.nan,
-    )
-    return _normaliseDtypes(concatenated)
 
 
 def _chunkForZarr(dataset, useScheme=True):
@@ -1724,65 +1653,6 @@ def _writeZarr(dataset, path, compressorEncoding, replaceFillValue):
             ) from retryError
 
 
-def convertOptimizationInputToDatasetsZarr(
-    esM, useProcessedValues=False, esm_dict=None, component_dict=None
-):
-    """Take esM instance input and convert it into xarray datasets for Zarr.
-
-    The result differs from :func:`convertOptimizationInputToDatasets` in how the
-    shape of a parameter is recorded: a dimension mask and a was-none mask instead
-    of a prefix on the variable name. See the dimension mask section of
-    :mod:`fine.IOManagement.utilsIO`.
-
-    **Required arguments:**
-
-    :param esM: EnergySystemModel instance in which the model is held
-    :type esM: EnergySystemModel instance
-
-    **Default arguments:**
-
-    :param useProcessedValues: True if the raw values should be over-written by processed values,
-        False otherwise
-        |br| * the default value is False
-    :type useProcessedValues: boolean
-
-    :param esm_dict: an esM dict already exported by dictIO.exportToDict. Given together with
-        component_dict, the export is not repeated, which matters because it rebuilds the full
-        time series of an aggregated model. This lets a caller that also needs
-        convertOptimizationInputToDatasets pay for the export once.
-        |br| * the default value is None
-    :type esm_dict: None or dict
-
-    :param component_dict: a component dict already exported, see esm_dict
-        |br| * the default value is None
-    :type component_dict: None or dict
-
-    :return: the esM input as xarray datasets
-    :rtype: dict
-    """
-    if esm_dict is None or component_dict is None:
-        esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
-
-    _mapC_dict = {
-        tech: esM.getComponent(tech)._mapC for tech in component_dict["Transmission"]
-    }
-
-    component_dict = utilsIO.processComponentDict(
-        component_dict, sorted(esM.locations), _mapC_dict
-    )
-    dimension_mask = utilsIO.createParameterDimensionDict(component_dict)
-    was_none_mask = utilsIO.createWasNoneMask(component_dict)
-    component_dict = utilsIO.replaceNoneValuesForXarray(component_dict)
-
-    xr_dss = utilsIO.convertComponentDictToXarrayDictZarr(component_dict)
-    xr_dss = utilsIO.addParameterMasksToXarray(xr_dss, dimension_mask, was_none_mask)
-
-    attributes_xr = xr.Dataset()
-    attributes_xr.attrs = esm_dict
-
-    return {"Input": xr_dss, "Parameters": attributes_xr}
-
-
 def writeDatasetsToZarr(
     datasets,
     output_zarr_path="my_esm.zarr",
@@ -1793,10 +1663,12 @@ def writeDatasetsToZarr(
 ):
     """Write a nested dictionary of xarray datasets to a Zarr store.
 
-    The components of a model class are concatenated into one dataset along a
-    "technology" dimension, so the store holds a handful of large arrays instead of
+    It takes the canonical datasets, that is the ones
+    :func:`convertEnergySystemModelToDatasets` builds, and stacks them. The
+    components of a model class are concatenated into one dataset along a
+    "component" dimension, so the store holds a handful of large arrays instead of
     thousands of small ones. That is what makes it fast to read a single variable
-    across all components.
+    across all components. See :func:`~fine.IOManagement.utilsIO.stackComponents`.
 
     **Required arguments:**
 
@@ -1839,10 +1711,10 @@ def writeDatasetsToZarr(
     lazy_datasets = _make_datasets_lazy(datasets, chunks="auto")
 
     for model_class, components in lazy_datasets["Input"].items():
-        consolidated = _concatComponents(components)
-        if consolidated is not None:
+        stacked = utilsIO.stackComponents(components, prefixed=True)
+        if stacked is not None:
             _writeZarr(
-                consolidated,
+                stacked,
                 f"{output_zarr_path}/Input/{model_class}",
                 compressorEncoding,
                 replace_fill_value,
@@ -1850,10 +1722,10 @@ def writeDatasetsToZarr(
 
     for ip, models in lazy_datasets.get("Results", {}).items():
         for model_class, components in models.items():
-            consolidated = _concatComponents(components)
-            if consolidated is not None:
+            stacked = utilsIO.stackComponents(components, prefixed=False)
+            if stacked is not None:
                 _writeZarr(
-                    consolidated,
+                    stacked,
                     f"{output_zarr_path}/Results/{ip}/{model_class}",
                     compressorEncoding,
                     replace_fill_value,
@@ -1867,11 +1739,18 @@ def writeDatasetsToZarr(
         lazy_datasets["PerformanceSummary"].to_zarr(
             f"{output_zarr_path}/PerformanceSummary", mode="w"
         )
+    if lazy_datasets.get("ShadowPrices") is not None:
+        # a DataArray, not a dataset. Zarr writes a group, so give it a name.
+        shadowPrices = lazy_datasets["ShadowPrices"]
+        utilsIO._normaliseDtypes(
+            shadowPrices.rename(ZARR_SHADOW_PRICE_VARIABLE).to_dataset()
+        ).to_zarr(f"{output_zarr_path}/ShadowPrices", mode="w")
 
     # A model class is a directory in the store, and a directory listing has no
     # order. Record the order the classes were written in, so a model read back
     # holds its components in the order it had before, as the netCDF format does.
     structure = {
+        "fine_zarr_format": ZARR_FORMAT_VERSION,
         "Input": list(lazy_datasets["Input"]),
         "Results": {
             str(ip): list(models)
@@ -1901,6 +1780,12 @@ def readZarrToDatasets(zarr_path, lazy_load=True, chunks=None):
     :param chunks: dask chunk sizes used when reading lazily
         |br| * the default value is None
     :type chunks: None or dict
+
+    The store is returned as it was written, that is stacked and, unless
+    ``lazy_load`` is off, lazy. That is the point of the format. Use
+    :func:`readZarrToEnergySystemModel` to get a model back, or
+    :func:`~fine.IOManagement.utilsIO.unstackComponents` to get one dataset per
+    component.
 
     :return: the nested dictionary of datasets, with one dataset per model class
     :rtype: dict
@@ -1950,15 +1835,22 @@ def readZarrToDatasets(zarr_path, lazy_load=True, chunks=None):
         if group_path.exists():
             xr_dss[group] = loader(group_path, engine="zarr")
 
+    shadow_path = zarr_path / "ShadowPrices"
+    if shadow_path.exists():
+        # written as a one variable dataset, handed back as the DataArray it was
+        xr_dss["ShadowPrices"] = loader(shadow_path, engine="zarr")[
+            ZARR_SHADOW_PRICE_VARIABLE
+        ]
+
     return xr_dss
 
 
 def readZarrToEnergySystemModel(zarr_path):
     """Read a Zarr store written by :func:`writeDatasetsToZarr` back into an esM.
 
-    The store keeps the shape of each parameter in a dimension mask rather than in
-    a prefix on the variable name, and it holds one dataset per model class rather
-    than one per component. Both are undone here, which leaves exactly the layout
+    The store holds one dataset per model class, with the components stacked along
+    "component" and the shape of each parameter in the two masks. The unstack undoes
+    both, which leaves exactly the layout
     :func:`convertDatasetsToEnergySystemModel` reads, so there is one reader and
     not two.
 
@@ -1969,48 +1861,116 @@ def readZarrToEnergySystemModel(zarr_path):
     :rtype: EnergySystemModel instance
     """
     datasets = readZarrToDatasets(zarr_path, lazy_load=False)
-    datasets["Input"] = utilsIO.convertZarrDatasetsToPrefixedDatasets(datasets["Input"])
+    datasets["Input"] = {
+        model_class: utilsIO.unstackComponents(stacked)
+        for model_class, stacked in datasets["Input"].items()
+    }
+    if "Results" in datasets:
+        datasets["Results"] = {
+            ip: {
+                model_class: utilsIO.unstackComponents(stacked)
+                for model_class, stacked in models.items()
+            }
+            for ip, models in datasets["Results"].items()
+        }
     return convertDatasetsToEnergySystemModel(datasets)
 
 
-def writeEnergySystemModelToDatasetsBoth(esM, optSumOutputLevel=0):
-    """Build the netCDF and the Zarr view of a model from one export.
+def writeEnergySystemModelToZarr(
+    esM,
+    output_zarr_path="my_esm.zarr",
+    optSumOutputLevel=0,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
+    **kwargs,
+):
+    """Write an esM (input and, if it was optimized, output) to a Zarr store.
 
-    Both views start from dictIO.exportToDict, which rebuilds the full time series
-    of a temporally aggregated model and is the expensive step. Calling
-    writeEnergySystemModelToDatasets and its Zarr counterpart separately pays for
-    it twice.
-
-    **Required arguments:**
-
-    :param esM: EnergySystemModel instance in which the optimized model is held
+    :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
 
-    **Default arguments:**
+    :param output_zarr_path: path of the Zarr store directory
+        |br| * the default value is "my_esm.zarr"
+    :type output_zarr_path: string or pathlib.Path
 
     :param optSumOutputLevel: output level of the optimization summary
         |br| * the default value is 0
-    :type optSumOutputLevel: int (0,1,2)
+    :type optSumOutputLevel: int (0,1,2) or dict
 
-    :return: the datasets in the netCDF layout and the datasets in the Zarr layout
-    :rtype: tuple of two dicts
+    :param includeShadowPrices: states if the shadow prices are written as well
+        |br| * the default value is False
+    :type includeShadowPrices: boolean
+
+    :param shadowPriceConstraintStr: name of the constraint the shadow prices are
+        taken from
+        |br| * the default value is "commodityBalanceConstraint"
+    :type shadowPriceConstraintStr: string
+
+    :param kwargs: passed on to :func:`writeDatasetsToZarr`, e.g. the compression
     """
-    esm_dict, component_dict = dictIO.exportToDict(esM)
-
-    netcdf_input = convertOptimizationInputToDatasets(esM)
-    zarr_input = convertOptimizationInputToDatasetsZarr(
-        esM, esm_dict=esm_dict, component_dict=component_dict
+    datasets = convertEnergySystemModelToDatasets(
+        esM,
+        optSumOutputLevel=optSumOutputLevel,
+        includeShadowPrices=includeShadowPrices,
+        shadowPriceConstraintStr=shadowPriceConstraintStr,
     )
+    writeDatasetsToZarr(datasets, output_zarr_path=output_zarr_path, **kwargs)
 
-    extra = {}
-    if esM.objectiveValue is not None:
-        extra.update(convertOptimizationOutputToDatasets(esM, optSumOutputLevel))
-    if "performanceSummary" in vars(esM):
-        extra.update(convertPerformanceSummaryToDatasets(esM))
 
-    def _assemble(input_datasets):
-        datasets = dict(input_datasets)
-        datasets.update(extra)
-        return datasets
+def writeEnergySystemModelToNetCDFfolder(
+    esM,
+    base_path="my_esm",
+    optSumOutputLevel=0,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
+    **kwargs,
+):
+    """Write an esM (input and, if it was optimized, output) to a netCDF folder.
 
-    return _assemble(netcdf_input), _assemble(zarr_input)
+    :param esM: EnergySystemModel instance in which the model is held
+    :type esM: EnergySystemModel instance
+
+    :param base_path: directory the tree is written into
+        |br| * the default value is "my_esm"
+    :type base_path: string or pathlib.Path
+
+    :param optSumOutputLevel: output level of the optimization summary
+        |br| * the default value is 0
+    :type optSumOutputLevel: int (0,1,2) or dict
+
+    :param includeShadowPrices: states if the shadow prices are written as well
+        |br| * the default value is False
+    :type includeShadowPrices: boolean
+
+    :param shadowPriceConstraintStr: name of the constraint the shadow prices are
+        taken from
+        |br| * the default value is "commodityBalanceConstraint"
+    :type shadowPriceConstraintStr: string
+
+    :param kwargs: passed on to :func:`writeDatasetsToNetCDFfolder`, e.g. parallel
+
+    :return: the structure that was written, see :func:`writeDatasetsToNetCDFfolder`
+    :rtype: dict
+    """
+    datasets = convertEnergySystemModelToDatasets(
+        esM,
+        optSumOutputLevel=optSumOutputLevel,
+        includeShadowPrices=includeShadowPrices,
+        shadowPriceConstraintStr=shadowPriceConstraintStr,
+    )
+    return writeDatasetsToNetCDFfolder(datasets, base_path=base_path, **kwargs)
+
+
+def readNetCDFfolderToEnergySystemModel(base_path, **kwargs):
+    """Read a netCDF folder written by :func:`writeDatasetsToNetCDFfolder` into an esM.
+
+    :param base_path: directory holding the tree and its structure.json
+    :type base_path: string or pathlib.Path
+
+    :param kwargs: passed on to :func:`readNetCDFfolderToDatasets`
+
+    :return: esM - EnergySystemModel instance
+    :rtype: EnergySystemModel instance
+    """
+    datasets = readNetCDFfolderToDatasets(base_path, **kwargs)
+    return convertDatasetsToEnergySystemModel(datasets)
