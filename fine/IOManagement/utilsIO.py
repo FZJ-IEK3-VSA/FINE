@@ -599,6 +599,54 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
     return component_dict
 
 
+def meltConnectionColumns(sub):
+    """Turn a 2-dim ``(Component, locationIn) x locationOut`` frame (no time axis) into the
+    1-dim companion shape ``Component x "locationIn_locationOut"`` used e.g. by
+    ``ComponentModel._rawResults1dim`` (connection strings following
+    ``ComponentModel._connectionLocationMap``'s ``"locIn_locOut"`` convention).
+
+    :param sub: frame with a ``(Component, locationIn)`` index and ``locationOut`` columns.
+    :type sub: pandas.DataFrame
+
+    :return: frame indexed by ``Component`` with one column per connection string.
+    :rtype: pandas.DataFrame
+    """
+    stacked = sub.stack()
+    locIn = stacked.index.get_level_values("locationIn").astype(str)
+    locOut = stacked.index.get_level_values("locationOut").astype(str)
+    connection = locIn + "_" + locOut
+    component = stacked.index.get_level_values("Component")
+    return pd.Series(
+        stacked.values, index=pd.MultiIndex.from_arrays([component, connection])
+    ).unstack(-1)
+
+
+def mergeConnectionIndexLevels(frame):
+    """Merge a time-dependent frame's ``locationIn``/``locationOut`` index levels into a
+    single ``"locationIn_locationOut"`` connection-string level, keeping any other levels
+    (e.g. ``component``) and the ``time`` columns untouched. Used to derive the 1-dim
+    companion of a 2-dim time-dependent raw result (e.g. transmission's ``operation``).
+
+    :param frame: frame with ``locationIn``/``locationOut`` among its index levels.
+    :type frame: pandas.DataFrame
+
+    :return: frame with ``locationIn``/``locationOut`` replaced by a single ``connection``
+        level, in the position ``locationIn`` used to occupy.
+    :rtype: pandas.DataFrame
+    """
+    names = list(frame.index.names)
+    pos = names.index("locationIn")
+    locIn = frame.index.get_level_values("locationIn").astype(str)
+    locOut = frame.index.get_level_values("locationOut").astype(str)
+    connection = locIn + "_" + locOut
+    keepNames = [n for n in names if n not in ("locationIn", "locationOut")]
+    arrays = [frame.index.get_level_values(n) for n in keepNames]
+    arrays.insert(pos, connection)
+    newNames = keepNames.copy()
+    newNames.insert(pos, "connection")
+    return frame.set_axis(pd.MultiIndex.from_arrays(arrays, names=newNames), axis=0)
+
+
 def getShadowPriceXarray(esM, constraint_str="commodityBalanceConstraint"):
     """Retrieve shadow prices (dual values) for a specified constraint from the energy system model
     and return them as an xarray DataArray.

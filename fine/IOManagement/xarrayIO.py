@@ -410,6 +410,23 @@ def convertDatasetsToEnergySystemModel(datasets):
         startyear = list(datasets["Results"].keys())[0]
         for model, comps in datasets["Results"][startyear].items():
             optSum = {}
+            # Reconstruct the raw results dict (single source of truth for the summary and
+            # the export), driven generically by the modeling class' own
+            # _exportOptimumVarMap() instead of a hardcoded variable list, so a class adding
+            # its own variables there (e.g. LOPF's phaseAngle) is restored automatically.
+            modelingClass = esM.componentModelingDict[model]
+            exportMap = modelingClass._exportOptimumVarMap()
+            renameOptimumVariables = {
+                "operationVariablesOptimum": "operationTimeSeries"
+            }
+            timeDependentRawKeys = {
+                rawKey: (optName, dimension)
+                for rawKey, optName, timeDependent, dimension in exportMap
+                if timeDependent
+            }
+            designProps = {"capacity", "commissioning", "decommissioning", "isBuilt"}
+            rawResultsDict = {}
+            rawResults1dimDict = {}
             operationVariablesOptimum_dict = {}
             capacityVariablesOptimum_dict = {}
             isBuiltVariablesOptimum_dict = {}
@@ -502,6 +519,49 @@ def convertDatasetsToEnergySystemModel(datasets):
                 optSum[int(ip)] = optSum_df
 
                 setattr(esM.componentModelingDict[model], "_optSummary", optSum)
+
+                # Reconstruct _rawResults / _rawResults1dim for this investment period.
+                # Design rows and derived economics rows are always present in the summary
+                # (not skipped as "duplicate"); time-dependent variables (operation,
+                # charge/discharge, phaseAngle, part-load discretization, ...) are read
+                # from their own dedicated netCDF variable instead.
+                ipInt = int(ip)
+                rawResultsDict[ipInt] = {}
+                rawResults1dimDict[ipInt] = {}
+                isTwoDim = modelingClass.dimension == Dimension.TWO
+                for prop in optSum_df.index.get_level_values("Property").unique():
+                    sub = optSum_df.xs(prop, level="Property")
+                    if "Unit" in sub.index.names:
+                        sub = sub.droplevel("Unit")
+                    sub = sub.dropna(axis=0, how="all").dropna(axis=1, how="all")
+                    if sub.empty:
+                        continue
+                    if prop in designProps:
+                        rawResultsDict[ipInt][prop] = sub
+                        rawResults1dimDict[ipInt][prop] = (
+                            utilsIO.meltConnectionColumns(sub) if isTwoDim else sub
+                        )
+                    elif prop not in timeDependentRawKeys:
+                        rawResultsDict[ipInt][prop] = (
+                            utilsIO.meltConnectionColumns(sub) if isTwoDim else sub
+                        )
+
+                for rawKey, (optName, dimension) in timeDependentRawKeys.items():
+                    datasetVarName = renameOptimumVariables.get(optName, optName)
+                    subs = {}
+                    for component, comp_ds in datasets["Results"][ip][model].items():
+                        if datasetVarName not in comp_ds.data_vars:
+                            continue
+                        series = comp_ds[datasetVarName].to_dataframe()[datasetVarName]
+                        subs[component] = series.unstack("time")
+                    if not subs:
+                        continue
+                    frame = pd.concat(subs, names=["component"])
+                    rawResultsDict[ipInt][rawKey] = frame
+                    if dimension == Dimension.TWO:
+                        rawResults1dimDict[ipInt][rawKey] = (
+                            utilsIO.mergeConnectionIndexLevels(frame)
+                        )
 
                 # read optimal Values (3 types exist)
                 operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
@@ -858,6 +918,12 @@ def convertDatasetsToEnergySystemModel(datasets):
                 esM.componentModelingDict[model],
                 "_stateOfChargeOperationVariablesOptimum",
                 stateOfChargeOperationVariablesOptimum_dict,
+            )
+            setattr(esM.componentModelingDict[model], "_rawResults", rawResultsDict)
+            setattr(
+                esM.componentModelingDict[model],
+                "_rawResults1dim",
+                rawResults1dimDict,
             )
 
             # if only one investment period -> keep optimal values unchanged for end user

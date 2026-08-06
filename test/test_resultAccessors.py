@@ -30,9 +30,13 @@ def test_requireRawResults_raises_before_the_model_is_optimized(minimal_test_esM
     model = minimal_test_esM.componentModelingDict["ConversionModel"]
     assert model._rawResults == {}
 
-    with pytest.raises(RuntimeError, match="re-optimize"):
+    with pytest.raises(
+        RuntimeError, match="optimize the model or load an optimized model"
+    ):
         model.getResultOptimalValues(0)
-    with pytest.raises(RuntimeError, match="re-optimize"):
+    with pytest.raises(
+        RuntimeError, match="optimize the model or load an optimized model"
+    ):
         model.getResultSummaryDict(minimal_test_esM, 0)
 
 
