@@ -563,12 +563,9 @@ class PiecewiseLinearCostFunctionModel:
         loc = list(esM.locations)[0]
 
         for moduleName, module in self.modulesDict.items():
-            ipEconomicLifetime = getattr(
-                esM.getComponent(moduleName), "ipEconomicLifetime"
-            ).mean()
-            ipTechnicalLifetime = getattr(
-                esM.getComponent(moduleName), "ipTechnicalLifetime"
-            ).mean()
+            comp = esM.getComponent(moduleName)
+            ipEconomicLifetime = comp.ipEconomicLifetime.mean()
+            ipTechnicalLifetime = comp.ipTechnicalLifetime.mean()
 
             (fullCostIntervals, costInLastEconInterval, costInLastTechInterval) = (
                 utils.getParametersForUnevenLifetimes(

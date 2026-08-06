@@ -105,8 +105,9 @@ def test_lopf_full_workflow():
     assert abs(float(pa.sel(location="cluster_1")) - 0.0) < 1e-6
     assert abs(float(pa.sel(location="cluster_2")) - (-10.0)) < 1e-6
     # The 2-dim operation is exported too.
-    assert "operationVariablesOptimum" in ds.data_vars
-    assert set(ds["operationVariablesOptimum"].dims) == {
+    assert "operationVariablesOptimum" not in ds.data_vars
+    assert "operationTimeSeries" in ds.data_vars
+    assert set(ds["operationTimeSeries"].dims) == {
         "time",
         "locationIn",
         "locationOut",

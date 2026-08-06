@@ -124,11 +124,30 @@ def test_esm_output_to_dataset_and_back(minimal_test_esM):
     compare_esm_inputs(esm_original, esm_from_datasets)
     compare_esm_outputs(esm_original, esm_from_datasets)
 
+    removed_xarray_duplicates = {
+        "capacityVariablesOptimum",
+        "commissioningVariablesOptimum",
+        "decommissioningVariablesOptimum",
+    }
+
     for mdl in esm_original.componentModelingDict.keys():
-        compare_dicts(
-            esm_original.componentModelingDict[mdl].getOptimalValues(),
-            esm_from_datasets.componentModelingDict[mdl].getOptimalValues(),
-        )
+        original_opt_values = esm_original.componentModelingDict[mdl].getOptimalValues()
+        roundtrip_opt_values = esm_from_datasets.componentModelingDict[
+            mdl
+        ].getOptimalValues()
+
+        original_opt_values = {
+            key: value
+            for key, value in original_opt_values.items()
+            if key not in removed_xarray_duplicates
+        }
+        roundtrip_opt_values = {
+            key: value
+            for key, value in roundtrip_opt_values.items()
+            if key not in removed_xarray_duplicates
+        }
+
+        compare_dicts(original_opt_values, roundtrip_opt_values)
 
 
 def test_input_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):

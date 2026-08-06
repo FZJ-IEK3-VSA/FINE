@@ -622,8 +622,15 @@ def test_conversionPartLoad():
         assert var in ds.data_vars, f"{var} missing from part-load export"
         assert set(ds[var].dims) == {"time", "discretizationIndex", "location"}
     # The plain operation optimum is exported as well.
-    assert "operationVariablesOptimum" in ds.data_vars
-    assert set(ds["operationVariablesOptimum"].dims) == {"time", "location"}
+    assert "operationVariablesOptimum" not in ds.data_vars
+    assert "operationTimeSeries" in ds.data_vars
+    assert set(ds["operationTimeSeries"].dims) == {"time", "location"}
+    for duplicate in (
+        "capacityVariablesOptimum",
+        "commissioningVariablesOptimum",
+        "decommissioningVariablesOptimum",
+    ):
+        assert duplicate not in ds.data_vars
 
 
 if __name__ == "__main__":
