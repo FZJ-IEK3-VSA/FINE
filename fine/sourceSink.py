@@ -270,13 +270,15 @@ class Source(Component):
         # commodityCost and commodityCostTimeSeries
         print("commodityCost-----", commodityCost)
         self.commodityCost = commodityCost
-        self.processedCommodityCost, self.fullCommodityCostTimeSeries = utils.processCommodityCost(
-            esM,
-            name,
-            commodityCost,
-            Dimension.ONE,
-            locationalEligibility,
-            esM.investmentPeriods,
+        self.processedCommodityCost, self.fullCommodityCostTimeSeries = (
+            utils.processCommodityCost(
+                esM,
+                name,
+                commodityCost,
+                "1dim",
+                locationalEligibility,
+                esM.investmentPeriods,
+            )
         )
 
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
@@ -285,13 +287,15 @@ class Source(Component):
         # commodtyRevenue and commodityRevenueTimeSeries
         self.commodityRevenue = commodityRevenue
         print("commodityRevenue-----", commodityRevenue)
-        self.processedCommodityRevenue, self.fullCommodityRevenueTimeSeries = utils.processCommodityCost(
-            esM,
-            name,
-            commodityRevenue,
-            Dimension.ONE,
-            locationalEligibility,
-            esM.investmentPeriods,
+        self.processedCommodityRevenue, self.fullCommodityRevenueTimeSeries = (
+            utils.processCommodityCost(
+                esM,
+                name,
+                commodityRevenue,
+                "1dim",
+                locationalEligibility,
+                esM.investmentPeriods,
+            )
         )
 
         self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)

@@ -20,7 +20,7 @@ def test_LocationEligibility():
     """
     esm = fn.EnergySystemModel(
         locations={"DE", "AT", "CH"},
-        numberOfTimeSteps = 10,
+        numberOfTimeSteps=10,
         commodities={"energy"},
         commodityUnitsDict={"energy": "joule"},
     )
@@ -81,5 +81,7 @@ def test_TransmissionWithoutCapacityRestrictions():
         commodity="energy",
         operationRateMax=operationRateMax,
     )
+
+
 # test_TransmissionWithoutCapacityRestrictions()
 test_LocationEligibility()
