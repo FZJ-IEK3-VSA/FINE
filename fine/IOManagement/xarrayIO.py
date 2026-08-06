@@ -12,6 +12,32 @@ from fine.IOManagement import dictIO, utilsIO
 
 logger = logging.getLogger(__name__)
 
+# How the optimum variables are named in the exported datasets (issue #751 / PR #785). The
+# writer and the reader derive their mappings from these two dicts, so the two directions
+# cannot drift apart.
+#
+# Optima whose values the time-independent summary already carries under the row name on the
+# left. The export writes the summary row only; the reader restores the *VariablesOptimum
+# attribute from it.
+DUPLICATE_OPTIMUM_SUMMARY_ROWS = {
+    "capacity": "capacityVariablesOptimum",
+    "commissioning": "commissioningVariablesOptimum",
+    "decommissioning": "decommissioningVariablesOptimum",
+}
+# Optima exported under a name that no longer contains "Optimum".
+RENAMED_OPTIMUM_VARIABLES = {"operationVariablesOptimum": "operationTimeSeries"}
+
+# Writer: optima to leave out entirely, because a summary row already holds them.
+DUPLICATE_OPTIMUM_VARIABLES = frozenset(DUPLICATE_OPTIMUM_SUMMARY_ROWS.values())
+# Reader: exported names that hold optimum values only, although they lack "Optimum", so the
+# summary loop must skip them.
+OPTIMUM_ONLY_VARIABLES = frozenset(RENAMED_OPTIMUM_VARIABLES.values())
+# Reader: exported name -> the optimum variable to restore from it.
+SUMMARY_OPTIMUM_MAPPING = {
+    **DUPLICATE_OPTIMUM_SUMMARY_ROWS,
+    **{exported: raw for raw, exported in RENAMED_OPTIMUM_VARIABLES.items()},
+}
+
 
 def _warnDeprecatedOptSumOutputLevel(optSumOutputLevel):
     """Warn that the ``optSumOutputLevel`` parameter of the result export has no effect anymore.
@@ -132,23 +158,15 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=None):
             modelingClass = esM.componentModelingDict[name]
             summaryDict = modelingClass.getResultSummaryDict(esM, ip)
             optimaDict = modelingClass.getResultOptimalValues(ip)
-            duplicateOptimumVariables = {
-                "capacityVariablesOptimum",
-                "commissioningVariablesOptimum",
-                "decommissioningVariablesOptimum",
-            }
-            renameOptimumVariables = {
-                "operationVariablesOptimum": "operationTimeSeries",
-            }
             for component in modelingClass.componentsDict.keys():
                 variables = {
                     **summaryDict.get(component, {}),
                     **optimaDict.get(component, {}),
                 }
                 for variable, (values, unit) in variables.items():
-                    if variable in duplicateOptimumVariables:
+                    if variable in DUPLICATE_OPTIMUM_VARIABLES:
                         continue
-                    exportVariable = renameOptimumVariables.get(variable, variable)
+                    exportVariable = RENAMED_OPTIMUM_VARIABLES.get(variable, variable)
                     xr_da = values.to_xarray()
                     if exportVariable != variable:
                         xr_da = xr_da.rename(exportVariable)
@@ -436,17 +454,13 @@ def convertDatasetsToEnergySystemModel(datasets):
             dischargeOperationVariablesOptimum_dict = {}
             stateOfChargeOperationVariablesOptimum_dict = {}
 
-            # Variables that only hold optimum values even though their export name no
-            # longer contains "Optimum" (#785).
-            optimumOnlyVariables = {"operationTimeSeries"}
-
             for ip in datasets["Results"].keys():
                 # read opt Summary
                 optSum_df = pd.DataFrame([])
                 for component in datasets["Results"][ip][model]:
                     optSum_df_comp = pd.DataFrame([])
                     for variable in datasets["Results"][ip][model][component]:
-                        if "Optimum" in variable or variable in optimumOnlyVariables:
+                        if "Optimum" in variable or variable in OPTIMUM_ONLY_VARIABLES:
                             continue
                         if "locationOut" in list(
                             datasets["Results"][ip][model][component].coords
@@ -540,20 +554,13 @@ def convertDatasetsToEnergySystemModel(datasets):
                     _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
 
-                    summaryOptimumMapping = {
-                        "capacity": "capacityVariablesOptimum",
-                        "commissioning": "commissioningVariablesOptimum",
-                        "decommissioning": "decommissioningVariablesOptimum",
-                        "operationTimeSeries": "operationVariablesOptimum",
-                    }
-
                     for variable in datasets["Results"][ip][model][component]:
                         if (
                             "Optimum" not in variable
-                            and variable not in summaryOptimumMapping
+                            and variable not in SUMMARY_OPTIMUM_MAPPING
                         ):
                             continue
-                        opt_variable = summaryOptimumMapping.get(variable, variable)
+                        opt_variable = SUMMARY_OPTIMUM_MAPPING.get(variable, variable)
                         xr_opt = datasets["Results"][ip][model][component][variable]
 
                         if opt_variable == "operationVariablesOptimum":
