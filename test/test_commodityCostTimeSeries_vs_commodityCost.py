@@ -51,9 +51,7 @@ def test_miniSystem():
         columns=["loc1", "loc2"],
     )
 
-    costSeries = pd.Series(
-        [1, 2], index=["loc1", "loc2"], dtype=float
-    )
+    costSeries = pd.Series([1, 2], index=["loc1", "loc2"], dtype=float)
 
     esM.add(
         fn.Source(
@@ -62,7 +60,7 @@ def test_miniSystem():
             commodity="electricity",
             hasCapacityVariable=False,
             # commodityCost = {0: costTS},
-            commodityCost = {0:costSeries},
+            commodityCost={0: costSeries},
             # commodityCost = {0:None}
             # commodityCost = 1,
             # commodityCost = None,
@@ -91,7 +89,7 @@ def test_miniSystem():
             # commodityRevenue = 2,
             # commodityRevenue = None,
             # commodityRevenue = costSeries,
-            commodityRevenue = costTS,
+            commodityRevenue=costTS,
         )
     )
 

@@ -1420,6 +1420,7 @@ def checkAndSetPartLoadMin(
                 )
     return partLoadMin_ip
 
+
 def checkAndSetInvestmentPeriodCostParameter(
     esM, name, data, dimension, locationalEligibility, years
 ):
@@ -1454,9 +1455,7 @@ def checkAndSetInvestmentPeriodCostParameter(
     return parameter
 
 
-def processCommodityCost(
-    esM, name, data, dimension, locationalEligibility, years
-):
+def processCommodityCost(esM, name, data, dimension, locationalEligibility, years):
     # stock years are only considered for parameter for which the
     # years contain investment periods and stock years
     _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
@@ -1477,7 +1476,7 @@ def processCommodityCost(
     for ip in years:
         parameterCost[ip] = checkAndSetCostParameter(
             esM, name, 0, dimension, locationalEligibility
-        ) 
+        )
         parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
             esM, name, None, locationalEligibility, dimension="1dim"
         )
@@ -1494,25 +1493,37 @@ def processCommodityCost(
             parameterCost[ip] = checkAndSetCostParameter(
                 esM, name, data, dimension, locationalEligibility
             )
-            # print(parameter[ip])            
-        elif isinstance(data, dict) and isinstance(data[_ip], pd.Series) and (set(data[_ip].index) == esM.locations): # check if index of series matches locations of model
+            # print(parameter[ip])
+        elif (
+            isinstance(data, dict)
+            and isinstance(data[_ip], pd.Series)
+            and (set(data[_ip].index) == esM.locations)
+        ):  # check if index of series matches locations of model
             parameterCost[ip] = checkAndSetCostParameter(
                 esM, name, data[_ip], dimension, locationalEligibility
             )
-        elif isinstance(data, dict): 
-            if isinstance(data[_ip], (int,float)):# check if the value is an int or float
+        elif isinstance(data, dict):
+            if isinstance(
+                data[_ip], (int, float)
+            ):  # check if the value is an int or float
                 parameterCost[ip] = checkAndSetCostParameter(
                     esM, name, data[_ip], dimension, locationalEligibility
                 )
-            elif isinstance(data[_ip], pd.Series) and (set(data[_ip].index) == esM.totalTimeSteps): # check if index of series matches time steps of model
+            elif isinstance(data[_ip], pd.Series) and (
+                set(data[_ip].index) == esM.totalTimeSteps
+            ):  # check if index of series matches time steps of model
                 parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
                     esM, name, data[_ip], locationalEligibility, dimension="1dim"
                 )
-            elif isinstance(data[_ip], pd.Series) and (set(data[_ip].index) == esM.locations): # check if index of series matches locations of model
+            elif isinstance(data[_ip], pd.Series) and (
+                set(data[_ip].index) == esM.locations
+            ):  # check if index of series matches locations of model
                 parameterCost[ip] = checkAndSetCostParameter(
                     esM, name, data[_ip], dimension, locationalEligibility
                 )
-            elif isinstance(data[_ip], pd.DataFrame | None): # check if the data is given as dataframe with None time steps and locations as index and columns
+            elif isinstance(
+                data[_ip], pd.DataFrame | None
+            ):  # check if the data is given as dataframe with None time steps and locations as index and columns
                 parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
                     esM, name, data[_ip], locationalEligibility, dimension="1dim"
                 )
@@ -2091,15 +2102,15 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
             data_ = data.sort_index()
             return data_
         # elif isinstance(data, pd.Series) and locationalEligibility is not None:
-            # data_ = data.sort_index()
-            # index, data_ = [], []
-            # for loc in data.index:
-            #     if data[loc] > 0:
-            #         index.append(loc)
-            #         data_.append(data[loc])
-            # data_ = pd.Series(data_, index=index)
-            # data_.sort_index(inplace=True)
-            # return data_
+        # data_ = data.sort_index()
+        # index, data_ = [], []
+        # for loc in data.index:
+        #     if data[loc] > 0:
+        #         index.append(loc)
+        #         data_.append(data[loc])
+        # data_ = pd.Series(data_, index=index)
+        # data_.sort_index(inplace=True)
+        # return data_
         else:
             return data
 
