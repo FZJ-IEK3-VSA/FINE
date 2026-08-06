@@ -83,6 +83,12 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
 def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=None):
     """Take esM instance output and convert it into an xarray dataset.
 
+    The results are read from the raw results dict that ``esM.optimize()`` fills, so the esM
+    must have been optimized in this session. An esM read back from a netCDF file carries the
+    optimization summary but not that dict, and cannot be exported again without re-optimizing
+    (see :meth:`fine.component.ComponentModel._requireRawResults`). This limitation is
+    temporary: issue #786 reconstructs the raw results dict on netCDF load.
+
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
 
@@ -94,6 +100,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=None):
 
     :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
     :rtype: xarray.dataset
+
+    :raises RuntimeError: if the esM holds no raw optimization results, e.g. because it was
+        read from a netCDF file instead of optimized. Tracked in issue #786.
     """
     _warnDeprecatedOptSumOutputLevel(optSumOutputLevel)
     # Create the netCDF file and the xr.Dataset dict for all ips and components
@@ -910,6 +919,10 @@ def writeEnergySystemModelToNetCDF(
     :return: Nested dictionary containing xr.Dataset with all result values
         for each component.
     :rtype: Dict[str, Dict[str, xr.Dataset]]
+
+    :raises RuntimeError: if the esM was optimized but holds no raw optimization results, see
+        :func:`convertOptimizationOutputToDatasets` and issue #786. An esM read back from
+        netCDF keeps ``objectiveValue = None``, so its results are skipped instead.
     """
     _warnDeprecatedOptSumOutputLevel(optSumOutputLevel)
 
@@ -961,6 +974,10 @@ def writeEnergySystemModelToDatasets(
     :return: xr_dss_results - esM instance (input and output) data in xarray
         dataset format
     :rtype: xr.DataSet
+
+    :raises RuntimeError: if the esM was optimized but holds no raw optimization results, see
+        :func:`convertOptimizationOutputToDatasets` and issue #786. An esM read back from
+        netCDF keeps ``objectiveValue = None``, so its results are skipped instead.
     """
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
