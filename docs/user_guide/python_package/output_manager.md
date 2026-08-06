@@ -12,7 +12,7 @@ formats. All three read back into an equal `EnergySystemModel`.
 
 | Format | Write | Read | Use it when |
 |---|---|---|---|
-| One netCDF file | `writeEnergySystemModelToNetCDF` | `readNetCDFToEnergySystemModel` | The model is small enough to move as one file. |
+| One netCDF file | `writeEnergySystemModelToNetCDF` | `readNetCDFtoEnergySystemModel` | The model is small enough to move as one file. |
 | A netCDF folder | `writeEnergySystemModelToNetCDFfolder` | `readNetCDFfolderToEnergySystemModel` | Writing or reading is slow. One file per dataset means the files are independent, so they can be handled by several processes at once or read on demand. |
 | A Zarr store | `writeEnergySystemModelToZarr` | `readZarrToEnergySystemModel` | You want to read one variable across all components without reading everything. The components of a class are stacked into one array, and the arrays are chunked and compressed. |
 

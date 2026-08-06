@@ -887,7 +887,7 @@ def test_esm_multinode_zarr_agrees_with_netcdf(multi_node_test_esM_init, tmp_pat
 
     netcdf_path = str(tmp_path / "test_esM.nc")
     xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath=netcdf_path)
-    esm_from_netcdf = xrIO.readNetCDFToEnergySystemModel(netcdf_path)
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(netcdf_path)
 
     compare_esm_inputs(esm_from_netcdf, esm_from_zarr)
 

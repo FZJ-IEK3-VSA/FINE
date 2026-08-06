@@ -1445,7 +1445,7 @@ def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False
     return xr_dss
 
 
-def readNetCDFToEnergySystemModel(filePath, groupPrefix=None):
+def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
     """Convert netCDF file into an EnergySystemModel instance.
 
     :param filePath: file name of netCDF file (can include full path) in which
@@ -1461,11 +1461,6 @@ def readNetCDFToEnergySystemModel(filePath, groupPrefix=None):
 
     # xarray dataset to esm
     return convertDatasetsToEnergySystemModel(xr_dss)
-
-
-# the older spelling, with the lower case "to". It is alone among all of them, so
-# the name above is the one to use, and this stays for the callers that have it.
-readNetCDFtoEnergySystemModel = readNetCDFToEnergySystemModel
 
 
 def _make_datasets_lazy(data_dict, chunks="auto", _path=()):
@@ -1536,9 +1531,6 @@ ZARR_CHUNK_SCHEME = {
 # fill value written for float variables when replaceFillValue is set
 ZARR_FLOAT_FILL_VALUE = -9999.0
 
-# dimension the components of one model class are concatenated along
-ZARR_COMPONENT_DIMENSION = utilsIO.COMPONENT_DIMENSION
-
 # name the ShadowPrices DataArray is stored under inside its own Zarr group
 ZARR_SHADOW_PRICE_VARIABLE = "shadowPrices"
 
@@ -1563,7 +1555,9 @@ def _zarrCompressorEncoding(compressionAlgorithm, compressionLevel):
     :return: the encoding entries to merge into each variable's encoding
     :rtype: dict
     """
-    import zarr  # noqa: PLC0415 - optional dependency, imported where it is used
+    # imported here, not at module scope, so that "import fine" keeps working in an
+    # environment that has no zarr. Only the Zarr writer needs it.
+    import zarr  # noqa: PLC0415
 
     if int(zarr.__version__.split(".")[0]) >= 3:
         from zarr.codecs import BloscCodec, BloscShuffle  # noqa: PLC0415
