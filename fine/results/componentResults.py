@@ -616,11 +616,10 @@ class ComponentResultsMixin:
         """Return ``self._rawResults[ip]``, with an explanatory error if it is not available.
 
         The raw results dict is populated by :meth:`extractRawResults` /
-        :meth:`deriveEconomics` during ``esM.optimize()``. It is deliberately *not*
-        reconstructed when an EnergySystemModel is read back from a netCDF file
-        (:func:`fine.IOManagement.xarrayIO.readNetCDFtoEnergySystemModel` restores the
-        optimization summary and the ``*VariablesOptimum`` attributes only), so results loaded
-        from a file cannot be exported again without re-optimizing.
+        :meth:`deriveEconomics` during ``esM.optimize()``, and is also reconstructed by
+        :func:`fine.IOManagement.xarrayIO.readNetCDFtoEnergySystemModel` when an
+        EnergySystemModel is read back from a netCDF file. It is only empty for a model that
+        has neither been optimized nor loaded from a file with results.
 
         :param ip: investment period name (key into ``self._rawResults``).
         :type ip: string
@@ -631,8 +630,8 @@ class ComponentResultsMixin:
         if not self._rawResults:
             raise RuntimeError(
                 f"No raw optimization results available for '{type(self).__name__}'. They are "
-                "created by esM.optimize() and are not restored when an EnergySystemModel is "
-                "read from a netCDF file - re-optimize the model before exporting its results."
+                "created by esM.optimize() or restored by reading a netCDF file with results - "
+                "optimize the model or load an optimized model before exporting its results."
             )
         if ip not in self._rawResults:
             raise KeyError(
