@@ -289,7 +289,8 @@ class Source(Component):
             esM.investmentPeriods,
         )
 
-        print(self.processedCommodityCost)
+        print("CommodityCost:",self.processedCommodityCost)
+        print("CommodityCostTimeSeries:", self.fullCommodityCostTimeSeries)
 
         # commodityCostTimeSeries
         # if isinstance(self.processedCommodityCost, dict):
@@ -302,13 +303,13 @@ class Source(Component):
         #         esM, name, commodityCostTimeSeries, locationalEligibility
         #     )
         # )
-        print(self.fullCommodityCostTimeSeries)
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)            
 
         # commodtyRevenue
         self.commodityRevenue = commodityRevenue
-        self.processedCommodityRevenue = utils.checkAndSetInvestmentPeriodCostParameter(
+        print("commodityRevenue-----", commodityRevenue)        
+        self.processedCommodityRevenue, self.fullCommodityRevenueTimeSeries = utils.processCommodityCost(
             esM,
             name,
             commodityRevenue,
@@ -316,15 +317,27 @@ class Source(Component):
             locationalEligibility,
             esM.investmentPeriods,
         )
+        # self.processedCommodityRevenue = utils.checkAndSetInvestmentPeriodCostParameter(
+        #     esM,
+        #     name,
+        #     commodityRevenue,
+        #     "1dim",
+        #     locationalEligibility,
+        #     esM.investmentPeriods,
+        # )
 
-        # commodityRevenueTimeSeries
-        self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
-        self.fullCommodityRevenueTimeSeries = {}
-        self.fullCommodityRevenueTimeSeries = (
-            utils.checkAndSetInvestmentPeriodCostTimeSeries(
-                esM, name, commodityRevenueTimeSeries, locationalEligibility
-            )
-        )
+        # # commodityRevenueTimeSeries
+        # self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
+        # self.fullCommodityRevenueTimeSeries = {}
+        # self.fullCommodityRevenueTimeSeries = (
+        #     utils.checkAndSetInvestmentPeriodCostTimeSeries(
+        #         esM, name, commodityRevenueTimeSeries, locationalEligibility
+        #     )
+        # )
+
+        print("CommodityRevenue:",self.processedCommodityRevenue)
+        print("CommodityRevenueTimeSeries:", self.fullCommodityRevenueTimeSeries)  
+
         self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
@@ -613,8 +626,8 @@ class Sink(Source):
             opexPerOperation=opexPerOperation,
             commodityCost=commodityCost,
             commodityRevenue=commodityRevenue,
-            commodityCostTimeSeries=commodityCostTimeSeries,
-            commodityRevenueTimeSeries=commodityRevenueTimeSeries,
+            # commodityCostTimeSeries=commodityCostTimeSeries,
+            # commodityRevenueTimeSeries=commodityRevenueTimeSeries,
             opexPerCapacity=opexPerCapacity,
             opexIfBuilt=opexIfBuilt,
             QPcostScale=QPcostScale,

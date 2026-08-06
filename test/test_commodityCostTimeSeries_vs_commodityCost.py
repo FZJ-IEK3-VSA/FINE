@@ -64,7 +64,11 @@ def test_miniSystem():
             name="Electricity purchase",
             commodity="electricity",
             hasCapacityVariable=False,
-            commodityCost = 1,
+            # commodityCost = {0: costTS},
+            commodityCost = {0:costSeries},
+            # commodityCost = {0:None}
+            # commodityCost = 1,
+            # commodityCost = None,
             # commodityCost = costSeries,
             # commodityCost = costTS,
             # commodityCostTimeSeries=costTS,
@@ -77,18 +81,24 @@ def test_miniSystem():
     )
     # print(costTS, demandTS)
 
-    # esM.add(
-    #     fn.Sink(
-    #         esM=esM,
-    #         name="Electricity demand",
-    #         commodity="electricity",
-    #         operationRateFix=demandTS,
-    #         hasCapacityVariable=False,
-    #         commodityRevenue=2,
-    #     )
-    # )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Electricity demand",
+            commodity="electricity",
+            operationRateFix=demandTS,
+            hasCapacityVariable=False,
+            # commodityRevenue = {0: costTS},
+            # commodityRevenue = {0:costSeries},
+            # commodityRevenue = {0:None}
+            # commodityRevenue = 2,
+            # commodityRevenue = None,
+            # commodityRevenue = costSeries,
+            commodityRevenue = costTS,         
+        )
+    )
 
-    # esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    esM.optimize(timeSeriesAggregation=False, solver="gurobi")
 
     # summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
     # np.testing.assert_almost_equal(

@@ -1616,11 +1616,11 @@ def processCommodityCost(
                 parameterCost[ip] = checkAndSetCostParameter(
                     esM, name, data[_ip], dimension, locationalEligibility
                 )
-            elif isinstance(data[_ip], (pd.DataFrame,None)): # check if the data is given as dataframe with None time steps and locations as index and columns
+            elif isinstance(data[_ip], pd.DataFrame | None): # check if the data is given as dataframe with None time steps and locations as index and columns
                 parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
                     esM, name, data[_ip], locationalEligibility, dimension="1dim"
                 )
-        elif isinstance(data, (pd.DataFrame,None)):
+        elif isinstance(data, pd.DataFrame | None):
             parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
                 esM, name, data, locationalEligibility, dimension="1dim"
             )
