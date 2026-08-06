@@ -86,8 +86,8 @@ def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenue,
+            commodityCost=costs,
+            commodityRevenue=revenue,
         )
     )  # eur/kWh
 
@@ -175,7 +175,7 @@ def stochasticESM(singleYear=False, sameParameters=False, transmissionCase=False
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateFix=demand,
-            commodityRevenueTimeSeries=revenuesDemand,
+            commodityRevenue=revenuesDemand,
         )
     )
 

@@ -164,7 +164,7 @@ def test_fullLoadHoursMinMax():
                 name="hydrogen export",
                 commodity="hydrogen",
                 hasCapacityVariable=False,
-                commodityRevenueTimeSeries={2020: None, 2030: pd.Series(data=[1, 1])},
+                commodityRevenue={2020: None, 2030: pd.Series(data=[1, 1])},
             )
         )
 

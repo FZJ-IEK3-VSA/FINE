@@ -268,7 +268,6 @@ class Source(Component):
         )
 
         # commodityCost and commodityCostTimeSeries
-        print("commodityCost-----", commodityCost)
         self.commodityCost = commodityCost
         self.processedCommodityCost, self.fullCommodityCostTimeSeries = (
             utils.processCommodityCost(
@@ -286,7 +285,6 @@ class Source(Component):
 
         # commodtyRevenue and commodityRevenueTimeSeries
         self.commodityRevenue = commodityRevenue
-        print("commodityRevenue-----", commodityRevenue)
         self.processedCommodityRevenue, self.fullCommodityRevenueTimeSeries = (
             utils.processCommodityCost(
                 esM,

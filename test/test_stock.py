@@ -141,9 +141,9 @@ def stock_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
+            commodityCost=costs,
             opexPerCapacity={0: 500 * 0.025},
-            commodityRevenueTimeSeries=revenues,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 

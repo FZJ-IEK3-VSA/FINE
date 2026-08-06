@@ -66,7 +66,6 @@ def test_miniSystem():
             # commodityCost = None,
             # commodityCost = costSeries,
             # commodityCost = costTS,
-            # commodityCostTimeSeries=costTS,
         )
     )
 

@@ -59,7 +59,7 @@ def test_miniSystem():
             name="Electricity purchase",
             commodity="electricity",
             hasCapacityVariable=False,
-            commodityCostTimeSeries=costTS,
+            commodityCost=costTS,
         )
     )
 
@@ -75,7 +75,7 @@ def test_miniSystem():
             commodity="electricity",
             operationRateFix=demandTS,
             hasCapacityVariable=False,
-            commodityRevenueTimeSeries=costTS,
+            commodityRevenue=costTS,
         )
     )
 

@@ -122,8 +122,8 @@ def minimal_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -269,8 +269,8 @@ def single_node_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -622,7 +622,7 @@ def multi_node_test_esM_init(get_data_fixture):
             name="Natural gas purchase",
             commodity="methane",
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Natural Gas, commodityCostTimeSeries"],
+            commodityCost=data["Natural Gas, commodityCostTimeSeries"],
         )
     )
 
@@ -634,7 +634,7 @@ def multi_node_test_esM_init(get_data_fixture):
             commodity="biogas",
             operationRateMax=data["Biogas, operationRateMax"],
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Biogas, commodityCostTimeSeries"],
+            commodityCost=data["Biogas, commodityCostTimeSeries"],
         )
     )
 
@@ -1102,7 +1102,7 @@ def multi_node_test_esM_optimized(get_data_fixture):
             name="Natural gas purchase",
             commodity="methane",
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Natural Gas, commodityCostTimeSeries"],
+            commodityCost=data["Natural Gas, commodityCostTimeSeries"],
         )
     )
 
@@ -1114,7 +1114,7 @@ def multi_node_test_esM_optimized(get_data_fixture):
             commodity="biogas",
             operationRateMax=data["Biogas, operationRateMax"],
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Biogas, commodityCostTimeSeries"],
+            commodityCost=data["Biogas, commodityCostTimeSeries"],
         )
     )
 
