@@ -1591,10 +1591,7 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
         # map of year name (e.g. 2020) to intenral name (e.g. 0)
         # ip=int((_ip-esM.startYear)/esM.investmentPeriodInterval)
         _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
-        if (
-            isinstance(data, int)
-            or isinstance(data, float)
-        ):
+        if isinstance(data, int) or isinstance(data, float):
             parameterCost[ip] = checkAndSetCostParameter(
                 esM, name, data, dimension, locationalEligibility
             )
