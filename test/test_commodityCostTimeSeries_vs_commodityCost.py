@@ -22,9 +22,6 @@
 
 import fine as fn
 import pandas as pd
-import numpy as np
-
-# print("FINE version: ", fn.__path__)
 
 
 def test_miniSystem():
@@ -94,50 +91,10 @@ def test_miniSystem():
             # commodityRevenue = 2,
             # commodityRevenue = None,
             # commodityRevenue = costSeries,
-            commodityRevenue = costTS,         
+            commodityRevenue = costTS,
         )
     )
 
     esM.optimize(timeSeriesAggregation=False, solver="gurobi")
-
-    # summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
-    # np.testing.assert_almost_equal(
-    #     summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc1"], -730
-    # )
-    # np.testing.assert_almost_equal(
-    #     summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc2"], -2920
-    # )
-    # np.testing.assert_almost_equal(
-    #     summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc1"], 730
-    # )
-    # np.testing.assert_almost_equal(
-    #     summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc2"], 2920
-    # )
-
-    # esM.aggregateTemporally(
-    #     numberOfTypicalPeriods=5,
-    #     numberOfTimeStepsPerPeriod=1,
-    #     segmentation=False,
-    #     sortValues=True,
-    #     representationMethod=None,
-    #     rescaleClusterPeriods=True,
-    # )
-
-    # esM.optimize(timeSeriesAggregation=True, solver="gurobi")
-    # esM.optimize(timeSeriesAggregation=False, solver="gurobi")
-
-    # summary = esM.getOptimizationSummary("SourceSinkModel", outputLevel=2)
-    # print(summary)
-    # np.testing.assert_almost_equal(
-    #     summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc1"], -730
-    # )
-    # np.testing.assert_almost_equal(
-    #     summary.loc[("Electricity demand", "TAC", "[Euro/a]"), "loc2"], -2920
-    # )
-    # np.testing.assert_almost_equal(
-    #     summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc1"], 730
-    # )
-    # np.testing.assert_almost_equal(
-    #     summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc2"], 2920
-    # )
 test_miniSystem()
+

@@ -38,8 +38,6 @@ class Source(Component):
         opexPerOperation=0,
         commodityCost=0,
         commodityRevenue=0,
-        # commodityCostTimeSeries=None,
-        commodityRevenueTimeSeries=None,
         opexPerCapacity=0,
         opexIfBuilt=0,
         QPcostScale=0,
@@ -120,32 +118,6 @@ class Source(Component):
             * a dictionary with investment periods as keys and one of the two options above as values
 
 
-        :param commodityCostTimeSeries: if specified, indicates commodity cost rates for each location and each
-            time step, if required also for each investment period, by a positive float. The values are given as specific values relative to the commodityUnit
-            for each time step.
-            |br| * the default value is None
-        :type commodityCostTimeSeries:
-
-            * None
-            * Pandas DataFrame with positive (>= 0) entries. The row indices have
-              to match the in the energy system model specified time steps. The column indices have to equal the
-              in the energy system model specified locations. The data in ineligible locations are set to zero.
-            * a dictionary with investment periods as keys and one of the two options above as values
-
-
-        :param commodityRevenueTimeSeries:  if specified, indicates commodity revenue rate for each location and
-            each time step, if required also for each investment period, by a positive float. The values are given as specific values relative to the
-            commodityUnit for each time step.
-            |br| * the default value is None
-        :type commodityRevenueTimeSeries:
-
-            * None
-            * Pandas DataFrame with positive (>= 0) entries. The row indices
-              have to match the in the energy system model specified time steps. The column indices have to equal
-              the in the energy system model specified locations. The data in ineligible locations are set to zero.
-            * a dictionary with investment periods as keys and one of the two options above as values
-
-
         :param tsaWeight: weight with which the time series of the component should be considered when applying
             time series aggregation.
             |br| * the default value is 1
@@ -166,7 +138,8 @@ class Source(Component):
             * a dictionary with investment periods as keys and one of the two options above as values.
 
 
-        :param commodityCost: describes the cost value of one operation´s unit of the component.
+        :param commodityCost: can be added as a single cost value or as a time series. 
+            1. As the cost value of one operation´s unit of the component.
             The cost which is directly proportional to the operation of the component
             is obtained by multiplying the commodityCost parameter with the annual sum of the
             time series of the components. The commodityCost can either be given as a
@@ -178,15 +151,24 @@ class Source(Component):
             * In a national energy system, natural gas could be purchased from another country with a
               certain cost.
 
-            |br| * the default value is 0
+            2. As commodity cost rates for each location and each time step, if required also for each investment period, by a positive float. 
+            The values are given as specific values relative to the commodityUnit for each time step.
+
+            |br| * the default value is 0 for single cost values and None for time series.
         :type commodityCost:
 
             * positive (>=0) float
             * Pandas Series with positive (>=0).The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
+            * None
+            * Pandas DataFrame with positive (>= 0) entries. The row indices have
+              to match the in the energy system model specified time steps. The column indices have to equal the
+              in the energy system model specified locations. The data in ineligible locations are set to zero.
+            * a dictionary with investment periods as keys and one of the two options above as values            
 
 
-        :param commodityRevenue: describes the revenue of one operation´s unit of the component.
+        :param commodityRevenue: can be added as a single cost value or as a time series.
+            1. As the revenue of one operation´s unit of the component.
             The revenue which is directly proportional to the operation of the component
             is obtained by multiplying the commodityRevenue parameter with the annual sum of the
             time series of the components. The commodityRevenue can either be given as a
@@ -194,15 +176,23 @@ class Source(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
 
+            2. As commodity revenue rate for each location and each time step, if required also for each investment period, by a positive float. 
+            The values are given as specific values relative to the comodityUnit for each time step.
+
         Example:
             * Modeling a PV electricity feed-in tariff for a household
 
-            |br| * the default value is 0
+            |br| * the default value is 0 for single cost values and None for time series.
         :type commodityRevenue:
 
             * positive (>=0) float
             * Pandas Series with positive (>=0). The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
+            * None
+            * Pandas DataFrame with positive (>= 0) entries. The row indices
+              have to match the in the energy system model specified time steps. The column indices have to equal
+              the in the energy system model specified locations. The data in ineligible locations are set to zero.
+            * a dictionary with investment periods as keys and one of the two options above as values
 
 
         :param balanceLimitID: ID for the respective balance limit (out of the balance limits introduced in the esM).
@@ -277,7 +267,7 @@ class Source(Component):
             esM.investmentPeriods,
         )
 
-        # commodityCost
+        # commodityCost and commodityCostTimeSeries
         print("commodityCost-----", commodityCost)
         self.commodityCost = commodityCost
         self.processedCommodityCost, self.fullCommodityCostTimeSeries = utils.processCommodityCost(
@@ -289,24 +279,10 @@ class Source(Component):
             esM.investmentPeriods,
         )
 
-        print("CommodityCost:",self.processedCommodityCost)
-        print("CommodityCostTimeSeries:", self.fullCommodityCostTimeSeries)
-
-        # commodityCostTimeSeries
-        # if isinstance(self.processedCommodityCost, dict):
-        #     print(self.processedCommodityCost)
-        #     self.fullCommodityCostTimeSeries = self.processedCommodityCost
-        # else:
-        # self.commodityCostTimeSeries = commodityCostTimeSeries
-        # self.fullCommodityCostTimeSeries = (
-        #     utils.checkAndSetInvestmentPeriodCostTimeSeries(
-        #         esM, name, commodityCostTimeSeries, locationalEligibility
-        #     )
-        # )
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)            
 
-        # commodtyRevenue
+        # commodtyRevenue and commodityRevenueTimeSeries
         self.commodityRevenue = commodityRevenue
         print("commodityRevenue-----", commodityRevenue)        
         self.processedCommodityRevenue, self.fullCommodityRevenueTimeSeries = utils.processCommodityCost(
@@ -316,27 +292,7 @@ class Source(Component):
             Dimension.ONE,
             locationalEligibility,
             esM.investmentPeriods,
-        )
-        # self.processedCommodityRevenue = utils.checkAndSetInvestmentPeriodCostParameter(
-        #     esM,
-        #     name,
-        #     commodityRevenue,
-        #     "1dim",
-        #     locationalEligibility,
-        #     esM.investmentPeriods,
-        # )
-
-        # # commodityRevenueTimeSeries
-        # self.commodityRevenueTimeSeries = commodityRevenueTimeSeries
-        # self.fullCommodityRevenueTimeSeries = {}
-        # self.fullCommodityRevenueTimeSeries = (
-        #     utils.checkAndSetInvestmentPeriodCostTimeSeries(
-        #         esM, name, commodityRevenueTimeSeries, locationalEligibility
-        #     )
-        # )
-
-        print("CommodityRevenue:",self.processedCommodityRevenue)
-        print("CommodityRevenueTimeSeries:", self.fullCommodityRevenueTimeSeries)  
+        ) 
 
         self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
@@ -577,8 +533,6 @@ class Sink(Source):
         opexPerOperation=0,
         commodityCost=0,
         commodityRevenue=0,
-        commodityCostTimeSeries=None,
-        commodityRevenueTimeSeries=None,
         opexPerCapacity=0,
         opexIfBuilt=0,
         QPcostScale=0,
@@ -626,8 +580,6 @@ class Sink(Source):
             opexPerOperation=opexPerOperation,
             commodityCost=commodityCost,
             commodityRevenue=commodityRevenue,
-            # commodityCostTimeSeries=commodityCostTimeSeries,
-            # commodityRevenueTimeSeries=commodityRevenueTimeSeries,
             opexPerCapacity=opexPerCapacity,
             opexIfBuilt=opexIfBuilt,
             QPcostScale=QPcostScale,

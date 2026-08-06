@@ -1555,7 +1555,7 @@ def checkAndSetInvestmentPeriodCostParameter(
             raise TypeError(
                 f"Parameter of {name} should be a pandas series or a dictionary."
             )
-    return parameter    
+    return parameter
 
 
 def processCommodityCost(
@@ -1584,7 +1584,7 @@ def processCommodityCost(
         ) 
         parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
             esM, name, None, locationalEligibility, dimension="1dim"
-        )               
+        )
 
     for ip in years:
         # map of year name (e.g. 2020) to intenral name (e.g. 0)
@@ -1624,7 +1624,7 @@ def processCommodityCost(
             parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
                 esM, name, data, locationalEligibility, dimension="1dim"
             )
-            # print(parameter[ip])
+
         else:
             raise TypeError(
                 f"Parameter of {name} should be a pandas series or a dictionary."
