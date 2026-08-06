@@ -945,24 +945,29 @@ class ConversionPartLoadModel(ConversionModel):
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
+        discretizationNames = (
+            "discretizationPointVariablesOptimum",
+            "discretizationSegmentConVariablesOptimum",
+            "discretizationSegmentBinVariablesOptimum",
+        )
+        if name in discretizationNames:
+            return {
+                "values": getattr(self, f"_{name}")[ip],
+                "timeDependent": True,
+                "dimension": self.dimension,
+            }
+
+        result = super().getOptimalValues(name, ip=ip)
+        # a single conversion variable was requested and returned by the base class
+        if name != "all" and "values" in result:
+            return result
         discretizationEntries = {
             valName: {
                 "values": getattr(self, f"_{valName}")[ip],
                 "timeDependent": True,
                 "dimension": self.dimension,
             }
-            for valName in (
-                "discretizationPointVariablesOptimum",
-                "discretizationSegmentConVariablesOptimum",
-                "discretizationSegmentBinVariablesOptimum",
-            )
+            for valName in discretizationNames
         }
-        if name in discretizationEntries:
-            return discretizationEntries[name]
-
-        result = super().getOptimalValues(name, ip=ip)
-        # a single conversion variable was requested and returned by the base class
-        if name != "all" and "values" in result:
-            return result
         result.update(discretizationEntries)
         return result

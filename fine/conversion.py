@@ -1819,8 +1819,8 @@ class ConversionModel(ComponentModel):
             ).sort_index()
 
             # operation rows (operation, operation_annual, opexOp) are aggregated once in
-            # _subclassSummaryFrames and written here, so the summary and the export share
-            # the same source.
+            # _subclassSummaryFrames and written here, so the summary and the staged
+            # raw-results export accessor share the same source.
             self._writeOperationSummaryRows(optSummary, esM, ipName)
 
             optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]

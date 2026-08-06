@@ -360,18 +360,21 @@ class LOPFModel(TransmissionModel):
 
         :type name: string
         """
-        phaseAngleEntry = {
-            "values": self._phaseAngleVariablesOptimum[ip],
-            "timeDependent": True,
-            "dimension": Dimension.ONE,
-        }
         if name == "phaseAngleVariablesOptimum":
-            return phaseAngleEntry
+            return {
+                "values": self._phaseAngleVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": Dimension.ONE,
+            }
 
         result = super().getOptimalValues(name, ip=ip)
         # a single transmission variable was requested and returned by the base class
         if name != "all" and "values" in result:
             return result
         # 'all' or an unknown name: the base class returned every variable it knows
-        result["phaseAngleVariablesOptimum"] = phaseAngleEntry
+        result["phaseAngleVariablesOptimum"] = {
+            "values": self._phaseAngleVariablesOptimum[ip],
+            "timeDependent": True,
+            "dimension": Dimension.ONE,
+        }
         return result
