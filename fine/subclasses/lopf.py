@@ -367,9 +367,11 @@ class LOPFModel(TransmissionModel):
         }
         if name == "phaseAngleVariablesOptimum":
             return phaseAngleEntry
-        if name != "all":
-            return super().getOptimalValues(name, ip=ip)
 
-        result = super().getOptimalValues("all", ip=ip)
+        result = super().getOptimalValues(name, ip=ip)
+        # a single transmission variable was requested and returned by the base class
+        if name != "all" and "values" in result:
+            return result
+        # 'all' or an unknown name: the base class returned every variable it knows
         result["phaseAngleVariablesOptimum"] = phaseAngleEntry
         return result

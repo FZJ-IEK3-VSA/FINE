@@ -2246,6 +2246,10 @@ class EnergySystemModel:
                 # (if single year system is optimized several times)
 
                 mdl.setOptimalValues(self, self.pyM)
+                # Rename the internal _*VariablesOptimum/_optSummary attributes to their
+                # public names. This is driven from here, once per modeling class, so that
+                # it cannot be forgotten by a class that overrides setOptimalValues.
+                mdl._convertOptimalValueNames(self)
                 outputString = (
                     ("for {:" + w + "}").format(key + " ...")
                     + "(%.4f" % (time.time() - __t)

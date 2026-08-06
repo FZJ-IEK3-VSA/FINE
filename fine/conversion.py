@@ -1758,7 +1758,6 @@ class ConversionModel(ComponentModel):
             esM, pyM, esM.locations, "physicalUnit"
         )
         self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
-        self._convertOptimalValueNames(esM)
 
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the conversion summary (operation rows + basic summary) as a view.

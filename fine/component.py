@@ -4200,7 +4200,11 @@ class ComponentModel(metaclass=ABCMeta):
         For a perfect-foresight run the per-investment-period dict is kept as is; for a
         single-year optimization it is unwrapped to the one dataframe it contains, so that
         models built before the multi-investment-period support was added keep working.
-        Must be called after the subclass has set ``self._optSummary``.
+
+        Called by :meth:`fine.energySystemModel.EnergySystemModel.optimize` once per
+        modeling class, after its ``setOptimalValues`` has run and set ``self._optSummary``.
+        It is driven from there rather than from the individual ``setOptimalValues``
+        implementations so that a class overriding ``setOptimalValues`` cannot omit it.
 
         :param esM: EnergySystemModel instance representing the energy system in which the
             components are modeled.
@@ -4208,7 +4212,7 @@ class ComponentModel(metaclass=ABCMeta):
         """
         optimalValueParameters = [
             "_optSummary",
-            "_stateOfChargeOperationVSariablesOptimum",
+            "_stateOfChargeOperationVariablesOptimum",
             "_chargeOperationVariablesOptimum",
             "_dischargeOperationVariablesOptimum",
             "_phaseAngleVariablesOptimum",
@@ -4225,14 +4229,17 @@ class ComponentModel(metaclass=ABCMeta):
         for key in optimalValueParameters:
             if key not in self.__dict__:
                 continue
+            # strip only the leading underscore; key.replace("_", "") would also drop
+            # underscores inside a name
+            publicName = key[1:]
             if esM.numberOfInvestmentPeriods == 1:
                 setattr(
                     self,
-                    key.replace("_", ""),
+                    publicName,
                     getattr(self, key)[esM.investmentPeriodNames[0]],
                 )
             else:
-                setattr(self, key.replace("_", ""), getattr(self, key))
+                setattr(self, publicName, getattr(self, key))
 
     def _connectionLocationMap(self, esM):
         """Build (and cache) the ``"locIn_locOut" -> (locIn, locOut)`` map for 2-dim connection splitting.
@@ -4472,6 +4479,12 @@ class ComponentModel(metaclass=ABCMeta):
             * 'all' or another input: all variables are returned.
 
         :type name: string
+
+        The returned frames carry named axes: the index is ``component`` and ``location``
+        (1-dim) or ``component``, ``locationIn`` and ``locationOut`` (2-dim), and for
+        operation variables the columns are ``time``. Code that relies on the axes being
+        unnamed (e.g. ``reset_index()`` producing ``level_0``/``level_1`` columns) has to
+        be adapted.
 
         :param ip: investment period of transformation path analysis.
             |br| * the default value is 0
