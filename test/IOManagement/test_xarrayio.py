@@ -207,7 +207,7 @@ def test_optSumOutputLevel_is_deprecated(minimal_test_esM):
     esM = minimal_test_esM
     esM.optimize()
 
-    with pytest.warns(DeprecationWarning, match="optSumOutputLevel"):
+    with pytest.warns(FutureWarning, match="optSumOutputLevel"):
         withParam = xrIO.convertOptimizationOutputToDatasets(esM, optSumOutputLevel=2)
 
     without = xrIO.convertOptimizationOutputToDatasets(esM)

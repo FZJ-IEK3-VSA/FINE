@@ -14,14 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 def _warnDeprecatedOptSumOutputLevel(optSumOutputLevel):
-    """Warn that the ``optSumOutputLevel`` parameter of the result export has no effect anymore."""
+    """Warn that the ``optSumOutputLevel`` parameter of the result export has no effect anymore.
+
+    The category is ``FutureWarning``, not ``DeprecationWarning``: this is a behaviour change
+    that already happened, and a user who passed 1 or 2 to shrink the netCDF file now silently
+    gets the unfiltered one. Python hides DeprecationWarning outside ``__main__``, so that
+    category would not reach the people this concerns.
+    """
     if optSumOutputLevel is not None:
         warnings.warn(
             "'optSumOutputLevel' is deprecated and has no effect: the result export reads the "
             "raw results dict instead of the optimization summary and therefore cannot apply "
-            "the summary's output-level filtering. The parameter will be removed in a future "
-            "release.",
-            DeprecationWarning,
+            "the summary's output-level filtering. Every result row is written. The parameter "
+            "will be removed in a future release.",
+            FutureWarning,
             stacklevel=3,
         )
 
@@ -94,9 +100,10 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=None):
 
     :param optSumOutputLevel: deprecated and ignored. The export no longer re-parses the
         optimization summary (it reads the raw results dict directly), so it cannot apply the
-        summary's output-level filtering. Passing it emits a DeprecationWarning.
+        summary's output-level filtering, and writes every result row. Passing it emits a
+        FutureWarning.
         |br| * the default value is None
-    :type optSumOutputLevel: None
+    :type optSumOutputLevel: int (0,1,2) or dict, deprecated
 
     :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
     :rtype: xarray.dataset
@@ -900,7 +907,7 @@ def writeEnergySystemModelToNetCDF(
     :param optSumOutputLevel: deprecated and ignored, see
         :func:`convertOptimizationOutputToDatasets`.
         |br| * the default value is None
-    :type optSumOutputLevel: None
+    :type optSumOutputLevel: int (0,1,2) or dict, deprecated
 
     :param groupPrefix: if specified, multiple xarray datasets (with esM
         instance data) are saved to the same netcdf file. The dictionary
