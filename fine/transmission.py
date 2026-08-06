@@ -1127,7 +1127,7 @@ class TransmissionModel(ComponentModel):
 
             # operation rows (operation, operation_annual, opexOp) are aggregated once in
             # _subclassSummaryFrames and written here (connection-indexed, split into
-            # locationIn/locationOut below), so the summary and the staged raw-results export
+            # locationIn/locationOut below), so the summary and the raw-results export
             # accessor share the same source. opexOp carries the preserved operation-NPV
             # quirk (see _deriveSubclassEconomics).
             self._writeOperationSummaryRows(optSummary, esM, ipName)

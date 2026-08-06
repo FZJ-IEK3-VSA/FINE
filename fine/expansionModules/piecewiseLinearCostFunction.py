@@ -1033,9 +1033,9 @@ class PiecewiseLinearCostFunctionModel:
     def _publishResults(self, esM, results):
         """Hand the derived frames to the modeling classes' raw results dict.
 
-        This keeps that dict the single source of truth for the summary rows built below
-        and for ``ComponentModel.getResultSummaryDict``, the accessor staged for the separate
-        xarray/netCDF export refactor. The current exporter still reads the public summary.
+        This keeps that dict the single source of truth for the summary rows built below and
+        for ``ComponentModel.getResultSummaryDict``, the accessor the xarray/netCDF export
+        reads. Without it the pwlcf rows would reach the summary but not the export.
 
         :param esM: EnergySystemModel instance.
         :param results: as returned by :meth:`_deriveResults`.

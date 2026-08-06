@@ -905,10 +905,10 @@ class ComponentModel(metaclass=ABCMeta):
         self._decommissioningVariablesOptimum = {}
         self._isBuiltVariablesOptimum = {}
         self._optSummary = {}
-        # Raw results dict (single source of truth for the summary and the staged
-        # raw-results export accessors), filled by extractRawResults/deriveEconomics during
-        # optimize(). The current xarrayIO exporter continues to read the public summary and
-        # getOptimalValues until its separate refactor lands. Empty until the model is solved.
+        # Raw results dict (single source of truth for the optimization summary and for the
+        # xarray/netCDF export accessors), filled by extractRawResults/deriveEconomics during
+        # optimize(). It is deliberately NOT restored when an esM is read back from netCDF, so
+        # it stays empty until the model is solved.
         self._rawResults = {}
         self._rawResults1dim = {}
         # Additional summary rows contributed by expansion modules that run after
@@ -4519,11 +4519,12 @@ class ComponentModel(metaclass=ABCMeta):
         }
 
     # ------------------------------------------------------------------
-    # Results-dict accessors staged for the separate xarray/netCDF export refactor.
+    # Results-dict accessors used by the xarray/netCDF export.
     # They read directly from the raw results dict (``self._rawResults`` /
-    # ``self._rawResults1dim``), while the current xarrayIO exporter still reads the public
-    # optimization summary and getOptimalValues. Once adopted by that refactor, these
-    # accessors avoid reparsing the summary DataFrame.
+    # ``self._rawResults1dim``), so
+    # :func:`fine.IOManagement.xarrayIO.convertOptimizationOutputToDatasets` neither reparses
+    # the summary DataFrame nor calls getOptimalValues - the dict is the single source of
+    # truth for both the summary and the export.
     # ------------------------------------------------------------------
 
     def _requireRawResults(self, ip):
@@ -4666,7 +4667,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         These frames are the single source of the aggregated operation rows: they feed the
         optimization summary (written into the summary skeleton by
-        :meth:`_writeOperationSummaryRows`) and the staged raw-results export accessor
+        :meth:`_writeOperationSummaryRows`) and the raw-results export accessor
         (:meth:`getResultSummaryDict`).
 
         :return: ordered list of ``(property, frame, unitFn)`` where ``frame`` is indexed by
@@ -4681,7 +4682,7 @@ class ComponentModel(metaclass=ABCMeta):
 
         Shared by every subclass' ``_buildSubclassOptimizationSummary`` so the operation
         aggregation is computed once (in :meth:`_subclassSummaryFrames`) and reused by the
-        summary and staged raw-results export accessor.
+        summary and the raw-results export accessor.
 
         :param optSummary: summary skeleton with a ``(Component, Property, Unit) x columns``
             MultiIndex; filled in place.
