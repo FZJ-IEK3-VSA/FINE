@@ -215,7 +215,6 @@ def test_runInfeasibilityPrechecks_single_check_reports_the_shortage(
     infeasible_esM,
 ):
     """The aggregated joint-input-demand check alone must already flag the model."""
-
     problems = checkJointInputDemandAggregated(infeasible_esM)
 
     assert len(problems) == 1
