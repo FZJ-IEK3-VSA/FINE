@@ -28,7 +28,6 @@ from fine.utils import runInfeasibilityPrechecks
 from fine.utils import checkJointInputDemandAggregated
 
 
-
 def _build_esm(windCapacityMax, transmissionCapacityMax):
     """Build the example ESM from the notebook with configurable capacities."""
     locations = {"Region1", "Region2", "Region3"}
