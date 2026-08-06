@@ -40,7 +40,6 @@ This notebook demonstrates how to run the optimization, inspect results, and int
 
 The figure below illustrates the components used in this basic example and their interactions within the energy system.
 
-put the grafik here
 
 The energy system consists of:
 
