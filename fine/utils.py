@@ -1562,6 +1562,7 @@ def checkAndSetInvestmentPeriodCostParameter(
 
 
 def processCommodityCost(esM, name, data, dimension, locationalEligibility, years):
+    """MISSING."""
     # stock years are only considered for parameter for which the
     # years contain investment periods and stock years
     _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
