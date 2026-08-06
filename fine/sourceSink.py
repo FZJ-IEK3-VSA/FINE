@@ -138,7 +138,7 @@ class Source(Component):
             * a dictionary with investment periods as keys and one of the two options above as values.
 
 
-        :param commodityCost: can be added as a single cost value or as a time series. 
+        :param commodityCost: can be added as a single cost value or as a time series.
             1. As the cost value of one operation´s unit of the component.
             The cost which is directly proportional to the operation of the component
             is obtained by multiplying the commodityCost parameter with the annual sum of the
@@ -151,7 +151,7 @@ class Source(Component):
             * In a national energy system, natural gas could be purchased from another country with a
               certain cost.
 
-            2. As commodity cost rates for each location and each time step, if required also for each investment period, by a positive float. 
+            2. As commodity cost rates for each location and each time step, if required also for each investment period, by a positive float.
             The values are given as specific values relative to the commodityUnit for each time step.
 
             |br| * the default value is 0 for single cost values and None for time series.
@@ -164,7 +164,7 @@ class Source(Component):
             * Pandas DataFrame with positive (>= 0) entries. The row indices have
               to match the in the energy system model specified time steps. The column indices have to equal the
               in the energy system model specified locations. The data in ineligible locations are set to zero.
-            * a dictionary with investment periods as keys and one of the two options above as values            
+            * a dictionary with investment periods as keys and one of the two options above as values
 
 
         :param commodityRevenue: can be added as a single cost value or as a time series.
@@ -176,7 +176,7 @@ class Source(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
 
-            2. As commodity revenue rate for each location and each time step, if required also for each investment period, by a positive float. 
+            2. As commodity revenue rate for each location and each time step, if required also for each investment period, by a positive float.
             The values are given as specific values relative to the comodityUnit for each time step.
 
         Example:
@@ -280,11 +280,11 @@ class Source(Component):
         )
 
         self.aggregatedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
-        self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)            
+        self.processedCommodityCostTimeSeries = dict.fromkeys(esM.investmentPeriods)
 
         # commodtyRevenue and commodityRevenueTimeSeries
         self.commodityRevenue = commodityRevenue
-        print("commodityRevenue-----", commodityRevenue)        
+        print("commodityRevenue-----", commodityRevenue)
         self.processedCommodityRevenue, self.fullCommodityRevenueTimeSeries = utils.processCommodityCost(
             esM,
             name,
@@ -292,7 +292,7 @@ class Source(Component):
             Dimension.ONE,
             locationalEligibility,
             esM.investmentPeriods,
-        ) 
+        )
 
         self.aggregatedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityRevenueTimeSeries = dict.fromkeys(esM.investmentPeriods)
