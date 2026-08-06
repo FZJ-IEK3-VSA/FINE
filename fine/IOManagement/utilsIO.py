@@ -655,9 +655,18 @@ def processXarrayAttributes(xarray_dataset):
 #
 # :func:`stackComponents` and :func:`unstackComponents` are the inverse pair.
 # Together they replace the was-none mask the format used to carry: a parameter
-# that was None is written as NaN, and an all-NaN variable is skipped by
-# :func:`~fine.IOManagement.xarrayIO.convertDatasetsToEnergySystemModel`, which
-# leaves the parameter at its default, None.
+# whose value is None is left out, and variable_present marks it absent, so the
+# reader leaves it at its default, None. The value is never used to decide this.
+# A string parameter that is None for one component and set for another shares one
+# dtype with it, and writing NaN into a string array yields the literal "nan",
+# which reads back as an ID that was never set.
+#
+# A parameter whose value is a list, such as componentLimitID, is held as a JSON
+# string in one cell rather than as an array. Its length is a property of the
+# component, so two components of one class disagree on it, and an array cannot
+# hold two entries in one row and three in the next. The index names in
+# variable_dims are what says a cell holds a list: a name that is not one of
+# INDEX_NAMES belongs to the component, not to the model.
 #
 # Known limitation: the masks restore a missing variable, they do not restore a
 # missing coordinate. Concatenating along "component" widens every variable to
@@ -879,13 +888,31 @@ def stackComponents(components, prefixed):
         for name, variable in dataset.data_vars.items():
             prefix = str(name)[:3] if prefixed else None
             parameter = str(name)[3:] if prefixed else str(name)
+            if prefixed and variable.dtype == object and _isAllMissing(variable):
+                # the parameter is None. Leave it out, so variable_present marks
+                # it absent and no other component's dtype can turn it into a
+                # value. Writing NaN into a string array yields the string "nan".
+                # Input only: an absent Input parameter keeps its default, but an
+                # absent result variable changes the shape of the summary.
+                continue
             wanted = indexNamesOfVariable(variable, prefix)
             indexNames[component][parameter] = wanted
-            prepared[component][parameter] = _expandIndexNames(variable, wanted)
+            prepared[component][parameter] = (
+                _encodeListVariable(variable)
+                if _isListValued(wanted, prefixed)
+                else _expandIndexNames(variable, wanted)
+            )
             if variable.attrs:
                 attributes[component][parameter] = dict(variable.attrs)
 
-    parameters = sorted({name for entry in indexNames.values() for name in entry})
+    # first appearance, not sorted. A parameter that holds a dict, such as
+    # commodityConversionFactors, is written as one variable per key, and the
+    # order of those variables is the order the keys come back in. Sorting them
+    # would reorder the dict, which the netCDF layout does not do.
+    parameters = list(
+        dict.fromkeys(name for entry in indexNames.values() for name in entry)
+    )
+
     datasets = _standardiseForConcat(prepared, names, parameters)
 
     if len(datasets) == 1:
@@ -932,6 +959,88 @@ def stackComponents(components, prefixed):
     return stacked
 
 
+def _isAllMissing(variable):
+    """Say if a variable holds no value at all, that is None or NaN everywhere.
+
+    Only object arrays are asked. None reaches xarray as an object, and a numeric
+    array is left alone so a large time series is not computed to answer this.
+
+    :param variable: the variable to test
+    :type variable: xr.DataArray
+
+    :return: True if every entry is None or NaN
+    :rtype: boolean
+    """
+    values = np.asarray(variable.values).ravel()
+    if values.size == 0:
+        return False
+    return bool(pd.isna(values).all())
+
+
+def _isListValued(indexNames, prefixed):
+    """Say if the index names describe a list, not a position in the model.
+
+    The Input layout knows three index names, the ones in INDEX_NAMES. Any other
+    dimension there is anonymous, that is one xarray named when it built an array
+    from a list, which is how a list valued parameter such as componentLimitID
+    arrives. Every name has to be such a one, so a variable that also holds a
+    position in the model keeps its array.
+
+    Results are never treated this way. They carry index names of their own, such
+    as locationIn and locationOut, which are positions in the model like any other.
+
+    :param indexNames: index names of the variable, see :func:`indexNamesOfVariable`
+    :type indexNames: iterable of strings
+
+    :param prefixed: states if the variable names carry a netCDF prefix, which is
+        the case for Input and not for Results
+    :type prefixed: boolean
+
+    :return: True if the variable holds a list
+    :rtype: boolean
+    """
+    if not prefixed:
+        return False
+    names = [str(name) for name in indexNames]
+    return bool(names) and all(name not in INDEX_NAMES for name in names)
+
+
+def _encodeListVariable(variable):
+    """Put the entries of a list valued variable into one cell, as JSON.
+
+    An array cannot hold two entries in one row and three in the next, and the
+    length of such a list is a property of the component, so the components of one
+    class disagree on it. One cell per component always concatenates.
+
+    JSON rather than a joined string: an ID is chosen by the user and may hold the
+    separator, and JSON tells an empty list from a list holding an empty string.
+
+    :param variable: the variable, whose dimensions are all its own
+    :type variable: xr.DataArray
+
+    :return: a scalar string variable holding the JSON
+    :rtype: xr.DataArray
+    """
+    values = np.asarray(variable.values).ravel().tolist()
+    return xr.DataArray(json.dumps([None if pd.isna(v) else v for v in values]))
+
+
+def _decodeListVariable(cell, indexNames):
+    """Rebuild a list valued variable from the one cell :func:`_encodeListVariable` wrote.
+
+    :param cell: the scalar string variable holding the JSON
+    :type cell: xr.DataArray
+
+    :param indexNames: index names the variable had, one per dimension
+    :type indexNames: list of strings
+
+    :return: the variable, one dimensional again
+    :rtype: xr.DataArray
+    """
+    values = json.loads(str(np.asarray(cell.values).item()))
+    return xr.DataArray(np.array(values), dims=indexNames[:1] or ["dim_0"])
+
+
 def _standardiseForConcat(prepared, names, parameters):
     """Give every component the same variables with the same dtypes.
 
@@ -948,7 +1057,7 @@ def _standardiseForConcat(prepared, names, parameters):
     :param names: the component names, in the order they are concatenated
     :type names: list of strings
 
-    :param parameters: every parameter name of the class, sorted
+    :param parameters: every parameter name of the class, in the order they are written
     :type parameters: list of strings
 
     :return: one dataset per component, ready to concatenate
@@ -1030,6 +1139,17 @@ def unstackComponents(dataset):
                 if name
             ]
             variable = componentDataset[parameter].reset_coords(drop=True)
+            if _isListValued(wanted, prefixed):
+                # the cell holds the whole list. It is not squeezed afterwards:
+                # a list of one entry has to stay a list.
+                variable = _decodeListVariable(variable, wanted)
+                variable.attrs = dict(componentAttributes.get(parameter, {}))
+                data_vars[
+                    f"{netcdfPrefixForDims(wanted)}{parameter}"
+                    if prefixed
+                    else parameter
+                ] = variable
+                continue
             for dim in variable.dims:
                 # a dimension the parameter never had. Take the first entry rather
                 # than dropna: a genuine NaN is not padding, and dropna cannot tell

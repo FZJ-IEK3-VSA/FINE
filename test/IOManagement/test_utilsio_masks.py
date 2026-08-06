@@ -76,10 +76,19 @@ def _assertUnstackUndoesStack(esM):
 
         assert list(rebuilt) == list(components), model
         for component, original in components.items():
-            assert set(rebuilt[component].data_vars) == set(original.data_vars), (
+            # a parameter whose value is None is not written. The presence mask
+            # marks it absent and the reader leaves it at its default, None.
+            expectedNames = {
+                str(name)
+                for name, variable in original.data_vars.items()
+                if not (variable.dtype == object and utilsIO._isAllMissing(variable))
+            }
+            assert set(rebuilt[component].data_vars) == expectedNames, (
                 f"{model}/{component}"
             )
             for name, variable in original.data_vars.items():
+                if str(name) not in expectedNames:
+                    continue
                 result = rebuilt[component][name]
                 assert list(result.dims) == list(variable.dims), (
                     f"{model}/{component}/{name}"
@@ -208,3 +217,65 @@ def test_a_scalar_coordinate_is_expanded_and_squeezed_back():
     assert rebuilt.dims == ()
     assert rebuilt.coords["space"].item() == "R1"
     assert rebuilt.item() == 1.5
+
+
+def test_a_none_valued_parameter_is_marked_absent():
+    """A None keeps its meaning even when another component holds a string.
+
+    A string parameter shares one dtype across the class. Writing the None as NaN
+    into that array yields the literal string "nan", which reads back as an ID
+    that was never set, so the None is left out instead.
+    """
+    components = {
+        "A": xr.Dataset(
+            {"0d_balanceLimitID": xr.DataArray(np.array("el", dtype=object))}
+        ),
+        "B": xr.Dataset(
+            {"0d_balanceLimitID": xr.DataArray(np.array(None, dtype=object))}
+        ),
+    }
+
+    stacked = utilsIO.stackComponents(components, prefixed=True)
+    rebuilt = utilsIO.unstackComponents(stacked)
+
+    assert rebuilt["A"]["0d_balanceLimitID"].values.item() == "el"
+    assert set(rebuilt["B"].data_vars) == set()
+
+
+def test_a_list_valued_parameter_survives_any_length():
+    """Two components of one class may hold lists of different length.
+
+    The list goes into one cell as JSON, so the class always concatenates. A list
+    of one entry has to stay a list, not collapse to the entry.
+    """
+    components = {
+        "A": xr.Dataset(
+            {"0d_componentLimitID": xr.DataArray(["limitA", "limitB", "limitC"])}
+        ),
+        "B": xr.Dataset({"0d_componentLimitID": xr.DataArray(["limitA"])}),
+    }
+
+    stacked = utilsIO.stackComponents(components, prefixed=True)
+    # one cell per component, so the class has no dimension of its own
+    assert "dim_0" not in stacked.dims
+
+    rebuilt = utilsIO.unstackComponents(stacked)
+
+    assert rebuilt["A"]["0d_componentLimitID"].values.tolist() == [
+        "limitA",
+        "limitB",
+        "limitC",
+    ]
+    assert rebuilt["B"]["0d_componentLimitID"].values.tolist() == ["limitA"]
+    assert rebuilt["B"]["0d_componentLimitID"].ndim == 1
+
+
+def test_a_list_entry_may_hold_the_separator():
+    """The list is JSON, not a joined string, so an ID may hold a comma."""
+    components = {"A": xr.Dataset({"0d_componentLimitID": xr.DataArray(["a,b", ""])})}
+
+    rebuilt = utilsIO.unstackComponents(
+        utilsIO.stackComponents(components, prefixed=True)
+    )
+
+    assert rebuilt["A"]["0d_componentLimitID"].values.tolist() == ["a,b", ""]

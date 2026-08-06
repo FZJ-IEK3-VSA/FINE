@@ -39,9 +39,15 @@ coordinate, and the dimensions alone would report a scalar and rebuild the wrong
 `utilsIO.stackComponents` and `utilsIO.unstackComponents` are the inverse pair that writes and reads them,
 and `structure.json` records the layout version as `fine_zarr_format`.
 
-The presence mask is what keeps the round trip exact. xarray has no `None`, so a parameter that was `None`
-is written as `NaN`; an all-`NaN` variable is skipped on read, which leaves the parameter at its default,
-`None`.
+The presence mask is what keeps the round trip exact. xarray has no `None`, so a parameter whose value is
+`None` is not written at all. `variable_present` marks it absent and the reader leaves it at its default,
+`None`. The value is never used to decide this: the components of one class share one dtype per parameter,
+so writing a `None` into a string parameter would give the literal string `"nan"`.
+
+A parameter whose value is a list, such as `componentLimitID`, is held as a JSON string in one cell rather
+than as an array. Its length is a property of the component, so two components of one class disagree on it,
+and one array cannot hold two entries in one row and three in the next. An index name in `variable_dims`
+that is not `time`, `space` or `space_2` is what says a cell holds a list.
 
 Known limitation: the masks restore a missing variable, they do not restore a missing coordinate.
 Concatenating along `component` widens every variable to the union of the components' coordinates, so a

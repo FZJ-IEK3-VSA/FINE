@@ -749,6 +749,81 @@ def test_esm_input_with_componentLimit_to_zarr_and_back(tmp_path):
     ]
 
 
+def test_componentLimitID_lists_of_different_length_survive_zarr(tmp_path):
+    """Two components of one class may hold ID lists of different length.
+
+    The stack puts the components of a class into one array, so the list of the
+    shorter component is padded up to the longer one. The padding must not come
+    back as an extra ID.
+    """
+    store = str(tmp_path / "test_esM.zarr")
+    locations = {"R1", "R2"}
+
+    esM = fn.EnergySystemModel(
+        locations=locations,
+        commodities={"electricity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        hoursPerTimeStep=2190,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        componentLimit=pd.DataFrame(
+            index=["limitA", "limitB", "limitC"],
+            columns=["value", "bound", "type", "commodity", "ip", "ipEnd"],
+            data=[
+                [100.0, "upper", "capacity", None, 0, None],
+                [200.0, "upper", "capacity", None, 0, None],
+                [300.0, "upper", "capacity", None, 0, None],
+            ],
+        ),
+        componentLimitEligibility=pd.DataFrame(
+            index=sorted(locations),
+            columns=["limitA", "limitB", "limitC"],
+            data=[[1, 1, 1], [1, 1, 1]],
+        ),
+    )
+    # three IDs on one Source, one on the other: the ragged case
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            componentLimitID=["limitA", "limitB", "limitC"],
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Wind",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            componentLimitID=["limitA"],
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame([[1.0, 1.0]] * 4, columns=sorted(locations)),
+        )
+    )
+
+    xrIO.writeEnergySystemModelToZarr(esM, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    assert esm_from_zarr.getComponent("PV").componentLimitID == [
+        "limitA",
+        "limitB",
+        "limitC",
+    ]
+    assert esm_from_zarr.getComponent("Wind").componentLimitID == ["limitA"]
+    compare_esm_inputs(esM, esm_from_zarr)
+
+
 def test_a_none_parameter_reads_back_as_none(tmp_path):
     """capacityMax=None means unbounded, capacityMax=NaN means a missing number."""
     store = str(tmp_path / "test_esM.zarr")
@@ -794,3 +869,97 @@ def test_zarr_compressor_encoding_matches_the_installed_zarr():
         assert list(encoding) == ["compressor"]
         assert encoding["compressor"].cname == "zstd"
         assert encoding["compressor"].clevel == 5
+
+
+def test_esm_multinode_zarr_agrees_with_netcdf(multi_node_test_esM_init, tmp_path):
+    """A model of many components, of every class, reads back as netCDF reads it.
+
+    The stack puts one class into one array, so a defect that needs two components
+    to disagree about a parameter cannot show on a smaller model. The two formats
+    are compared with each other rather than with the original, because this model
+    does not survive the netCDF round trip either: a Series loses its name.
+    """
+    esm_original = multi_node_test_esM_init
+
+    store = str(tmp_path / "test_esM.zarr")
+    xrIO.writeEnergySystemModelToZarr(esm_original, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    netcdf_path = str(tmp_path / "test_esM.nc")
+    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath=netcdf_path)
+    esm_from_netcdf = xrIO.readNetCDFToEnergySystemModel(netcdf_path)
+
+    compare_esm_inputs(esm_from_netcdf, esm_from_zarr)
+
+
+def test_esm_perfectForesight_to_zarr_and_back(perfectForesight_test_esM, tmp_path):
+    """A model of several investment periods writes one Results group per period."""
+    store = str(tmp_path / "test_esM.zarr")
+
+    esm_original = perfectForesight_test_esM
+    esm_original.optimize()
+    xrIO.writeEnergySystemModelToZarr(esm_original, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    compare_esm_inputs(esm_original, esm_from_zarr)
+    compare_esm_outputs(esm_original, esm_from_zarr)
+
+
+def test_a_none_id_does_not_become_the_string_nan(tmp_path):
+    """One component sets balanceLimitID, the other does not.
+
+    A string parameter shares one dtype across the class, so writing the None as
+    NaN yielded the literal "nan". That reads back as an ID that was never set,
+    and a component then enters code paths meant for a component that has one.
+    """
+    store = str(tmp_path / "test_esM.zarr")
+    locations = {"R1", "R2"}
+
+    esM = fn.EnergySystemModel(
+        locations=locations,
+        commodities={"electricity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        hoursPerTimeStep=2190,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        balanceLimit=pd.DataFrame(
+            index=["el"],
+            columns=[*sorted(locations), "Total"],
+            data=[[100.0, 100.0, 200.0]],
+        ),
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            balanceLimitID="el",
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Wind",
+            commodity="electricity",
+            hasCapacityVariable=True,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame([[1.0, 1.0]] * 4, columns=sorted(locations)),
+        )
+    )
+    assert esM.getComponent("Wind").balanceLimitID is None
+
+    xrIO.writeEnergySystemModelToZarr(esM, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    assert esm_from_zarr.getComponent("Wind").balanceLimitID is None
+    assert esm_from_zarr.getComponent("PV").balanceLimitID == "el"
