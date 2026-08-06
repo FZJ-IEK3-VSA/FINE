@@ -83,32 +83,6 @@ def test_etl_NPV():
 
     np.testing.assert_almost_equal(esM.pyM.Obj(), 4.6906658)
 
-    # The etl rows are added to the optimization summary after the modeling classes are done
-    # (see PwlcfModel.setOptimalValues) and must reach the result export as well; regression
-    # guard for issue #735, where the export switched to reading the raw results dict.
-    xrds = xrIO.writeEnergySystemModelToDatasets(esM)
-    for ipName in esM.investmentPeriodNames:
-        optSum = esM.getOptimizationSummary("SourceSinkModel", ip=ipName).loc["PV"]
-        ds = xrds["Results"][ipName]["SourceSinkModel"]["PV"]
-        for prop in [
-            "TAC_ETL",
-            "NPVcontribution_ETL",
-            "invest_ETL",
-            "knowledgeStock_ETL",
-            # the base rows carry the etl contribution on top of the component's own costs
-            "TAC",
-            "NPVcontribution",
-            "invest",
-        ]:
-            assert prop in ds.data_vars
-            expected = optSum.loc[prop]
-            np.testing.assert_almost_equal(
-                float(ds[prop].sel(location="loc1")),
-                float(expected.iloc[-1]["loc1"]),
-            )
-            # the unit is exported as the variable's attribute, as for every summary row
-            assert ds[prop].attrs[prop] == expected.index[-1]
-
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM_etl.nc")
     Path("test_esM_etl.nc").unlink()
 

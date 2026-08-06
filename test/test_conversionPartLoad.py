@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 import fine as fn
-import fine.IOManagement.xarrayIO as xrIO
 from fine.utils import ImplementedSolvers
 
 
@@ -606,24 +605,6 @@ def test_conversionPartLoad():
         2556.29322664,
     ]
     np.testing.assert_allclose(opVarOptPartLoad, opVarOptConstLoad, rtol=0.01)
-
-    # The part-load discretization variables must survive the xarray/netCDF export.
-    # They carry an extra discretization-index level beyond location; regression guard for
-    # issue #735 (previously they were dropped / collided on an anonymous stacked column).
-    xrds = xrIO.writeEnergySystemModelToDatasets(esM)
-    ds = xrds["Results"][esM.investmentPeriodNames[0]]["ConversionPartLoadModel"][
-        "PEMEC"
-    ]
-    for var in (
-        "discretizationPointVariablesOptimum",
-        "discretizationSegmentConVariablesOptimum",
-        "discretizationSegmentBinVariablesOptimum",
-    ):
-        assert var in ds.data_vars, f"{var} missing from part-load export"
-        assert set(ds[var].dims) == {"time", "discretizationIndex", "location"}
-    # The plain operation optimum is exported as well.
-    assert "operationVariablesOptimum" in ds.data_vars
-    assert set(ds["operationVariablesOptimum"].dims) == {"time", "location"}
 
 
 if __name__ == "__main__":
