@@ -211,11 +211,17 @@ def test_optSumOutputLevel_is_deprecated(minimal_test_esM):
         withParam = xrIO.convertOptimizationOutputToDatasets(esM, optSumOutputLevel=2)
 
     without = xrIO.convertOptimizationOutputToDatasets(esM)
-    ip = esM.investmentPeriodNames[0]
-    assert (
-        withParam["Results"][ip]["SourceSinkModel"].keys()
-        == without["Results"][ip]["SourceSinkModel"].keys()
-    )
+
+    assert withParam["Results"].keys() == without["Results"].keys()
+    for ip, models in without["Results"].items():
+        assert withParam["Results"][ip].keys() == models.keys()
+        for model, components in models.items():
+            assert withParam["Results"][ip][model].keys() == components.keys()
+            for component, dataset in components.items():
+                # identical() also compares the unit attributes, not only the values
+                assert withParam["Results"][ip][model][component].identical(dataset), (
+                    f"optSumOutputLevel changed the export of {model}/{component}"
+                )
 
 
 def test_output_esm_to_netcdf_and_back_perfectForesight(
