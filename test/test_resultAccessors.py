@@ -232,6 +232,62 @@ def test_registerExtraSummaryRows_is_refused_for_2dim_models(minimal_test_esM):
     assert "knowledgeStock_ETL" not in model.getResultSummaryDict(esM, ip)["Pipelines"]
 
 
+def test_public_optimum_names_are_set_for_every_modeling_class(minimal_test_esM):
+    """optimize() must publish the internal ``_*`` attributes under their public names.
+
+    The renaming is driven from EnergySystemModel.optimize, so it applies to every
+    modeling class - including one that overrides setOptimalValues without knowing about
+    it. A single-year model is unwrapped to the one dataframe it holds.
+    """
+    esM, ip = _optimize(minimal_test_esM)
+
+    for name in esM.componentModelingDict:
+        model = esM.componentModelingDict[name]
+        assert isinstance(model.optSummary, pd.DataFrame), name
+        # the public name exists for every internal one the class actually holds; the
+        # value is None where the variable does not apply (a source without a capacity
+        # variable has no capacity optimum)
+        for internal in ("_capacityVariablesOptimum", "_commissioningVariablesOptimum"):
+            public = internal[1:]
+            assert hasattr(model, public), f"{name}.{public}"
+            assert getattr(model, public) is None or isinstance(
+                getattr(model, public), pd.DataFrame
+            ), f"{name}.{public}"
+
+    # the storage state of charge is published too - its entry used to carry a typo
+    # ("VSariables"), so this public attribute was silently never created
+    storage = esM.componentModelingDict["StorageModel"]
+    assert hasattr(storage, "stateOfChargeOperationVariablesOptimum")
+    assert isinstance(storage.stateOfChargeOperationVariablesOptimum, pd.DataFrame)
+
+
+def test_public_optimum_names_survive_a_custom_setOptimalValues(minimal_test_esM):
+    """A class overriding setOptimalValues must still get its public attributes.
+
+    The renaming used to be done at the end of each modeling class' setOptimalValues, so
+    an override that did not repeat the call silently lost the public names.
+    """
+    esM = minimal_test_esM
+    model = esM.componentModelingDict["ConversionModel"]
+    calls = []
+
+    original = type(model).setOptimalValues
+
+    def overriding_setOptimalValues(self, esM_, pyM):
+        calls.append(1)
+        return original(self, esM_, pyM)
+
+    type(model).setOptimalValues = overriding_setOptimalValues
+    try:
+        esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    finally:
+        type(model).setOptimalValues = original
+
+    assert calls, "the override was not exercised"
+    assert isinstance(model.capacityVariablesOptimum, pd.DataFrame)
+    assert isinstance(model.optSummary, pd.DataFrame)
+
+
 def test_extra_summary_rows_are_cleared_by_a_new_optimization(minimal_test_esM):
     """Rows from a previous run must not survive into the next one."""
     esM, ip = _optimize(minimal_test_esM)
@@ -249,3 +305,65 @@ def test_extra_summary_rows_are_cleared_by_a_new_optimization(minimal_test_esM):
         "knowledgeStock_ETL"
         not in model.getResultSummaryDict(esM, ip)["Electrolyzers"]
     )
+
+
+def test_getOptimalValues_covers_the_subclass_variables_of_every_class():
+    """Every modeling class must report its own optimum variables, and all of them.
+
+    A subclass that reimplements the variable table instead of extending the base one
+    tends to fall behind it - the commissioning/decommissioning entries were missing from
+    the LOPF and part-load tables for exactly that reason.
+    """
+    import fine.subclasses.lopf as lopf_module
+    import fine.subclasses.conversionPartLoad as partload_module
+
+    design = {
+        "capacityVariablesOptimum",
+        "isBuiltVariablesOptimum",
+        "commissioningVariablesOptimum",
+        "decommissioningVariablesOptimum",
+    }
+
+    lopf = lopf_module.LOPFModel()
+    partload = partload_module.ConversionPartLoadModel()
+
+    # patch in empty optimum dicts so getOptimalValues can be called without a solve
+    for model, extra in (
+        (lopf, ["_phaseAngleVariablesOptimum"]),
+        (
+            partload,
+            [
+                "_discretizationPointVariablesOptimum",
+                "_discretizationSegmentConVariablesOptimum",
+                "_discretizationSegmentBinVariablesOptimum",
+            ],
+        ),
+    ):
+        for attr in [
+            "_capacityVariablesOptimum",
+            "_isBuiltVariablesOptimum",
+            "_operationVariablesOptimum",
+            "_commissioningVariablesOptimum",
+            "_decommissioningVariablesOptimum",
+            *extra,
+        ]:
+            setattr(model, attr, {0: pd.DataFrame()})
+
+    assert design <= set(lopf.getOptimalValues("all", ip=0))
+    assert "phaseAngleVariablesOptimum" in lopf.getOptimalValues("all", ip=0)
+    assert design <= set(partload.getOptimalValues("all", ip=0))
+    assert {
+        "discretizationPointVariablesOptimum",
+        "discretizationSegmentConVariablesOptimum",
+        "discretizationSegmentBinVariablesOptimum",
+    } <= set(partload.getOptimalValues("all", ip=0))
+
+    # an unrecognised name returns every variable, as documented
+    assert "phaseAngleVariablesOptimum" in lopf.getOptimalValues("nonsense", ip=0)
+    assert "discretizationPointVariablesOptimum" in partload.getOptimalValues(
+        "nonsense", ip=0
+    )
+    # a single named variable still returns just that one entry
+    assert "values" in lopf.getOptimalValues("capacityVariablesOptimum", ip=0)
+    assert "values" in partload.getOptimalValues("capacityVariablesOptimum", ip=0)
+    assert "values" in lopf.getOptimalValues("phaseAngleVariablesOptimum", ip=0)

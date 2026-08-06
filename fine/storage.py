@@ -2129,7 +2129,6 @@ class StorageModel(ComponentModel):
             esM, pyM, esM.locations, "commodityUnit", "*h"
         )
         self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
-        self._convertOptimalValueNames(esM)
 
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the storage summary (charge/discharge rows + basic summary) as a view.

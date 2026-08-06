@@ -1173,7 +1173,6 @@ class SourceSinkModel(ComponentModel):
             esM, pyM, esM.locations, "commodityUnit"
         )
         self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
-        self._convertOptimalValueNames(esM)
 
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the source/sink summary (operation rows + basic summary) as a view.

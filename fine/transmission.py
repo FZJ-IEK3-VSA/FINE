@@ -1051,7 +1051,6 @@ class TransmissionModel(ComponentModel):
             esM, pyM, mapC.keys(), "commodityUnit"
         )
         self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
-        self._convertOptimalValueNames(esM)
 
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the transmission summary (operation rows + basic summary) as a view.
@@ -1189,20 +1188,5 @@ class TransmissionModel(ComponentModel):
             ("opexOp", self._rawResults[ip].get("opexOp"), perA),
         ]
 
-    def getOptimalValues(self, name="all", ip=0):
-        """Return optimal values of the components.
-
-        :param name: name of the variables of which the optimal values should be returned:
-
-        * '_capacityVariables',
-        * '_isBuiltVariables',
-        * '_operationVariablesOptimum',
-        * 'all' or another input: all variables are returned.
-
-        |br| * the default value is 'all'
-        :type name: string
-
-        :returns: a dictionary with the optimal values of the components
-        :rtype: dict
-        """
-        return super().getOptimalValues(name, ip=ip)
+    # getOptimalValues is inherited from ComponentModel: a transmission has no optimum
+    # variables of its own beyond the design and operation ones the base class returns.

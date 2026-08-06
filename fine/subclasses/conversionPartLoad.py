@@ -925,9 +925,14 @@ class ConversionPartLoadModel(ConversionModel):
 
         :param name: name of the variables of which the optimal values should be returned:
 
-            * 'capacityVariables',
-            * 'isBuiltVariables',
-            * '_operationVariablesOptimum',
+            * 'capacityVariablesOptimum',
+            * 'isBuiltVariablesOptimum',
+            * 'operationVariablesOptimum',
+            * 'commissioningVariablesOptimum',
+            * 'decommissioningVariablesOptimum',
+            * 'discretizationPointVariablesOptimum',
+            * 'discretizationSegmentConVariablesOptimum',
+            * 'discretizationSegmentBinVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'
@@ -940,28 +945,24 @@ class ConversionPartLoadModel(ConversionModel):
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        # return super().getOptimalValues(name)
-
-        timeDependentMapping = {
-            "capacityVariablesOptimum": False,
-            "isBuiltVariablesOptimum": False,
-            "operationVariablesOptimum": True,
-            "discretizationPointVariablesOptimum": True,
-            "discretizationSegmentConVariablesOptimum": True,
-            "discretizationSegmentBinVariablesOptimum": True,
-        }
-
-        if name in timeDependentMapping:
-            return {
-                "values": getattr(self, f"_{name}")[ip],
-                "timeDependent": timeDependentMapping[name],
-                "dimension": self.dimension,
-            }
-        return {
+        discretizationEntries = {
             valName: {
                 "values": getattr(self, f"_{valName}")[ip],
-                "timeDependent": timeDependentMapping[valName],
+                "timeDependent": True,
                 "dimension": self.dimension,
             }
-            for valName in timeDependentMapping
+            for valName in (
+                "discretizationPointVariablesOptimum",
+                "discretizationSegmentConVariablesOptimum",
+                "discretizationSegmentBinVariablesOptimum",
+            )
         }
+        if name in discretizationEntries:
+            return discretizationEntries[name]
+
+        result = super().getOptimalValues(name, ip=ip)
+        # a single conversion variable was requested and returned by the base class
+        if name != "all" and "values" in result:
+            return result
+        result.update(discretizationEntries)
+        return result
