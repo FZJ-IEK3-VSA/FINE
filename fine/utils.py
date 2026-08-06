@@ -1325,6 +1325,7 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
 
+
     assert not (isinstance(data, pd.Series) and data.isnull().any()), (
         f"Initialization error in {name} detected.\n"
         "Economic parameters contain NaN values which are not allowed."
@@ -1373,6 +1374,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             )
         data = checkRegionalIndex(esM, data, locationalEligibility)
         # print(data)
+        # print(data)
     else:
         if isinstance(data, int) or isinstance(data, float):
             if data < 0:
@@ -1402,6 +1404,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             + " detected.\n"
             + "All entries in economic parameter series have to be positive."
         )
+    # print(type(_data))
     # print(type(_data))
     return _data
 
@@ -1557,6 +1560,90 @@ def checkAndSetInvestmentPeriodCostParameter(
                 f"Parameter of {name} should be a pandas series or a dictionary."
             )
     return parameter
+
+
+def processCommodityCost(esM, name, data, dimension, locationalEligibility, years):
+    # stock years are only considered for parameter for which the
+    # years contain investment periods and stock years
+    _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
+    checkInvestmentPeriodParameters(name, data, _years)
+
+    if (
+        isinstance(data, dict)
+        and any(x is None for x in data.values())
+        and not all(x is None for x in data.values())
+    ):
+        raise TypeError(
+            f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
+        )
+
+    # set the costs
+    parameterCost = {}
+    parameterCostTimeSeries = {}
+    for ip in years:
+        parameterCost[ip] = checkAndSetCostParameter(
+            esM, name, 0, dimension, locationalEligibility
+        )
+        parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
+            esM, name, None, locationalEligibility, dimension="1dim"
+        )
+
+    for ip in years:
+        # map of year name (e.g. 2020) to intenral name (e.g. 0)
+        # ip=int((_ip-esM.startYear)/esM.investmentPeriodInterval)
+        _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
+        if (
+            isinstance(data, int)
+            or isinstance(data, float)
+            or isinstance(data, pd.Series)
+        ):
+            parameterCost[ip] = checkAndSetCostParameter(
+                esM, name, data, dimension, locationalEligibility
+            )
+            # print(parameter[ip])
+        elif (
+            isinstance(data, dict)
+            and isinstance(data[_ip], pd.Series)
+            and (set(data[_ip].index) == esM.locations)
+        ):  # check if index of series matches locations of model
+            parameterCost[ip] = checkAndSetCostParameter(
+                esM, name, data[_ip], dimension, locationalEligibility
+            )
+        elif isinstance(data, dict):
+            if isinstance(
+                data[_ip], (int, float)
+            ):  # check if the value is an int or float
+                parameterCost[ip] = checkAndSetCostParameter(
+                    esM, name, data[_ip], dimension, locationalEligibility
+                )
+            elif isinstance(data[_ip], pd.Series) and (
+                set(data[_ip].index) == esM.totalTimeSteps
+            ):  # check if index of series matches time steps of model
+                parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
+                    esM, name, data[_ip], locationalEligibility, dimension="1dim"
+                )
+            elif isinstance(data[_ip], pd.Series) and (
+                set(data[_ip].index) == esM.locations
+            ):  # check if index of series matches locations of model
+                parameterCost[ip] = checkAndSetCostParameter(
+                    esM, name, data[_ip], dimension, locationalEligibility
+                )
+            elif isinstance(
+                data[_ip], pd.DataFrame | None
+            ):  # check if the data is given as dataframe with None time steps and locations as index and columns
+                parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
+                    esM, name, data[_ip], locationalEligibility, dimension="1dim"
+                )
+        elif isinstance(data, pd.DataFrame | None):
+            parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
+                esM, name, data, locationalEligibility, dimension="1dim"
+            )
+
+        else:
+            raise TypeError(
+                f"Parameter of {name} should be a pandas series or a dictionary."
+            )
+    return parameterCost, parameterCostTimeSeries
 
 
 def processCommodityCost(esM, name, data, dimension, locationalEligibility, years):
@@ -2205,6 +2292,16 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
         elif isinstance(data, pd.Series):
             data_ = data.sort_index()
             return data_
+        # elif isinstance(data, pd.Series) and locationalEligibility is not None:
+        # data_ = data.sort_index()
+        # index, data_ = [], []
+        # for loc in data.index:
+        #     if data[loc] > 0:
+        #         index.append(loc)
+        #         data_.append(data[loc])
+        # data_ = pd.Series(data_, index=index)
+        # data_.sort_index(inplace=True)
+        # return data_
         # elif isinstance(data, pd.Series) and locationalEligibility is not None:
         # data_ = data.sort_index()
         # index, data_ = [], []
