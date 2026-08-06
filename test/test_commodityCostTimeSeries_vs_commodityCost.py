@@ -96,5 +96,6 @@ def test_miniSystem():
     )
 
     esM.optimize(timeSeriesAggregation=False, solver="gurobi")
-test_miniSystem()
+# test_miniSystem()
+
 
