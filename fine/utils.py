@@ -1372,8 +1372,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
                 [float(data) for loc in esM.locations], index=esM.locations
             )
         data = checkRegionalIndex(esM, data, locationalEligibility)
-        # print(data)
-        # print(data)
+
     else:
         if isinstance(data, int) or isinstance(data, float):
             if data < 0:
@@ -1595,20 +1594,19 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
         if (
             isinstance(data, int)
             or isinstance(data, float)
-            or isinstance(data, pd.Series)
         ):
             parameterCost[ip] = checkAndSetCostParameter(
                 esM, name, data, dimension, locationalEligibility
             )
-            # print(parameter[ip])
-        elif (
-            isinstance(data, dict)
-            and isinstance(data[_ip], pd.Series)
-            and (set(data[_ip].index) == esM.locations)
-        ):  # check if index of series matches locations of model
-            parameterCost[ip] = checkAndSetCostParameter(
-                esM, name, data[_ip], dimension, locationalEligibility
-            )
+        elif isinstance(data, pd.Series):
+            if set(data.index) == esM.locations:
+                parameterCost[ip] = checkAndSetCostParameter(
+                    esM, name, data, dimension, locationalEligibility
+                )
+            elif set(data.index) == esM.totalTimeSteps:
+                parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
+                    esM, name, data, locationalEligibility, dimension="1dim"
+                )
         elif isinstance(data, dict):
             if isinstance(
                 data[_ip], (int, float)
