@@ -219,4 +219,8 @@ def test_runInfeasibilityPrechecks_single_check_reports_the_shortage(
 
     assert len(problems) == 1
     assert "electricity" in problems[0]
-    assert "Region1" in problems[0] and "Region2" in problems[0] and "Region3" in problems[0]
+    assert (
+        "Region1" in problems[0]
+        and "Region2" in problems[0]
+        and "Region3" in problems[0]
+    )
