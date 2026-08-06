@@ -1685,24 +1685,6 @@ class StorageModel(ComponentModel):
             "dischargeOp_bin",
         )
 
-        # Couple binary operation variable to operation variable
-        self.binaryOperation(
-            pyM,
-            "ConstrCharge",
-            "chargeOpConstrSet",
-            "partLoadMin",
-            "chargeOp",
-            "chargeOp_bin",
-        )
-        self.binaryOperation(
-            pyM,
-            "ConstrDischarge",
-            "dischargeOpConstrSet",
-            "partLoadMin",
-            "dischargeOp",
-            "dischargeOp_bin",
-        )
-
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM,
