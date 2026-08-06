@@ -157,15 +157,15 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=None):
             utils.output("\tProcessing " + name + " ...", esM.verboseLogLevel, 0)
             modelingClass = esM.componentModelingDict[name]
             summaryDict = modelingClass.getResultSummaryDict(esM, ip)
-            optimaDict = modelingClass.getResultOptimalValues(ip)
+            optimaDict = modelingClass.getResultOptimalValues(
+                ip, exclude=DUPLICATE_OPTIMUM_VARIABLES
+            )
             for component in modelingClass.componentsDict.keys():
                 variables = {
                     **summaryDict.get(component, {}),
                     **optimaDict.get(component, {}),
                 }
                 for variable, (values, unit) in variables.items():
-                    if variable in DUPLICATE_OPTIMUM_VARIABLES:
-                        continue
                     exportVariable = RENAMED_OPTIMUM_VARIABLES.get(variable, variable)
                     xr_da = values.to_xarray()
                     if exportVariable != variable:

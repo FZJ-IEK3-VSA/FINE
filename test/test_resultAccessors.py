@@ -69,6 +69,30 @@ def test_getResultOptimalValues_returns_the_solved_optimum_frames(minimal_test_e
     assert operation.sum() == pytest.approx(expected_operation.values.sum())
 
 
+def test_getResultOptimalValues_skips_the_excluded_variables(minimal_test_esM):
+    """``exclude`` must drop a variable everywhere and leave the others untouched.
+
+    The export uses it for the optima whose values a summary row already carries, so that
+    those are never shaped in the first place.
+    """
+    esM, ip = _optimize(minimal_test_esM)
+    model = esM.componentModelingDict["ConversionModel"]
+
+    full = model.getResultOptimalValues(ip)
+    reduced = model.getResultOptimalValues(
+        ip, exclude={"capacityVariablesOptimum", "commissioningVariablesOptimum"}
+    )
+
+    assert set(reduced) == set(full), "every component is still reported"
+    for compName, values in reduced.items():
+        assert "capacityVariablesOptimum" not in values
+        assert "commissioningVariablesOptimum" not in values
+        assert set(values) == set(full[compName]) - {
+            "capacityVariablesOptimum",
+            "commissioningVariablesOptimum",
+        }
+
+
 def test_getResultOptimalValues_shapes_a_two_dimensional_component(minimal_test_esM):
     """2-dim components are split into (locationIn, locationOut) instead of connections."""
     esM, ip = _optimize(minimal_test_esM)

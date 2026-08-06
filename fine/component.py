@@ -4577,7 +4577,7 @@ class ComponentModel(metaclass=ABCMeta):
             ("decommissioning", "decommissioningVariablesOptimum", False, d),
         ]
 
-    def getResultOptimalValues(self, ip):
+    def getResultOptimalValues(self, ip, exclude=()):
         """Return the design/operation optima for the export, read from ``self._rawResults``.
 
         Per component, each optimum variable is shaped into a ``Series`` ready for
@@ -4589,12 +4589,22 @@ class ComponentModel(metaclass=ABCMeta):
         :param ip: investment period name (key into ``self._rawResults``).
         :type ip: string
 
+        :param exclude: optimum variable names to leave out. Shaping a variable costs a
+            ``stack``/``transpose`` per component, so a caller that discards a variable anyway
+            (the export drops the optima a summary row already carries) should name it here
+            instead of filtering the result.
+            |br| * the default value is ()
+        :type exclude: iterable of string
+
         :return: ``{componentName: {optimumVariableName: (values, None)}}``.
         :rtype: dict
         """
         results_ip = self._requireRawResults(ip)
+        exclude = set(exclude)
         out = {compName: {} for compName in self.componentsDict}
         for rawKey, optName, timeDependent, dimension in self._exportOptimumVarMap():
+            if optName in exclude:
+                continue
             frame = results_ip.get(rawKey)
             if frame is None:
                 continue
