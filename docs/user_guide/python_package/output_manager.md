@@ -49,10 +49,11 @@ than as an array. Its length is a property of the component, so two components o
 and one array cannot hold two entries in one row and three in the next. An index name in `variable_dims`
 that is not `time`, `space` or `space_2` is what says a cell holds a list.
 
-Known limitation: the masks restore a missing variable, they do not restore a missing coordinate.
-Concatenating along `component` widens every variable to the union of the components' coordinates, so a
-component that uses two of five locations comes back padded to five, and a genuine all-`NaN` row cannot be
-told from padding.
+Known limitation: the masks restore a missing variable, they do not restore a missing coordinate. The
+concatenation widens every variable to the union of the components' coordinates, and nothing records what
+each component held before. This does not bite today, because a component cannot hold a partial location
+index: FINE rejects one with "Location indices do not match the one of the specified energy system model".
+Every component of a class therefore carries every location of the model, and the union changes nothing.
 
 ## Standard I/O
 

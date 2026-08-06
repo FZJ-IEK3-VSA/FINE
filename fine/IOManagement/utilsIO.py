@@ -669,9 +669,16 @@ def processXarrayAttributes(xarray_dataset):
 # INDEX_NAMES belongs to the component, not to the model.
 #
 # Known limitation: the masks restore a missing variable, they do not restore a
-# missing coordinate. Concatenating along "component" widens every variable to
-# the union of the components' coordinates, so a component that uses two of five
-# locations comes back padded to five. The netCDF layout has the same limitation.
+# missing coordinate. The concatenation widens every variable to the union of the
+# components' coordinates, and nothing records what each component held before.
+#
+# This does not bite today, because a component cannot hold a partial location
+# index: checkRegionalIndex raises "Location indices do not match the one of the
+# specified energy system model" (utils.py:196, :224), so every component of a
+# class carries every location of the model and the union changes nothing. The
+# limitation is a constraint on what may change later, not a defect now. Should a
+# component ever be allowed to cover a subset of the locations, this layout needs
+# a third mask, one that records the coordinate values per component.
 # --------------------------------------------------------------------------- #
 
 # dimension the components of one model class are concatenated along

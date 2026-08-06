@@ -963,3 +963,24 @@ def test_a_none_id_does_not_become_the_string_nan(tmp_path):
 
     assert esm_from_zarr.getComponent("Wind").balanceLimitID is None
     assert esm_from_zarr.getComponent("PV").balanceLimitID == "el"
+
+
+def test_writeEnergySystemModelToDatasets_warns(minimal_test_esM):
+    """The old name still works, and it says that it is the old name."""
+    with pytest.warns(DeprecationWarning, match="convertEnergySystemModelToDatasets"):
+        old = xrIO.writeEnergySystemModelToDatasets(minimal_test_esM)
+
+    new = xrIO.convertEnergySystemModelToDatasets(minimal_test_esM)
+    assert set(old) == set(new)
+
+
+def test_writeDatasetsToZarr_names_the_group_it_misses(minimal_test_esM, tmp_path):
+    """A dict that is not the canonical one has to say so, not raise a KeyError.
+
+    writeDatasetsToZarr is public and the suite calls it directly.
+    """
+    datasets = xrIO.convertEnergySystemModelToDatasets(minimal_test_esM)
+    del datasets["Parameters"]
+
+    with pytest.raises(ValueError, match="Parameters"):
+        xrIO.writeDatasetsToZarr(datasets, output_zarr_path=str(tmp_path / "x.zarr"))

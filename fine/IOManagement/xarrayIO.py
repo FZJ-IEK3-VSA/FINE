@@ -1,6 +1,7 @@
 import json
 import shutil
 import time
+import warnings
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from pathlib import Path
@@ -1332,6 +1333,12 @@ def writeEnergySystemModelToDatasets(
         dataset format
     :rtype: xr.DataSet
     """
+    warnings.warn(
+        "writeEnergySystemModelToDatasets is deprecated. Call "
+        "convertEnergySystemModelToDatasets, which also carries optSumOutputLevel.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return convertEnergySystemModelToDatasets(
         esM,
         includeShadowPrices=includeShadowPrices,
@@ -1675,7 +1682,10 @@ def writeDatasetsToZarr(
         |br| * the default value is "my_esm.zarr"
     :type output_zarr_path: string or pathlib.Path
 
-    :param overwrite_existing: states if an existing store at that path is removed first
+    :param overwrite_existing: states if an existing store at that path is removed
+        first. Leave it on unless you mean to add to a store you already control:
+        each group is written on its own, so a group of a previous model that this
+        model does not have stays behind, and the store then describes neither.
         |br| * the default value is True
     :type overwrite_existing: boolean
 
@@ -1693,6 +1703,15 @@ def writeDatasetsToZarr(
         |br| * the default value is False
     :type replace_fill_value: boolean
     """
+    missing = [group for group in ("Input", "Parameters") if group not in datasets]
+    if missing:
+        raise ValueError(
+            f"The datasets are missing the group(s) {missing}. writeDatasetsToZarr "
+            "takes the canonical datasets, that is the ones "
+            "convertEnergySystemModelToDatasets builds. To write an esM directly, "
+            "call writeEnergySystemModelToZarr."
+        )
+
     output_zarr_path = Path(output_zarr_path)
     if overwrite_existing and output_zarr_path.exists():
         shutil.rmtree(output_zarr_path)
