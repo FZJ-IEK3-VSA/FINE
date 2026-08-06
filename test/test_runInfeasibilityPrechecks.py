@@ -25,6 +25,8 @@ import pytest
 
 import fine as fn
 from fine.utils import runInfeasibilityPrechecks
+from fine.utils import checkJointInputDemandAggregated
+
 
 
 def _build_esm(windCapacityMax, transmissionCapacityMax):
@@ -174,7 +176,7 @@ def infeasible_esM():
 
 @pytest.fixture
 def feasible_esM():
-    """Same ESM with enough Wind/transmission capacity to remove the shortage."""
+    """Return the same ESM with enough Wind/transmission capacity to remove the shortage."""
     return _build_esm(windCapacityMax=5, transmissionCapacityMax=5)
 
 
@@ -213,7 +215,6 @@ def test_runInfeasibilityPrechecks_single_check_reports_the_shortage(
     infeasible_esM,
 ):
     """The aggregated joint-input-demand check alone must already flag the model."""
-    from fine.utils import checkJointInputDemandAggregated
 
     problems = checkJointInputDemandAggregated(infeasible_esM)
 
