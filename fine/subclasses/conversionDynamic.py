@@ -16,6 +16,7 @@ class ConversionDynamic(Conversion):
         downTimeMin=None,
         upTimeMin=None,
         useTemporalCyclicConstraints=True,
+        minimumDowntimeRequired=False,
         **kwargs,
     ):
         r"""Create a ConversionDynamic class instance.
@@ -38,6 +39,15 @@ class ConversionDynamic(Conversion):
             |br| * the default value is True
         :type useTemporalCyclicConstraints: boolean
 
+        :param minimumDowntimeRequired: If True, the component is required to be
+            offline for at least ``downTimeMin`` hours in every eligible location
+            and investment period. Any qualifying downtime can satisfy this
+            requirement, irrespective of its cause. This option currently only
+            supports full-resolution, unsegmented time series and temporal cyclic
+            constraints.
+            |br| * the default value is False
+        :type minimumDowntimeRequired: boolean
+
         :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
         :type **kwargs: Check Conversion Class documentation.
         """
@@ -49,6 +59,7 @@ class ConversionDynamic(Conversion):
         self.downTimeMin = downTimeMin
         self.upTimeMin = upTimeMin
         self.useTemporalCyclicConstraints = useTemporalCyclicConstraints
+        self.minimumDowntimeRequired = minimumDowntimeRequired
         utils.checkConversionDynamicSpecficDesignInputParams(self, esM)
 
         if self.isCommisDepending:
@@ -90,6 +101,30 @@ class ConversionDynamicModel(ConversionModel):
         :type pyM: pyomo ConcreteModel
         """
         super().declareSets(esM, pyM)
+
+        maintenanceComponents = [
+            name
+            for name, component in self.componentsDict.items()
+            if component.minimumDowntimeRequired
+        ]
+        if maintenanceComponents and pyM.hasTSA:
+            raise ValueError(
+                "minimumDowntimeRequired currently does not support time series "
+                "aggregation or segmentation."
+            )
+
+        operationVarSet = getattr(pyM, "operationVarSet_" + self.abbrvName)
+        maintenanceSet = [
+            (loc, compName, ip)
+            for loc, compName, ip in operationVarSet
+            if compName in maintenanceComponents
+        ]
+        if maintenanceSet:
+            setattr(
+                pyM,
+                "minimumDowntimeRequiredSet_" + self.abbrvName,
+                pyomo.Set(dimen=3, initialize=maintenanceSet),
+            )
         allBinaryParameters = [
             "partLoadMin",
             "downTimeMin",
@@ -293,3 +328,28 @@ class ConversionDynamicModel(ConversionModel):
         ################################################################################################################
         self.minimumTimeConstraints(pyM, esM, timeType="downTimeMin")
         self.minimumTimeConstraints(pyM, esM, timeType="upTimeMin")
+        self.minimumDowntimeRequiredConstraint(pyM, esM)
+
+    def minimumDowntimeRequiredConstraint(self, pyM, esM):
+        """Require a minimum amount of offline time for selected components."""
+        setName = "minimumDowntimeRequiredSet_" + self.abbrvName
+        if not hasattr(pyM, setName):
+            return
+
+        opVarBin = getattr(pyM, "op_bin_" + self.abbrvName)
+        maintenanceSet = getattr(pyM, setName)
+
+        def minimumDowntimeRequired(pyM, loc, compName, ip):
+            return (
+                pyomo.quicksum(
+                    esM.hoursPerTimeStep * (1 - opVarBin[loc, compName, ip, p, t])
+                    for p, t in pyM.intraYearTimeSet
+                )
+                >= self.componentsDict[compName].downTimeMin
+            )
+
+        setattr(
+            pyM,
+            "ConstrMinimumDowntimeRequired_" + self.abbrvName,
+            pyomo.Constraint(maintenanceSet, rule=minimumDowntimeRequired),
+        )
