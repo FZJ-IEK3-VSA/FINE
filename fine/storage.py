@@ -1747,15 +1747,15 @@ class StorageModel(ComponentModel):
             "processedDischargeOpRateMax",
         )
         # Operation [physicalUnit*h] is limited by minimum part Load
-        # self.additionalMinPartLoad(
-        #     pyM,
-        #     esM,
-        #     "ConstrDischarge",
-        #     "dischargeOpConstrSet",
-        #     "dischargeOp",
-        #     "dischargeOp_bin",
-        #     "cap",
-        # )
+        self.additionalMinPartLoad(
+            pyM,
+            esM,
+            "ConstrDischarge",
+            "dischargeOpConstrSet",
+            "dischargeOp",
+            "dischargeOp_bin",
+            "cap",
+        )
 
         # Cyclic constraint enforcing that all storages have the same state of charge at the the beginning of the first
         # and the end of the last time step

@@ -750,9 +750,9 @@ class TransmissionModel(ComponentModel):
             "op_bin",
         )
         # Operation [physicalUnit*h] is limited by minimum part Load
-        # self.additionalMinPartLoad(
-        #     pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
-        # )
+        self.additionalMinPartLoad(
+            pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
+        )
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
