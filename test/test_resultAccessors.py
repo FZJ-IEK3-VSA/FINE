@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import fine as fn
+import fine.subclasses.conversionPartLoad as partload_module
+import fine.subclasses.lopf as lopf_module
 
 
 def _optimize(esM):
@@ -97,14 +98,18 @@ def test_exportOptimumVarMap_covers_the_subclass_variables(minimal_test_esM):
         "decommissioningVariablesOptimum",
     }
     conversion = {
-        name for _, name, _, _ in
-        esM.componentModelingDict["ConversionModel"]._exportOptimumVarMap()
+        name
+        for _, name, _, _ in esM.componentModelingDict[
+            "ConversionModel"
+        ]._exportOptimumVarMap()
     }
     assert conversion == base
 
     storage = {
-        name for _, name, _, _ in
-        esM.componentModelingDict["StorageModel"]._exportOptimumVarMap()
+        name
+        for _, name, _, _ in esM.componentModelingDict[
+            "StorageModel"
+        ]._exportOptimumVarMap()
     }
     # a storage has no plain operation but charge, discharge and state of charge
     assert {
@@ -124,7 +129,12 @@ def test_getResultSummaryDict_agrees_with_the_optimization_summary(minimal_test_
     """
     esM, ip = _optimize(minimal_test_esM)
 
-    for name in ("SourceSinkModel", "ConversionModel", "StorageModel"):
+    for name in (
+        "SourceSinkModel",
+        "ConversionModel",
+        "StorageModel",
+        "TransmissionModel",
+    ):
         model = esM.componentModelingDict[name]
         summary = esM.getOptimizationSummary(name, ip=ip)
         resultDict = model.getResultSummaryDict(esM, ip)
@@ -139,9 +149,11 @@ def test_getResultSummaryDict_agrees_with_the_optimization_summary(minimal_test_
                     )
                     continue
                 expected = summary.loc[(component, prop, unit)]
+                if model.dimension == "2dim":
+                    expected = expected.stack()
                 for location in series.index:
-                    got = series[location]
-                    want = expected[location]
+                    got = series.loc[location]
+                    want = expected.loc[location]
                     if pd.isna(got) or pd.isna(want):
                         assert pd.isna(got) and pd.isna(want), (
                             f"{name}/{component}/{prop}@{location} NaN mismatch"
@@ -151,6 +163,17 @@ def test_getResultSummaryDict_agrees_with_the_optimization_summary(minimal_test_
                             f"{name}/{component}/{prop}@{location}"
                         )
                     checked += 1
+
+        # Check the opposite direction too: a nonempty summary row must not disappear from
+        # the accessor merely because the accessor and summary share helper mappings.
+        for index, row in summary.iterrows():
+            if row.isna().all():
+                continue
+            component, prop, unit = index[:3]
+            assert prop in resultDict[component], (
+                f"{name}/{component}/{prop} exists in the summary but not the accessor"
+            )
+            assert resultDict[component][prop][1] == unit
         assert checked > 0, f"nothing compared for {name}"
 
 
@@ -192,7 +215,9 @@ def test_getResultSummaryDict_drops_absent_2dim_rows(minimal_test_esM):
 
     assert "capacity" in properties
     for absent in ("isBuilt", "capexIfBuilt", "opexIfBuilt"):
-        assert absent not in properties, f"{absent} should be dropped for a 2-dim component"
+        assert absent not in properties, (
+            f"{absent} should be dropped for a 2-dim component"
+        )
 
 
 def test_registerExtraSummaryRows_are_reported_by_the_summary_dict(minimal_test_esM):
@@ -302,8 +327,7 @@ def test_extra_summary_rows_are_cleared_by_a_new_optimization(minimal_test_esM):
     esM.optimize(timeSeriesAggregation=False, solver="gurobi")
 
     assert (
-        "knowledgeStock_ETL"
-        not in model.getResultSummaryDict(esM, ip)["Electrolyzers"]
+        "knowledgeStock_ETL" not in model.getResultSummaryDict(esM, ip)["Electrolyzers"]
     )
 
 
@@ -314,9 +338,6 @@ def test_getOptimalValues_covers_the_subclass_variables_of_every_class():
     tends to fall behind it - the commissioning/decommissioning entries were missing from
     the LOPF and part-load tables for exactly that reason.
     """
-    import fine.subclasses.lopf as lopf_module
-    import fine.subclasses.conversionPartLoad as partload_module
-
     design = {
         "capacityVariablesOptimum",
         "isBuiltVariablesOptimum",
@@ -367,3 +388,19 @@ def test_getOptimalValues_covers_the_subclass_variables_of_every_class():
     assert "values" in lopf.getOptimalValues("capacityVariablesOptimum", ip=0)
     assert "values" in partload.getOptimalValues("capacityVariablesOptimum", ip=0)
     assert "values" in lopf.getOptimalValues("phaseAngleVariablesOptimum", ip=0)
+
+
+def test_named_base_optimum_does_not_require_subclass_results():
+    """A base result remains independently accessible when subclass results are absent.
+
+    This occurs, for example, on models restored by the current netCDF reader, which
+    reconstructs the standard design/operation optima but not LOPF phase angles or part-load
+    discretization variables.
+    """
+    for model in (lopf_module.LOPFModel(), partload_module.ConversionPartLoadModel()):
+        model._capacityVariablesOptimum = {0: pd.DataFrame()}
+
+        result = model.getOptimalValues("capacityVariablesOptimum", ip=0)
+
+        assert "values" in result
+        assert isinstance(result["values"], pd.DataFrame)
