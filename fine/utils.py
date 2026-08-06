@@ -1645,6 +1645,7 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
             )
     return parameterCost, parameterCostTimeSeries
 
+
 def checkAndSetLifetimeInvestmentPeriod(esM, name, lifetime):
     """Calculate lifetime in investement periods."""
     return lifetime / esM.investmentPeriodInterval
