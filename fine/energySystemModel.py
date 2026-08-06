@@ -1,7 +1,6 @@
 import inspect
 from pathlib import Path
 import time
-from types import SimpleNamespace
 import warnings
 import importlib.util
 import os
@@ -10,9 +9,11 @@ import gurobi_logtools as glt
 import pandas as pd
 import psutil
 import pyomo.environ as pyomo
+from pyomo.common.errors import ApplicationError
 from pyomo import opt
-import tsam
-from tsam import ClusterConfig, SegmentConfig, ExtremeConfig
+from pyomo.contrib.appsi.base import LegacySolverInterface
+from pyomo.contrib.appsi.solvers import Highs
+from tsam import aggregate, ClusterConfig, SegmentConfig, ExtremeConfig
 
 from fine import utils
 from fine.utils import ImplementedSolvers
@@ -143,7 +144,7 @@ class EnergySystemModel:
             The goal of the stochastic optimization is to find a more robust energy system by considering different
             requirements to find a single energy system design (e.g. various weather years or demand forecasts). These requirements
             are represented in different investment periods of the model. In contrast to the classical perfect foresight
-            optimization the investment periods do not represent steps of a tranformation pathway but possible boundary
+            optimization the investment periods do not represent steps of a transformation pathway but possible boundary
             conditions for the energy system, which need to be considered for the system design and operation
             |br| * the default value is False
         :type mode: bool
@@ -357,6 +358,7 @@ class EnergySystemModel:
             None,
             None,
         )
+        self.tsaParameters = None
         self.timeUnit = "h"
 
         ################################################################################################################
@@ -413,6 +415,7 @@ class EnergySystemModel:
         # The costUnit parameter (string) is the parameter in which all cost input parameter have to be specified.
         self.componentNames = {}
         self.componentModelingDict = {}
+        self.sharedPotentialDict = {}
         self.costUnit = costUnit
 
         ################################################################################################################
@@ -499,6 +502,18 @@ class EnergySystemModel:
                 + str(self.componentNames.keys())
             )
         modelingClass = self.componentNames[componentName]
+
+        # Remove component from sharedPotentialDict if present
+        keys_to_delete = [
+            key
+            for key, comps in self.sharedPotentialDict.items()
+            if componentName in comps
+        ]
+        for key in keys_to_delete:
+            self.sharedPotentialDict[key].remove(componentName)
+            if not self.sharedPotentialDict[key]:
+                del self.sharedPotentialDict[key]
+
         removedComp = dict()
         # If track: Return a dictionary including the name of the removed component and the component instance
         if track:
@@ -631,7 +646,7 @@ class EnergySystemModel:
         :rtype: depends on the specified attribute
         """
         # if there is only data for one investment period, the function
-        # directely returns the value instead of {0:value}. This allows old
+        # directly returns the value instead of {0:value}. This allows old
         # models to run without modification
         attr = getattr(self.getComponent(componentName), attributeName)
         if isinstance(attr, dict) and list(attr.keys()) == [0]:
@@ -721,7 +736,7 @@ class EnergySystemModel:
             |br| * the default value is 'geometry'
         :type geom_col_name: string
 
-        :param geom_id_col_name: The colum in `shapefile` consisting geom IDs
+        :param geom_id_col_name: The column in `shapefile` consisting geom IDs
             |br| * the default value is 'index'
         :type geom_id_col_name: string
 
@@ -773,7 +788,7 @@ class EnergySystemModel:
                     kmedoids clustering with added contiguity constraint.
                     Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
                 - 'hierarchical':
-                    sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
+                    sklearn's agglomerative clustering with complete linkage, with a connectivity matrix to ensure contiguity.
                     Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
 
             |br| * the default value is 'kmedoids_contiguity'
@@ -782,7 +797,7 @@ class EnergySystemModel:
         :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
             The optimization solver to be chosen.
             |br| * the default value is 'gurobi'
-        :type solver: string, Options: 'gurobi', 'glpk'
+        :type solver: string, Options: 'gurobi', 'highs', 'glpk'
 
         :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable.
 
@@ -858,6 +873,133 @@ class EnergySystemModel:
         # STEP 3. Obtain aggregated esM
         return xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
+    def _translate_legacy_kwargs(self, kwargs):
+        """Split kwargs into an ExtremeConfig (built from tsam v2 extreme-period
+        arguments) and the remaining kwargs passed through unchanged. A directly
+        supplied ExtremeConfig (new API) takes precedence and is passed through.
+        """
+        remaining = dict(kwargs)
+
+        # user already passed a new-API ExtremeConfig -> use it, translate nothing
+        if "extremes" in remaining:
+            return remaining.pop("extremes"), remaining
+
+        extreme_method_values = {
+            "None": None,
+            "append": "append",
+            "replace_cluster_center": "replace",
+            "new_cluster_center": "new_cluster",
+        }
+
+        extreme_args = {}
+
+        if "addPeakMax" in remaining:
+            extreme_args["max_value"] = remaining.pop("addPeakMax")
+        if "addPeakMin" in remaining:
+            extreme_args["min_value"] = remaining.pop("addPeakMin")
+        if "addMeanMax" in remaining:
+            extreme_args["max_period"] = remaining.pop("addMeanMax")
+        if "addMeanMin" in remaining:
+            extreme_args["min_period"] = remaining.pop("addMeanMin")
+
+        translated_method = None
+        if "extremePeriodMethod" in remaining:
+            old_method = remaining.pop("extremePeriodMethod")
+            translated_method = extreme_method_values.get(old_method, old_method)
+
+        if not extreme_args and translated_method is None:
+            return None, remaining
+
+        warnings.warn(
+            "Passing tsam v2 extreme-period arguments (addPeakMax, addPeakMin, "
+            "addMeanMax, addMeanMin, extremePeriodMethod) is deprecated. They were "
+            "translated to an ExtremeConfig. Pass extremes=ExtremeConfig(...) directly.",
+            DeprecationWarning,
+        )
+
+        # tsam v2 parity: extreme periods were only added when extremePeriodMethod
+        # was explicitly set to something other than 'None' AND at least one column
+        # was selected via addPeakMax/addPeakMin/addMeanMax/addMeanMin.
+        if translated_method is None or not extreme_args:
+            if extreme_args:
+                warnings.warn(
+                    "addPeakMax/addPeakMin/addMeanMax/addMeanMin were ignored "
+                    "because extremePeriodMethod is 'None' (tsam v2 behavior). "
+                    "Set extremePeriodMethod or pass extremes=ExtremeConfig(...) "
+                    "to activate extreme-period handling.",
+                    UserWarning,
+                )
+            return None, remaining
+
+        extreme_args["method"] = translated_method
+        return ExtremeConfig(**extreme_args), remaining
+
+
+    def _buildTsamAggregation(
+        self,
+        timeSeriesData,
+        weightDict,
+        numberOfTypicalPeriods,
+        hoursPerPeriod,
+        segmentation,
+        numberOfSegmentsPerPeriod,
+        clusterMethod,
+        representationMethod,
+        sortValues,
+        rescaleClusterPeriods,
+        solver,
+        kwargs,
+    ):
+        """Translate the aggregateTemporally arguments to the tsam.aggregate() API
+        and run the aggregation. Returns the tsam AggregationResult.
+        """
+        cluster_methods = {
+            "averaging": "averaging",
+            "k_means": "kmeans",
+            "k_medoids": "kmedoids",
+            "k_maxoids": "kmaxoids",
+            "hierarchical": "hierarchical",
+            "adjacent_periods": "contiguous",
+        }
+
+        representations = {
+            "meanRepresentation": "mean",
+            "medoidRepresentation": "medoid",
+            "maxoidRepresentation": "maxoid",
+            "distributionRepresentation": "distribution",
+            "durationRepresentation": "distribution",
+            "distributionAndMinMaxRepresentation": "distribution_minmax",
+            "minmaxmeanRepresentation": "minmax_mean",
+        }
+
+        extreme_config, passthrough_kwargs = self._translate_legacy_kwargs(kwargs)
+
+        cluster_config = ClusterConfig(
+            method=cluster_methods.get(clusterMethod, clusterMethod),
+            representation=representations.get(
+                representationMethod, representationMethod
+            ),
+            use_duration_curves=sortValues,
+            solver=solver,
+        )
+
+        segment_config = (
+            SegmentConfig(n_segments=numberOfSegmentsPerPeriod)
+            if segmentation
+            else None
+        )
+
+        return aggregate(
+            timeSeriesData,
+            n_clusters=numberOfTypicalPeriods,
+            period_duration=f"{hoursPerPeriod}h",
+            weights=weightDict,
+            preserve_column_means=rescaleClusterPeriods,
+            cluster=cluster_config,
+            segments=segment_config,
+            extremes=extreme_config,
+            **passthrough_kwargs,
+        )
     def aggregateTemporally(
         self,
         numberOfTypicalPeriods=40,
@@ -869,6 +1011,7 @@ class EnergySystemModel:
         sortValues=False,
         storeTSAinstance=False,
         rescaleClusterPeriods=False,
+        solver="highs",
         **kwargs,
     ):
         """Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
@@ -877,7 +1020,7 @@ class EnergySystemModel:
         days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
         time steps with an irregular duration using the segmentation option.
         For the clustering itself, the tsam package is used (cf. https://github.com/FZJ-IEK3-VSA/tsam). Additional
-        keyword arguments for the tsam.aggregate call can be added (facilitated by kwargs). As an example: it
+        keyword arguments for the TimeSeriesAggregation instance can be added (facilitated by kwargs). As an example: it
         might be useful to add extreme periods to the clustered typical periods.
 
         .. note::
@@ -950,43 +1093,11 @@ class EnergySystemModel:
             |br| * the default value is True
         :type sortValues: boolean
 
-        :param storeTSAinstance: states if the tsam aggregation result created during clustering should be
+        :param storeTSAinstance: states if the TimeSeriesAggregation instance created during clustering should be
             stored in the EnergySystemModel instance.
             |br| * the default value is False
         :type storeTSAinstance: boolean
         """
-
-        def _map_cluster_method(method):
-            cluster_method_map = {
-                "averaging": "averaging",
-                "k_means": "kmeans",
-                "k_medoids": "kmedoids",
-                "k_maxoids": "kmaxoids",
-                "hierarchical": "hierarchical",
-                "adjacent_periods": "contiguous",
-            }
-            return cluster_method_map.get(method, method)
-
-        def _map_representation_method(method):
-            representation_method_map = {
-                "meanRepresentation": "mean",
-                "medoidRepresentation": "medoid",
-                "maxoidRepresentation": "maxoid",
-                "distributionRepresentation": "distribution",
-                "durationRepresentation": "distribution",
-                "distributionAndMinMaxRepresentation": "distribution_minmax",
-                "minmaxmeanRepresentation": "minmax_mean",
-            }
-            return representation_method_map.get(method, method)
-
-        def _map_extreme_method(method):
-            extreme_method_map = {
-                "append": "append",
-                "replace_cluster_center": "replace",
-                "new_cluster_center": "new_cluster",
-            }
-            return extreme_method_map.get(method, method)
-
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(
             numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps)
@@ -1041,156 +1152,44 @@ class EnergySystemModel:
         self.segmentStartTime = {}
 
         # clustering of the time series data per investment period individually
-        tsaInstanceToStore = None
         for ip in self.investmentPeriods:
-            timeSeriesData, weightDict = [], {}
-            for mdlName, mdl in self.componentModelingDict.items():
-                for compName, comp in mdl.componentsDict.items():
-                    (
-                        compTimeSeriesData,
-                        compWeightDict,
-                    ) = comp.getDataForTimeSeriesAggregation(ip)
-                    if compTimeSeriesData is not None:
-                        (
-                            timeSeriesData.append(compTimeSeriesData),
-                            weightDict.update(compWeightDict),
-                        )
-            timeSeriesData = pd.concat(timeSeriesData, axis=1)
-            # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
-            timeSeriesData.index = pd.date_range(
-                "2050-01-01 00:30:00",
-                periods=len(self.totalTimeSteps),
-                freq=(str(self.hoursPerTimeStep) + "h"),
-                tz="Europe/Berlin",
+            timeSeriesData, weightDict, zero_data_cols = (
+                self.createTimeSeriesDataForAggregation(ip)
             )
 
-            # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
-            # call) depending on whether segmentation is activated or not
-            timeSeriesData = timeSeriesData.reindex(
-                sorted(timeSeriesData.columns), axis=1
+            aggregation = self._buildTsamAggregation(
+                timeSeriesData=timeSeriesData,
+                weightDict=weightDict,
+                numberOfTypicalPeriods=numberOfTypicalPeriods,
+                hoursPerPeriod=hoursPerPeriod,
+                segmentation=segmentation,
+                numberOfSegmentsPerPeriod=numberOfSegmentsPerPeriod,
+                clusterMethod=clusterMethod,
+                representationMethod=representationMethod,
+                sortValues=sortValues,
+                rescaleClusterPeriods=rescaleClusterPeriods,
+                solver=solver,
+                kwargs=kwargs,
             )
 
-            # Migrate old kwargs to new tsam.aggregate API kwargs and configs
-            aggregate_kwargs = kwargs.copy()
-
-            weightDict = aggregate_kwargs.pop("weightDict", weightDict)
-            normalizeColumnMeans = aggregate_kwargs.pop("sameMean", False)
-            includePeriodSums = aggregate_kwargs.pop("evalSumPeriods", False)
-            tsamSolver = aggregate_kwargs.pop("solver", "highs")
-
-            rescaleExcludeColumns = aggregate_kwargs.pop("rescaleExcludeColumns", None)
-            roundDecimals = aggregate_kwargs.pop("roundOutput", None)
-            numericalTolerance = aggregate_kwargs.pop("numericalTolerance", 1e-13)
-
-            segmentRepresentationMethod = aggregate_kwargs.pop(
-                "segmentRepresentationMethod",
-                _map_representation_method(representationMethod),
-            )
-
-            extremePeriodMethod = aggregate_kwargs.pop("extremePeriodMethod", None)
-            addPeakMax = aggregate_kwargs.pop("addPeakMax", None)
-            addPeakMin = aggregate_kwargs.pop("addPeakMin", None)
-            addMeanMax = aggregate_kwargs.pop("addMeanMax", None)
-            addMeanMin = aggregate_kwargs.pop("addMeanMin", None)
-
-            clusterConfig = ClusterConfig(
-                method=_map_cluster_method(clusterMethod),
-                representation=_map_representation_method(representationMethod),
-                weights=weightDict,
-                normalize_column_means=normalizeColumnMeans,
-                use_duration_curves=sortValues,
-                include_period_sums=includePeriodSums,
-                solver=tsamSolver,
-            )
-
-            segmentConfig = None
+            representatives = aggregation.cluster_representatives
             if segmentation:
-                segmentConfig = SegmentConfig(
-                    n_segments=numberOfSegmentsPerPeriod,
-                    representation=_map_representation_method(
-                        segmentRepresentationMethod
-                    ),
+                segmentDurations = representatives.index.get_level_values("Segment Duration")
+                data = representatives.droplevel("Segment Duration")
+                data.index = data.index.set_names([None] * data.index.nlevels)
+                # standardIO.writeOptimizationOutputToExcel expects this exact
+                # series name when writing the "Misc" sheet
+                timeStepsPerSegment = pd.Series(
+                    segmentDurations.to_numpy(),
+                    index=data.index,
+                    name="Segment Duration",
                 )
-
-            extremeConfig = None
-            if (
-                extremePeriodMethod not in [None, "None"]
-                or addPeakMax is not None
-                or addPeakMin is not None
-                or addMeanMax is not None
-                or addMeanMin is not None
-            ):
-                extremeConfig = ExtremeConfig(
-                    method=_map_extreme_method(extremePeriodMethod or "append"),
-                    max_value=addPeakMax,
-                    min_value=addPeakMin,
-                    max_period=addMeanMax,
-                    min_period=addMeanMin,
-                )
-
-            if segmentation:
-                aggregationResult = tsam.aggregate(
-                    timeSeriesData,
-                    n_clusters=numberOfTypicalPeriods,
-                    period_duration=hoursPerPeriod,
-                    cluster=clusterConfig,
-                    segments=segmentConfig,
-                    extremes=extremeConfig,
-                    preserve_column_means=rescaleClusterPeriods,
-                    rescale_exclude_columns=rescaleExcludeColumns,
-                    round_decimals=roundDecimals,
-                    numerical_tolerance=numericalTolerance,
-                    **aggregate_kwargs,
-                )
-                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-                # second index as segment number per typical period.
-                data = aggregationResult.cluster_representatives.reset_index(
-                    level=2, drop=True
-                )
-                # Get the length of each segment in each typical period with the first index as typical period number and
-                # the second index as segment number per typical period.
-                rawSegmentDurations = aggregationResult.segment_durations
-                if isinstance(rawSegmentDurations, pd.Series):
-                    timeStepsPerSegment = rawSegmentDurations
-                else:
-                    clusterIds = list(
-                        aggregationResult.cluster_representatives.index.get_level_values(
-                            0
-                        ).unique()
-                    )
-                    if len(clusterIds) != len(rawSegmentDurations):
-                        clusterIds = list(range(len(rawSegmentDurations)))
-
-                    indexTuples = []
-                    values = []
-                    for clusterId, segmentDurations in zip(
-                        clusterIds, rawSegmentDurations
-                    ):
-                        for segmentStep, segmentDuration in enumerate(segmentDurations):
-                            indexTuples.append((clusterId, segmentStep))
-                            values.append(segmentDuration)
-
-                    timeStepsPerSegment = pd.Series(
-                        values,
-                        index=pd.MultiIndex.from_tuples(indexTuples),
-                        name="Segment Duration",
-                    )
             else:
-                aggregationResult = tsam.aggregate(
-                    timeSeriesData,
-                    n_clusters=numberOfTypicalPeriods,
-                    period_duration=hoursPerPeriod,
-                    cluster=clusterConfig,
-                    extremes=extremeConfig,
-                    preserve_column_means=rescaleClusterPeriods,
-                    rescale_exclude_columns=rescaleExcludeColumns,
-                    round_decimals=roundDecimals,
-                    numerical_tolerance=numericalTolerance,
-                    **aggregate_kwargs,
-                )
-                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-                # second index as time step number per typical period.
-                data = aggregationResult.cluster_representatives
+                data = representatives.copy()
+                data.index = data.index.set_names([None] * data.index.nlevels)
+
+            # add zeros data back to data
+            data[zero_data_cols] = 0.0
 
             # Store the respective clustered time series data in the associated components
             for mdlName, mdl in self.componentModelingDict.items():
@@ -1199,19 +1198,8 @@ class EnergySystemModel:
 
             # Store time series aggregation parameters in class instance
             if storeTSAinstance:
-                tsaInstanceToStore = SimpleNamespace(
-                    clusterMethod=clusterMethod,
-                    noTypicalPeriods=numberOfTypicalPeriods,
-                    hoursPerPeriod=hoursPerPeriod,
-                    segmentation=segmentation,
-                    noSegments=numberOfSegmentsPerPeriod,
-                    solver=tsamSolver,
-                    timeStepsPerPeriod=numberOfTimeStepsPerPeriod,
-                    aggregationResult=aggregationResult,
-                )
-            self.typicalPeriods = sorted(
-                [int(x) for x in data.index.get_level_values(0).unique()]
-            )
+                self.tsaInstance = aggregation
+            self.typicalPeriods = data.index.get_level_values(0).unique()
             self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
             self.segmentation = segmentation
             if segmentation:
@@ -1233,7 +1221,7 @@ class EnergySystemModel:
                 segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
                 self.segmentStartTime[ip] = segmentStartTime  # ip-dependent
 
-            self.periodsOrder[ip] = aggregationResult.cluster_assignments
+            self.periodsOrder[ip] = aggregation.cluster_assignments
             self.periodOccurrences[ip] = [
                 (self.periodsOrder[ip] == tp).sum() for tp in self.typicalPeriods
             ]
@@ -1253,12 +1241,67 @@ class EnergySystemModel:
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
         timeEnd = time.time()
-        if storeTSAinstance and tsaInstanceToStore is not None:
-            tsaInstanceToStore.tsaBuildTime = timeEnd - timeStart
-            self.tsaInstance = tsaInstanceToStore
+        if storeTSAinstance:
+            self.tsaInstance = aggregation
+            # The functional tsam API returns an AggregationResult that does not
+            # carry the input parameters (clusterMethod, hoursPerPeriod, ...).
+            # Store them here so writeOptimizationSummary can report them.
+            self.tsaParameters = {
+                "clusterMethod": clusterMethod,
+                "noTypicalPeriods": numberOfTypicalPeriods,
+                "hoursPerPeriod": hoursPerPeriod,
+                "segmentation": segmentation,
+                "noSegments": numberOfSegmentsPerPeriod if segmentation else None,
+                "solver": solver,
+                "timeStepsPerPeriod": self.timeStepsPerPeriod,
+                "tsaBuildTime": timeEnd - timeStart,
+            }
         utils.output(
             "\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verboseLogLevel, 0
         )
+
+    def createTimeSeriesDataForAggregation(
+        self,
+        ip,
+    ) -> tuple[pd.DataFrame, dict, pd.Index]:
+        """Create and return the time series data, weights, and zero-data columns for aggregation.
+
+        Returns:
+            tuple[pd.DataFrame, dict, pd.Index]: Time series data, weight dictionary,
+            and columns containing only zero values.
+
+        """
+        timeSeriesData, weightDict = [], {}
+        for mdlName, mdl in self.componentModelingDict.items():
+            for compName, comp in mdl.componentsDict.items():
+                (
+                    compTimeSeriesData,
+                    compWeightDict,
+                ) = comp.getDataForTimeSeriesAggregation(ip)
+                if compTimeSeriesData is not None:
+                    (
+                        timeSeriesData.append(compTimeSeriesData),
+                        weightDict.update(compWeightDict),
+                    )
+        timeSeriesData = pd.concat(timeSeriesData, axis=1)
+        # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
+        timeSeriesData.index = pd.date_range(
+            "2050-01-01 00:30:00",
+            periods=len(self.totalTimeSteps),
+            freq=(str(self.hoursPerTimeStep) + "h"),
+            tz="Europe/Berlin",
+        )
+
+        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
+        # call) depending on whether segmentation is activated or not
+        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
+        # find data with only zeros
+        zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
+        # drop columns with only zeros
+        timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
+        weightDict = {k: v for k, v in weightDict.items() if k not in zero_data_cols}
+
+        return timeSeriesData, weightDict, zero_data_cols
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """Set and initialize basic time parameters and sets.
@@ -1580,7 +1623,7 @@ class EnergySystemModel:
             setattr(pyM, "pathwayBalanceLimitDict", pathwayBalanceLimitDict)
 
             def pathwayBalanceLimitConstraint(pyM, ID, loc, lowerBound, value):
-                # pathway restricition
+                # pathway restriction
                 balanceSum = sum(
                     mdl.getBalanceLimitContribution(
                         esM=self,
@@ -1628,22 +1671,6 @@ class EnergySystemModel:
             "Declaring shared potential constraint...", self.verboseLogLevel, 0
         )
 
-        # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
-        # potential)
-        potentialDict = {}
-        for ip in self.investmentPeriods:
-            for mdl in self.componentModelingDict.values():
-                for compName, comp in mdl.componentsDict.items():
-                    if comp.sharedPotentialID is not None:
-                        [
-                            potentialDict.setdefault(
-                                (comp.sharedPotentialID, loc, ip), []
-                            ).append(compName)
-                            for loc in comp.processedLocationalEligibility.index
-                            if comp.processedCapacityMax[ip][loc] != 0
-                        ]
-        pyM.sharedPotentialDict = potentialDict
-
         # Define and initialize constraints for each instance and location where components have to share an available
         # potential. Sum up the relative contributions to the shared potential and ensure that the total share is
         # <= 100%. For this, get the contributions to the shared potential for the corresponding ID and
@@ -1658,7 +1685,7 @@ class EnergySystemModel:
             )
 
         pyM.ConstraintSharedPotentials = pyomo.Constraint(
-            pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
+            self.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
         )
 
     def declareComponentLinkedQuantityConstraints(self, pyM):
@@ -2160,7 +2187,6 @@ class EnergySystemModel:
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
         solverList = [
-            ImplementedSolvers.GUROBI.value,
             ImplementedSolvers.STANDARD_SOLVER.value,
             ImplementedSolvers.HIGHS.value,
         ]
@@ -2168,7 +2194,7 @@ class EnergySystemModel:
         if solver != "None":
             try:
                 opt.SolverFactory(solver).available()
-            except Exception:
+            except (ApplicationError, ValueError, OSError):
                 solver = "None"
 
         if solver == "None":
@@ -2184,7 +2210,7 @@ class EnergySystemModel:
                                 self.verboseLogLevel,
                                 0,
                             )
-                    except Exception:
+                    except (ApplicationError, ValueError, OSError):
                         pass
 
         if solver == "None":
@@ -2216,7 +2242,24 @@ class EnergySystemModel:
 
             else:
                 optimizer = opt.SolverFactory(solver, solver_io="python")
+        elif solver == ImplementedSolvers.HIGHS.value:
+            # Handle cases with no duals without exceptions in highs
+            class LegacyHighs(LegacySolverInterface, Highs):
+                def get_duals(self, cons_to_load=None):
+                    if self._sol is None or not self._sol.dual_valid:
+                        return {}
+                    return super().get_duals(cons_to_load)
 
+            optimizer = LegacyHighs()
+            if optimizationSpecs is not None:
+                solver_options = opt.OptSolver._options_string_to_dict(
+                    optimizationSpecs
+                )
+
+                for k, v in solver_options.items():
+                    optimizer.highs_options[k] = v
+            if timeLimit is not None:
+                optimizer.highs_options["time_limit"] = timeLimit
         else:
             optimizer = opt.SolverFactory(solver)
 
@@ -2305,6 +2348,12 @@ class EnergySystemModel:
                 "Optimization problem is "
                 + str(termCondition)
                 + ". No output is generated.",
+                self.verboseLogLevel,
+                0,
+            )
+        elif termCondition == opt.TerminationCondition.other:
+            utils.output(
+                "No solution was found (TerminationCondition: other). No output is generated.",
                 self.verboseLogLevel,
                 0,
             )
@@ -2412,17 +2461,17 @@ class EnergySystemModel:
 
             # TSA Values
             if self.isTimeSeriesDataClustered and (self.tsaInstance is not None):
-                tsaBuildTime = self.tsaInstance.tsaBuildTime
+                tsaBuildTime = self.tsaParameters["tsaBuildTime"]
 
                 tsa_parameters_dict = {
-                    "clusterMethod": self.tsaInstance.clusterMethod,
-                    "noTypicalPeriods": self.tsaInstance.noTypicalPeriods,
-                    "hoursPerPeriod": self.tsaInstance.hoursPerPeriod,
-                    "segmentation": self.tsaInstance.segmentation,
-                    "noSegments": self.tsaInstance.noSegments,
-                    "tsaSolver": self.tsaInstance.solver,
-                    "timeStepsPerPeriod": self.tsaInstance.timeStepsPerPeriod,
-                    "tsaBuildTime": self.tsaInstance.tsaBuildTime,
+                    "clusterMethod": self.tsaParameters["clusterMethod"],
+                    "noTypicalPeriods": self.tsaParameters["noTypicalPeriods"],
+                    "hoursPerPeriod": self.tsaParameters["hoursPerPeriod"],
+                    "segmentation": self.tsaParameters["segmentation"],
+                    "noSegments": self.tsaParameters["noSegments"],
+                    "tsaSolver": self.tsaParameters["solver"],
+                    "timeStepsPerPeriod": self.tsaParameters["timeStepsPerPeriod"],
+                    "tsaBuildTime": self.tsaParameters["tsaBuildTime"],
                 }
             else:
                 tsa_parameters_dict = {}
