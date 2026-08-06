@@ -1685,24 +1685,6 @@ class StorageModel(ComponentModel):
             "dischargeOp_bin",
         )
 
-        # Couple binary operation variable to operation variable
-        self.binaryOperation(
-            pyM,
-            "ConstrCharge",
-            "chargeOpConstrSet",
-            "partLoadMin",
-            "chargeOp",
-            "chargeOp_bin",
-        )
-        self.binaryOperation(
-            pyM,
-            "ConstrDischarge",
-            "dischargeOpConstrSet",
-            "partLoadMin",
-            "dischargeOp",
-            "dischargeOp_bin",
-        )
-
         # Operation [physicalUnit*h] is limited by minimum part Load
         self.additionalMinPartLoad(
             pyM,
@@ -1747,15 +1729,15 @@ class StorageModel(ComponentModel):
             "processedDischargeOpRateMax",
         )
         # Operation [physicalUnit*h] is limited by minimum part Load
-        # self.additionalMinPartLoad(
-        #     pyM,
-        #     esM,
-        #     "ConstrDischarge",
-        #     "dischargeOpConstrSet",
-        #     "dischargeOp",
-        #     "dischargeOp_bin",
-        #     "cap",
-        # )
+        self.additionalMinPartLoad(
+            pyM,
+            esM,
+            "ConstrDischarge",
+            "dischargeOpConstrSet",
+            "dischargeOp",
+            "dischargeOp_bin",
+            "cap",
+        )
 
         # Cyclic constraint enforcing that all storages have the same state of charge at the the beginning of the first
         # and the end of the last time step
