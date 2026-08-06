@@ -378,6 +378,7 @@ class EnergySystemModel:
         # is used throughout the build of the energy system model to validate inputs and declare relevant sets,
         # variables and constraints.
         # The length unit refers to the measure of length referred throughout the model.
+
         self.locations, self.lengthUnit = locations, lengthUnit
         self._locationsOrdered = sorted(locations)
 
@@ -1148,7 +1149,6 @@ class EnergySystemModel:
                 data = pd.DataFrame.from_dict(
                     clusterClass.clusterPeriodDict
                 ).reset_index(level=2, drop=True)
-
                 # Get the length of each segment in each typical period with the first index as typical period number and
                 # the second index as segment number per typical period.
                 timeStepsPerSegment = pd.DataFrame.from_dict(
