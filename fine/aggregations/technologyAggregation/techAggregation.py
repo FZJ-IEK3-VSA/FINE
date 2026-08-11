@@ -275,8 +275,10 @@ def aggregate_RE_technology(
         if isinstance(non_gridded_RE_ds, str):
             try:
                 non_gridded_RE_ds = xr.open_dataset(non_gridded_RE_ds)
-            except Exception:
-                raise FileNotFoundError("The gridded_RE_ds path specified is not valid")
+            except (FileNotFoundError, OSError) as exc:
+                raise FileNotFoundError(
+                    "The gridded_RE_ds path specified is not valid"
+                ) from exc
 
         elif not isinstance(non_gridded_RE_ds, xr.Dataset):
             raise TypeError(

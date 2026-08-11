@@ -1,0 +1,186 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+
+site_name: ETHOS.FINE
+site_url: https://vsa-fine.readthedocs.io/
+site_description: Framework for Integrated Energy System Assessment
+site_author: FINE Developer Team
+
+hooks:
+    - docs/hooks.py
+
+repo_url: https://github.com/FZJ-IEK3-VSA/FINE
+repo_name: FZJ-IEK3-VSA/FINE
+edit_uri: edit/develop/docs/
+
+docs_dir: docs
+site_dir: site
+use_directory_urls: false
+
+# Files excluded from the documentation build. docs/scripts/*.py are build
+# helpers (gen-files), not content, and mkdocs-jupyter's default `include`
+# covers *.py, so without this it would try to execute them as notebooks.
+# docs/overrides/ is Material theme template source (see theme.custom_dir),
+# likewise not content.
+exclude_docs: |
+  scripts/*.py
+  overrides/
+
+validation:
+    links:
+        anchors: warn
+        absolute_links: warn
+        unrecognized_links: warn
+
+theme:
+    name: material
+    custom_dir: docs/overrides
+    logo: ./fine_logo_nav.svg
+    favicon: ./fine_logo_nav.svg
+    palette:
+        - media: "(prefers-color-scheme: light)"
+          scheme: default
+          primary: custom
+          accent: custom
+          toggle:
+              icon: material/brightness-7
+              name: Switch to dark mode
+        - media: "(prefers-color-scheme: dark)"
+          scheme: slate
+          primary: custom
+          accent: custom
+          toggle:
+              icon: material/brightness-4
+              name: Switch to light mode
+    features:
+        - navigation.tabs
+        - navigation.sections
+        - navigation.expand
+        - navigation.top
+        - navigation.indexes
+        - search.suggest
+        - search.highlight
+        - content.code.copy
+        - content.action.edit
+        - toc.follow
+
+plugins:
+    - search
+
+    - mkdocs-jupyter:
+          execute: false
+          include_source: true
+          allow_errors: true
+
+    - mkdocstrings:
+          default_handler: python
+          handlers:
+              python:
+                  paths: [.]
+                  options:
+                      docstring_section_style: list
+                      signature_crossrefs: true
+                      docstring_style: numpy
+                      unwrap_annotated: true
+                      inherited_members: true
+                      summary: true
+                      heading_level: 1
+                      parameter_headings: true
+                      show_root_heading: true
+                      show_root_full_path: false
+                      show_symbol_type_heading: true
+                      show_symbol_type_toc: true
+                      merge_init_into_class: true
+                      separate_signature: true
+                      show_signature_annotations: true
+                      show_bases: true
+                      allow_inspection: true
+
+    - gen-files:
+          scripts:
+              - docs/scripts/gen_index_from_readme.py
+              - docs/scripts/gen_ref_pages.py
+
+    - literate-nav:
+          nav_file: SUMMARY.md
+
+    - section-index
+
+markdown_extensions:
+    - admonition
+    - attr_list
+    - md_in_html
+    - toc:
+          permalink: true
+    - pymdownx.highlight:
+          anchor_linenums: true
+    - pymdownx.superfences
+    - pymdownx.tabbed:
+          alternate_style: true
+    - pymdownx.details
+    - pymdownx.arithmatex:
+          generic: true
+    - pymdownx.snippets:
+          base_path: [.]
+          check_paths: false
+
+extra_javascript:
+    - javascripts/mathjax.js
+    - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+extra:
+    generator: false
+
+extra_css:
+    - stylesheets/extra.css
+
+nav:
+    - Home: index.md
+    - Purpose: purpose.md
+    - Installation: installation.md
+
+    - User Guide:
+          - Overview: user_guide/index.md
+          - Energy System Modeling: user_guide/components_introduction.md
+
+          - Mathematical Descriptions:
+                - Overview: user_guide/mathematical_descriptions/index.md
+                - Parameters and Sets: user_guide/mathematical_descriptions/parameters_and_sets.md
+                - Basic Component Model: user_guide/mathematical_descriptions/basic_component.md
+                - Source and Sink: user_guide/mathematical_descriptions/source_sink.md
+                - Conversion: user_guide/mathematical_descriptions/conversion.md
+                - Storage: user_guide/mathematical_descriptions/storage.md
+                - Transmission: user_guide/mathematical_descriptions/transmission.md
+                - Inter-Component Constraints: user_guide/mathematical_descriptions/inter_component.md
+                - Objective Function: user_guide/mathematical_descriptions/objective_function.md
+
+          - Python Package Description:
+                - Overview: user_guide/python_package/index.md
+                - EnergySystemModel: user_guide/python_package/energy_system_model.md
+                - Components: user_guide/python_package/components.md
+                - Subclasses: user_guide/python_package/subclasses.md
+                - Expansion Modules: user_guide/python_package/expansion_modules.md
+                - Output Manager: user_guide/python_package/output_manager.md
+                - Aggregations: user_guide/python_package/aggregations.md
+
+    - Examples:
+          - Overview: examples/index.md
+          - "00 Tutorial": examples/00_Tutorial/00_Tutorial.ipynb
+          - "01 1-node Energy System": examples/01_1node_Energy_System_Workflow/01_1node_Example.ipynb
+          - "02 EnergyLand": examples/02_EnergyLand/02_Energyland.ipynb
+          - "03 Multi-regional Energy System":
+                - Workflow: examples/03_Multi-regional_Energy_System_Workflow/03_Multi-regional_Energy_System_Workflow.ipynb
+                - Performance Summary: examples/03_Multi-regional_Energy_System_Workflow/03b_Performance_Summary_Example.ipynb
+          - "04 District Optimization": examples/04_District_Optimization/04_Urban_District_Optimization_Workflow.ipynb
+          - "05 Water Supply System": "examples/05_Water_Supply_System/05_Water Supply System.ipynb"
+          - "06 NetCDF Model Instance": examples/06_NetCDF_to_save_and_set_up_model_instance/06_NetCDF_to_save_and_set_up_model_instance.ipynb
+          - "07 Aggregation":
+                - Spatial Aggregation: examples/07_Spatial_and_technology_aggregation/07a_Spatial_aggregation_of_energy_system_model.ipynb
+                - Technology Aggregation: examples/07_Spatial_and_technology_aggregation/07b_Technology_aggregation.ipynb
+          - "08 Stochastic Optimization": "examples/08_Stochastic_Optimization/08_Stochastic Optimization.ipynb"
+          - "09 Perfect Foresight": examples/09_PerfectForesight/09_perfectForesight_example.ipynb
+          - "10 Partload": examples/10_Partload/10_Partload_Example.ipynb
+
+    - Integrated Software: integrated_software.md
+    - Further Reading: further_reading.md
+    - API Reference: reference/
+    - Code of Conduct: CODE_OF_CONDUCT.md
