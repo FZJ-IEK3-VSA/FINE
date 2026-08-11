@@ -160,19 +160,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
             data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
             dataTD1dim, indexTD1dim, dataTD2dim, indexTD2dim = [], [], [], []
             dataTI, indexTI = [], []
-
-            duplicate_optimum_variables = {
-                "capacityVariablesOptimum",
-                "commissioningVariablesOptimum",
-                "decommissioningVariablesOptimum",
-            }
-            rename_optimum_variables = {
-                "operationVariablesOptimum": "operationTimeSeries",
-            }
             for key, d in data.items():
-                if key in duplicate_optimum_variables:
-                    continue
-
                 if d["values"] is None:
                     continue
                 if d["timeDependent"]:
@@ -192,7 +180,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         dfTD1dim.loc[variable].index.get_level_values(0).unique()
                     ):
                         df = dfTD1dim.loc[(variable, component)].T.stack()
-                        df.name = rename_optimum_variables.get(variable, variable)
+                        df.name = variable
                         df.index.rename(["time", "location"], inplace=True)
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
@@ -210,7 +198,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                     ):
                         df = dfTD2dim.loc[(variable, component)].stack()
 
-                        df.name = rename_optimum_variables.get(variable, variable)
+                        df.name = variable
                         df.index.rename(
                             ["locationIn", "locationOut", "time"], inplace=True
                         )
@@ -528,18 +516,13 @@ def convertDatasetsToEnergySystemModel(datasets):
             dischargeOperationVariablesOptimum_dict = {}
             stateOfChargeOperationVariablesOptimum_dict = {}
 
-            # variables that only hold optimum values (no corresponding
-            # optSummary property), even though their name doesn't contain
-            # "Optimum" (renamed to avoid duplicate data in the datasets)
-            optimum_only_variables = {"operationTimeSeries"}
-
             for ip in datasets["Results"].keys():
                 # read opt Summary
                 optSum_df = pd.DataFrame([])
                 for component in datasets["Results"][ip][model]:
                     optSum_df_comp = pd.DataFrame([])
                     for variable in datasets["Results"][ip][model][component]:
-                        if "Optimum" in variable or variable in optimum_only_variables:
+                        if "Optimum" in variable:
                             continue
                         if "locationOut" in list(
                             datasets["Results"][ip][model][component].coords
@@ -633,22 +616,17 @@ def convertDatasetsToEnergySystemModel(datasets):
                     _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
                     _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
 
-                    summary_optimum_mapping = {
-                        "capacity": "capacityVariablesOptimum",
-                        "commissioning": "commissioningVariablesOptimum",
-                        "decommissioning": "decommissioningVariablesOptimum",
-                        "operationTimeSeries": "operationVariablesOptimum",
-                    }
-
                     for variable in datasets["Results"][ip][model][component]:
-                        if (
-                            "Optimum" not in variable
-                            and variable not in summary_optimum_mapping
-                        ):
+                        if "Optimum" not in variable:
                             continue
-
-                        opt_variable = summary_optimum_mapping.get(variable, variable)
-                        xr_opt = datasets["Results"][ip][model][component][variable]
+                        opt_variable = variable
+                        xr_opt = None
+                        if opt_variable in datasets["Results"][ip][model][component]:
+                            xr_opt = datasets["Results"][ip][model][component][
+                                opt_variable
+                            ]
+                        else:
+                            continue
 
                         if opt_variable == "operationVariablesOptimum":
                             if "locationOut" in list(xr_opt.coords):
@@ -963,8 +941,6 @@ def convertDatasetsToEnergySystemModel(datasets):
                 "optSummary",
                 "operationVariablesOptimum",
                 "capacityVariablesOptimum",
-                "commissioningVariablesOptimum",
-                "decommissioningVariablesOptimum",
                 "isBuiltVariablesOptimum",
                 "chargeOperationVariablesOptimum",
                 "dischargeOperationVariablesOptimum",
