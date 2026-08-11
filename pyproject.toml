@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fine"
-version = "2.6.0"
+version = "2.7.0"
 description = "Framework for integrated energy systems assessment"
 readme = "README.md"
 authors = [
@@ -32,7 +32,7 @@ keywords = ["energy assessment", "energy system", "optimization"]
 dependencies = [
     "geopandas>=1.0.0,<=1.1.4",
     "openpyxl<=3.1.5",
-    "matplotlib<=3.11.0",
+    "matplotlib<=3.11.1",
     "xlrd>=1.2.0,<=2.0.2",
     "pyomo>=6.8.1,<=6.10.1",
     "numpy>=1.22,<=2.5.0",
@@ -43,7 +43,7 @@ dependencies = [
     "rasterio>=1.3.7,<=1.5.0,!=1.3.0.post1",
     "netcdf4>1.5.8,<=1.7.4",
     "tsam>=3.4.2,<=3.4.2",
-    "pwlf>=2.5.0,<=2.5.3",
+    "pwlf>=2.5.0,<=2.6.0",
     "psutil>=5.8.0,<=7.2.2",
     "gurobi-logtools>=3.2.0,<=4.0.1",
     "ipykernel<=7.2.0",
@@ -56,7 +56,7 @@ requires-python = ">=3.10,<3.15"
 [project.optional-dependencies]
 develop = [
     "mkdocs>=1.6,<=1.6.1",
-    "mkdocs-material>=9.5,<=9.7.6",
+    "mkdocs-material>=9.5,<=9.7.7",
     "mkdocstrings>=0.25,<=1.0.6",
     "mkdocstrings-python>=1.10,<=2.0.5",
     "mkdocs-jupyter>=0.25,<=0.26.3",
