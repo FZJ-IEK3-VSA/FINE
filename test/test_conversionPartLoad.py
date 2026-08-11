@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 
 
 def test_conversionPartLoad():
@@ -375,6 +376,7 @@ def test_conversionPartLoad():
             },
             nSegments=nSegments,
             hasCapacityVariable=True,
+            hasIsBuiltBinaryVariable=True,
             bigM=99999,
             investPerCapacity=900,
             opexPerCapacity=900 * 0.01,
@@ -440,7 +442,7 @@ def test_conversionPartLoad():
     ### Optimization ###
     # Input parameters
     timeSeriesAggregation = False
-    solver = "glpk"
+    solver = ImplementedSolvers.STANDARD_SOLVER.value
     # Code
     esM.optimize(timeSeriesAggregation=timeSeriesAggregation, solver=solver)
 

@@ -22,10 +22,29 @@
 
 import numpy as np
 import pandas as pd
+import pytest
+from fine.utils import ImplementedSolvers
 
 
-def test_miniSystem(minimal_test_esM):
-    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+@pytest.mark.parametrize(
+    "solver",
+    [
+        ImplementedSolvers.GUROBI.value,
+        ImplementedSolvers.HIGHS.value,
+        ImplementedSolvers.GLPK.value,
+    ],
+)
+def test_miniSystem(minimal_test_esM, solver):
+    if (
+        solver == ImplementedSolvers.GUROBI.value
+        and not ImplementedSolvers._gurobi_available()
+    ):
+        pytest.skip("gurobi not available")
+
+    minimal_test_esM.optimize(
+        timeSeriesAggregation=False,
+        solver=solver,
+    )
 
     # test if solve fits to the original results
     testresults = minimal_test_esM.componentModelingDict[

@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import fine as fn
+from fine.utils import ImplementedSolvers
 from fine import subclasses
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 
@@ -52,13 +53,13 @@ def test_compareResults_longClassNames():
                     investPerCapacity=1,
                     hasCapacityVariable=True,
                     partLoadMin=0.2,
+                    hasIsBuiltBinaryVariable=True,
                     bigM=1000,
                     physicalUnit="TestUnit",
                     commodityConversionFactors={"TestCom": -1, "TargetCom": 0.6},
                 )
             )
         elif "ConversionPartLoad" in str(possibleClass):
-            continue  # conversionPartLoad has an "internal" problem not related to this test. Need to be fixed before this test works properly.
             Operation_level = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
             Efficiency = [0.1, 0.15, 0.5, 0.7, 0.7, 0.65, 0.63, 0.62, 0.61, 0.60]
             d = {"x": Operation_level, "y": Efficiency}
@@ -72,6 +73,7 @@ def test_compareResults_longClassNames():
                     physicalUnit="TestUnit",
                     commodityConversionFactors={"TestCom": -1, "TargetCom": 0.5},
                     partLoadMin=0.2,
+                    hasIsBuiltBinaryVariable=True,
                     bigM=1000,
                     commodityConversionFactorsPartLoad={
                         "TestCom": -1,
@@ -98,7 +100,7 @@ def test_compareResults_longClassNames():
                 f"Test for class: {possibleClass} not implemented. If a new subclass is added, also add a possible abbreviation in case the name is too long for saving to excel."
             )
 
-    esM.optimize()
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     # save to excel:
 
@@ -145,43 +147,29 @@ def test_compareResults_miniSystem(minimal_test_esM):
     compareTwoExcelFiles(pathWithSegmentation_expected, pathWithSegmentation_output)
 
 
-# def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
-#     module_directory = Path(__file__).parent.absolute()
-#     dataPath = os.path.join(module_directory, "..", "data") # noqa: PTH118
+def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
+    module_directory = Path(__file__).parent.absolute()
+    dataPath = os.path.join(module_directory, "..", "data")  # noqa: PTH118
 
-#     # create new result excel files
-#     pathMultiNode_output = os.path.join(dataPath, "output_result_multinode") # noqa: PTH118
-#     saveExcelResults(
-#         multi_node_test_esM_init,
-#         pathMultiNode_output,
-#     )
+    # create new result excel files
+    pathMultiNode_output = os.path.join(dataPath, "output_result_multinode")  # noqa: PTH118
+    saveExcelResults(
+        multi_node_test_esM_init,
+        pathMultiNode_output,
+    )
 
-#     # compare to correct result excel files
-#     # In the change from Pandas 1.X to 2.X there have been changes in how excel
-#     # files are treated.  We could not identify the underlying changes yet.
-#     # Therfore we include different references which only differ in the total
-#     # operation for location 1 by a very small percentage: PV Operation Sum:
-#     # 1.X: 69472.8, 2.X: 69471.2 Wind (onshore) Operation Sum: 1.X: 282041.2,
-#     # 2.X: 282042.9
-#     # -- KK
-#     pathMultiNodeExcel_output = pathMultiNode_output + ".xlsx"
-#     pathMultiNodeExcel_expected = os.path.join( # noqa: PTH118
-#         dataPath, "expected_result_multinode.xlsx"
-#     )
-#     pathMultiNodeExcel_expected_pandas1 = os.path.join( # noqa: PTH118
-#         dataPath, "expected_result_multinode_pandas1.xlsx"
-#     )  # An adaptation of the expected output was necessary due to the changes in MR 368 / Issue 367 which affected the storage (if there is self-discharge and no precise TSA)
+    pathMultiNodeExcel_output = pathMultiNode_output + ".xlsx"
 
-#     try:
-#         compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)
-#     except ValueError:
-#         compareTwoExcelFiles(
-#             pathMultiNodeExcel_expected_pandas1, pathMultiNodeExcel_output
-#         )
+    pathMultiNodeExcel_expected = os.path.join(  # noqa: PTH118
+        dataPath, "expected_result_multinode.xlsx"
+    )
+
+    compareTwoExcelFiles(pathMultiNodeExcel_expected, pathMultiNodeExcel_output)
 
 
 def compareTwoExcelFiles(path1, path2):
     xl = pd.ExcelFile(path1)
+    comparison_errors = []
 
     # check all sheets
     for sheet in xl.sheet_names:
@@ -209,7 +197,12 @@ def compareTwoExcelFiles(path1, path2):
 
         # check if data has same columns
         if list(expected.columns) != list(output.columns):
-            raise ValueError(f"Different columns for sheet {sheet}")
+            comparison_errors.append(
+                f"Sheet {sheet}: different columns\n"
+                f"Expected columns: {list(expected.columns)}\n"
+                f"Output columns: {list(output.columns)}"
+            )
+            continue
         # 1. check if output excel results contains all rows of exected excel results
         # (new excel results can contain more data) and do not compare the state of charge variables optimum as these can easily differ
         idx = expected.index
@@ -231,15 +224,21 @@ def compareTwoExcelFiles(path1, path2):
             _output_sum = filtered_output.loc[idx].sum(axis=1).round(1)
             # check if sum has difference above one decimal
             # (operation can be quite different)
-            if not _expected_sum.compare(_output_sum).empty:
+            sum_diff = _expected_sum.compare(_output_sum)
+            if not sum_diff.empty:
                 # 3. ignore state of charge
-                raise ValueError(
-                    f"There are wrong exported results in sheet {sheet} for index "
-                    + f"\n {_expected_sum.compare(_output_sum).index}"
+                comparison_errors.append(
+                    f"Sheet {sheet}: wrong exported results\n{sum_diff.to_string()}"
                 )
+    if comparison_errors:
+        raise ValueError(
+            "There are wrong exported Excel results:\n\n"
+            + "\n\n".join(comparison_errors)
+        )
 
 
 def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
+    # No deeopycopy is necessary, because the model is not used afterwards and only for saving the results.
     # run and save model without segmentation
     multi_node_test_esM_init.aggregateTemporally(
         numberOfTypicalPeriods=3,
@@ -248,7 +247,10 @@ def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-    multi_node_test_esM_init.optimize(timeSeriesAggregation=True, solver="glpk")
+    multi_node_test_esM_init.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     writeOptimizationOutputToExcel(
         multi_node_test_esM_init,
         outputFileName=savePathWithoutSegmentation,
@@ -273,7 +275,7 @@ def saveExcelResultsWithSegmentation(
     minimal_test_esM, savePathWithoutSegmentation, savePathWithSegmentation
 ):
     # run and save model without segmentation
-    minimal_test_esM.optimize(solver="glpk")
+    minimal_test_esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
     writeOptimizationOutputToExcel(
         minimal_test_esM,
         outputFileName=savePathWithoutSegmentation,
@@ -301,7 +303,10 @@ def saveExcelResultsWithSegmentation(
         sortValues=False,
         rescaleClusterPeriods=False,
     )
-    minimal_test_esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    minimal_test_esM.optimize(
+        timeSeriesAggregation=True,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     writeOptimizationOutputToExcel(
         minimal_test_esM,
         outputFileName=savePathWithSegmentation,
