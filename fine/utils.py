@@ -877,6 +877,19 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     name = compFancy.name
     bigM = compFancy.bigM
     useTemporalCyclicConstraints = compFancy.useTemporalCyclicConstraints
+    minimumDowntimeRequired = compFancy.minimumDowntimeRequired
+
+    if not isinstance(minimumDowntimeRequired, bool):
+        raise TypeError("minimumDowntimeRequired must be a boolean.")
+    if minimumDowntimeRequired and downTimeMin is None:
+        raise ValueError(
+            "downTimeMin needs to be specified when minimumDowntimeRequired is True."
+        )
+    if minimumDowntimeRequired and not useTemporalCyclicConstraints:
+        raise ValueError(
+            "minimumDowntimeRequired currently requires "
+            "useTemporalCyclicConstraints=True."
+        )
 
     if downTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
@@ -2998,10 +3011,9 @@ def checkAndSetFlowShares(comp, esM):
 
 def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
     """Get parameters for uneven lifetimes."""
-    ipEconomicLifetime = getattr(esM.getComponent(compName), "ipEconomicLifetime")[loc]
-    ipTechnicalLifetime = getattr(esM.getComponent(compName), "ipTechnicalLifetime")[
-        loc
-    ]
+    comp = esM.getComponent(compName)
+    ipEconomicLifetime = comp.ipEconomicLifetime[loc]
+    ipTechnicalLifetime = comp.ipTechnicalLifetime[loc]
 
     # A) Fix operational costs for design variables.
     # Fix operation costs are applied over the entire operational time.
