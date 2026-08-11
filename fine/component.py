@@ -750,6 +750,30 @@ class Component(metaclass=ABCMeta):
         )
 
         self.pwlcfParameters = pwlcfParameters
+
+        # lead time is not yet supported in combination with stochastic models or with
+        # the piecewise linear cost function module (endogenous technological learning /
+        # economies of scale) - fail loudly instead of silently ignoring leadTime there.
+        # Checked on the processed (investment-period-indexed, per-location) leadTime so
+        # that an all-zero Series or dict (no actual delay) does not falsely trigger the
+        # guard, unlike a naive truthiness check on the raw leadTime input would.
+        leadTimeIsNonzero = any(
+            (series != 0).any() for series in self.processedLeadTime.values()
+        )
+        if esM.stochasticModel and leadTimeIsNonzero:
+            raise NotImplementedError(
+                "leadTime is only implemented for perfect foresight/pathway models."
+            )
+        if (
+            pwlcfParameters
+            and not all(param is None for param in pwlcfParameters.values())
+            and leadTimeIsNonzero
+        ):
+            raise NotImplementedError(
+                "leadTime is not yet implemented in combination with pwlcfParameters "
+                "(endogenous technological learning / economies of scale)."
+            )
+
         self.pwlcf = None
         if pwlcfParameters and not all(
             param is None for param in pwlcfParameters.values()

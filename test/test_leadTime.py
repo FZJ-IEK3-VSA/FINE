@@ -173,3 +173,101 @@ def test_leadtime_survives_dict_export_import_round_trip(
     for ip in esM.investmentPeriods:
         assert rebuilt_comp.processedLeadTime[ip].equals(comp.processedLeadTime[ip])
         assert rebuilt_comp.roundedIpLeadTime[ip].equals(comp.roundedIpLeadTime[ip])
+
+
+@pytest.fixture
+def stochastic_leadtime_test_esM():
+    return fn.EnergySystemModel(
+        locations={"loc1", "loc2"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"GW$_{el}$"},
+        numberOfTimeSteps=4,
+        hoursPerTimeStep=2190,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        stochasticModel=True,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=1,
+        startYear=2020,
+        verboseLogLevel=2,
+    )
+
+
+@pytest.mark.parametrize(
+    "leadTime_kwargs",
+    [
+        {"leadTime": 2},
+        {"leadTime": pd.Series({"loc1": 0, "loc2": 1})},
+        {"leadTime": {2020: 0, 2021: 3}},
+    ],
+)
+def test_stochastic_model_with_nonzero_leadtime_raises(
+    stochastic_leadtime_test_esM, leadTime_kwargs
+):
+    with pytest.raises(NotImplementedError):
+        _add_source(stochastic_leadtime_test_esM, "x", **leadTime_kwargs)
+
+
+@pytest.mark.parametrize(
+    "leadTime_kwargs",
+    [
+        {},
+        {"leadTime": 0},
+        {"leadTime": pd.Series({"loc1": 0, "loc2": 0})},
+        {"leadTime": {2020: 0, 2021: 0}},
+    ],
+)
+def test_stochastic_model_with_zero_leadtime_does_not_raise(
+    stochastic_leadtime_test_esM, leadTime_kwargs
+):
+    # value-aware fix: an all-zero Series/dict must NOT trigger the guard just because
+    # the container itself is truthy (the old WIP's `leadTime != 0` check on a non-empty
+    # dict/Series was always True regardless of its actual values).
+    _add_source(stochastic_leadtime_test_esM, "x", **leadTime_kwargs)
+
+
+_ETL_PARAMETERS = {
+    "etlParameters": {
+        "initCost": 1,
+        "learningRate": 0.18,
+        "initCapacity": 10,
+        "maxCapacity": 50,
+        "noSegments": 4,
+    }
+}
+
+
+def test_pwlcf_parameters_with_nonzero_leadtime_raises(leadtime_test_esM):
+    with pytest.raises(NotImplementedError):
+        _add_source(
+            leadtime_test_esM,
+            "x",
+            leadTime=2,
+            pwlcfParameters=_ETL_PARAMETERS,
+        )
+
+
+def test_pwlcf_parameters_with_zero_leadtime_does_not_raise(leadtime_test_esM):
+    comp = _add_source(
+        leadtime_test_esM, "x", leadTime=0, pwlcfParameters=_ETL_PARAMETERS
+    )
+    assert comp.pwlcf is not None
+
+
+def test_inactive_pwlcf_parameters_with_nonzero_leadtime_does_not_raise(
+    leadtime_test_esM,
+):
+    # a pwlcfParameters dict whose values are all None is treated as inactive by the
+    # component itself (no pwlcf module gets instantiated), so it must not trigger the
+    # leadTime guard either.
+    comp = _add_source(
+        leadtime_test_esM,
+        "x",
+        leadTime=2,
+        pwlcfParameters={"etlParameters": None, "eosParameters": None},
+    )
+    assert comp.pwlcf is None
+
+
+def test_no_pwlcf_parameters_with_nonzero_leadtime_does_not_raise(leadtime_test_esM):
+    _add_source(leadtime_test_esM, "x", leadTime=2)
