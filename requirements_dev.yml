@@ -37,7 +37,7 @@ dependencies:
   - ruff <=0.13.1
   # Documentation
   - mkdocs >=1.6,<=1.6.1
-  - mkdocs-material >=9.5,<=9.7.6
+  - mkdocs-material >=9.5,<=9.7.7
   - mkdocstrings >=0.25,<=1.0.6
   - mkdocstrings-python >=1.10,<=2.0.5
   - mkdocs-jupyter >=0.25,<=0.25.1
