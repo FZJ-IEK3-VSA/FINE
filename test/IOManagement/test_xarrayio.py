@@ -294,7 +294,9 @@ def _assert_long_tables_match(actual, expected, golden_file_name):
     )
 
     key_columns = [
-        name for name in actual.columns if name not in GOLDEN_METADATA_COLUMNS + ["value"]
+        name
+        for name in actual.columns
+        if name not in GOLDEN_METADATA_COLUMNS + ["value"]
     ]
 
     actual_keys = pd.MultiIndex.from_frame(actual[key_columns])
@@ -368,9 +370,7 @@ def assert_csv_golden(actual, golden_file_name):
     )
 
     expected = pd.read_csv(golden_path, dtype=str, keep_default_na=False)
-    _assert_long_tables_match(
-        _normalize_values(long_table), expected, golden_file_name
-    )
+    _assert_long_tables_match(_normalize_values(long_table), expected, golden_file_name)
 
 
 def collect_optimization_summaries(esM):
