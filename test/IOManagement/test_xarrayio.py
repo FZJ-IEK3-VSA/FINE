@@ -1,5 +1,5 @@
+import io
 import os
-import pickle
 from pathlib import Path
 
 import pytest
@@ -115,65 +115,249 @@ def assert_nested_xarray_dict_matches(actual, expected, path="Results"):
             assert_xarray_dataset_matches(actual_value, expected_value, key_path)
 
 
-def assert_pandas_like_matches(actual, expected, path):
-    """Compare pandas objects with dtype checks and numeric tolerance."""
-    if isinstance(actual, pd.DataFrame):
-        assert isinstance(expected, pd.DataFrame), f"{path}: expected a DataFrame"
-        assert_frame_equal(
-            actual.sort_index(),
-            expected.sort_index(),
-            check_dtype=True,
-            check_index_type=False,
-            check_column_type=False,
-            check_exact=False,
-            rtol=2e-2,
-            atol=1e-8,
-            obj=path,
-        )
-    elif isinstance(actual, pd.Series):
-        assert isinstance(expected, pd.Series), f"{path}: expected a Series"
-        assert_series_equal(
-            actual.sort_index(),
-            expected.sort_index(),
-            check_dtype=True,
-            check_index_type=False,
-            check_exact=False,
-            rtol=1e-7,
-            atol=1e-9,
-            obj=path,
-        )
+# Numeric tolerance for the golden value comparison, per leaf kind.
+GOLDEN_TOLERANCE = {
+    "frame": {"rtol": 2e-2, "atol": 1e-8},
+    "series": {"rtol": 1e-7, "atol": 1e-9},
+    "scalar": {"rtol": 0.0, "atol": 0.0},
+}
+
+# Columns that describe the leaf itself instead of its position.
+GOLDEN_METADATA_COLUMNS = ["kind", "dtype", "index_names", "col_name"]
+
+
+def _format_label(value):
+    """Convert an index or column label into a stable string."""
+    if value is None:
+        return ""
+    if isinstance(value, (bool, np.bool_)):
+        return str(bool(value))
+    if isinstance(value, (float, np.floating)):
+        return "" if np.isnan(value) else repr(float(value))
+    if isinstance(value, (int, np.integer)):
+        return str(int(value))
+    return str(value)
+
+
+def _join_names(names):
+    """Join index or column level names into one string."""
+    return "|".join(_format_label(name) for name in names)
+
+
+def _index_level_labels(index):
+    """Return one formatted label array for every level of an index."""
+    if isinstance(index, pd.MultiIndex):
+        levels = [index.get_level_values(level) for level in range(index.nlevels)]
     else:
-        assert actual == expected, (
-            f"{path}: values differ\nActual: {actual!r}\nExpected: {expected!r}"
+        levels = [index]
+    return [
+        np.array([_format_label(label) for label in level], dtype=object)
+        for level in levels
+    ]
+
+
+def _frame_to_long_table(frame, path):
+    """Convert a DataFrame into one row per cell, keeping dtype and level names."""
+    values = frame.to_numpy()
+    number_of_rows, number_of_columns = values.shape
+
+    table = {}
+    for number, level in enumerate(_index_level_labels(frame.index)):
+        table[f"index{number}"] = np.repeat(level, number_of_columns)
+
+    column_labels = np.array(
+        [_format_label(column) for column in frame.columns], dtype=object
+    )
+    column_dtypes = np.array([str(dtype) for dtype in frame.dtypes], dtype=object)
+
+    table["col"] = np.tile(column_labels, number_of_rows)
+    table["kind"] = "frame"
+    table["dtype"] = np.tile(column_dtypes, number_of_rows)
+    table["index_names"] = _join_names(frame.index.names)
+    table["col_name"] = _join_names(frame.columns.names)
+    table["value"] = values.ravel(order="C")
+
+    long_table = pd.DataFrame(table)
+    _add_path_columns(long_table, path)
+    return long_table
+
+
+def _series_to_long_table(series, path):
+    """Convert a Series into one row per element."""
+    table = {}
+    for number, level in enumerate(_index_level_labels(series.index)):
+        table[f"index{number}"] = level
+
+    table["col"] = ""
+    table["kind"] = "series"
+    table["dtype"] = str(series.dtype)
+    table["index_names"] = _join_names(series.index.names)
+    table["col_name"] = ""
+    table["value"] = series.to_numpy()
+
+    long_table = pd.DataFrame(table)
+    _add_path_columns(long_table, path)
+    return long_table
+
+
+def _scalar_to_long_table(value, path):
+    """Convert a scalar leaf into a single row."""
+    long_table = pd.DataFrame(
+        {
+            "col": [""],
+            "kind": ["scalar"],
+            "dtype": [type(value).__name__],
+            "index_names": [""],
+            "col_name": [""],
+            "value": pd.Series([value], dtype=object),
+        }
+    )
+    _add_path_columns(long_table, path)
+    return long_table
+
+
+def _add_path_columns(long_table, path):
+    """Add one column for every key of the dict path that leads to the leaf."""
+    for number, key in enumerate(path):
+        long_table.insert(number, f"path{number}", key)
+
+
+def _numbered_columns(long_table, prefix):
+    """Return the columns named ``<prefix><number>``, in numeric order."""
+    names = [
+        name
+        for name in long_table.columns
+        if name.startswith(prefix) and name[len(prefix) :].isdigit()
+    ]
+    return sorted(names, key=lambda name: int(name[len(prefix) :]))
+
+
+def _flatten_golden(obj):
+    """Convert a nested dict of pandas objects and scalars into one long table.
+
+    Every cell becomes one row. The dict path becomes ``path*`` columns, the
+    index levels become ``index*`` columns. The ``dtype``, ``index_names`` and
+    ``col_name`` columns keep the metadata that a plain CSV would lose.
+    """
+    tables = []
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            for key in node:
+                walk(node[key], path + [_format_label(key)])
+        elif isinstance(node, pd.DataFrame):
+            tables.append(_frame_to_long_table(node, path))
+        elif isinstance(node, pd.Series):
+            tables.append(_series_to_long_table(node, path))
+        else:
+            tables.append(_scalar_to_long_table(node, path))
+
+    walk(obj, [])
+    assert tables, "The golden object holds no leaves."
+
+    long_table = pd.concat(tables, ignore_index=True, sort=False)
+
+    path_columns = _numbered_columns(long_table, "path")
+    index_columns = _numbered_columns(long_table, "index")
+    ordered = path_columns + index_columns + GOLDEN_METADATA_COLUMNS + ["col", "value"]
+    long_table = long_table[ordered]
+
+    key_columns = path_columns + index_columns + ["col"]
+    long_table[key_columns] = long_table[key_columns].fillna("")
+    return long_table.sort_values(key_columns, kind="stable").reset_index(drop=True)
+
+
+def _normalize_values(long_table):
+    """Return the long table with the value column as golden CSV strings.
+
+    The values keep their original Python types until here. Send them through
+    the same CSV writer that makes the golden file. Both sides of the
+    comparison then hold identical strings. All other columns are strings
+    already, because the flatten step formats them.
+    """
+    buffer = io.StringIO()
+    long_table[["value"]].to_csv(buffer, index=False)
+    buffer.seek(0)
+    values = pd.read_csv(buffer, dtype=str, keep_default_na=False)["value"]
+
+    normalized = long_table.copy()
+    normalized["value"] = values.to_numpy()
+    return normalized
+
+
+def _assert_long_tables_match(actual, expected, golden_file_name):
+    """Compare two golden long tables, with numeric tolerance on the values."""
+    assert list(actual.columns) == list(expected.columns), (
+        f"{golden_file_name}: different columns\n"
+        f"Actual columns: {list(actual.columns)}\n"
+        f"Expected columns: {list(expected.columns)}"
+    )
+
+    key_columns = [
+        name for name in actual.columns if name not in GOLDEN_METADATA_COLUMNS + ["value"]
+    ]
+
+    actual_keys = pd.MultiIndex.from_frame(actual[key_columns])
+    expected_keys = pd.MultiIndex.from_frame(expected[key_columns])
+
+    assert not actual_keys.has_duplicates, (
+        f"{golden_file_name}: the actual result holds duplicate keys."
+    )
+
+    missing = expected_keys.difference(actual_keys)
+    extra = actual_keys.difference(expected_keys)
+    assert missing.empty and extra.empty, (
+        f"{golden_file_name}: different rows\n"
+        f"Missing in actual ({len(missing)}): {missing[:5].tolist()}\n"
+        f"Only in actual ({len(extra)}): {extra[:5].tolist()}"
+    )
+
+    for column in GOLDEN_METADATA_COLUMNS:
+        different = actual[column].to_numpy() != expected[column].to_numpy()
+        assert not different.any(), (
+            f"{golden_file_name}: different {column} on {int(different.sum())} rows\n"
+            f"First difference at key {actual_keys[different][0]}: "
+            f"actual {actual[column][different].iloc[0]!r}, "
+            f"expected {expected[column][different].iloc[0]!r}"
         )
 
+    actual_numbers = pd.to_numeric(actual["value"], errors="coerce").to_numpy()
+    expected_numbers = pd.to_numeric(expected["value"], errors="coerce").to_numpy()
+    numeric = ~np.isnan(actual_numbers) & ~np.isnan(expected_numbers)
 
-def assert_nested_python_matches(actual, expected, path="root"):
-    """Recursively compare nested dicts containing pandas objects and scalars."""
-    if isinstance(actual, dict):
-        assert isinstance(expected, dict), f"{path}: expected a dict"
-        _assert_same_keys(actual, expected, path)
-        for key in actual:
-            assert_nested_python_matches(actual[key], expected[key], f"{path}/{key}")
-    elif isinstance(actual, (pd.DataFrame, pd.Series)):
-        assert_pandas_like_matches(actual, expected, path)
-    else:
-        assert actual == expected, (
-            f"{path}: values differ\nActual: {actual!r}\nExpected: {expected!r}"
-        )
+    rtol = actual["kind"].map(lambda kind: GOLDEN_TOLERANCE[kind]["rtol"]).to_numpy()
+    atol = actual["kind"].map(lambda kind: GOLDEN_TOLERANCE[kind]["atol"]).to_numpy()
+
+    close = np.abs(actual_numbers - expected_numbers) <= (
+        atol + rtol * np.abs(expected_numbers)
+    )
+    identical = actual["value"].to_numpy() == expected["value"].to_numpy()
+    bad = np.where(numeric, ~close, ~identical)
+
+    assert not bad.any(), (
+        f"{golden_file_name}: {int(bad.sum())} values differ\n"
+        f"First difference at key {actual_keys[bad][0]}:\n"
+        f"Actual: {actual['value'][bad].iloc[0]!r}\n"
+        f"Expected: {expected['value'][bad].iloc[0]!r}"
+    )
 
 
-def assert_pickled_golden(actual, golden_file_name):
-    """Compare a Python/pandas object with a committed golden pickle file.
+def assert_csv_golden(actual, golden_file_name):
+    """Compare a nested dict of pandas objects with a committed golden CSV file.
 
-    Set UPDATE_GOLDEN=1 to intentionally regenerate the golden reference.
+    The golden file holds one row per cell, gzip compressed. Set UPDATE_GOLDEN=1
+    to intentionally regenerate the golden reference.
     """
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
     golden_path = GOLDEN_DIR / golden_file_name
+    long_table = _flatten_golden(actual)
 
     if UPDATE_GOLDEN:
-        with golden_path.open("wb") as file:
-            pickle.dump(actual, file, protocol=pickle.HIGHEST_PROTOCOL)
+        # Keep the file uncompressed. Git delta-compresses text between
+        # commits, but cannot delta a compressed blob. Plain CSV therefore
+        # grows the repository more slowly, and it gives a readable diff
+        # when somebody regenerates a golden file.
+        long_table.to_csv(golden_path, index=False)
         return
 
     assert golden_path.exists(), (
@@ -183,10 +367,10 @@ def assert_pickled_golden(actual, golden_file_name):
         "-k <matching_golden_test_name>"
     )
 
-    with golden_path.open("rb") as file:
-        expected = pickle.load(file)
-
-    assert_nested_python_matches(actual, expected, path=golden_file_name)
+    expected = pd.read_csv(golden_path, dtype=str, keep_default_na=False)
+    _assert_long_tables_match(
+        _normalize_values(long_table), expected, golden_file_name
+    )
 
 
 def collect_optimization_summaries(esM):
@@ -203,27 +387,54 @@ def collect_optimization_summaries(esM):
     return summaries
 
 
+def _summarize_time_dependent_values(variable):
+    """Replace a time-dependent frame with its shape, dtypes and level names.
+
+    The netCDF goldens already hold every cell of these time series. Do not
+    duplicate them here. Keep only the frame structure, because the netCDF
+    export flattens the index into variable names and attrs, and loses it.
+    """
+    values = variable.get("values")
+    if not variable.get("timeDependent") or not isinstance(values, pd.DataFrame):
+        return variable
+
+    summarized = {key: variable[key] for key in variable if key != "values"}
+    summarized["valuesSummary"] = (
+        f"shape={values.shape[0]}x{values.shape[1]} "
+        f"index={_join_names(values.index.names)} "
+        f"columns={_join_names(values.columns.names)} "
+        f"dtypes={'|'.join(sorted({str(dtype) for dtype in values.dtypes}))}"
+    )
+    return summarized
+
+
 def collect_optimal_values(esM):
-    """Collect getOptimalValues() for every model and investment period."""
+    """Collect getOptimalValues() for every model and investment period.
+
+    Time-dependent values become a shape summary. See
+    _summarize_time_dependent_values() for the reason.
+    """
     optimal_values = {}
     for ip in esM.investmentPeriodNames:
         optimal_values[ip] = {}
         for model in esM.componentModelingDict:
-            optimal_values[ip][model] = esM.componentModelingDict[
-                model
-            ].getOptimalValues(ip=ip)
+            values = esM.componentModelingDict[model].getOptimalValues(ip=ip)
+            optimal_values[ip][model] = {
+                name: _summarize_time_dependent_values(variable)
+                for name, variable in values.items()
+            }
     return optimal_values
 
 
 def assert_pandas_optimization_results_match_golden(esM, golden_prefix):
     """Compare OptimizationSummary and OptimalValues against committed golden files."""
-    assert_pickled_golden(
+    assert_csv_golden(
         collect_optimization_summaries(esM),
-        f"{golden_prefix}_optimization_summaries.pkl",
+        f"{golden_prefix}_optimization_summaries.csv",
     )
-    assert_pickled_golden(
+    assert_csv_golden(
         collect_optimal_values(esM),
-        f"{golden_prefix}_optimal_values.pkl",
+        f"{golden_prefix}_optimal_values.csv",
     )
 
 

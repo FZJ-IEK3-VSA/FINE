@@ -1,0 +1,697 @@
+path0,path1,path2,index0,index1,index2,kind,dtype,index_names,col_name,col,value
+2020,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1233.4374887687468
+2020,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1338.7267472697138
+2020,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,256.55305573063265
+2020,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,278.4530557306326
+2020,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2020,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2020,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,222.65305573063264
+2020,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,222.65305573063264
+2020,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2020,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2020,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,2000.0
+2020,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,2000.0
+2020,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2020,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2020,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2020,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2020,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2020,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2020,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,31.900000000000002
+2020,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,53.800000000000004
+2020,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2020,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2020,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1233.4374887687468
+2020,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1338.7267472697138
+2020,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,256.55305573063265
+2020,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,278.4530557306326
+2020,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2020,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2020,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,222.65305573063264
+2020,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,222.65305573063264
+2020,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2020,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2020,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2020,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2020,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,2000.0
+2020,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,2000.0
+2020,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2020,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2020,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2020,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2020,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,31.900000000000002
+2020,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,53.800000000000004
+2020,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2020,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2020,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1233.4374887687468
+2020,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1338.7267472697138
+2020,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,256.55305573063265
+2020,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,278.4530557306326
+2020,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2020,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2020,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,222.65305573063264
+2020,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,222.65305573063264
+2020,SourceSinkModel,2,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2020,SourceSinkModel,2,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2020,SourceSinkModel,2,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,2000.0
+2020,SourceSinkModel,2,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,2000.0
+2020,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2020,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2020,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2020,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2020,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,31.900000000000002
+2020,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,53.800000000000004
+2025,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1117.162335577095
+2025,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1212.5260609455672
+2025,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,256.55305573063265
+2025,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,278.4530557306326
+2025,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2025,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2025,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,222.65305573063264
+2025,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,222.65305573063264
+2025,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2025,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2025,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2025,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2025,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2025,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2025,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,31.900000000000002
+2025,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,53.800000000000004
+2025,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2025,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2025,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1117.162335577095
+2025,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1212.5260609455672
+2025,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,256.55305573063265
+2025,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,278.4530557306326
+2025,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2025,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2025,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,222.65305573063264
+2025,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,222.65305573063264
+2025,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2025,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2025,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2025,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2025,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2025,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,31.900000000000002
+2025,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,53.800000000000004
+2025,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2025,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2025,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1117.162335577095
+2025,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1212.5260609455672
+2025,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,256.55305573063265
+2025,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,278.4530557306326
+2025,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2025,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2025,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,222.65305573063264
+2025,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,222.65305573063264
+2025,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,3190.0
+2025,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,5380.0
+2025,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2025,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2025,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,31.900000000000002
+2025,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,53.800000000000004
+2030,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1984.25657318526
+2030,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,568.8311658811454
+2030,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,503.1061114612653
+2030,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,144.2265278653163
+2030,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2030,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2030,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,445.3061114612653
+2030,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,111.32652786531632
+2030,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2030,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2030,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2030,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2030,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,4000.0
+2030,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1000.0
+2030,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2030,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2030,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2030,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2030,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2030,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2030,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,53.800000000000004
+2030,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,31.900000000000002
+2030,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2030,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2030,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1984.25657318526
+2030,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,568.8311658811454
+2030,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,503.1061114612653
+2030,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,144.2265278653163
+2030,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2030,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2030,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,445.3061114612653
+2030,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,111.32652786531632
+2030,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2030,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2030,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2030,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2030,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2030,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2030,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,4000.0
+2030,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1000.0
+2030,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2030,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2030,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2030,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2030,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,53.800000000000004
+2030,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,31.900000000000002
+2030,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2030,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2030,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1984.25657318526
+2030,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,568.8311658811454
+2030,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,503.1061114612653
+2030,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,144.2265278653163
+2030,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2030,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2030,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,445.3061114612653
+2030,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,111.32652786531632
+2030,SourceSinkModel,2,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2030,SourceSinkModel,2,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2030,SourceSinkModel,2,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,2.0
+2030,SourceSinkModel,2,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
+2030,SourceSinkModel,2,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,4000.0
+2030,SourceSinkModel,2,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1000.0
+2030,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2030,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2030,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2030,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2030,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,53.800000000000004
+2030,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,31.900000000000002
+2035,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1797.2023129414192
+2035,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,515.2079125300249
+2035,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,503.1061114612653
+2035,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,144.2265278653163
+2035,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2035,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2035,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,445.3061114612653
+2035,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,111.32652786531632
+2035,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2035,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2035,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2035,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2035,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2035,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2035,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,53.800000000000004
+2035,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,31.900000000000002
+2035,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2035,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2035,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1797.2023129414192
+2035,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,515.2079125300249
+2035,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,503.1061114612653
+2035,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,144.2265278653163
+2035,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2035,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2035,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,445.3061114612653
+2035,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,111.32652786531632
+2035,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2035,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2035,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2035,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2035,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2035,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2035,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,53.800000000000004
+2035,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,31.900000000000002
+2035,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2035,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2035,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1797.2023129414192
+2035,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,515.2079125300249
+2035,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,503.1061114612653
+2035,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,144.2265278653163
+2035,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2035,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2035,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,445.3061114612653
+2035,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,111.32652786531632
+2035,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2035,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2035,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2035,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2035,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,53.800000000000004
+2035,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,31.900000000000002
+2040,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,0,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,0,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,0,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,0,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,0,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,0,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,0,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,EDemand,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1627.7815063286296
+2040,SourceSinkModel,0,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,466.63967984659996
+2040,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,503.1061114612653
+2040,SourceSinkModel,0,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,144.2265278653163
+2040,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,0,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,445.3061114612653
+2040,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,111.32652786531632
+2040,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,0,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,4000.0
+2040,SourceSinkModel,0,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1000.0
+2040,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2040,SourceSinkModel,0,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2040,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,PV,isBuilt,[-],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,0,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,0,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,0,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
+2040,SourceSinkModel,0,PV,opexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
+2040,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,53.800000000000004
+2040,SourceSinkModel,0,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,31.900000000000002
+2040,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2040,SourceSinkModel,0,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2040,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,1,EDemand,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,1,EDemand,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,1,EDemand,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,1,EDemand,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,1,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,1,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,1,EDemand,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1627.7815063286296
+2040,SourceSinkModel,1,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,466.63967984659996
+2040,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,503.1061114612653
+2040,SourceSinkModel,1,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,144.2265278653163
+2040,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,445.3061114612653
+2040,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,111.32652786531632
+2040,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
+2040,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2040,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,1,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,4000.0
+2040,SourceSinkModel,1,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1000.0
+2040,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2040,SourceSinkModel,1,PV,investLifetimeExtension,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2040,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,1,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,1,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,1,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,53.800000000000004
+2040,SourceSinkModel,1,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,31.900000000000002
+2040,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,0
+2040,SourceSinkModel,1,PV,revenueLifetimeShorteningResale,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,0
+2040,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,2,EDemand,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,2,EDemand,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,1627.7815063286296
+2040,SourceSinkModel,2,PV,NPVcontribution,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,466.63967984659996
+2040,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,503.1061114612653
+2040,SourceSinkModel,2,PV,TAC,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,144.2265278653163
+2040,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,2,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,445.3061114612653
+2040,SourceSinkModel,2,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,111.32652786531632
+2040,SourceSinkModel,2,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,2,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,2,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,2,PV,decommissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,2,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,ForesightLand,4000.0
+2040,SourceSinkModel,2,PV,invest,[1 Euro],frame,object,Component|Property|Unit,,PerfectLand,1000.0
+2040,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,2,PV,operation,[kW$_{el}$*h],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,ForesightLand,5380.0
+2040,SourceSinkModel,2,PV,operation_annual,[kW$_{el}$*h/a],frame,object,Component|Property|Unit,,PerfectLand,3190.0
+2040,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,4.0
+2040,SourceSinkModel,2,PV,opexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,1.0
+2040,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,53.800000000000004
+2040,SourceSinkModel,2,PV,opexOp,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,31.900000000000002
