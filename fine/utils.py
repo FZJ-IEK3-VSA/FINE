@@ -1284,28 +1284,12 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
         )
     return floorTechnicalLifetime
 
+
 def checkLeadTime(leadTime):
-    """Check and set the lead time of a component."""
+    """Set lead time to 0 if not explicitly given."""
     if leadTime is None:
         leadTime = 0
-        return leadTime
-    if isinstance(leadTime, pd.Series):
-        if leadTime.isnull().any():
-            leadTime = leadTime.fillna(0)
-        if (leadTime < 0).any():
-            raise ValueError("leadTime Series must only contain non-negative values.")
-        return leadTime
-    if isinstance(leadTime, dict):
-        for k, v in leadTime.items():
-            if v is None:
-                leadTime[k] = 0
-            if isinstance(v, pd.Series):
-                leadTime[k] = v.fillna(0)
-        return leadTime
-    if isinstance(leadTime, (int, float)):
-        isPositiveNumber(leadTime)
-        return leadTime
-    raise ValueError("leadTime has to be a non-negative number, a series of non-negative numbers or a dictionary containing one of the latter cases.")
+    return leadTime
 
 
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):

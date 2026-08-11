@@ -95,8 +95,8 @@ class LinearOptimalPowerFlow(Transmission):
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
-            stockCommissioning=stockCommissioning,
             leadTime=leadTime,
+            stockCommissioning=stockCommissioning,
         )
 
         self.modelingClass = LOPFModel

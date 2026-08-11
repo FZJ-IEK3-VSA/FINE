@@ -499,14 +499,17 @@ class Component(metaclass=ABCMeta):
             of the capacity. If set to 0, capacity is available immediately as in the original FINE
             formulation. The value is given in years and is later converted to investment-period units
             using the investmentPeriodInterval.
+            |br| * the default value is 0
         :type leadTime:
-            * None or
-            * non-negative number
-            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the
-              energy system model specified locations (dimension=1dim) or connections between these locations
-              in the format of 'loc1' + '_' + 'loc2' (dimension=2dim) or
-            * a dictionary with investment periods as keys and one of the two options above as values
 
+            * None or
+            * a non-negative number or a Pandas Series with non-negative values. The indices of the
+              series have to equal the in the energy system model specified locations (dimension=1dim)
+              or connections between these locations in the format of 'loc1' + '_' + 'loc2'
+              (dimension=2dim) or
+            * a dictionary with years as keys (past years which had stock commissioning and investment
+              periods which will be optimized) and one of the two options above as values.
+              e.g. {2020: 1, 2025: 0.5}
 
         :param pwlcfParameters: parameters used for piecewise linear cost function module. Can be used to approximate non-linear cost functions for endogenous technology learning (etl) or economies of scale (eos).
                 Enables a standardized endogenous technological learning approach with a fixed learning rate. In that case, the learning is conducted in each investment period and connected throughout.
@@ -582,51 +585,31 @@ class Component(metaclass=ABCMeta):
             esM, name, self.economicLifetime
         )
 
-        # Lead time: delay between investment decision and physical availability
-        leadTime = utils.checkLeadTime(leadTime)
-
-        # prevent for stochastic models
-        if esM.stochasticModel and leadTime != 0:
-            raise NotImplementedError(
-                "leadTime is only implemented for perfect foresight/pathway models."
-        )
-
-        if isinstance(leadTime, dict):
-            self.leadTime = {}
-            self.ipLeadTime = {}
-            self.roundedIpLeadTime = {}
-            print(leadTime)
-            for ip in leadTime.keys():
-                # print(leadTime[ip])
-                self.leadTime[ip] = utils.checkAndSetCostParameter(
-                    esM, name, leadTime[ip], dimension, locationalEligibility)
-                print(f"self.leadTime[ip] at {ip}: {self.leadTime[ip]}")
-                self.ipLeadTime[ip] = utils.checkAndSetLifetimeInvestmentPeriod(
-                    esM, name, self.leadTime[ip]
-                )
-                print(f"self.ipLeadTime[ip] at {ip}: {self.ipLeadTime[ip]}")
-                if isinstance(self.ipLeadTime[ip], pd.Series):
-                    self.roundedIpLeadTime[ip] = self.ipLeadTime[ip].apply(math.ceil)
-                    print(f"self.roundedIpLeadTime[ip] first case at {ip}: {self.roundedIpLeadTime[ip]}")
-                else:
-                    self.roundedIpLeadTime[ip] = math.ceil(self.ipLeadTime[ip])
-                    print(f"self.roundedIpLeadTime[ip] second case at {ip}: {self.roundedIpLeadTime[ip]}")
-        else:
-            self.leadTime = utils.checkAndSetCostParameter(
-                    esM, name, leadTime, dimension, locationalEligibility)
-            print(f"self.leadTime: {self.leadTime}")
-            self.ipLeadTime = utils.checkAndSetLifetimeInvestmentPeriod(
-                    esM, name, self.leadTime
-                )
-            self.roundedIpLeadTime = self.ipLeadTime.apply(math.ceil)
-            print(f"self.ipLeadTime: {self.ipLeadTime}")
-
         self.stockYears, self.processedStockYears = utils.checkStockYears(
             stockCommissioning,
             esM.startYear,
             esM.investmentPeriodInterval,
             self.ipTechnicalLifetime,
         )
+        # lead time: delay between investment decision and physical availability
+        self.leadTime = utils.checkLeadTime(leadTime)
+        self.processedLeadTime = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM,
+            name,
+            self.leadTime,
+            dimension,
+            locationalEligibility,
+            self.processedStockYears + esM.investmentPeriods,
+        )
+        self.ipLeadTime = {
+            ip: utils.checkAndSetLifetimeInvestmentPeriod(
+                esM, name, self.processedLeadTime[ip]
+            )
+            for ip in self.processedLeadTime
+        }
+        self.roundedIpLeadTime = {
+            ip: self.ipLeadTime[ip].apply(math.ceil) for ip in self.ipLeadTime
+        }
         # invest per capacity
         self.investPerCapacity = investPerCapacity
         self.processedInvestPerCapacity = (
@@ -2066,23 +2049,10 @@ class ComponentModel(metaclass=ABCMeta):
             decommisVar = getattr(pyM, "decommis_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                if isinstance(self.componentsDict[compName].roundedIpLeadTime, dict):
-                    comm_ip = next(
-                        (c for c in esM.investmentPeriods if c + self.componentsDict[compName].roundedIpLeadTime[c][loc] == ip + 1),
-                        None
-                        ) # This will not work properly if there are two such c's. It will only pick the first one.
-                else:
-                    comm_ip = ip + 1 - self.componentsDict[compName].roundedIpLeadTime[loc]
-
-                if comm_ip is None or comm_ip not in esM.investmentPeriods:
-                    availableCommis = 0
-                else:
-                    availableCommis = commisVar[loc, compName, comm_ip]
-
                 return (
                     capVar[loc, compName, ip + 1]
                     == capVar[loc, compName, ip]
-                    + availableCommis
+                    + commisVar[loc, compName, ip + 1]
                     - decommisVar[loc, compName, ip + 1]
                 )
 
@@ -2142,23 +2112,10 @@ class ComponentModel(metaclass=ABCMeta):
 
             def initialYear(pyM, loc, compName):
                 stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
-                if isinstance(self.componentsDict[compName].roundedIpLeadTime, dict):
-                    comm_ip = next(
-                        (c for c in esM.investmentPeriods if c + self.componentsDict[compName].roundedIpLeadTime[c][loc] == 0),
-                        None
-                        ) # This will not work properly if there are two such c's. It will only pick the first one.
-                else:
-                    comm_ip = 0 - self.componentsDict[compName].roundedIpLeadTime[loc]
-
-                if comm_ip is None or comm_ip not in esM.investmentPeriods:
-                    availableCommis = 0
-                else:
-                    availableCommis = commisVar[loc, compName, comm_ip]
-
                 return (
                     capVar[loc, compName, 0]
                     == stock_cap
-                    + availableCommis
+                    + commisVar[loc, compName, 0]
                     - decommisVar[loc, compName, 0]
                 )
 
@@ -2214,72 +2171,34 @@ class ComponentModel(metaclass=ABCMeta):
         decommisVar = getattr(pyM, "decommis_" + abbrvName)
         decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
-        # def capacityDecommissioning(pyM, loc, compName, ip):
-        #     tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
-
-        #     # commissioning date is depending whether technical lifetime ceiled or floored to next interval
-        #     # if technical lifetime is already a multiple of the interval, nothing happens
-        #     if self.componentsDict[compName].floorTechnicalLifetime:
-        #         comm_date = ip - math.floor(tech_lifetime)
-        #     else:
-        #         comm_date = ip - math.ceil(tech_lifetime)
-        #     # if the commissioning date is within the investment periods, the
-        #     # decommissioning and commissioning variables are linked
-        #     if comm_date in esM.investmentPeriods:
-        #         return (
-        #             decommisVar[loc, compName, ip]
-        #             == commisVar[loc, compName, comm_date]
-        #         )
-        #     # else the decommissioning is depending on the stockcommissioning
-        #     # or set to 0
-        #     procStockCommissioning = self.componentsDict[
-        #         compName
-        #     ].processedStockCommissioning
-        #     if procStockCommissioning is not None:
-        #         return (
-        #             decommisVar[loc, compName, ip]
-        #             == self.componentsDict[compName].processedStockCommissioning[
-        #                 comm_date
-        #             ][loc]
-        #         )
-        #     return decommisVar[loc, compName, ip] == 0
         def capacityDecommissioning(pyM, loc, compName, ip):
             tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
-            if isinstance(self.componentsDict[compName].roundedIpLeadTime, dict):
-                    lead = self.componentsDict[compName].roundedIpLeadTime[ip][loc]
-            else:
-                lead = self.componentsDict[compName].roundedIpLeadTime[loc]
 
-            # technical lifetime is rounded according to floorTechnicalLifetime
+            # commissioning date is depending whether technical lifetime ceiled or floored to next interval
+            # if technical lifetime is already a multiple of the interval, nothing happens
             if self.componentsDict[compName].floorTechnicalLifetime:
-                lifetime = math.floor(tech_lifetime)
+                comm_date = ip - math.floor(tech_lifetime)
             else:
-                lifetime = math.ceil(tech_lifetime)
-
-            # For optimized future investments:
-            # decommissioning happens after lead time + technical lifetime
-            future_comm_date = ip - lead - lifetime
-
-            if future_comm_date in esM.investmentPeriods:
+                comm_date = ip - math.ceil(tech_lifetime)
+            # if the commissioning date is within the investment periods, the
+            # decommissioning and commissioning variables are linked
+            if comm_date in esM.investmentPeriods:
                 return (
                     decommisVar[loc, compName, ip]
-                    == commisVar[loc, compName, future_comm_date]
+                    == commisVar[loc, compName, comm_date]
                 )
-
-            # For historical stock:
-            # stock is already available, so do NOT shift by lead time
-            stock_comm_date = ip - lifetime
-
+            # else the decommissioning is depending on the stockcommissioning
+            # or set to 0
             procStockCommissioning = self.componentsDict[
                 compName
             ].processedStockCommissioning
-
-            if procStockCommissioning is not None and stock_comm_date in procStockCommissioning:
+            if procStockCommissioning is not None:
                 return (
                     decommisVar[loc, compName, ip]
-                    == procStockCommissioning[stock_comm_date][loc]
+                    == self.componentsDict[compName].processedStockCommissioning[
+                        comm_date
+                    ][loc]
                 )
-
             return decommisVar[loc, compName, ip] == 0
 
         setattr(

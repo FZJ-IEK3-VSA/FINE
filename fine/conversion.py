@@ -297,10 +297,10 @@ class Conversion(Component):
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
-            leadTime=leadTime,
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
+            leadTime=leadTime,
             pwlcfParameters=pwlcfParameters,
         )
 

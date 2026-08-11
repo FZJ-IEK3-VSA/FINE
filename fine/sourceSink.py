@@ -51,8 +51,8 @@ class Source(Component):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
-        pwlcfParameters=None,
         leadTime=0,
+        pwlcfParameters=None,
     ):
         """Create a Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -247,10 +247,10 @@ class Source(Component):
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
-            leadTime=leadTime,
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
+            leadTime=leadTime,
             pwlcfParameters=pwlcfParameters,
         )
 
@@ -561,8 +561,7 @@ class Sink(Source):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
-        leadTime=0
-        
+        leadTime=0,
     ):
         """Create a Sink class instance.
 
