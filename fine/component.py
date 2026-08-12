@@ -3208,6 +3208,7 @@ class ComponentModel(metaclass=ABCMeta):
             lifetimeAttr="ipTechnicalLifetime",
             varName="commis",
             QPdivisorNames=["QPbound"],
+            shiftByLeadTime=True,
         )
         opexDec = self.getEconomicsDesign(
             pyM,
@@ -3215,6 +3216,7 @@ class ComponentModel(metaclass=ABCMeta):
             factorNames=["processedOpexIfBuilt"],
             lifetimeAttr="ipTechnicalLifetime",
             varName="commisBin",
+            shiftByLeadTime=True,
         )
 
         return capexCap + capexDec + opexCap + opexDec
@@ -3243,6 +3245,7 @@ class ComponentModel(metaclass=ABCMeta):
         QPdivisorNames=[],
         getOptValue=False,
         getOptValueCostType="TAC",
+        shiftByLeadTime=False,
     ):
         """Set design dependent cost equations for the individual components. The equations will be set
         for all components of a modeling class and all locations.
@@ -3284,6 +3287,16 @@ class ComponentModel(metaclass=ABCMeta):
         :param getOptValueCostType: the cost type can either be TAC (total anualized costs) or NPV (net present value)
             |br| * the default value is None.
         :type getOptValueCostType: string
+
+        :param shiftByLeadTime: if True, the interval apportionment (which investment periods the cost
+            is booked into) starts at the commissioning year's physical availability
+            (commisYear + roundedIpLeadTime), instead of at the commissioning (decision) year itself. The
+            commissioning-year identity used for bookkeeping/retrieval and the annuity/factor lookups
+            themselves are unaffected -- only the range of investment periods that get charged shifts.
+            Used for the OPEX calls (fixed O&M only starts once the asset is physically available); CAPEX
+            calls leave this False (CAPEX is booked starting at the decision period, decision #2).
+            |br| * the default value is False.
+        :type shiftByLeadTime: boolean
         """
         if getOptValueCostType not in ["TAC", "NPV"]:
             raise ValueError("The cost types must be 'TAC' or 'NPV'.")
@@ -3397,9 +3410,24 @@ class ComponentModel(metaclass=ABCMeta):
                 getOptValue,
             )
 
+            # OPEX (decision #3) is shifted, not widened: fixed O&M only starts
+            # once the asset is physically available, i.e. at the commissioning
+            # year's lead-time-shifted availability period, not at the decision
+            # year itself -- unlike CAPEX (decision #2), which is booked starting
+            # at the decision period. The commissioning-year identity used for
+            # bookkeeping (the dict keys' first element, read back via
+            # componentYears) and the annuity above are intentionally left
+            # unshifted; only the range of investment periods charged shifts.
+            shiftedCommisYear = (
+                commisYear
+                + esM.getComponent(compName).roundedIpLeadTime[commisYear][loc]
+                if shiftByLeadTime
+                else commisYear
+            )
+
             # write costs into dataframe
             # a) costs for complete intervals
-            for i in range(commisYear, commisYear + fullCostIntervals):
+            for i in range(shiftedCommisYear, shiftedCommisYear + fullCostIntervals):
                 costContribution[(loc, compName)][(commisYear, i)] = (
                     annuity
                     * utils.annuityPresentValueFactor(
@@ -3417,7 +3445,7 @@ class ComponentModel(metaclass=ABCMeta):
                     ipEconomicLifetime % 1
                 ) * esM.investmentPeriodInterval
                 costContribution[(loc, compName)][
-                    (commisYear, commisYear + fullCostIntervals)
+                    (commisYear, shiftedCommisYear + fullCostIntervals)
                 ] = annuity * utils.annuityPresentValueFactor(
                     esM, compName, loc, partlyCostInLastEconomicInterval
                 )
@@ -3429,18 +3457,18 @@ class ComponentModel(metaclass=ABCMeta):
                 partlyCostInLastTechnicalInterval = (
                     1 - (ipTechnicalLifetime % 1)
                 ) * esM.investmentPeriodInterval
-                if commisYear + math.ceil(ipTechnicalLifetime) - 1 in [
+                if shiftedCommisYear + math.ceil(ipTechnicalLifetime) - 1 in [
                     k[1] for k in costContribution[(loc, compName)].keys()
                 ]:
                     costContribution[(loc, compName)][
                         (
                             commisYear,
-                            commisYear + math.ceil(ipTechnicalLifetime) - 1,
+                            shiftedCommisYear + math.ceil(ipTechnicalLifetime) - 1,
                         )
                     ] = costContribution[(loc, compName)][
                         (
                             commisYear,
-                            commisYear + math.ceil(ipTechnicalLifetime) - 1,
+                            shiftedCommisYear + math.ceil(ipTechnicalLifetime) - 1,
                         )
                     ] + annuity * (
                         utils.annuityPresentValueFactor(

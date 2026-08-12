@@ -1,4 +1,5 @@
-"""Cost-distribution tests for the lead-time feature (Step 7: CAPEX wiring).
+"""Cost-distribution tests for the lead-time feature (Step 7: CAPEX wiring;
+Step 8: OPEX shift).
 
 Mirrors the style of test_shadowCostOutput.py / test_netPresentValue.py: small,
 deterministic one-node models (commissioning forced via commissioningFix so the
@@ -6,14 +7,17 @@ solver can't route around the exact scenario being tested) are solved end to end
 and the actual solved objective/cost breakdown is inspected -- not just the Step 6
 primitives in isolation.
 
-Note: esM.getOptimizationSummary()'s capexCap/TAC/NPVcontribution columns are
-produced by Component.setOptimalValues(), which Step 7 deliberately does not
-touch (out of the plan's stated file scope) and therefore still uses the
-un-widened ipEconomicLifetime/CCF attributes. Reading capex results here goes
-directly through ComponentModel.getEconomicsDesign(getOptValue=True, ...) with
-the same widened attributes getObjectiveFunctionContribution now uses, so these
-tests inspect exactly what the solved objective actually booked. See CLAUDE.md's
-"Deferred / follow-up items" for this reporting-path gap.
+Note: esM.getOptimizationSummary()'s capexCap/opexCap/TAC/NPVcontribution columns
+are produced by Component.setOptimalValues(), which neither Step 7 nor Step 8
+touches (out of the plan's stated file scope for either step) and therefore still
+calls getEconomicsDesign with the old, un-widened/un-shifted attribute names and
+shiftByLeadTime=False. Reading cost results here goes directly through
+ComponentModel.getEconomicsDesign(getOptValue=True, ...) with the same
+widened/shifted arguments getObjectiveFunctionContribution now uses, so these
+tests inspect exactly what the solved objective actually booked -- not what
+getOptimizationSummary() would (still incorrectly) report for a leadTime>0
+component. See CLAUDE.md's "Deferred / follow-up items" for this reporting-path
+gap, which after Step 8 affects OPEX reporting too, not just CAPEX.
 """
 
 import pandas as pd
@@ -149,7 +153,10 @@ def _baseline_capex_npv_sum(esM, compName="src"):
     )
 
 
-def _opex_tac_by_ip(esM, compName="src"):
+def _opex_tac_by_ip(esM, compName="src", shiftByLeadTime=True):
+    """shiftByLeadTime=True (the default) matches what
+    getObjectiveFunctionContribution actually passes for opexCap/opexDec since
+    Step 8; pass False only to compute the pre-Step-8 (unshifted) reference."""
     mdl = esM.componentModelingDict["SourceSinkModel"]
     results = mdl.getEconomicsDesign(
         esM.pyM,
@@ -161,6 +168,7 @@ def _opex_tac_by_ip(esM, compName="src"):
         QPdivisorNames=["QPbound"],
         getOptValue=True,
         getOptValueCostType="TAC",
+        shiftByLeadTime=shiftByLeadTime,
     )
     return {
         ip: (df.loc[compName, _LOC] if compName in df.index else 0.0)
@@ -346,9 +354,14 @@ def test_leadtime_with_annuity_perpetuity_solves_without_error():
     assert esM.pyM.Obj() > 0
 
 
-def test_leadtime_does_not_affect_opex():
-    """Step 7 only widens CAPEX; OPEX (Step 8's job) must be byte-identical
-    regardless of leadTime."""
+def test_leadtime_opex_shifts_to_availability_not_decision_year():
+    """Superseded by Step 8: this test was originally
+    test_leadtime_does_not_affect_opex (Step 7), asserting OPEX was
+    byte-identical regardless of leadTime -- true at the time, since Step 7 only
+    wired CAPEX. Step 8 deliberately makes OPEX shift (decision #3: fixed O&M
+    only starts once the asset is physically available), so that assertion is no
+    longer correct by design; renamed and rewritten to assert the new, correct
+    behavior, kept as a regression marker for the shift itself."""
     zero = _build_leadtime_cost_model(
         n_ips=3,
         interval=_INTERVAL,
@@ -374,5 +387,122 @@ def test_leadtime_does_not_affect_opex():
 
     opex_zero = _opex_tac_by_ip(zero)
     opex_widened = _opex_tac_by_ip(widened)
-    for ip in zero.investmentPeriods:
-        assert opex_widened[ip] == pytest.approx(opex_zero[ip])
+
+    # leadTime=0: today's opex numbers exactly (top-priority regression guard) --
+    # booked starting at the decision year (ip=0), matches the unshifted formula.
+    assert opex_zero == _opex_tac_by_ip(zero, shiftByLeadTime=False)
+    assert opex_zero[0] > 0
+    assert opex_zero[1] == pytest.approx(0)
+    assert opex_zero[2] == pytest.approx(0)
+
+    # leadTime=5 (1 interval): zero opex before availability (ip=0), the full
+    # (unwidened, technicalLifetime-length) per-period share starting exactly at
+    # the availability ip (ip=1, cross-checked against Step 4/5's capacity-shift
+    # convention: commisYear + roundedIpLeadTime).
+    assert opex_widened[0] == pytest.approx(0)
+    assert opex_widened[1] == pytest.approx(opex_zero[0])
+    assert opex_widened[2] == pytest.approx(0)
+
+
+def test_leadtime_opex_horizon_boundary_shifted_past_horizon_is_zero_no_crash():
+    """When the shifted opex window starts beyond the model horizon, opex must be
+    zero everywhere within the horizon -- not erroring, not booked anywhere."""
+    esM = _build_leadtime_cost_model(
+        n_ips=2,  # only ip=0, ip=1 exist
+        interval=_INTERVAL,
+        economic_lifetime=_ECON_LIFETIME,
+        technical_lifetime=_TECH_LIFETIME,
+        invest_per_capacity=_INVEST_PER_CAPACITY,
+        interest_rate=_INTEREST_RATE,
+        commissioning_by_ip={1: _CAPACITY},  # availability ip = 1 + 2 = 3, out of range
+        opex_per_capacity=5,
+        lead_time=10,  # 2 intervals
+    )
+    opex = _opex_tac_by_ip(esM)
+    assert opex[0] == pytest.approx(0)
+    assert opex[1] == pytest.approx(0)
+
+
+def test_leadtime_opex_shift_varies_by_commissioning_ip():
+    """Per-investment-period-varying leadTime: the opex shift amount must track
+    each commissioning decision's own lead time, not a single global shift."""
+    # decisionIp=1 -> availabilityIp=2; decisionIp=2 -> availabilityIp=3 (kept
+    # nonzero too, otherwise it would collide with decisionIp=1's availabilityIp=2)
+    varying_lead_time = {
+        _ip_year(0, _INTERVAL): 0,
+        _ip_year(1, _INTERVAL): _LEAD_TIME,
+        _ip_year(2, _INTERVAL): _LEAD_TIME,
+    }
+
+    commission_at_ip0 = _build_leadtime_cost_model(
+        n_ips=3,
+        interval=_INTERVAL,
+        economic_lifetime=_ECON_LIFETIME,
+        technical_lifetime=_TECH_LIFETIME,
+        invest_per_capacity=_INVEST_PER_CAPACITY,
+        interest_rate=_INTEREST_RATE,
+        commissioning_by_ip={0: _CAPACITY},  # leadTime=0 at this decision ip
+        opex_per_capacity=5,
+        lead_time=varying_lead_time,
+    )
+    commission_at_ip1 = _build_leadtime_cost_model(
+        n_ips=3,
+        interval=_INTERVAL,
+        economic_lifetime=_ECON_LIFETIME,
+        technical_lifetime=_TECH_LIFETIME,
+        invest_per_capacity=_INVEST_PER_CAPACITY,
+        interest_rate=_INTEREST_RATE,
+        commissioning_by_ip={1: _CAPACITY},  # leadTime=5 (1 interval) at this ip
+        opex_per_capacity=5,
+        lead_time=varying_lead_time,
+    )
+
+    opex_ip0 = _opex_tac_by_ip(commission_at_ip0)
+    opex_ip1 = _opex_tac_by_ip(commission_at_ip1)
+
+    # commissioning at ip=0 with leadTime=0 there -> opex starts immediately at ip=0
+    assert opex_ip0[0] > 0
+    assert opex_ip0[1] == pytest.approx(0)
+    assert opex_ip0[2] == pytest.approx(0)
+
+    # commissioning at ip=1 with leadTime=5 (1 interval) there -> opex shifts to ip=2
+    assert opex_ip1[0] == pytest.approx(0)
+    assert opex_ip1[1] == pytest.approx(0)
+    assert opex_ip1[2] > 0
+
+
+def test_leadtime_reproduces_notebook_example_costs_scenario_fix():
+    """Direct reproduction of examples/12_LeadTimes/12_leadTimes_example_costs.ipynb's
+    exact scenario (leadTime=1, economicLifetime=1, technicalLifetime=1,
+    investPerCapacity=10, opexPerCapacity=20, interestRate=0.10, 2 investment
+    periods of 1 year each, commissioning forced in the first IP), which
+    originally demonstrated (in the notebook's own words) a "Failure Expectation":
+    "still: operational fixed costs already in first IP" -- fixed O&M was booked
+    at the decision year even though the asset wasn't physically available until
+    the second IP. Confirms Step 8 resolves this at the objective level (see the
+    module docstring for why esM.getOptimizationSummary() itself still won't)."""
+    esM = _build_leadtime_cost_model(
+        n_ips=2,
+        interval=1,
+        economic_lifetime=1,
+        technical_lifetime=1,
+        invest_per_capacity=10,
+        interest_rate=0.10,
+        commissioning_by_ip={0: 1},
+        opex_per_capacity=20,
+        lead_time=1,
+    )
+
+    opex = _opex_tac_by_ip(esM)
+    # the originally-documented bug: fixed opex must NOT be booked in the first
+    # (construction/decision) IP...
+    assert opex[0] == pytest.approx(0)
+    # ...it must be booked once the asset is physically available, in the second IP.
+    assert opex[1] > 0
+
+    # capex, by contrast, is correctly booked starting at the decision IP
+    # (decision #2), now widened (leadTime + economicLifetime = 2 intervals)
+    # rather than dumped entirely into the first IP as the pre-fix WIP did.
+    capex = _widened_capex_tac_by_ip(esM)
+    assert capex[0] > 0
+    assert capex[1] == pytest.approx(capex[0])
