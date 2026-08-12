@@ -3187,18 +3187,18 @@ class ComponentModel(metaclass=ABCMeta):
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
             QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commis",
-            divisorName="CCF",
-            QPdivisorNames=["QPbound", "CCF"],
+            divisorName="CCFLeadTime",
+            QPdivisorNames=["QPbound", "CCFLeadTime"],
         )
         capexDec = self.getEconomicsDesign(
             pyM,
             esM,
             factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commisBin",
-            divisorName="CCF",
+            divisorName="CCFLeadTime",
         )
         opexCap = self.getEconomicsDesign(
             pyM,
@@ -3359,15 +3359,27 @@ class ComponentModel(metaclass=ABCMeta):
         # contributions depending on the commissioning year (index) and the
         # investment period (columns)
         for loc, compName, commisYear in var:
-            ipEconomicLifetime = getattr(
-                esM.getComponent(compName), "ipEconomicLifetime"
-            )[loc]
+            # lead-time-widened CAPEX distribution (decision #4) sources the
+            # economic-lifetime term from the lead-time-widened,
+            # commissioning-investment-period-varying attribute instead of the
+            # location-only one; mirrors the same dispatch
+            # utils.getParametersForUnevenLifetimes uses internally.
+            if lifetimeAttr == "ipLeadTimeEconomicLifetime":
+                ipEconomicLifetime = getattr(
+                    esM.getComponent(compName), "ipLeadTimeEconomicLifetime"
+                )[commisYear][loc]
+            else:
+                ipEconomicLifetime = getattr(
+                    esM.getComponent(compName), "ipEconomicLifetime"
+                )[loc]
             ipTechnicalLifetime = getattr(
                 esM.getComponent(compName), "ipTechnicalLifetime"
             )[loc]
 
             (fullCostIntervals, costInLastEconInterval, costInLastTechInterval) = (
-                utils.getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM)
+                utils.getParametersForUnevenLifetimes(
+                    compName, loc, lifetimeAttr, esM, ip=commisYear
+                )
             )
 
             # calculation of the annuity
