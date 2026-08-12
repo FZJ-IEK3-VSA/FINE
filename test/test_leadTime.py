@@ -605,18 +605,24 @@ def test_leadtime_does_not_shift_stock_decommissioning():
     _assert_expected(results, "decommis", {0: 0, 1: 10})
 
 
-def test_investment_period_varying_leadtime_raises_not_implemented():
-    # Step 5 will implement this; Step 4 must fail loudly rather than silently produce
-    # wrong capacity-availability results for a per-ip dict leadTime.
-    with pytest.raises(NotImplementedError):
-        _build_and_optimize_leadtime_availability_model(
-            n_ips=2,
-            interval=5,
-            lead_time={2020: 0, 2025: 5},
-            technical_lifetime=20,
-            demand_by_ip={0: 10, 1: 10},
-            commissioning_by_ip={0: 10, 1: 0},
-        )
+def test_investment_period_varying_leadtime_no_longer_raises_not_implemented():
+    # Superseded by Step 5: a well-behaved (non-colliding) per-ip dict leadTime is
+    # now correctly supported rather than rejected. This is the same shape of
+    # leadTime dict Step 4's placeholder guard used to reject with
+    # NotImplementedError - kept as a regression marker for that behavior change,
+    # not just deleted, so a future accidental re-introduction of the Step 4
+    # placeholder is caught here.
+    esM = _build_and_optimize_leadtime_availability_model(
+        n_ips=2,
+        interval=5,
+        lead_time={2020: 0, 2025: 5},
+        technical_lifetime=20,
+        demand_by_ip={0: 10, 1: 10},
+        commissioning_by_ip={0: 10, 1: 0},
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "commis", {0: 10, 1: 0})
+    _assert_expected(results, "cap", {0: 10, 1: 10})
 
 
 def test_leadtime_genuinely_varying_dict_raises_even_after_round_trip():
@@ -701,3 +707,151 @@ def test_leadtime_uniform_dict_from_round_trip_does_not_falsely_raise():
     assert rebuilt_comp.leadTimeVariesByInvestmentPeriod is False
     results = _read_design_variables(rebuilt)
     _assert_expected(results, "cap", {0: 10, 1: 10})
+
+
+# ---------------------------------------------------------------------------
+# Investment-period-varying lead time (Step 5): the dict/per-ip branch in
+# capacityDevelopmentPerfectForesight / initialYear / capacityDecommissioning,
+# via Component._getLeadTimeAvailabilityMap.
+# ---------------------------------------------------------------------------
+
+
+def test_leadtime_decreasing_across_ips_raises_collision_error():
+    # decisionIp=0 (lead=2 IPs -> available ip=2) and decisionIp=1 (lead=1 IP ->
+    # available ip=2) would both become available in the same investment period.
+    # Must fail fast with a clear ValueError at model-build time, not silently drop
+    # one of them (the old WIP's bug).
+    with pytest.raises(ValueError, match="leadTime collision"):
+        _build_and_optimize_leadtime_availability_model(
+            n_ips=3,
+            interval=5,
+            lead_time={2020: 10, 2025: 5, 2030: 0},
+            technical_lifetime=20,
+            demand_by_ip={2: 10},
+            commissioning_by_ip={0: 10, 1: 10},
+        )
+
+
+def test_leadtime_gap_between_ips_yields_zero_commissioning_no_crash():
+    # decisionIp=0 (lead=0 -> available ip=0) and decisionIp=2 (lead=0 -> available
+    # ip=2) leave availability-ip=1 with no decision mapping into it at all. Capacity
+    # must simply not increase there (no crash, no KeyError).
+    esM = _build_and_optimize_leadtime_availability_model(
+        n_ips=3,
+        interval=5,
+        lead_time={2020: 0, 2025: 10, 2030: 0},
+        technical_lifetime=20,
+        demand_by_ip={0: 10, 2: 10},
+        commissioning_by_ip={0: 10, 2: 10},
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "commis", {0: 10, 1: 0, 2: 10})
+    _assert_expected(results, "cap", {0: 10, 1: 10, 2: 20})
+
+
+def test_leadtime_per_ip_dict_with_per_location_series_gives_independent_maps():
+    esM = fn.EnergySystemModel(
+        locations={"loc1", "loc2"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "MW_el"},
+        numberOfTimeSteps=1,
+        hoursPerTimeStep=1,
+        startYear=2020,
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=5,
+        costUnit="Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=pd.DataFrame(
+                [[1, 1]], index=[0], columns=["loc1", "loc2"]
+            ),
+            commissioningFix={
+                2020: pd.Series({"loc1": 10, "loc2": 10}),
+                2025: pd.Series({"loc1": 0, "loc2": 0}),
+                2030: pd.Series({"loc1": 0, "loc2": 0}),
+            },
+            investPerCapacity=1,
+            economicLifetime=5,
+            technicalLifetime=20,
+            # loc1: immediate at every decision period; loc2: 1 IP delay at every
+            # decision period - same per-ip dict, independent per-location maps.
+            leadTime={
+                2020: pd.Series({"loc1": 0, "loc2": 5}),
+                2025: pd.Series({"loc1": 0, "loc2": 5}),
+                2030: pd.Series({"loc1": 0, "loc2": 5}),
+            },
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="sink",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame(
+                [[10, 0]], index=[0], columns=["loc1", "loc2"]
+            ),
+        )
+    )
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+    resultsLoc1 = _read_design_variables(esM, location="loc1")
+    resultsLoc2 = _read_design_variables(esM, location="loc2")
+    _assert_expected(resultsLoc1, "cap", {0: 10, 1: 10, 2: 10})
+    _assert_expected(resultsLoc2, "cap", {0: 0, 1: 10, 2: 10})
+
+
+def test_leadtime_monotonic_per_ip_dict_matches_equivalent_scalar_shift():
+    # A per-ip dict with the SAME value at every investment period must produce
+    # byte-identical results to the equivalent scalar leadTime (Step 4's path) - the
+    # per-ip machinery is a strict generalization, not a different mechanism.
+    dictResultEsM = _build_and_optimize_leadtime_availability_model(
+        n_ips=2,
+        interval=5,
+        lead_time={2020: 5, 2025: 5},
+        technical_lifetime=20,
+        demand_by_ip={1: 10},
+        commissioning_by_ip={0: 10},
+    )
+    scalarResultEsM = _build_and_optimize_leadtime_availability_model(
+        n_ips=2,
+        interval=5,
+        lead_time=5,
+        technical_lifetime=20,
+        demand_by_ip={1: 10},
+        commissioning_by_ip={0: 10},
+    )
+    dictResults = _read_design_variables(dictResultEsM)
+    scalarResults = _read_design_variables(scalarResultEsM)
+    for ip in [0, 1]:
+        for column in ["cap", "commis", "decommis"]:
+            assert dictResults[ip][column] == pytest.approx(
+                scalarResults[ip][column]
+            ), f"{column}[{ip}] differs between per-ip dict and scalar leadTime"
+
+
+def test_leadtime_per_ip_decommissioning_uses_the_decision_periods_own_lead():
+    # decisionIp=0 has a 1-IP lead (available at ip=1); technicalLifetime=10 (2 IPs) ->
+    # decommissions at ip=1+2=3. Other decision periods are forced to 0 commissioning
+    # with distinct, non-colliding (increasing) leads so the availability map stays
+    # valid regardless of what the solver could in principle choose there.
+    esM = _build_and_optimize_leadtime_availability_model(
+        n_ips=4,
+        interval=5,
+        lead_time={2020: 5, 2025: 100, 2030: 200, 2035: 300},
+        technical_lifetime=10,
+        demand_by_ip={1: 10, 2: 10},
+        commissioning_by_ip={0: 10, 1: 0, 2: 0, 3: 0},
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "commis", {0: 10, 1: 0, 2: 0, 3: 0})
+    _assert_expected(results, "cap", {0: 0, 1: 10, 2: 10, 3: 0})
+    _assert_expected(results, "decommis", {0: 0, 1: 0, 2: 0, 3: 10})

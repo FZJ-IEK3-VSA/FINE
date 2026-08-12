@@ -794,6 +794,58 @@ class Component(metaclass=ABCMeta):
             pwlcfModule = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModule
             self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
 
+    def _getLeadTimeAvailabilityMap(self, esM, loc):
+        """Build (and cache) the forward map {decisionIp: availabilityIp} for this
+        component at the given location, i.e. for every investment period in which a
+        capacity-addition decision can be made, the investment period in which that
+        capacity becomes physically available (decisionIp + roundedIpLeadTime).
+
+        Only meaningful (and only ever called) when leadTimeVariesByInvestmentPeriod is
+        True - for a constant leadTime, the shift is the same for every decision period
+        and does not need this map. Validated for injectivity: if leadTime decreases
+        across investment periods such that two different decision periods would become
+        available in the same investment period, this raises a clear error instead of
+        silently dropping one of them (as the old, buggy reverse-search WIP did).
+
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param loc: location for which the map is built (leadTime, like other
+            location-indexed parameters, can vary independently by location).
+        :type loc: string
+
+        :returns: mapping of decision investment period to availability investment
+            period, covering exactly esM.investmentPeriods (stock/historical years are
+            deliberately excluded - stock is already physically available and is never
+            shifted by leadTime, see capacityDecommissioning's stock branch).
+        :rtype: dict
+        """
+        if not hasattr(self, "_leadTimeAvailabilityMapCache"):
+            self._leadTimeAvailabilityMapCache = {}
+        if loc in self._leadTimeAvailabilityMapCache:
+            return self._leadTimeAvailabilityMapCache[loc]
+
+        forwardMap = {}
+        decisionIpByAvailabilityIp = {}
+        for decisionIp in esM.investmentPeriods:
+            availabilityIp = decisionIp + self.roundedIpLeadTime[decisionIp][loc]
+            if availabilityIp in decisionIpByAvailabilityIp:
+                raise ValueError(
+                    f"leadTime collision for component '{self.name}' at location "
+                    f"'{loc}': investment periods "
+                    f"{decisionIpByAvailabilityIp[availabilityIp]} and {decisionIp} "
+                    f"would both become available in investment period "
+                    f"{availabilityIp}. Investment-period-varying leadTime must map "
+                    "each decision period to a distinct availability period (a "
+                    "decreasing leadTime sequence across investment periods can "
+                    "cause this)."
+                )
+            decisionIpByAvailabilityIp[availabilityIp] = decisionIp
+            forwardMap[decisionIp] = availabilityIp
+
+        self._leadTimeAvailabilityMapCache[loc] = forwardMap
+        return forwardMap
+
     def addToEnergySystemModel(self, esM):
         """Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
         the esM, it is added as well.
@@ -2086,15 +2138,21 @@ class ComponentModel(metaclass=ABCMeta):
             decommisVar = getattr(pyM, "decommis_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
-                if self.componentsDict[compName].leadTimeVariesByInvestmentPeriod:
-                    raise NotImplementedError(
-                        "Investment-period-varying leadTime is not yet supported "
-                        "for capacity-availability constraints; use a scalar or a "
-                        "location-indexed Series instead."
+                comp = self.componentsDict[compName]
+                if comp.leadTimeVariesByInvestmentPeriod:
+                    availabilityMap = comp._getLeadTimeAvailabilityMap(esM, loc)
+                    comm_ip = next(
+                        (
+                            decisionIp
+                            for decisionIp, availIp in availabilityMap.items()
+                            if availIp == ip + 1
+                        ),
+                        None,
                     )
-                lead = self.componentsDict[compName].roundedIpLeadTime[ip + 1][loc]
-                comm_ip = ip + 1 - lead
-                if comm_ip in esM.investmentPeriods:
+                else:
+                    lead = comp.roundedIpLeadTime[ip + 1][loc]
+                    comm_ip = ip + 1 - lead
+                if comm_ip is not None and comm_ip in esM.investmentPeriods:
                     availableCommis = commisVar[loc, compName, comm_ip]
                 else:
                     availableCommis = 0
@@ -2160,16 +2218,22 @@ class ComponentModel(metaclass=ABCMeta):
         else:
 
             def initialYear(pyM, loc, compName):
-                stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
-                if self.componentsDict[compName].leadTimeVariesByInvestmentPeriod:
-                    raise NotImplementedError(
-                        "Investment-period-varying leadTime is not yet supported "
-                        "for capacity-availability constraints; use a scalar or a "
-                        "location-indexed Series instead."
+                comp = self.componentsDict[compName]
+                stock_cap = comp.stockCapacityStartYear[loc]
+                if comp.leadTimeVariesByInvestmentPeriod:
+                    availabilityMap = comp._getLeadTimeAvailabilityMap(esM, loc)
+                    comm_ip = next(
+                        (
+                            decisionIp
+                            for decisionIp, availIp in availabilityMap.items()
+                            if availIp == 0
+                        ),
+                        None,
                     )
-                lead = self.componentsDict[compName].roundedIpLeadTime[0][loc]
-                comm_ip = 0 - lead
-                if comm_ip in esM.investmentPeriods:
+                else:
+                    lead = comp.roundedIpLeadTime[0][loc]
+                    comm_ip = 0 - lead
+                if comm_ip is not None and comm_ip in esM.investmentPeriods:
                     availableCommis = commisVar[loc, compName, comm_ip]
                 else:
                     availableCommis = 0
@@ -2233,26 +2297,39 @@ class ComponentModel(metaclass=ABCMeta):
         decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
         def capacityDecommissioning(pyM, loc, compName, ip):
-            tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
-            if self.componentsDict[compName].leadTimeVariesByInvestmentPeriod:
-                raise NotImplementedError(
-                    "Investment-period-varying leadTime is not yet supported "
-                    "for capacity-availability constraints; use a scalar or a "
-                    "location-indexed Series instead."
-                )
-            lead = self.componentsDict[compName].roundedIpLeadTime[ip][loc]
+            comp = self.componentsDict[compName]
+            tech_lifetime = comp.ipTechnicalLifetime[loc]
 
             # technical lifetime is rounded according to floorTechnicalLifetime
-            if self.componentsDict[compName].floorTechnicalLifetime:
+            if comp.floorTechnicalLifetime:
                 lifetime = math.floor(tech_lifetime)
             else:
                 lifetime = math.ceil(tech_lifetime)
 
             # For optimized future investments:
-            # decommissioning happens after lead time + technical lifetime
-            future_comm_date = ip - lead - lifetime
+            # decommissioning happens after lead time + technical lifetime, i.e.
+            # lifetime periods after the decision's own availability period. With a
+            # leadTime that varies by decision period, the decision period isn't a
+            # fixed offset from ip anymore, so look it up via the availability map
+            # instead of subtracting a single lead value.
+            if comp.leadTimeVariesByInvestmentPeriod:
+                availabilityMap = comp._getLeadTimeAvailabilityMap(esM, loc)
+                future_comm_date = next(
+                    (
+                        decisionIp
+                        for decisionIp, availIp in availabilityMap.items()
+                        if availIp == ip - lifetime
+                    ),
+                    None,
+                )
+            else:
+                lead = comp.roundedIpLeadTime[ip][loc]
+                future_comm_date = ip - lead - lifetime
 
-            if future_comm_date in esM.investmentPeriods:
+            if (
+                future_comm_date is not None
+                and future_comm_date in esM.investmentPeriods
+            ):
                 return (
                     decommisVar[loc, compName, ip]
                     == commisVar[loc, compName, future_comm_date]
