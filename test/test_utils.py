@@ -221,3 +221,201 @@ def test_check_and_set_cost_parameter():
         assert utils.checkAndSetCostParameter(
             esM, "testParam", invalid_series_with_nan, "2dim", None
         ).equals(invalid_series_with_nan, index=esM.locations)
+
+
+# --- Lead-time-widened CCF / interval-apportionment primitives (Step 6) ---
+# These primitives (Component.ipLeadTimeEconomicLifetime, Component.CCFLeadTime,
+# utils.getParametersForUnevenLifetimes(..., "ipLeadTimeEconomicLifetime", esM, ip))
+# are purely additive building blocks for decision #4 (CAPEX total-cost conservation
+# via a widened Capital Charge Factor) -- not yet wired into the objective function
+# (that is Step 7). Tested standalone here, independent of Pyomo/optimize().
+
+_LEADTIME_CCF_LOC = "loc1"
+_LEADTIME_CCF_INTERVAL = 5
+
+
+def _build_leadtime_ccf_esM(leadTime, economicLifetime, interestRate):
+    esM = fn.EnergySystemModel(
+        locations={_LEADTIME_CCF_LOC},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"GW$_{el}$"},
+        numberOfTimeSteps=4,
+        hoursPerTimeStep=2190,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=_LEADTIME_CCF_INTERVAL,
+        startYear=2020,
+        verboseLogLevel=2,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            leadTime=leadTime,
+            economicLifetime=economicLifetime,
+            # kept far above any (leadTime, economicLifetime) combination used in
+            # these tests so the technical-lifetime/economic-lifetime "same
+            # interval" interaction in getParametersForUnevenLifetimes never
+            # triggers by coincidence -- these tests target the widened
+            # economic-lifetime primitive in isolation.
+            technicalLifetime=100,
+            interestRate=interestRate,
+            investPerCapacity=1000,
+        )
+    )
+    return esM, esM.getComponent("src")
+
+
+def test_ccf_leadtime_zero_matches_ccf_exactly():
+    esM, comp = _build_leadtime_ccf_esM(leadTime=0, economicLifetime=8, interestRate=0.05)
+    for ip in esM.investmentPeriods:
+        assert comp.CCFLeadTime[ip][_LEADTIME_CCF_LOC] == pytest.approx(
+            comp.CCF[ip][_LEADTIME_CCF_LOC]
+        )
+
+
+def test_ip_leadtime_economic_lifetime_zero_leadtime_matches_economic_lifetime():
+    esM, comp = _build_leadtime_ccf_esM(leadTime=0, economicLifetime=8, interestRate=0.05)
+    for ip in esM.investmentPeriods:
+        assert comp.ipLeadTimeEconomicLifetime[ip][_LEADTIME_CCF_LOC] == pytest.approx(
+            comp.ipEconomicLifetime[_LEADTIME_CCF_LOC]
+        )
+
+
+@pytest.mark.parametrize(
+    "leadTime, economicLifetime, interestRate",
+    [
+        (0, 8, 0.05),
+        (2, 8, 0.05),
+        (3, 8, 0.05),
+        (5, 8, 0.05),
+        (10, 8, 0.05),
+        (12, 8, 0.02),
+        (20, 8, 0.05),  # leadTime > economicLifetime
+        (5, 8, 0.0),  # zero interest rate
+    ],
+)
+def test_ccf_leadtime_conserves_total_cost(leadTime, economicLifetime, interestRate):
+    """The widened CCF and the widened interval-apportionment primitive must be
+    mutually consistent: an annuity sized off CCFLeadTime, apportioned into full
+    and partial investment-period chunks per getParametersForUnevenLifetimes(...,
+    "ipLeadTimeEconomicLifetime", ...) and discounted chunk-by-chunk back to the
+    commissioning date, must reconstruct investPerCapacity exactly (to floating
+    point tolerance) -- this is the total-cost-conservation property decision #4
+    relies on.
+    """
+    investPerCapacity = 1000.0
+    esM, comp = _build_leadtime_ccf_esM(leadTime, economicLifetime, interestRate)
+    loc = _LEADTIME_CCF_LOC
+    interval = _LEADTIME_CCF_INTERVAL
+    r = comp.interestRate[loc]
+
+    for ip in esM.investmentPeriods:
+        ccfLeadTime = comp.CCFLeadTime[ip][loc]
+        annuity = investPerCapacity / ccfLeadTime
+
+        fullCostIntervals, hasPartial, _ = utils.getParametersForUnevenLifetimes(
+            comp.name, loc, "ipLeadTimeEconomicLifetime", esM, ip
+        )
+
+        total = 0.0
+        for k in range(fullCostIntervals):
+            chunk = annuity * utils.annuityPresentValueFactor(
+                esM, comp.name, loc, interval
+            )
+            total += chunk / (1 + r) ** (k * interval)
+
+        if hasPartial:
+            widened = comp.ipLeadTimeEconomicLifetime[ip][loc]
+            partialYears = (widened % 1) * interval
+            chunk = annuity * utils.annuityPresentValueFactor(
+                esM, comp.name, loc, partialYears
+            )
+            total += chunk / (1 + r) ** (fullCostIntervals * interval)
+
+        assert total == pytest.approx(investPerCapacity, rel=1e-9)
+
+
+def test_get_parameters_for_uneven_lifetimes_leadtime_zero_matches_baseline():
+    esM, comp = _build_leadtime_ccf_esM(leadTime=0, economicLifetime=8, interestRate=0.05)
+    loc = _LEADTIME_CCF_LOC
+    baseline = utils.getParametersForUnevenLifetimes(
+        comp.name, loc, "ipEconomicLifetime", esM
+    )
+    for ip in esM.investmentPeriods:
+        widened = utils.getParametersForUnevenLifetimes(
+            comp.name, loc, "ipLeadTimeEconomicLifetime", esM, ip
+        )
+        assert widened == baseline
+
+
+def test_get_parameters_for_uneven_lifetimes_leadtime_spans_one_extra_interval():
+    # interval=5, economicLifetime=8 -> ipEconomicLifetime=1.6 -> 1 full interval, partial 0.6
+    # leadTime=5 -> ipLeadTime=1.0 -> widened=2.6 -> 2 full intervals, partial 0.6 (unchanged)
+    esM, comp = _build_leadtime_ccf_esM(leadTime=5, economicLifetime=8, interestRate=0.05)
+    loc = _LEADTIME_CCF_LOC
+    for ip in esM.investmentPeriods:
+        fullCostIntervals, hasPartial, _ = utils.getParametersForUnevenLifetimes(
+            comp.name, loc, "ipLeadTimeEconomicLifetime", esM, ip
+        )
+        assert fullCostIntervals == 2
+        assert hasPartial is True
+        assert comp.ipLeadTimeEconomicLifetime[ip][loc] == pytest.approx(2.6)
+
+
+def test_get_parameters_for_uneven_lifetimes_leadtime_spans_multiple_extra_intervals():
+    # interval=5, economicLifetime=8 -> ipEconomicLifetime=1.6
+    # leadTime=10 -> ipLeadTime=2.0 -> widened=3.6 -> 3 full intervals, partial 0.6
+    esM, comp = _build_leadtime_ccf_esM(leadTime=10, economicLifetime=8, interestRate=0.05)
+    loc = _LEADTIME_CCF_LOC
+    for ip in esM.investmentPeriods:
+        fullCostIntervals, hasPartial, _ = utils.getParametersForUnevenLifetimes(
+            comp.name, loc, "ipLeadTimeEconomicLifetime", esM, ip
+        )
+        assert fullCostIntervals == 3
+        assert hasPartial is True
+        assert comp.ipLeadTimeEconomicLifetime[ip][loc] == pytest.approx(3.6)
+
+
+def test_get_parameters_for_uneven_lifetimes_leadtime_fractional_remainder():
+    # interval=5, economicLifetime=8 -> ipEconomicLifetime=1.6
+    # leadTime=3 -> ipLeadTime=0.6 -> widened=2.2 -> 2 full intervals, partial 0.2
+    # (a different fractional remainder than the baseline's 0.6, confirming the
+    # partial-interval credit tracks the widened value, not the un-widened one)
+    esM, comp = _build_leadtime_ccf_esM(leadTime=3, economicLifetime=8, interestRate=0.05)
+    loc = _LEADTIME_CCF_LOC
+    for ip in esM.investmentPeriods:
+        fullCostIntervals, hasPartial, _ = utils.getParametersForUnevenLifetimes(
+            comp.name, loc, "ipLeadTimeEconomicLifetime", esM, ip
+        )
+        assert fullCostIntervals == 2
+        assert hasPartial is True
+        widened = comp.ipLeadTimeEconomicLifetime[ip][loc]
+        assert widened == pytest.approx(2.2)
+        assert (widened % 1) == pytest.approx(0.2)
+
+
+def test_get_parameters_for_uneven_lifetimes_leadtime_greater_than_economic_lifetime():
+    # leadTime=20 > economicLifetime=8 -- no special-casing needed, the widened-window
+    # math handles it the same as any other duration.
+    esM, comp = _build_leadtime_ccf_esM(leadTime=20, economicLifetime=8, interestRate=0.05)
+    loc = _LEADTIME_CCF_LOC
+    for ip in esM.investmentPeriods:
+        fullCostIntervals, hasPartial, _ = utils.getParametersForUnevenLifetimes(
+            comp.name, loc, "ipLeadTimeEconomicLifetime", esM, ip
+        )
+        widened = comp.ipLeadTimeEconomicLifetime[ip][loc]
+        assert widened == pytest.approx(5.6)
+        assert fullCostIntervals == 5
+        assert hasPartial is True
+
+
+def test_get_parameters_for_uneven_lifetimes_requires_ip_for_widened_lifetime():
+    esM, comp = _build_leadtime_ccf_esM(leadTime=5, economicLifetime=8, interestRate=0.05)
+    with pytest.raises(ValueError):
+        utils.getParametersForUnevenLifetimes(
+            comp.name, _LEADTIME_CCF_LOC, "ipLeadTimeEconomicLifetime", esM
+        )

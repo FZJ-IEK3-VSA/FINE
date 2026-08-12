@@ -2965,9 +2965,29 @@ def checkAndSetFlowShares(comp, esM):
     return processedFlowShares
 
 
-def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
-    """Get parameters for uneven lifetimes."""
-    ipEconomicLifetime = getattr(esM.getComponent(compName), "ipEconomicLifetime")[loc]
+def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM, ip=None):
+    """Get parameters for uneven lifetimes.
+
+    :param ip: investment period whose lead-time-widened economic lifetime
+        should be used. Required only when ``lifetimeAttr`` is
+        ``"ipLeadTimeEconomicLifetime"`` (the CAPEX window widened by lead
+        time, decision #4), since ``ipLeadTimeEconomicLifetime`` varies by
+        investment period while ``ipEconomicLifetime`` does not. Ignored
+        otherwise.
+    :type ip: int or None
+    """
+    if lifetimeAttr == "ipLeadTimeEconomicLifetime":
+        if ip is None:
+            raise ValueError(
+                "ip must be given when lifetimeAttr is 'ipLeadTimeEconomicLifetime'."
+            )
+        ipEconomicLifetime = getattr(
+            esM.getComponent(compName), "ipLeadTimeEconomicLifetime"
+        )[ip][loc]
+    else:
+        ipEconomicLifetime = getattr(
+            esM.getComponent(compName), "ipEconomicLifetime"
+        )[loc]
     ipTechnicalLifetime = getattr(esM.getComponent(compName), "ipTechnicalLifetime")[
         loc
     ]

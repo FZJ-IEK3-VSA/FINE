@@ -686,6 +686,28 @@ class Component(metaclass=ABCMeta):
             self.processedStockYears + esM.investmentPeriods,
         )
 
+        # Lead-time-widened capital charge factor and interval-apportionment
+        # primitives (decision #4: CAPEX total-cost conservation via a widened
+        # CCF). Not yet wired into the objective function (Step 7) -- purely
+        # additive building blocks here. ipLeadTime varies by investment
+        # period while ipEconomicLifetime does not, so both the widened
+        # ip-unit duration and the widened years-duration fed into the CCF
+        # are computed per investment period.
+        self.ipLeadTimeEconomicLifetime = {
+            ip: self.ipLeadTime[ip] + self.ipEconomicLifetime
+            for ip in self.ipLeadTime
+        }
+        self.CCFLeadTime = {}
+        for ip in self.processedLeadTime:
+            leadTimeEconomicLifetimeYears = (
+                self.processedLeadTime[ip] + self.economicLifetime
+            )
+            self.CCFLeadTime.update(
+                utils.getCapitalChargeFactor(
+                    self.interestRate, leadTimeEconomicLifetimeYears, [ip]
+                )
+            )
+
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
         self.sharedPotentialID = sharedPotentialID
