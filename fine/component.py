@@ -610,6 +610,19 @@ class Component(metaclass=ABCMeta):
         self.roundedIpLeadTime = {
             ip: self.ipLeadTime[ip].apply(math.ceil) for ip in self.ipLeadTime
         }
+        # Whether leadTime genuinely differs across investment periods, as opposed to
+        # merely being *represented* as a per-investment-period dict (e.g. after a
+        # dict/xarray export round-trip with useProcessedValues=True, which always
+        # re-serializes the processed, investment-period-indexed form regardless of
+        # what shape the original input had). Checked on the rounded values actually
+        # used by the capacity-availability constraints, not the raw input type, so a
+        # uniform (e.g. all-zero) per-ip dict round-tripped from a scalar/Series input
+        # is correctly treated as non-varying.
+        _roundedLeadTimeSeries = list(self.roundedIpLeadTime.values())
+        self.leadTimeVariesByInvestmentPeriod = any(
+            not series.equals(_roundedLeadTimeSeries[0])
+            for series in _roundedLeadTimeSeries[1:]
+        )
         # invest per capacity
         self.investPerCapacity = investPerCapacity
         self.processedInvestPerCapacity = (
@@ -2073,10 +2086,22 @@ class ComponentModel(metaclass=ABCMeta):
             decommisVar = getattr(pyM, "decommis_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
+                if self.componentsDict[compName].leadTimeVariesByInvestmentPeriod:
+                    raise NotImplementedError(
+                        "Investment-period-varying leadTime is not yet supported "
+                        "for capacity-availability constraints; use a scalar or a "
+                        "location-indexed Series instead."
+                    )
+                lead = self.componentsDict[compName].roundedIpLeadTime[ip + 1][loc]
+                comm_ip = ip + 1 - lead
+                if comm_ip in esM.investmentPeriods:
+                    availableCommis = commisVar[loc, compName, comm_ip]
+                else:
+                    availableCommis = 0
                 return (
                     capVar[loc, compName, ip + 1]
                     == capVar[loc, compName, ip]
-                    + commisVar[loc, compName, ip + 1]
+                    + availableCommis
                     - decommisVar[loc, compName, ip + 1]
                 )
 
@@ -2136,10 +2161,22 @@ class ComponentModel(metaclass=ABCMeta):
 
             def initialYear(pyM, loc, compName):
                 stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
+                if self.componentsDict[compName].leadTimeVariesByInvestmentPeriod:
+                    raise NotImplementedError(
+                        "Investment-period-varying leadTime is not yet supported "
+                        "for capacity-availability constraints; use a scalar or a "
+                        "location-indexed Series instead."
+                    )
+                lead = self.componentsDict[compName].roundedIpLeadTime[0][loc]
+                comm_ip = 0 - lead
+                if comm_ip in esM.investmentPeriods:
+                    availableCommis = commisVar[loc, compName, comm_ip]
+                else:
+                    availableCommis = 0
                 return (
                     capVar[loc, compName, 0]
                     == stock_cap
-                    + commisVar[loc, compName, 0]
+                    + availableCommis
                     - decommisVar[loc, compName, 0]
                 )
 
@@ -2197,22 +2234,34 @@ class ComponentModel(metaclass=ABCMeta):
 
         def capacityDecommissioning(pyM, loc, compName, ip):
             tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
+            if self.componentsDict[compName].leadTimeVariesByInvestmentPeriod:
+                raise NotImplementedError(
+                    "Investment-period-varying leadTime is not yet supported "
+                    "for capacity-availability constraints; use a scalar or a "
+                    "location-indexed Series instead."
+                )
+            lead = self.componentsDict[compName].roundedIpLeadTime[ip][loc]
 
-            # commissioning date is depending whether technical lifetime ceiled or floored to next interval
-            # if technical lifetime is already a multiple of the interval, nothing happens
+            # technical lifetime is rounded according to floorTechnicalLifetime
             if self.componentsDict[compName].floorTechnicalLifetime:
-                comm_date = ip - math.floor(tech_lifetime)
+                lifetime = math.floor(tech_lifetime)
             else:
-                comm_date = ip - math.ceil(tech_lifetime)
-            # if the commissioning date is within the investment periods, the
-            # decommissioning and commissioning variables are linked
-            if comm_date in esM.investmentPeriods:
+                lifetime = math.ceil(tech_lifetime)
+
+            # For optimized future investments:
+            # decommissioning happens after lead time + technical lifetime
+            future_comm_date = ip - lead - lifetime
+
+            if future_comm_date in esM.investmentPeriods:
                 return (
                     decommisVar[loc, compName, ip]
-                    == commisVar[loc, compName, comm_date]
+                    == commisVar[loc, compName, future_comm_date]
                 )
-            # else the decommissioning is depending on the stockcommissioning
-            # or set to 0
+
+            # For historical stock:
+            # stock is already available, so do NOT shift by lead time
+            stock_comm_date = ip - lifetime
+
             procStockCommissioning = self.componentsDict[
                 compName
             ].processedStockCommissioning
@@ -2220,7 +2269,7 @@ class ComponentModel(metaclass=ABCMeta):
                 return (
                     decommisVar[loc, compName, ip]
                     == self.componentsDict[compName].processedStockCommissioning[
-                        comm_date
+                        stock_comm_date
                     ][loc]
                 )
             return decommisVar[loc, compName, ip] == 0
