@@ -1,6 +1,6 @@
 """Post-processing of solved component models."""
 
-from fine.results.economics import ComponentEconomicsMixin
-from fine.results.mixin import ComponentResultsMixin
+from fine.results.componentEconomics import ComponentEconomicsMixin
+from fine.results.componentResults import ComponentResultsMixin
 
 __all__ = ["ComponentEconomicsMixin", "ComponentResultsMixin"]

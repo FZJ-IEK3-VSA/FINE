@@ -1,8 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from fine import utils
 from fine.enums import Dimension
-from fine.results.economics import ComponentEconomicsMixin
-from fine.results.mixin import ComponentResultsMixin
+from fine.results.componentEconomics import ComponentEconomicsMixin
+from fine.results.componentResults import ComponentResultsMixin
 import fine
 import warnings
 import pyomo.environ as pyomo
@@ -896,8 +896,8 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
     Within the ComponentModel class, general valid sets, variables and constraints are declared.
 
     The economic contributions and the post-processing of a solved model are contributed by
-    :class:`fine.results.economics.ComponentEconomicsMixin` and
-    :class:`fine.results.mixin.ComponentResultsMixin`; a modeling class inherits them
+    :class:`fine.results.componentEconomics.ComponentEconomicsMixin` and
+    :class:`fine.results.componentResults.ComponentResultsMixin`; a modeling class inherits them
     through this class and overrides their hooks as before.
     """
 

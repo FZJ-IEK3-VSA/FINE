@@ -21,6 +21,41 @@ from fine import utils
 from fine.enums import CostType, Dimension, VarType
 from fine.results import frames, summary
 
+# The four design cost contributions the summary reports, keyed by the summary property
+# they end up in. Each is evaluated once per cost type - the arguments below are the same
+# for NPV and TAC, only ``getOptValueCostType`` differs - by
+# :meth:`~fine.results.componentEconomics.ComponentEconomicsMixin.getEconomicsDesign`.
+# The two "IfBuilt" contributions read the binary commissioning variable and have no
+# quadratic part.
+DESIGN_COST_ARGUMENTS = {
+    "capexCap": {
+        "factorNames": ["processedInvestPerCapacity", "QPcostDev"],
+        "QPfactorNames": ["processedQPcostScale", "processedInvestPerCapacity"],
+        "lifetimeAttr": "ipEconomicLifetime",
+        "varName": "commis",
+        "divisorName": "CCF",
+        "QPdivisorNames": ["QPbound", "CCF"],
+    },
+    "opexCap": {
+        "factorNames": ["processedOpexPerCapacity", "QPcostDev"],
+        "QPfactorNames": ["processedQPcostScale", "processedOpexPerCapacity"],
+        "lifetimeAttr": "ipTechnicalLifetime",
+        "varName": "commis",
+        "QPdivisorNames": ["QPbound"],
+    },
+    "capexIfBuilt": {
+        "factorNames": ["processedInvestIfBuilt"],
+        "lifetimeAttr": "ipEconomicLifetime",
+        "varName": "commisBin",
+        "divisorName": "CCF",
+    },
+    "opexIfBuilt": {
+        "factorNames": ["processedOpexIfBuilt"],
+        "lifetimeAttr": "ipTechnicalLifetime",
+        "varName": "commisBin",
+    },
+}
+
 
 class ComponentResultsMixin:
     """Result extraction, optimization summary and result accessors of a component model.
@@ -170,103 +205,20 @@ class ComponentResultsMixin:
         """
         compDict = self.componentsDict
 
-        # Get the design dependent cost contributions for all components. Each call
-        # returns a dict keyed by investment period.
-        resultsNPV_cx = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commis",
-            divisorName="CCF",
-            QPdivisorNames=["QPbound", "CCF"],
-            getOptValue=True,
-            getOptValueCostType=CostType.NPV,
-        )
-
-        resultsTAC_cx = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedInvestPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commis",
-            divisorName="CCF",
-            QPdivisorNames=["QPbound", "CCF"],
-            getOptValue=True,
-            getOptValueCostType=CostType.TAC,
-        )
-
-        resultsNPV_ox = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedOpexPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commis",
-            QPdivisorNames=["QPbound"],
-            getOptValue=True,
-            getOptValueCostType=CostType.NPV,
-        )
-
-        resultsTAC_ox = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedOpexPerCapacity", "QPcostDev"],
-            QPfactorNames=["processedQPcostScale", "processedOpexPerCapacity"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commis",
-            QPdivisorNames=["QPbound"],
-            getOptValue=True,
-            getOptValueCostType=CostType.TAC,
-        )
-
-        # Get NPV contribution for investmentIfBuilt
-        resultsNPV_cx_bin = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commisBin",
-            divisorName="CCF",
-            getOptValue=True,
-            getOptValueCostType=CostType.NPV,
-        )
-
-        # Calculate the annualized investment costs cx (CAPEX) if built
-        resultsTAC_cx_bin = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
-            varName="commisBin",
-            divisorName="CCF",
-            getOptValue=True,
-            getOptValueCostType=CostType.TAC,
-        )
-
-        # Get NPV cost contribution for the annualized operational costs if built ox (OPEX)
-        resultsNPV_ox_bin = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedOpexIfBuilt"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commisBin",
-            getOptValue=True,
-            getOptValueCostType=CostType.NPV,
-        )
-
-        # Calculate the annualized operational costs if built ox (OPEX)
-        resultTAC_ox_bin = self.getEconomicsDesign(
-            pyM,
-            esM,
-            factorNames=["processedOpexIfBuilt"],
-            lifetimeAttr="ipTechnicalLifetime",
-            varName="commisBin",
-            getOptValue=True,
-            getOptValueCostType=CostType.TAC,
-        )
+        # Derive every design cost contribution once per cost type; the keys are the
+        # summary properties they feed (see DESIGN_COST_ARGUMENTS). Each call returns a
+        # dict keyed by investment period.
+        designCosts = {
+            (prop, costType): self.getEconomicsDesign(
+                pyM,
+                esM,
+                getOptValue=True,
+                getOptValueCostType=costType,
+                **arguments,
+            )
+            for prop, arguments in DESIGN_COST_ARGUMENTS.items()
+            for costType in (CostType.NPV, CostType.TAC)
+        }
 
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
@@ -299,8 +251,8 @@ class ComponentResultsMixin:
 
                 # Annualized investment (CAPEX) and operational (OPEX) costs due to
                 # capacity expansion.
-                results_ip["capexCap"] = resultsTAC_cx[ip]
-                results_ip["opexCap"] = resultsTAC_ox[ip]
+                results_ip["capexCap"] = designCosts["capexCap", CostType.TAC][ip]
+                results_ip["opexCap"] = designCosts["opexCap", CostType.TAC][ip]
 
                 # add additional costs for lifetime extension or scrapping bonus if lifetime
                 # is floored or ceiled to next interval
@@ -383,8 +335,10 @@ class ComponentResultsMixin:
                     results_ip["invest"] = i_bin
 
                 # Annualized investment (CAPEX) and operational (OPEX) costs if built
-                results_ip["capexIfBuilt"] = resultsTAC_cx_bin[ip]
-                results_ip["opexIfBuilt"] = resultTAC_ox_bin[ip]
+                results_ip["capexIfBuilt"] = designCosts["capexIfBuilt", CostType.TAC][
+                    ip
+                ]
+                results_ip["opexIfBuilt"] = designCosts["opexIfBuilt", CostType.TAC][ip]
 
             # Summarize all annualized contributions to the total annual cost. Mirrors the
             # former summary groupby (note: opexIfBuilt is intentionally not part of the TAC,
@@ -400,11 +354,15 @@ class ComponentResultsMixin:
             # Net present value contribution
             npv = pd.DataFrame()
             if capOptVal is not None:
-                npv = npv.add(resultsNPV_cx[ip], fill_value=0)
-                npv = npv.add(resultsNPV_ox[ip], fill_value=0)
+                npv = npv.add(designCosts["capexCap", CostType.NPV][ip], fill_value=0)
+                npv = npv.add(designCosts["opexCap", CostType.NPV][ip], fill_value=0)
             if binCapOptVal is not None:
-                npv = npv.add(resultsNPV_cx_bin[ip], fill_value=0)
-                npv = npv.add(resultsNPV_ox_bin[ip], fill_value=0)
+                npv = npv.add(
+                    designCosts["capexIfBuilt", CostType.NPV][ip], fill_value=0
+                )
+                npv = npv.add(
+                    designCosts["opexIfBuilt", CostType.NPV][ip], fill_value=0
+                )
             results_ip["NPVcontribution"] = npv
 
         # let subclasses add their specific cost contributions (e.g. charge/discharge opex)

@@ -3,7 +3,7 @@
 Everything here runs after the solver and touches nothing but pandas frames and scalars -
 no pyomo, no component model, no EnergySystemModel. That makes these functions testable
 on hand-built frames, without solving a model first. The modeling classes reach them
-through thin adapters on :class:`fine.results.mixin.ComponentResultsMixin`.
+through thin adapters on :class:`fine.results.componentResults.ComponentResultsMixin`.
 """
 
 from functools import lru_cache
