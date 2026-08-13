@@ -311,9 +311,7 @@ def test_summary_parameters_are_taken_from_the_modeling_class(minimal_test_esM):
     connections = set(
         esM.componentModelingDict["TransmissionModel"]._summaryIndexColumns(esM)
     )
-    assert connections == {
-        f"{l1}_{l2}" for l1 in esM.locations for l2 in esM.locations
-    }
+    assert connections == {f"{l1}_{l2}" for l1 in esM.locations for l2 in esM.locations}
 
 
 def test_extra_summary_rows_are_cleared_by_a_new_optimization(minimal_test_esM):

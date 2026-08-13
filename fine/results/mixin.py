@@ -19,6 +19,7 @@ import pandas as pd
 
 from fine import utils
 from fine.enums import CostType, Dimension, VarType
+from fine.results import frames, summary
 
 
 class ComponentResultsMixin:
@@ -535,46 +536,20 @@ class ComponentResultsMixin:
                 setattr(self, publicName, getattr(self, key))
 
     def _connectionLocationMap(self, esM):
-        """Build (and cache) the ``"locIn_locOut" -> (locIn, locOut)`` map for 2-dim connection splitting.
-
-        Built once per (component-model, location set) and rebuilt only if ``esM.locations``
-        changes, avoiding the O(locations^2) rebuild on every summary/export call.
+        """Return the ``"locIn_locOut" -> (locIn, locOut)`` map for 2-dim connections.
 
         :param esM: EnergySystemModel instance (provides ``locations``).
         :rtype: dict
         """
-        cache = getattr(self, "_connLocMapCache", None)
-        if cache is None or cache[0] != esM.locations:
-            mapC = {
-                l1 + "_" + l2: (l1, l2) for l1 in esM.locations for l2 in esM.locations
-            }
-            cache = (set(esM.locations), mapC)
-            self._connLocMapCache = cache
-        return cache[1]
+        return frames.connectionLocationMap(esM.locations)
 
     def _economicSummaryUnits(self, esM):
         """Property -> unit string for the derived economic summary rows.
 
-        Single source for these units; consumed by both the optimization summary
-        (:meth:`_buildOptimizationSummary`) and the export (:meth:`getResultSummaryDict`).
-
         :param esM: EnergySystemModel instance (provides ``costUnit``).
-        :return: ordered ``{property: unitString}`` mapping.
         :rtype: dict
         """
-        perA = "[" + esM.costUnit + "/a]"
-        cost = "[" + esM.costUnit + "]"
-        return {
-            "capexCap": perA,
-            "capexIfBuilt": perA,
-            "opexCap": perA,
-            "opexIfBuilt": perA,
-            "TAC": perA,
-            "NPVcontribution": cost,
-            "invest": cost,
-            "investLifetimeExtension": cost,
-            "revenueLifetimeShorteningResale": cost,
-        }
+        return frames.economicSummaryUnits(esM.costUnit)
 
     def _buildOptimizationSummary(self, esM, indexColumns, plantUnit, unitApp=""):
         r"""Assemble the optimization summary as a view of ``self._rawResults``.
@@ -610,154 +585,15 @@ class ComponentResultsMixin:
         :return: summary of the optimized values, keyed by investment period name.
         :rtype: dict
         """
-        compDict = self.componentsDict
-
-        # Single source of truth for the summary's (Property -> Unit) rows. The design rows
-        # (capacity/commissioning/decommissioning) carry a per-component plant unit resolved
-        # below and are marked with ``None``; every other unit is fixed. The economic units
-        # are shared with the export via :meth:`_economicSummaryUnits`. The same mapping
-        # drives both the MultiIndex and the economic-frame write loop further down.
-        summaryUnits = {
-            "capacity": None,
-            "commissioning": None,
-            "decommissioning": None,
-            "isBuilt": "[-]",
-            **self._economicSummaryUnits(esM),
-        }
-        # Design rows are written explicitly below (from the 1-dim frames, with their own
-        # conditionals); the remaining rows are the economic frames derived by deriveEconomics.
-        designProps = ("capacity", "commissioning", "decommissioning", "isBuilt")
-
-        def resolveUnit(compName, prop):
-            # ``None`` marks a capacity-like row whose unit is the component's plant unit.
-            unit = summaryUnits[prop]
-            if unit is None:
-                unit = "[" + getattr(compDict[compName], plantUnit) + unitApp + "]"
-            return unit
-
-        mIndex = pd.MultiIndex.from_tuples(
-            [
-                (compName, prop, resolveUnit(compName, prop))
-                for compName in compDict.keys()
-                for prop in summaryUnits
-            ],
-            names=["Component", "Property", "Unit"],
+        return summary.buildOptimizationSummary(
+            self.componentsDict,
+            self._rawResults,
+            self._rawResults1dim,
+            esM,
+            indexColumns,
+            plantUnit,
+            unitApp,
         )
-
-        optSummary = {}
-        for ip in esM.investmentPeriods:
-            ipName = esM.investmentPeriodNames[ip]
-            optSummary_ip = pd.DataFrame(
-                index=mIndex, columns=sorted(indexColumns)
-            ).sort_index()
-            # raw + derived economic frames produced by extractRawResults / deriveEconomics
-            results_ip = self._rawResults[ipName]
-
-            # Read raw solved design variables (1-dim) extracted by extractRawResults
-            capOptVal = self._rawResults1dim[ipName]["capacity"]
-            commisOptVal = self._rawResults1dim[ipName]["commissioning"]
-            decommisOptVal = self._rawResults1dim[ipName]["decommissioning"]
-            binCapOptVal = self._rawResults1dim[ipName]["isBuilt"]
-
-            if capOptVal is not None:
-                # Check if the installed capacities are close to a bigM val
-                # ue for components with design decision variables but
-                # ignores cases where bigM was substituted by capacityMax parameter (see bigM constraint
-                for compName, comp in compDict.items():
-                    if (
-                        comp.hasIsBuiltBinaryVariable
-                        and (comp.processedCapacityMax is None)
-                        and capOptVal.loc[compName].max() >= comp.bigM * 0.9
-                        and esM.verboseLogLevel < 2
-                    ):
-                        warnings.warn(
-                            "the capacity of component "
-                            + compName
-                            + " is in one or more locations close "
-                            + "or equal to the chosen Big M. Consider rerunning the simulation with a higher"
-                            + " Big M."
-                        )
-
-                # Fill the optimization summary with the optimal capacities.
-                optSummary_ip.loc[
-                    [
-                        (
-                            ix,
-                            "capacity",
-                            "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
-                        )
-                        for ix in capOptVal.index
-                    ],
-                    capOptVal.columns,
-                ] = capOptVal.values
-
-            # Fill the optimization summary with the isBuilt decisions.
-            if binCapOptVal is not None:
-                optSummary_ip.loc[
-                    [(ix, "isBuilt", "[-]") for ix in binCapOptVal.index],
-                    binCapOptVal.columns,
-                ] = binCapOptVal.values
-
-            # Get and set optimal values for commissioning and decommissioning
-            # not applicable for singleyear optimization, hence dropped from summary
-            # either decommissioning or capacity exists
-            # (years can have decommissioning, leading to no left capacity)
-            if decommisOptVal is not None or capOptVal is not None:
-                # commissioning
-                optSummary_ip.loc[
-                    [
-                        (
-                            ix,
-                            "commissioning",
-                            "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
-                        )
-                        for ix in commisOptVal.index
-                    ],
-                    commisOptVal.columns,
-                ] = commisOptVal.values
-                # decommissioning
-                optSummary_ip.loc[
-                    [
-                        (
-                            ix,
-                            "decommissioning",
-                            "[" + getattr(compDict[ix], plantUnit) + unitApp + "]",
-                        )
-                        for ix in decommisOptVal.index
-                    ],
-                    decommisOptVal.columns,
-                ] = decommisOptVal.values
-
-            # Fill the optimization summary with the derived economic frames (invest,
-            # capexCap, opexCap, capexIfBuilt, opexIfBuilt, lifetime corrections, TAC and
-            # NPVcontribution) computed by deriveEconomics.
-            # The lifetime correction rows are written cell-wise to keep their numpy scalar
-            # dtype (as in the former inline implementation).
-            perCellProps = (
-                "investLifetimeExtension",
-                "revenueLifetimeShorteningResale",
-            )
-            for prop, unit in summaryUnits.items():
-                if prop in designProps or prop not in results_ip:
-                    continue
-                frame = results_ip[prop]
-                if frame.empty:
-                    continue
-                if prop in perCellProps:
-                    for component in frame.index:
-                        for loc in frame.columns:
-                            optSummary_ip.loc[(component, prop, unit), loc] = frame.loc[
-                                component, loc
-                            ]
-                else:
-                    optSummary_ip.loc[
-                        [(ix, prop, unit) for ix in frame.index],
-                        frame.columns,
-                    ] = frame.values
-
-            optSummary[ipName] = optSummary_ip
-
-        return optSummary
 
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
@@ -900,18 +736,9 @@ class ComponentResultsMixin:
     def _shapeOptimumResult(self, sub, name, timeDependent, dimension):
         """Shape a single component's optimum frame into a ``to_xarray``-ready ``Series``.
 
-        Reproduces the per-case index handling the export applied to ``getOptimalValues`` output:
-        time-dependent rows gain a ``time`` dimension; 2-dim rows are split into
-        ``(locationIn, locationOut)`` (the time-independent 2-dim case keeps the historical
-        transpose). The shaping uses the variable's own ``dimension`` (from
-        :meth:`_exportOptimumVarMap`), which may differ from ``self.dimension`` (e.g. the LOPF
-        phase angle is 1-dim on a 2-dim component).
-
-        Variables that carry an extra index level beyond ``location`` (e.g. the part-load
-        discretization point/segment variables, indexed by ``(discretizationIndex, location)``
-        per component) keep that level so each variable exports under its own name instead of
-        colliding on an anonymous stacked column. The extra level names are propagated from the
-        frame (labelled in :func:`utils.formatOptimizationOutput`) rather than re-derived here.
+        The shaping uses the variable's own ``dimension`` (from
+        :meth:`_exportOptimumVarMap`), which may differ from ``self.dimension`` (e.g. the
+        LOPF phase angle is 1-dim on a 2-dim component).
 
         :param sub: the component slice ``frame.loc[component]``.
         :param name: variable name (becomes the data variable name).
@@ -920,30 +747,7 @@ class ComponentResultsMixin:
 
         :rtype: pandas.Series
         """
-        if timeDependent and dimension == Dimension.ONE:
-            subT = sub.T
-            if subT.columns.nlevels == 1:
-                series = subT.stack()
-                series.index = series.index.rename(["time", "location"])
-            else:
-                # extra index levels (e.g. discretizationIndex) sit before location; stack
-                # every column level so nothing is lost or collides on export, keeping the
-                # level names set by formatOptimizationOutput.
-                series = subT.stack(list(range(subT.columns.nlevels)))
-                extraNames = list(sub.index.names[:-1])
-                series.index = series.index.rename(["time", *extraNames, "location"])
-        elif timeDependent and dimension == Dimension.TWO:
-            series = sub.stack()
-            series.index = series.index.rename(["locationIn", "locationOut", "time"])
-            series = series.reorder_levels(["time", "locationIn", "locationOut"])
-        elif not timeDependent and dimension == Dimension.ONE:
-            series = sub.rename_axis("location")
-        else:  # time-independent 2-dim
-            series = sub.T.stack()
-            series.index = series.index.rename(["locationIn", "locationOut"])
-        series = series.copy()
-        series.name = name
-        return series
+        return frames.shapeOptimumResult(sub, name, timeDependent, dimension)
 
     def _summaryPlantUnit(self):
         """(plant unit attribute name, capacity unit suffix) for the design summary rows.
@@ -1004,19 +808,9 @@ class ComponentResultsMixin:
             e.g. for the storage charge/discharge warning).
         :rtype: dict
         """
-        framesByProp = {}
-        for prop, frame, unit in self._subclassSummaryFrames(esM, ipName):
-            framesByProp[prop] = frame
-            if frame is None or frame.empty:
-                continue
-            optSummary.loc[
-                [
-                    (ix, prop, unit(ix) if callable(unit) else unit)
-                    for ix in frame.index
-                ],
-                frame.columns,
-            ] = frame.values
-        return framesByProp
+        return frames.writeOperationSummaryRows(
+            optSummary, self._subclassSummaryFrames(esM, ipName)
+        )
 
     def getResultSummaryDict(self, esM, ip):
         """Assemble the time-independent summary results for the export from ``self._rawResults``.
@@ -1151,13 +945,7 @@ class ComponentResultsMixin:
         :return: the same series, ready for ``.to_xarray()``.
         :rtype: pandas.Series
         """
-        series = series.copy()
-        series.name = name
-        if self.dimension == Dimension.ONE:
-            series.index = series.index.rename("location")
-        else:
-            series.index = series.index.rename(["locationIn", "locationOut"])
-        return series
+        return frames.nameResultSeries(series, name, self.dimension)
 
     def _extractComponentResult(self, frame, compName, esM, mapC):
         """Shape a class-level result frame into the per-component export values.
@@ -1165,27 +953,13 @@ class ComponentResultsMixin:
         :param frame: frame indexed by component, columns are locations (1dim) or connections
             (2dim); may be ``None``.
         :param compName: component name to extract.
+        :param esM: EnergySystemModel instance (provides ``locations``).
         :param mapC: mapping ``"locIn_locOut" -> (locIn, locOut)`` for the 2-dim split.
 
         :return: per-location ``Series`` (1dim, NaN-filled), ``(locationIn, locationOut)``
             ``Series`` (2dim, NaN dropped) or ``None`` to skip the variable.
         :rtype: pandas.Series or None
         """
-        if self.dimension == Dimension.ONE:
-            locations = sorted(esM.locations)
-            if frame is None or compName not in frame.index:
-                return pd.Series(np.nan, index=locations)
-            return frame.loc[compName].reindex(locations)
-        # 2dim: split connection columns into (locationIn, locationOut), dropping NaN
-        if frame is None or compName not in frame.index:
-            return None
-        row = frame.loc[compName]
-        index, values = [], []
-        for connection, value in row.items():
-            if pd.isna(value):
-                continue
-            index.append(mapC[connection])
-            values.append(value)
-        if not index:
-            return None
-        return pd.Series(values, index=pd.MultiIndex.from_tuples(index))
+        return frames.extractComponentResult(
+            frame, compName, esM.locations, self.dimension, mapC
+        )
