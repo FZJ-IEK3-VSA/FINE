@@ -59,6 +59,20 @@ class LinearOptimalPowerFlow(Transmission):
         :param reactances: reactances for DC power flow modeling (of AC lines) given as a Pandas DataFrame. The row and column indices of the DataFrame have to equal
             the in the energy system model specified locations.
         :type reactances: Pandas DataFrame.
+
+        :param leadTime: time between the investment/commissioning decision and the physical
+            availability of the capacity. If set to 0, capacity is available immediately as in the
+            original FINE formulation. Given in years and converted internally using the
+            investmentPeriodInterval. See the Component class for the full parameter description.
+            |br| * the default value is 0
+        :type leadTime:
+
+            * None or
+            * a non-negative number or a Pandas Series with non-negative values. The indices of the
+              series have to equal the connections between the in the energy system model specified
+              locations, in the format of 'loc1' + '_' + 'loc2' or
+            * a dictionary with years as keys (past years which had stock commissioning and investment
+              periods which will be optimized) and one of the two options above as values.
         """
         Transmission.__init__(
             self,

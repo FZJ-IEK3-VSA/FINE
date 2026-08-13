@@ -219,6 +219,11 @@ class Component(metaclass=ABCMeta):
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
             If binary decision variables are declared, commissioningMin is only used
             if the component is built.
+            Note: this binds the investment/commissioning *decision* (the commis variable) at the
+            specified investment period, not the investment period in which the capacity becomes
+            physically available. If leadTime > 0 for the component, the capacity becomes available
+            roundedIpLeadTime investment periods later than the investment period specified here.
+            yearlyFullLoadHoursMin/Max (below), by contrast, bind the available capacity directly.
             |br| * the default value is None
         :type commissioningMin:
 
@@ -236,6 +241,9 @@ class Component(metaclass=ABCMeta):
             investment period. The type of this parameter depends on the dimension of the component:
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
+            Note: like commissioningMin (above), this binds the investment/commissioning *decision*,
+            not the investment period of physical availability -- see commissioningMin's note for
+            the leadTime interaction.
             |br| * the default value is None
         :type commissioningMax:
 
@@ -253,6 +261,9 @@ class Component(metaclass=ABCMeta):
             investment period. The type of this parameter depends on the dimension of the component:
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
+            Note: like commissioningMin (above), this fixes the investment/commissioning *decision*,
+            not the investment period of physical availability -- see commissioningMin's note for
+            the leadTime interaction.
             |br| * the default value is None
         :type commissioningFix:
             * None or
@@ -448,6 +459,9 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations.
 
         :param yearlyFullLoadHoursMin: if specified, indicates the minimum yearly full load hours.
+            Note: this binds the *available* capacity (the cap variable), which already reflects any
+            leadTime-based delay in physical availability -- unlike commissioningMin/Max/Fix (above),
+            no separate leadTime interaction applies here.
             |br| * the default value is None
         :type yearlyFullLoadHoursMin:
 
@@ -459,6 +473,8 @@ class Component(metaclass=ABCMeta):
             * Dict with years as keys and one of the two options above as values.
 
         :param yearlyFullLoadHoursMax: if specified, indicates the maximum yearly full load hours.
+            Note: like yearlyFullLoadHoursMin (above), this binds the *available* capacity, already
+            reflecting any leadTime-based delay.
             |br| * the default value is None
         :type yearlyFullLoadHoursMax:
 
