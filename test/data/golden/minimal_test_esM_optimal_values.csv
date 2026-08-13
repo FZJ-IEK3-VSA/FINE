@@ -6,7 +6,7 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,ConversionModel,commissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,ConversionModel,commissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
 0,ConversionModel,commissioningVariablesOptimum,values,Electrolyzers,,frame,float64,,,ElectrolyzerLocation,17142.85714285714
-0,ConversionModel,commissioningVariablesOptimum,values,Electrolyzers,,frame,float64,,,IndustryLocation,-0.0
+0,ConversionModel,commissioningVariablesOptimum,values,Electrolyzers,,frame,float64,,,IndustryLocation,0.0
 0,ConversionModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,ConversionModel,decommissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
 0,ConversionModel,decommissioningVariablesOptimum,values,Electrolyzers,,frame,float64,,,ElectrolyzerLocation,0.0
@@ -35,14 +35,14 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,StorageModel,capacityVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,StorageModel,capacityVariablesOptimum,timeDependent,,,scalar,bool,,,,False
 0,StorageModel,capacityVariablesOptimum,values,Pressure tank,,frame,float64,,,ElectrolyzerLocation,19611940.298507463
-0,StorageModel,capacityVariablesOptimum,values,Pressure tank,,frame,float64,,,IndustryLocation,-0.0
+0,StorageModel,capacityVariablesOptimum,values,Pressure tank,,frame,float64,,,IndustryLocation,0.0
 0,StorageModel,chargeOperationVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,StorageModel,chargeOperationVariablesOptimum,timeDependent,,,scalar,bool,,,,True
 0,StorageModel,chargeOperationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=2x4 index=| columns= dtypes=float64
 0,StorageModel,commissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,StorageModel,commissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
 0,StorageModel,commissioningVariablesOptimum,values,Pressure tank,,frame,float64,,,ElectrolyzerLocation,19611940.298507463
-0,StorageModel,commissioningVariablesOptimum,values,Pressure tank,,frame,float64,,,IndustryLocation,-0.0
+0,StorageModel,commissioningVariablesOptimum,values,Pressure tank,,frame,float64,,,IndustryLocation,0.0
 0,StorageModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,StorageModel,decommissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
 0,StorageModel,decommissioningVariablesOptimum,values,Pressure tank,,frame,float64,,,ElectrolyzerLocation,0.0

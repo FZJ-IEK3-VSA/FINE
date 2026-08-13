@@ -10,19 +10,19 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,ConversionModel,capacityVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_6,0.0
 0,ConversionModel,capacityVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_7,0.0
 0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_0,2.585653798277885
-0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_1,4.782350053170866
-0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_2,8.748596649529471
-0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_3,1.1997642653684415
+0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_1,7.054922450452473
+0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_2,13.45883746569806
+0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_3,1.7095357167426664
 0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_4,1.6435530862847751
-0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_5,2.4971426712320284
-0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_6,0.7789442116031627
+0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_5,5.224542761404534
+0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_6,0.8854809668877992
 0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_7,0.23697393452171978
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_0,0.3540979858587003
-0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_1,0.3400643572736487
+0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_1,0.5084728587493639
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_2,0.0
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_3,0.0
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_4,0.4709982826610248
-0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_5,1.6013589061468267
+0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_5,0.6196363843402874
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_6,0.0
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_7,0.08842939645118003
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_0,0.0
@@ -33,14 +33,14 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_5,0.0
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_6,0.0
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_7,0.0
-0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_0,-0.0
-0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_1,-0.0
-0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_2,-0.0
-0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_3,-0.0
-0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_4,-0.0
-0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_5,-0.0
-0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_6,-0.0
-0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_7,-0.0
+0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_0,0.0
+0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_1,0.0
+0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_2,0.0
+0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_3,0.0
+0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_4,0.0
+0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_5,0.0
+0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_6,0.0
+0,ConversionModel,capacityVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_7,0.0
 0,ConversionModel,capacityVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_0,0.0
 0,ConversionModel,capacityVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_1,0.0
 0,ConversionModel,capacityVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_2,0.0
@@ -51,54 +51,54 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,ConversionModel,capacityVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_7,0.0
 0,ConversionModel,commissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,ConversionModel,commissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
-0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_0,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_1,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_2,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_3,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_4,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_5,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_6,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_7,-0.0
+0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_0,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_1,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_2,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_3,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_4,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_5,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_6,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_7,0.0
 0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_0,2.585653798277885
-0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_1,4.782350053170866
-0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_2,8.748596649529471
-0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_3,1.1997642653684415
+0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_1,7.054922450452473
+0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_2,13.45883746569806
+0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_3,1.7095357167426664
 0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_4,1.6435530862847751
-0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_5,2.4971426712320284
-0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_6,0.7789442116031627
+0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_5,5.224542761404534
+0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_6,0.8854809668877992
 0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_7,0.23697393452171978
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_0,0.3540979858587003
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_1,0.3400643572736487
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_2,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_3,-0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_1,0.5084728587493639
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_2,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_3,0.0
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_4,0.4709982826610248
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_5,1.6013589061468267
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_6,-0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_5,0.6196363843402874
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_6,0.0
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_7,0.08842939645118003
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_0,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_1,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_2,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_3,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_4,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_5,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_6,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_7,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_0,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_1,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_2,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_3,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_4,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_5,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_6,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_7,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_0,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_1,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_2,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_3,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_4,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_5,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_6,-0.0
-0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_7,-0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_0,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_1,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_2,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_3,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_4,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_5,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_6,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_7,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_0,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_1,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_2,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_3,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_4,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_5,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_6,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOEC,,frame,float64,,,cluster_7,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_0,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_1,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_2,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_3,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_4,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_5,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_6,0.0
+0,ConversionModel,commissioningVariablesOptimum,values,rSOFC,,frame,float64,,,cluster_7,0.0
 0,ConversionModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,ConversionModel,decommissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
 0,ConversionModel,decommissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_0,0.0
@@ -241,11 +241,11 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,SourceSinkModel,capacityVariablesOptimum,values,Existing run-of-river plants,,frame,float64,,,cluster_6,
 0,SourceSinkModel,capacityVariablesOptimum,values,Existing run-of-river plants,,frame,float64,,,cluster_7,0.32438601588
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_0,43.31441361123355
-0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_1,3.7884660038715503
+0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_1,7.891155115839376
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_2,0.0
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_3,0.0
-0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_4,27.59913798002651
-0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_5,10.502663489132718
+0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_4,28.86250419964716
+0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_5,1.8974177324701589
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_6,0.0
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_7,4.957043988278185
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (offshore),,frame,float64,,,cluster_0,
@@ -259,7 +259,7 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_0,45.06824
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_1,65.91814466666665
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_2,0.0
-0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_3,27.877880388172404
+0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_3,29.310710800141123
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_4,91.72172933333333
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_5,52.801807999999994
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_6,0.0
@@ -275,12 +275,12 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,SourceSinkModel,commissioningVariablesOptimum,values,Existing run-of-river plants,,frame,float64,,,cluster_6,
 0,SourceSinkModel,commissioningVariablesOptimum,values,Existing run-of-river plants,,frame,float64,,,cluster_7,0.32438601588
 0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_0,43.31441361123355
-0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_1,3.7884660038715503
-0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_2,-0.0
-0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_3,-0.0
-0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_4,27.59913798002651
-0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_5,10.502663489132718
-0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_6,-0.0
+0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_1,7.891155115839376
+0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_2,0.0
+0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_3,0.0
+0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_4,28.86250419964716
+0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_5,1.8974177324701589
+0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_6,0.0
 0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_7,4.957043988278185
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (offshore),,frame,float64,,,cluster_0,
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (offshore),,frame,float64,,,cluster_1,4.0
@@ -292,11 +292,11 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (offshore),,frame,float64,,,cluster_7,
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_0,45.06824
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_1,65.91814466666665
-0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_2,-0.0
-0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_3,27.877880388172404
+0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_2,0.0
+0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_3,29.310710800141123
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_4,91.72172933333333
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_5,52.801807999999994
-0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_6,-0.0
+0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_6,0.0
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_7,8.524905333333335
 0,SourceSinkModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,SourceSinkModel,decommissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
@@ -340,14 +340,14 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,SourceSinkModel,operationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=74x8760 index=| columns= dtypes=float64
 0,StorageModel,capacityVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,StorageModel,capacityVariablesOptimum,timeDependent,,,scalar,bool,,,,False
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_0,2517.000289009072
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_1,44.152310366367765
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_2,30.726288693478438
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_3,5.408981699496781
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_4,47.94645857683255
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_5,36.09296761745709
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_6,15.463281340137097
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_7,721.8490211074012
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_0,2982.1926123544577
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_1,40.50371200348716
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_2,35.381556379489275
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_3,7.492160599634656
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_4,72.549347004373
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_5,40.74386879976883
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_6,16.928922173555872
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_7,341.72597738028406
 0,StorageModel,capacityVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_0,15.924
 0,StorageModel,capacityVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_1,7.7509999999999994
 0,StorageModel,capacityVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_2,0.8180000000000001
@@ -357,19 +357,19 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,StorageModel,capacityVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_6,0.6
 0,StorageModel,capacityVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_7,
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_0,
-0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_1,-0.0
+0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_1,124.74693990414508
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_2,0.0
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_3,0.0
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_4,
-0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_5,1895.221229490942
+0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_5,607.4840407032938
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_6,0.0
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_7,
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_0,
-0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_1,2854.649378375088
-0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_2,2837.691666744102
+0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_1,1731.870530090224
+0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_2,2618.642314268766
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_3,282.658642128
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_4,
-0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_5,1490.578208389407
+0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_5,1411.6186353955297
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_6,199.21192467828138
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_7,
 0,StorageModel,chargeOperationVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
@@ -377,14 +377,14 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,StorageModel,chargeOperationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=25x8760 index=| columns= dtypes=float64
 0,StorageModel,commissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,StorageModel,commissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_0,2517.000289009072
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_1,44.152310366367765
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_2,30.726288693478438
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_3,5.408981699496781
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_4,47.94645857683255
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_5,36.09296761745709
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_6,15.463281340137097
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_7,721.8490211074012
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_0,2982.1926123544577
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_1,40.50371200348716
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_2,35.381556379489275
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_3,7.492160599634656
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_4,72.549347004373
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_5,40.74386879976883
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_6,16.928922173555872
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_7,341.72597738028406
 0,StorageModel,commissioningVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_0,15.924
 0,StorageModel,commissioningVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_1,7.7509999999999994
 0,StorageModel,commissioningVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_2,0.8180000000000001
@@ -394,19 +394,19 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,StorageModel,commissioningVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_6,0.6
 0,StorageModel,commissioningVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_7,
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_0,
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_1,-0.0
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_2,-0.0
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_3,-0.0
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_1,124.74693990414508
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_2,0.0
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_3,0.0
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_4,
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_5,1895.221229490942
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_6,-0.0
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_5,607.4840407032938
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_6,0.0
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_7,
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_0,
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_1,2854.649378375088
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_2,2837.691666744102
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_1,1731.870530090224
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_2,2618.642314268766
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_3,282.658642128
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_4,
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_5,1490.578208389407
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_5,1411.6186353955297
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_6,199.21192467828138
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_7,
 0,StorageModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
@@ -495,20 +495,20 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,TransmissionModel,capacityVariablesOptimum,values,DC cables,cluster_6,frame,float64,|,,cluster_6,
 0,TransmissionModel,capacityVariablesOptimum,values,DC cables,cluster_6,frame,float64,|,,cluster_7,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_0,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_1,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_2,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_1,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_2,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_3,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_4,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_5,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_4,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_5,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_6,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_7,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_7,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_1,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_2,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_3,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_2,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_3,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_4,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_5,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_6,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_5,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_6,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_7,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_1,0.0
@@ -517,21 +517,21 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_4,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_5,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_6,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_7,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_7,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_0,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_2,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_3,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_4,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_5,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_6,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_5,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_6,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_7,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_1,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_2,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_3,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_4,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_5,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_5,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_6,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_7,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_0,0.0
@@ -559,23 +559,23 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_6,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_7,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_0,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_2,1.8099576587945194
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_3,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_4,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_5,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_4,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_5,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_6,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_7,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_7,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_1,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_2,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_3,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_2,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_3,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_4,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_5,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_6,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_5,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_6,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_7,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_0,1.8099576587945194
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_2,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_3,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_4,
@@ -587,19 +587,19 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_2,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_3,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_4,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_5,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_6,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_5,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_6,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_7,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_1,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_2,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_3,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_4,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_5,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_5,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_6,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_7,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_0,-0.0
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_0,0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_2,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_3,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_4,0.0
@@ -607,7 +607,7 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_6,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_7,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_0,
-0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_2,
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_3,0.0
 0,TransmissionModel,capacityVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_4,
@@ -665,87 +665,87 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,TransmissionModel,commissioningVariablesOptimum,values,DC cables,cluster_6,frame,float64,|,,cluster_6,
 0,TransmissionModel,commissioningVariablesOptimum,values,DC cables,cluster_6,frame,float64,|,,cluster_7,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_0,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_1,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_2,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_1,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_2,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_3,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_4,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_5,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_4,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_5,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_6,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_7,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_0,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_0,frame,float64,|,,cluster_7,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_1,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_2,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_3,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_2,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_3,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_4,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_5,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_6,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_5,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_6,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_1,frame,float64,|,,cluster_7,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_0,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_0,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_2,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_3,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_4,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_5,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_6,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_7,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_2,frame,float64,|,,cluster_7,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_0,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_2,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_3,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_4,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_5,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_6,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_5,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_6,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_3,frame,float64,|,,cluster_7,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_0,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_1,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_2,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_3,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_4,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_5,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_5,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_6,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_4,frame,float64,|,,cluster_7,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_0,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_0,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_2,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_3,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_4,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_3,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_4,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_5,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_6,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_5,frame,float64,|,,cluster_7,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_0,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_2,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_3,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_3,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_4,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_5,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_6,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_6,frame,float64,|,,cluster_7,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_0,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_1,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_2,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_2,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_3,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_4,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_5,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_6,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (biogas),cluster_7,frame,float64,|,,cluster_7,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_0,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_2,1.8099576587945194
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_3,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_4,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_5,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_4,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_5,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_6,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_7,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_0,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_0,frame,float64,|,,cluster_7,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_1,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_2,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_3,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_2,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_3,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_4,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_5,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_6,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_5,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_6,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_1,frame,float64,|,,cluster_7,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_0,1.8099576587945194
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_2,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_3,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_4,
@@ -753,38 +753,38 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_6,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_2,frame,float64,|,,cluster_7,0.16588175416520384
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_0,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_2,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_3,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_4,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_5,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_6,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_5,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_6,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_3,frame,float64,|,,cluster_7,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_0,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_1,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_2,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_3,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_4,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_5,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_5,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_6,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_4,frame,float64,|,,cluster_7,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_0,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_0,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_2,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_3,-0.0
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_4,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_3,0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_4,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_5,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_6,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_5,frame,float64,|,,cluster_7,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_0,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_1,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_1,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_2,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_3,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_3,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_4,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_5,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_6,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_6,frame,float64,|,,cluster_7,
-0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_7,frame,float64,|,,cluster_0,-0.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_7,frame,float64,|,,cluster_0,0.0
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_7,frame,float64,|,,cluster_1,
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_7,frame,float64,|,,cluster_2,0.16588175416520384
 0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines (hydrogen),cluster_7,frame,float64,|,,cluster_3,

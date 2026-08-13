@@ -10,7 +10,7 @@ path0,path1,path2,index0,index1,index2,index3,kind,dtype,index_names,col_name,co
 0,ConversionModel,0,Electrolyzers,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
 0,ConversionModel,0,Electrolyzers,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
 0,ConversionModel,0,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,17142.85714285714
-0,ConversionModel,0,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,-0.0
+0,ConversionModel,0,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,ConversionModel,0,Electrolyzers,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
 0,ConversionModel,0,Electrolyzers,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,ConversionModel,0,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,8571428.57142857
@@ -40,7 +40,7 @@ path0,path1,path2,index0,index1,index2,index3,kind,dtype,index_names,col_name,co
 0,ConversionModel,1,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1277395.6174035026
 0,ConversionModel,1,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,ConversionModel,1,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,17142.85714285714
-0,ConversionModel,1,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,-0.0
+0,ConversionModel,1,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,ConversionModel,1,Electrolyzers,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
 0,ConversionModel,1,Electrolyzers,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,ConversionModel,1,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,8571428.57142857
@@ -66,7 +66,7 @@ path0,path1,path2,index0,index1,index2,index3,kind,dtype,index_names,col_name,co
 0,ConversionModel,2,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1277395.6174035026
 0,ConversionModel,2,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,ConversionModel,2,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,17142.85714285714
-0,ConversionModel,2,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,-0.0
+0,ConversionModel,2,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,ConversionModel,2,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,8571428.57142857
 0,ConversionModel,2,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,ConversionModel,2,Electrolyzers,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
@@ -196,13 +196,13 @@ path0,path1,path2,index0,index1,index2,index3,kind,dtype,index_names,col_name,co
 0,StorageModel,0,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
 0,StorageModel,0,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,0,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
-0,StorageModel,0,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,-0.0
+0,StorageModel,0,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,0,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
 0,StorageModel,0,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,0,Pressure tank,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
 0,StorageModel,0,Pressure tank,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
 0,StorageModel,0,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
-0,StorageModel,0,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,-0.0
+0,StorageModel,0,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,0,Pressure tank,decommissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
 0,StorageModel,0,Pressure tank,decommissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,0,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,9805970.149253732
@@ -234,11 +234,11 @@ path0,path1,path2,index0,index1,index2,index3,kind,dtype,index_names,col_name,co
 0,StorageModel,1,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
 0,StorageModel,1,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,1,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
-0,StorageModel,1,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,-0.0
+0,StorageModel,1,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,1,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
 0,StorageModel,1,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,1,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
-0,StorageModel,1,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,-0.0
+0,StorageModel,1,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,1,Pressure tank,decommissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
 0,StorageModel,1,Pressure tank,decommissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,1,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,9805970.149253732
@@ -266,11 +266,11 @@ path0,path1,path2,index0,index1,index2,index3,kind,dtype,index_names,col_name,co
 0,StorageModel,2,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
 0,StorageModel,2,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,2,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
-0,StorageModel,2,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,-0.0
+0,StorageModel,2,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,2,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
 0,StorageModel,2,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,2,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
-0,StorageModel,2,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,-0.0
+0,StorageModel,2,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,2,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,9805970.149253732
 0,StorageModel,2,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
 0,StorageModel,2,Pressure tank,operationCharge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
