@@ -855,3 +855,128 @@ def test_leadtime_per_ip_decommissioning_uses_the_decision_periods_own_lead():
     _assert_expected(results, "commis", {0: 10, 1: 0, 2: 0, 3: 0})
     _assert_expected(results, "cap", {0: 0, 1: 10, 2: 10, 3: 0})
     _assert_expected(results, "decommis", {0: 0, 1: 0, 2: 0, 3: 10})
+
+
+# ---------------------------------------------------------------------------
+# commissioningMin / yearlyFullLoadHoursMin interaction with leadTime (decision #8).
+# Ported from the (now-deleted) 12_leadTimes_check_commissioningMin.ipynb and
+# 12_leadTimes_check_yearlyFullLoadHours.ipynb example notebooks -- see
+# examples/12_LeadTimes/12_leadTimes_example.ipynb for an illustrative, non-test
+# walkthrough instead.
+# ---------------------------------------------------------------------------
+
+
+def test_leadtime_commissioningmin_binds_decision_not_availability():
+    """commissioningMin binds the investment/commissioning decision (commis), not
+    physical availability -- decision #8, exactly like commissioningFix. The forced
+    minimum still only becomes available once leadTime has elapsed."""
+    esM = fn.EnergySystemModel(
+        locations={_LEADTIME_MODEL_LOCATION},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "MW_el"},
+        numberOfTimeSteps=1,
+        hoursPerTimeStep=1,
+        startYear=2020,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=5,
+        costUnit="Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=_ip_time_series({0: 1, 1: 1}, 2, 5),
+            # minimum of 2 forced in ip=0, exceeding what ip=1's demand of 1 alone
+            # would require -- makes the constraint visibly bind, not just coincide
+            # with what the model would have chosen anyway.
+            commissioningMin=_ip_loc_series({0: 2, 1: 0}, 2, 5),
+            investPerCapacity=1,
+            economicLifetime=5,
+            technicalLifetime=20,
+            leadTime=5,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="sink",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=_ip_time_series({0: 0, 1: 1}, 2, 5),
+        )
+    )
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "commis", {0: 2, 1: 0})
+    _assert_expected(results, "cap", {0: 0, 1: 2})
+
+
+def test_leadtime_yearlyfullloadhoursmin_binds_available_capacity():
+    """yearlyFullLoadHoursMin binds the *available* capacity (cap), which already
+    reflects the leadTime delay -- decision #8. Unlike commissioningFix/Min/Max, no
+    extra leadTime-aware handling is needed: the constraint is naturally inactive
+    while cap=0 (during construction) and forces full operation once cap becomes
+    available.
+
+    With numberOfTimeSteps=1, hoursPerTimeStep=1 (numberOfYears = 1/8760),
+    yearlyFullLoadHoursMin=8760 forces full utilization of the single modeled hour,
+    exactly like yearlyFullLoadHoursMin=8760 would force full utilization of an
+    actual 8760-hour year -- the 8760 cancels out via numberOfYears.
+    """
+    esM = fn.EnergySystemModel(
+        locations={_LEADTIME_MODEL_LOCATION},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "MW_el"},
+        numberOfTimeSteps=1,
+        hoursPerTimeStep=1,
+        startYear=2020,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=5,
+        costUnit="Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=_ip_time_series({0: 1, 1: 1}, 2, 5),
+            commissioningFix=_ip_loc_series({0: 1, 1: 0}, 2, 5),
+            yearlyFullLoadHoursMin=8760,
+            investPerCapacity=1,
+            economicLifetime=5,
+            technicalLifetime=20,
+            leadTime=5,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="sink",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            # No fixed demand -- operation at ip=1 must be caused by
+            # yearlyFullLoadHoursMin, not by demand.
+            operationRateMax=_ip_time_series({0: 0, 1: 1}, 2, 5),
+        )
+    )
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "cap", {0: 0, 1: 1})
+
+    abbrv = esM.componentModelingDict["SourceSinkModel"].abbrvName
+    opVar = getattr(esM.pyM, f"op_{abbrv}")
+    op_ip0 = pyomo.value(opVar[_LEADTIME_MODEL_LOCATION, "src", 0, 0, 0])
+    op_ip1 = pyomo.value(opVar[_LEADTIME_MODEL_LOCATION, "src", 1, 0, 0])
+    assert op_ip0 == pytest.approx(0)
+    assert op_ip1 == pytest.approx(1)
