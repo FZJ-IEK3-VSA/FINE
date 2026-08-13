@@ -912,7 +912,7 @@ class ComponentModel(metaclass=ABCMeta):
         self._rawResults = {}
         self._rawResults1dim = {}
         # Additional summary rows contributed by expansion modules that run after
-        # setOptimalValues (currently the piecewise linear cost function, see
+        # the result pipeline (currently the piecewise linear cost function, see
         # registerExtraSummaryRows). Keyed by investment period name.
         self._extraSummaryRows = {}
 
@@ -3797,7 +3797,7 @@ class ComponentModel(metaclass=ABCMeta):
         ]
 
         rawResults = {}
-        # 1-dim companion frames (used by the economics/summary phase in setOptimalValues)
+        # 1-dim companion frames (used by the economics and summary phases)
         self._rawResults1dim = {}
         # drop rows contributed by expansion modules during a previous optimization
         self._extraSummaryRows = {}
@@ -3873,8 +3873,8 @@ class ComponentModel(metaclass=ABCMeta):
         """
         compDict = self.componentsDict
 
-        # Get the design dependent cost contributions for all components (moved out of
-        # setOptimalValues). Each call returns a dict keyed by investment period.
+        # Get the design dependent cost contributions for all components. Each call
+        # returns a dict keyed by investment period.
         resultsNPV_cx = self.getEconomicsDesign(
             pyM,
             esM,
@@ -4150,50 +4150,45 @@ class ComponentModel(metaclass=ABCMeta):
         """
         pass
 
-    def setOptimalValues(self, esM, pyM, indexColumns, plantUnit, unitApp=""):
-        r"""Set the optimal values for the considered components and return a summary of them.
-        The function is called after optimization was successful and an optimal solution was found.
-        Each sub class of the component class calls this function for setting the common optimal values,
-        e.g. investment and maintenance costs proportional to optimal capacity expansion.
+    def _summaryIndexColumns(self, esM):
+        """Column indices of the optimization summary, derived from the model's dimension.
 
-        **Required arguments**
+        1-dim models are summarized per location, 2-dim models per connection between two
+        locations (``"locIn_locOut"`` keys, see :meth:`_connectionLocationMap`).
 
-        :param esM: EnergySystemModel instance representing the energy system in which the components are modeled.
+        :param esM: EnergySystemModel instance (provides ``locations``).
         :type esM: EnergySystemModel instance
 
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
-
-        :param indexColumns: set of strings with the columns indices of the summary. The indices represent the locations
-            or connections between the locations are used to call the optimal values of the variables of the components
-            in the model class.
-        :type indexColumns: set
-
-        :param plantUnit: attribute of the component that describes the unit of the plants to which maximum capacity
-            limitations, cost parameters and the operation time series refer to. Depending on the considered component,
-            possible inputs are "commodityUnit" (e.g. for transmission components) or "physicalUnit" (e.g. for
-            conversion components).
-        :type plantUnit: string
-
-        **Default arguments**
-
-        :param unitApp: string which appends the capacity unit in the optimization summary.
-            For example, for the StorageModel class, the parameter is set to '\\*h'.
-            |br| * the default value is ''.
-        :type unitApp: string
-
-        :return: summary of the optimized values.
-        :rtype: pandas DataFrame
+        :return: the column indices of the summary.
+        :rtype: iterable of strings
         """
-        # Extract raw solved variables (economics-independent) and populate the
-        # *VariablesOptimum attributes, then derive the economic (cost) frames into the
-        # results dict. The summary returned below is a mechanical view of those frames.
-        self.extractRawResults(esM, pyM)
-        self.deriveEconomics(esM, pyM)
-        return self._buildOptimizationSummary(esM, indexColumns, plantUnit, unitApp)
+        if self.dimension == Dimension.TWO:
+            return self._connectionLocationMap(esM).keys()
+        return esM.locations
+
+    def buildOptimizationSummary(self, esM):
+        """Assemble the optimization summary and store it in ``self._optSummary``.
+
+        Third and last phase of the result pipeline run by
+        :meth:`fine.energySystemModel.EnergySystemModel.optimize`, after
+        :meth:`extractRawResults` and :meth:`deriveEconomics` have populated
+        ``self._rawResults``. It reads those frames only - no extraction, no economics.
+
+        The summary is built in two steps: the design/economics rows shared by every
+        component (:meth:`_buildOptimizationSummary`), followed by the component specific
+        operation rows contributed by :meth:`_buildSubclassOptimizationSummary`. The
+        summary units and column indices come from :meth:`_summaryPlantUnit` and
+        :meth:`_summaryIndexColumns`, so a modeling class declares them once.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the
+            components are modeled.
+        :type esM: EnergySystemModel instance
+        """
+        plantUnit, unitApp = self._summaryPlantUnit()
+        optSummaryBasic = self._buildOptimizationSummary(
+            esM, self._summaryIndexColumns(esM), plantUnit, unitApp
+        )
+        self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
 
     def _convertOptimalValueNames(self, esM):
         """Rename the internal ``_*VariablesOptimum``/``_optSummary`` attributes to their
@@ -4204,9 +4199,9 @@ class ComponentModel(metaclass=ABCMeta):
         models built before the multi-investment-period support was added keep working.
 
         Called by :meth:`fine.energySystemModel.EnergySystemModel.optimize` once per
-        modeling class, after its ``setOptimalValues`` has run and set ``self._optSummary``.
-        It is driven from there rather than from the individual ``setOptimalValues``
-        implementations so that a class overriding ``setOptimalValues`` cannot omit it.
+        modeling class, after :meth:`buildOptimizationSummary` has set ``self._optSummary``.
+        It is driven from there rather than from the modeling classes themselves so that a
+        class overriding a phase of the result pipeline cannot omit it.
 
         :param esM: EnergySystemModel instance representing the energy system in which the
             components are modeled.
@@ -4288,7 +4283,7 @@ class ComponentModel(metaclass=ABCMeta):
     def _buildOptimizationSummary(self, esM, indexColumns, plantUnit, unitApp=""):
         r"""Assemble the optimization summary as a view of ``self._rawResults``.
 
-        Called by :meth:`setOptimalValues` after :meth:`extractRawResults` and
+        Called by :meth:`buildOptimizationSummary` after :meth:`extractRawResults` and
         :meth:`deriveEconomics` have populated ``self._rawResults`` (raw solved variables and
         derived economic frames) and ``self._rawResults1dim`` (1-dim companions). This method
         performs no extraction or economics; it only writes the already computed frames into
@@ -4661,6 +4656,27 @@ class ComponentModel(metaclass=ABCMeta):
         """
         return "commodityUnit", ""
 
+    def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
+        """Add the subclass specific summary rows to the basic summary (overridable hook).
+
+        Called by :meth:`buildOptimizationSummary` with the design/economics summary that
+        every component shares. Subclasses prepend their operation rows (see e.g.
+        :meth:`fine.conversion.ConversionModel._buildSubclassOptimizationSummary`) by reading
+        the frames already present in ``self._rawResults``; they perform no extraction and no
+        economics. The base implementation has no operation rows and passes the summary
+        through unchanged.
+
+        :param esM: EnergySystemModel instance.
+        :type esM: EnergySystemModel instance
+
+        :param optSummaryBasic: basic summary, keyed by investment period name.
+        :type optSummaryBasic: dict
+
+        :return: full optimization summary, keyed by investment period name.
+        :rtype: dict
+        """
+        return optSummaryBasic
+
     def _subclassSummaryFrames(self, esM, ip):
         """Operation summary rows (per subclass) derived from ``self._rawResults``.
 
@@ -4794,7 +4810,7 @@ class ComponentModel(metaclass=ABCMeta):
         return out
 
     def registerExtraSummaryRows(self, ip, rows):
-        """Publish result frames produced *after* :meth:`setOptimalValues` into the results dict.
+        """Publish result frames produced *after* the result pipeline into the results dict.
 
         Expansion modules that run once the component models are done (currently
         :class:`fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModel`,

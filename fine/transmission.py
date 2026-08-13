@@ -1034,24 +1034,6 @@ class TransmissionModel(ComponentModel):
                         results_ip["NPVcontribution"].groupby(level=0).sum()
                     )
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        mapC = self._connectionLocationMap(esM)
-        # Set optimal design dimension variables, derive the economics (incl. the
-        # operation opex via _deriveSubclassEconomics, already folded into TAC) and get
-        # the basic optimization summary, then assemble the full summary as a view.
-        optSummaryBasic = super().setOptimalValues(
-            esM, pyM, mapC.keys(), "commodityUnit"
-        )
-        self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
-
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the transmission summary (operation rows + basic summary) as a view.
 
@@ -1065,7 +1047,8 @@ class TransmissionModel(ComponentModel):
         :type esM: EnergySystemModel instance
 
         :param optSummaryBasic: basic summary returned by the base
-            :meth:`~fine.component.Component.setOptimalValues`, keyed by investment period name.
+            :meth:`~fine.component.ComponentModel.buildOptimizationSummary`, keyed by investment
+            period name.
         :type optSummaryBasic: dict
 
         :return: full optimization summary keyed by investment period name.

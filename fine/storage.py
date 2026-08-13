@@ -2034,11 +2034,10 @@ class StorageModel(ComponentModel):
 
         Adds the ``opexCharge`` and ``opexDischarge`` frames to ``rawResults`` and augments the
         aggregated ``TAC`` and ``NPVcontribution`` frames with the charge/discharge
-        contributions. Mirrors the former inline computation in :meth:`setOptimalValues`.
+        contributions.
         """
         super()._deriveSubclassEconomics(esM, pyM, rawResults)
 
-        # Get class related results (moved out of setOptimalValues)
         resultsTAC_opexOpCharge = self.getEconomicsOperation(
             pyM,
             esM,
@@ -2113,23 +2112,6 @@ class StorageModel(ComponentModel):
                     tacParts.insert(0, results_ip["TAC"])
                 results_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        # Set optimal design dimension variables, derive the economics (incl. the storage's
-        # charge/discharge opex via _deriveSubclassEconomics) and get the basic summary, then
-        # assemble the full summary as a view.
-        optSummaryBasic = super().setOptimalValues(
-            esM, pyM, esM.locations, "commodityUnit", "*h"
-        )
-        self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
-
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the storage summary (charge/discharge rows + basic summary) as a view.
 
@@ -2142,7 +2124,8 @@ class StorageModel(ComponentModel):
         :type esM: EnergySystemModel instance
 
         :param optSummaryBasic: basic summary returned by the base
-            :meth:`~fine.component.Component.setOptimalValues`, keyed by investment period name.
+            :meth:`~fine.component.ComponentModel.buildOptimizationSummary`, keyed by investment
+            period name.
         :type optSummaryBasic: dict
 
         :return: full optimization summary keyed by investment period name.

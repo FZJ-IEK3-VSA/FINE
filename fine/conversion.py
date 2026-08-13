@@ -1696,8 +1696,7 @@ class ConversionModel(ComponentModel):
         """Derive the conversion specific operational costs.
 
         Adds the ``opexOp`` frame to ``rawResults`` and folds the operation contribution
-        into the aggregated ``TAC`` and ``NPVcontribution`` frames. Mirrors the former
-        inline computation in :meth:`setOptimalValues`.
+        into the aggregated ``TAC`` and ``NPVcontribution`` frames.
         """
         super()._deriveSubclassEconomics(esM, pyM, rawResults)
 
@@ -1742,23 +1741,6 @@ class ConversionModel(ComponentModel):
                         resultsNPV_opexOp[ip], fill_value=0
                     )
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        # Set optimal design dimension variables, derive the economics (incl. the
-        # operation opex via _deriveSubclassEconomics, already folded into TAC/NPV) and
-        # get the basic optimization summary, then assemble the full summary as a view.
-        optSummaryBasic = super().setOptimalValues(
-            esM, pyM, esM.locations, "physicalUnit"
-        )
-        self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
-
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the conversion summary (operation rows + basic summary) as a view.
 
@@ -1770,7 +1752,8 @@ class ConversionModel(ComponentModel):
         :type esM: EnergySystemModel instance
 
         :param optSummaryBasic: basic summary returned by the base
-            :meth:`~fine.component.Component.setOptimalValues`, keyed by investment period name.
+            :meth:`~fine.component.ComponentModel.buildOptimizationSummary`, keyed by investment
+            period name.
         :type optSummaryBasic: dict
 
         :return: full optimization summary keyed by investment period name.

@@ -1,8 +1,8 @@
 """Tests for the result-dict accessors on the modeling classes.
 
 ``ComponentModel.getResultSummaryDict`` and ``ComponentModel.getResultOptimalValues`` read
-the raw results dict (``_rawResults`` / ``_rawResults1dim``) that ``setOptimalValues``
-fills, and return per-component, ``to_xarray``-ready entries. They are the accessors the
+the raw results dict (``_rawResults`` / ``_rawResults1dim``) that the result pipeline in
+``optimize()`` fills, and return per-component, ``to_xarray``-ready entries. They are the accessors the
 xarray/netCDF export is built on; the export itself is refactored separately, so these
 tests exercise the accessors directly and deliberately do not import ``xarrayIO``.
 """
@@ -261,8 +261,8 @@ def test_public_optimum_names_are_set_for_every_modeling_class(minimal_test_esM)
     """optimize() must publish the internal ``_*`` attributes under their public names.
 
     The renaming is driven from EnergySystemModel.optimize, so it applies to every
-    modeling class - including one that overrides setOptimalValues without knowing about
-    it. A single-year model is unwrapped to the one dataframe it holds.
+    modeling class, whichever phase of the result pipeline it overrides. A single-year
+    model is unwrapped to the one dataframe it holds.
     """
     esM, ip = _optimize(minimal_test_esM)
 
@@ -286,31 +286,34 @@ def test_public_optimum_names_are_set_for_every_modeling_class(minimal_test_esM)
     assert isinstance(storage.stateOfChargeOperationVariablesOptimum, pd.DataFrame)
 
 
-def test_public_optimum_names_survive_a_custom_setOptimalValues(minimal_test_esM):
-    """A class overriding setOptimalValues must still get its public attributes.
+def test_summary_parameters_are_taken_from_the_modeling_class(minimal_test_esM):
+    """Each modeling class supplies its own summary units and column indices.
 
-    The renaming used to be done at the end of each modeling class' setOptimalValues, so
-    an override that did not repeat the call silently lost the public names.
+    These used to be passed in by hand by every subclass' setOptimalValues; the pipeline
+    reads them from _summaryPlantUnit / _summaryIndexColumns instead, so a class that
+    forgets to override them must fall back to the base values, not to nothing.
     """
     esM = minimal_test_esM
-    model = esM.componentModelingDict["ConversionModel"]
-    calls = []
 
-    original = type(model).setOptimalValues
+    expected = {
+        "ConversionModel": ("physicalUnit", ""),
+        "StorageModel": ("commodityUnit", "*h"),
+        "SourceSinkModel": ("commodityUnit", ""),
+        "TransmissionModel": ("commodityUnit", ""),
+    }
+    for name, plantUnit in expected.items():
+        assert esM.componentModelingDict[name]._summaryPlantUnit() == plantUnit, name
 
-    def overriding_setOptimalValues(self, esM_, pyM):
-        calls.append(1)
-        return original(self, esM_, pyM)
-
-    type(model).setOptimalValues = overriding_setOptimalValues
-    try:
-        esM.optimize(timeSeriesAggregation=False, solver="gurobi")
-    finally:
-        type(model).setOptimalValues = original
-
-    assert calls, "the override was not exercised"
-    assert isinstance(model.capacityVariablesOptimum, pd.DataFrame)
-    assert isinstance(model.optSummary, pd.DataFrame)
+    # 1-dim models are summarized per location, 2-dim ones per connection
+    assert set(
+        esM.componentModelingDict["ConversionModel"]._summaryIndexColumns(esM)
+    ) == set(esM.locations)
+    connections = set(
+        esM.componentModelingDict["TransmissionModel"]._summaryIndexColumns(esM)
+    )
+    assert connections == {
+        f"{l1}_{l2}" for l1 in esM.locations for l2 in esM.locations
+    }
 
 
 def test_extra_summary_rows_are_cleared_by_a_new_optimization(minimal_test_esM):

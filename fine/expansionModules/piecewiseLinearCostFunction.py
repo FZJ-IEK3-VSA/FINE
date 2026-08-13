@@ -871,7 +871,7 @@ class PiecewiseLinearCostFunctionModel:
         """Derive the pwlcf results and write them into the modeling classes.
 
         Mirrors the pipeline of the component modeling classes (see
-        :meth:`fine.component.ComponentModel.setOptimalValues`): the results are derived once
+        :meth:`fine.component.ComponentModel.buildOptimizationSummary`): the results are derived once
         into frames, those frames are published into the modeling classes' raw results dict -
         the single source of truth - and the optimization summary is only a *view* of them.
         Nothing downstream may derive values from the summary.

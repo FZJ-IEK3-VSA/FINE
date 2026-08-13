@@ -1911,8 +1911,8 @@ def _operationIndexNames(nlevels):
 def formatOptimizationOutput(
     data, varType, dimension, ip, periodsOrder=None, compDict=None, esM=None
 ):
-    """Functionality for formatting the optimization output. The function is used in the
-    setOptimalValues()-method of the ComponentModel class.
+    """Functionality for formatting the optimization output. The function is used by the
+    result pipeline of the ComponentModel class.
 
     **Required arguments:**
 
