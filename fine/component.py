@@ -4095,15 +4095,22 @@ class ComponentModel(metaclass=ABCMeta):
         )
 
         # get the results for all components
+        # CAPEX (commis/commisBin) uses the same lead-time-widened attributes as
+        # getObjectiveFunctionContribution's capexCap/capexDec calls (Step 7); OPEX
+        # (commis/commisBin) uses shiftByLeadTime=True, matching opexCap/opexDec
+        # (Step 8). At leadTime=0 this is a byte-for-byte no-op (CCFLeadTime==CCF,
+        # ipLeadTimeEconomicLifetime==ipEconomicLifetime, shiftedCommisYear==
+        # commisYear -- see Step 6's own conservation tests), so components/models
+        # that never set leadTime see no change in the returned summary.
         resultsNPV_cx = self.getEconomicsDesign(
             pyM,
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
             QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commis",
-            divisorName="CCF",
-            QPdivisorNames=["QPbound", "CCF"],
+            divisorName="CCFLeadTime",
+            QPdivisorNames=["QPbound", "CCFLeadTime"],
             getOptValue=True,
             getOptValueCostType="NPV",
         )
@@ -4113,10 +4120,10 @@ class ComponentModel(metaclass=ABCMeta):
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
             QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commis",
-            divisorName="CCF",
-            QPdivisorNames=["QPbound", "CCF"],
+            divisorName="CCFLeadTime",
+            QPdivisorNames=["QPbound", "CCFLeadTime"],
             getOptValue=True,
             getOptValueCostType="TAC",
         )
@@ -4131,6 +4138,7 @@ class ComponentModel(metaclass=ABCMeta):
             QPdivisorNames=["QPbound"],
             getOptValue=True,
             getOptValueCostType="NPV",
+            shiftByLeadTime=True,
         )
 
         resultsTAC_ox = self.getEconomicsDesign(
@@ -4143,6 +4151,7 @@ class ComponentModel(metaclass=ABCMeta):
             QPdivisorNames=["QPbound"],
             getOptValue=True,
             getOptValueCostType="TAC",
+            shiftByLeadTime=True,
         )
 
         # Get NPV contribution for investmentIfBuilt
@@ -4150,9 +4159,9 @@ class ComponentModel(metaclass=ABCMeta):
             pyM,
             esM,
             factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commisBin",
-            divisorName="CCF",
+            divisorName="CCFLeadTime",
             getOptValue=True,
             getOptValueCostType="NPV",
         )
@@ -4163,9 +4172,9 @@ class ComponentModel(metaclass=ABCMeta):
             pyM,
             esM,
             factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commisBin",
-            divisorName="CCF",
+            divisorName="CCFLeadTime",
             getOptValue=True,
             getOptValueCostType="TAC",
         )
@@ -4179,6 +4188,7 @@ class ComponentModel(metaclass=ABCMeta):
             varName="commisBin",
             getOptValue=True,
             getOptValueCostType="NPV",
+            shiftByLeadTime=True,
         )
 
         # Calculate the annualized operational costs if built ox (OPEX)
@@ -4190,6 +4200,7 @@ class ComponentModel(metaclass=ABCMeta):
             varName="commisBin",
             getOptValue=True,
             getOptValueCostType="TAC",
+            shiftByLeadTime=True,
         )
 
         optSummary = {}

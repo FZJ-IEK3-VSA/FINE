@@ -1,5 +1,6 @@
 """Cost-distribution tests for the lead-time feature (Step 7: CAPEX wiring;
-Step 8: OPEX shift).
+Step 8: OPEX shift; Step 9.5: setOptimalValues/getOptimizationSummary() reporting
+fix).
 
 Mirrors the style of test_shadowCostOutput.py / test_netPresentValue.py: small,
 deterministic one-node models (commissioning forced via commissioningFix so the
@@ -7,17 +8,15 @@ solver can't route around the exact scenario being tested) are solved end to end
 and the actual solved objective/cost breakdown is inspected -- not just the Step 6
 primitives in isolation.
 
-Note: esM.getOptimizationSummary()'s capexCap/opexCap/TAC/NPVcontribution columns
-are produced by Component.setOptimalValues(), which neither Step 7 nor Step 8
-touches (out of the plan's stated file scope for either step) and therefore still
-calls getEconomicsDesign with the old, un-widened/un-shifted attribute names and
-shiftByLeadTime=False. Reading cost results here goes directly through
+Most tests below read cost results directly through
 ComponentModel.getEconomicsDesign(getOptValue=True, ...) with the same
-widened/shifted arguments getObjectiveFunctionContribution now uses, so these
-tests inspect exactly what the solved objective actually booked -- not what
-getOptimizationSummary() would (still incorrectly) report for a leadTime>0
-component. See CLAUDE.md's "Deferred / follow-up items" for this reporting-path
-gap, which after Step 8 affects OPEX reporting too, not just CAPEX.
+widened/shifted arguments getObjectiveFunctionContribution uses, so they inspect
+exactly what the solved objective actually booked, independent of the separate
+reporting path. The dedicated "optimization summary" section near the end of this
+file cross-checks esM.getOptimizationSummary() (Component.setOptimalValues())
+against that same ground truth -- before Step 9.5, that reporting path used the
+old, un-widened/un-shifted attribute names and would have disagreed; Step 9.5
+wires it to the same widened/shifted arguments, so it's now consistent.
 """
 
 import pandas as pd
@@ -479,8 +478,11 @@ def test_leadtime_reproduces_notebook_example_costs_scenario_fix():
     originally demonstrated (in the notebook's own words) a "Failure Expectation":
     "still: operational fixed costs already in first IP" -- fixed O&M was booked
     at the decision year even though the asset wasn't physically available until
-    the second IP. Confirms Step 8 resolves this at the objective level (see the
-    module docstring for why esM.getOptimizationSummary() itself still won't)."""
+    the second IP. Confirms Step 8 resolves this at the objective level (reading
+    directly via getEconomicsDesign, independent of the separate
+    esM.getOptimizationSummary() reporting path fixed in Step 9.5 -- see
+    test_optimization_summary_reproduces_notebook_example_costs_scenario_fix
+    below for the same scenario read through that path)."""
     esM = _build_leadtime_cost_model(
         n_ips=2,
         interval=1,
@@ -504,5 +506,157 @@ def test_leadtime_reproduces_notebook_example_costs_scenario_fix():
     # (decision #2), now widened (leadTime + economicLifetime = 2 intervals)
     # rather than dumped entirely into the first IP as the pre-fix WIP did.
     capex = _widened_capex_tac_by_ip(esM)
+    assert capex[0] > 0
+    assert capex[1] == pytest.approx(capex[0])
+
+
+# ---------------------------------------------------------------------------
+# Step 9.5: esM.getOptimizationSummary() (Component.setOptimalValues()) reporting
+# fix. Prior to this step, setOptimalValues called getEconomicsDesign with the
+# old, un-widened/un-shifted attribute names regardless of leadTime, so the
+# reported summary could disagree with what the solved objective actually
+# booked. These tests read the summary through the actual public API
+# (esM.getOptimizationSummary()), not the getEconomicsDesign bypass the tests
+# above use, and cross-check it against that same ground truth.
+# ---------------------------------------------------------------------------
+
+
+def _optimization_summary_value(esM, ip, prop, compName="src", loc=_LOC):
+    """ip here is the investment-period *index* (0, 1, 2, ...), matching every
+    other helper in this file; converted to the calendar year
+    esM.getOptimizationSummary() itself requires."""
+    df = esM.getOptimizationSummary(
+        "SourceSinkModel", ip=esM.investmentPeriodNames[ip], outputLevel=0
+    )
+    row = df.xs((compName, prop), level=("Component", "Property"))
+    val = row[loc].iloc[0]
+    return 0.0 if pd.isna(val) else float(val)
+
+
+def _summary_capex_by_ip(esM, compName="src"):
+    return {
+        ip: _optimization_summary_value(esM, ip, "capexCap", compName)
+        for ip in esM.investmentPeriods
+    }
+
+
+def _summary_opex_by_ip(esM, compName="src"):
+    return {
+        ip: _optimization_summary_value(esM, ip, "opexCap", compName)
+        for ip in esM.investmentPeriods
+    }
+
+
+def _summary_npv_contribution_sum(esM, compName="src"):
+    return sum(
+        _optimization_summary_value(esM, ip, "NPVcontribution", compName)
+        for ip in esM.investmentPeriods
+    )
+
+
+def test_optimization_summary_leadtime_zero_matches_baseline():
+    """leadTime=0: esM.getOptimizationSummary()'s capexCap/opexCap must match the
+    ground truth (and therefore today's pre-fix numbers too, since both are
+    identical at leadTime=0) -- the top-priority regression guard for this step."""
+    esM = _build_leadtime_cost_model(
+        n_ips=3,
+        interval=_INTERVAL,
+        economic_lifetime=_ECON_LIFETIME,
+        technical_lifetime=_TECH_LIFETIME,
+        invest_per_capacity=_INVEST_PER_CAPACITY,
+        interest_rate=_INTEREST_RATE,
+        commissioning_by_ip={0: _CAPACITY},
+        opex_per_capacity=5,
+        lead_time=0,
+    )
+
+    summary_capex = _summary_capex_by_ip(esM)
+    summary_opex = _summary_opex_by_ip(esM)
+    ground_truth_capex = _widened_capex_tac_by_ip(esM)
+    ground_truth_opex = _opex_tac_by_ip(esM)
+
+    for ip in esM.investmentPeriods:
+        assert summary_capex[ip] == pytest.approx(ground_truth_capex[ip])
+        assert summary_opex[ip] == pytest.approx(ground_truth_opex[ip])
+
+
+def test_optimization_summary_reflects_widened_capex_and_shifted_opex():
+    """leadTime>0: esM.getOptimizationSummary()'s capexCap/opexCap must match the
+    same widened/shifted ground truth the solved objective actually used --
+    the core proof the reporting gap is closed."""
+    esM = _build_leadtime_cost_model(
+        n_ips=3,
+        interval=_INTERVAL,
+        economic_lifetime=_ECON_LIFETIME,
+        technical_lifetime=_TECH_LIFETIME,
+        invest_per_capacity=_INVEST_PER_CAPACITY,
+        interest_rate=_INTEREST_RATE,
+        commissioning_by_ip={0: _CAPACITY},
+        opex_per_capacity=5,
+        lead_time=_LEAD_TIME,
+    )
+
+    summary_capex = _summary_capex_by_ip(esM)
+    summary_opex = _summary_opex_by_ip(esM)
+    ground_truth_capex = _widened_capex_tac_by_ip(esM)
+    ground_truth_opex = _opex_tac_by_ip(esM)
+
+    for ip in esM.investmentPeriods:
+        assert summary_capex[ip] == pytest.approx(ground_truth_capex[ip])
+        assert summary_opex[ip] == pytest.approx(ground_truth_opex[ip])
+
+    # and, concretely, capex is split into two equal nonzero shares while opex
+    # is shifted entirely to ip=1 -- not silently identical to the leadTime=0 case
+    assert summary_capex[0] == pytest.approx(summary_capex[1])
+    assert summary_capex[0] > 0
+    assert summary_opex[0] == pytest.approx(0)
+    assert summary_opex[1] > 0
+
+
+def test_optimization_summary_npv_sum_equals_objective_with_leadtime():
+    """Mirrors test_netPresentValue.py's own invariant (NPVcontribution sum ==
+    esM.pyM.Obj()), now checked for a leadTime>0 model whose widened/shifted
+    windows both fit inside the model horizon (no truncation) -- this invariant
+    was flagged (Steps 7-8's completion records) as capable of breaking for
+    leadTime>0 components before this reporting path was fixed."""
+    esM = _build_leadtime_cost_model(
+        n_ips=3,
+        interval=_INTERVAL,
+        economic_lifetime=_ECON_LIFETIME,
+        technical_lifetime=_TECH_LIFETIME,
+        invest_per_capacity=_INVEST_PER_CAPACITY,
+        interest_rate=_INTEREST_RATE,
+        commissioning_by_ip={0: _CAPACITY},
+        opex_per_capacity=5,
+        lead_time=_LEAD_TIME,
+    )
+    assert _summary_npv_contribution_sum(esM) == pytest.approx(esM.pyM.Obj())
+
+
+def test_optimization_summary_reproduces_notebook_example_costs_scenario_fix():
+    """Same exact examples/12_LeadTimes/12_leadTimes_example_costs.ipynb scenario
+    as test_leadtime_reproduces_notebook_example_costs_scenario_fix, this time
+    read through the actual public esM.getOptimizationSummary() API rather than
+    the getEconomicsDesign bypass -- confirming a user calling
+    esM.getOptimizationSummary() today would see the documented bug ("still:
+    operational fixed costs already in first IP") as fixed, not just the
+    internal objective."""
+    esM = _build_leadtime_cost_model(
+        n_ips=2,
+        interval=1,
+        economic_lifetime=1,
+        technical_lifetime=1,
+        invest_per_capacity=10,
+        interest_rate=0.10,
+        commissioning_by_ip={0: 1},
+        opex_per_capacity=20,
+        lead_time=1,
+    )
+
+    opex = _summary_opex_by_ip(esM)
+    assert opex[0] == pytest.approx(0)
+    assert opex[1] > 0
+
+    capex = _summary_capex_by_ip(esM)
     assert capex[0] > 0
     assert capex[1] == pytest.approx(capex[0])
