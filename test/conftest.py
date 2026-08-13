@@ -982,7 +982,7 @@ def multi_node_test_esM_optimized(multi_node_test_esM_init):
     esM = multi_node_test_esM_init
 
     esM.aggregateTemporally(
-        numberOfTypicalPeriods=5,
+        numberOfTypicalPeriods=3,
         segmentation=False,
         sortValues=True,
         representationMethod=None,
