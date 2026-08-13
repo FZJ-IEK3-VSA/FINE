@@ -185,8 +185,8 @@ path0,path1,path2,index0,index1,index2,kind,dtype,index_names,col_name,col,value
 2025,SourceSinkModel,0,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,222.65305573063264
 2025,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,
 2025,SourceSinkModel,0,PV,capexIfBuilt,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,
-2025,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
-2025,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,-0.0
+2025,SourceSinkModel,0,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,-0.0
 2025,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
 2025,SourceSinkModel,0,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
 2025,SourceSinkModel,0,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
@@ -233,8 +233,8 @@ path0,path1,path2,index0,index1,index2,kind,dtype,index_names,col_name,col,value
 2025,SourceSinkModel,1,PV,capacity,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,2.0
 2025,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,222.65305573063264
 2025,SourceSinkModel,1,PV,capexCap,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,222.65305573063264
-2025,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,0.0
-2025,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,0.0
+2025,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,ForesightLand,-0.0
+2025,SourceSinkModel,1,PV,commissioning,[kW$_{el}$],frame,object,Component|Property|Unit,,PerfectLand,-0.0
 2025,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0
 2025,SourceSinkModel,1,PV,commodCosts,[1 Euro/a],frame,object,Component|Property|Unit,,PerfectLand,0.0
 2025,SourceSinkModel,1,PV,commodRevenues,[1 Euro/a],frame,object,Component|Property|Unit,,ForesightLand,0.0

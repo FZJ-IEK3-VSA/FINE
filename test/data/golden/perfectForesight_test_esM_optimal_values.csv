@@ -23,8 +23,8 @@ path0,path1,path2,path3,index0,kind,dtype,index_names,col_name,col,value
 2025,SourceSinkModel,capacityVariablesOptimum,values,PV,frame,float64,,,PerfectLand,2.0
 2025,SourceSinkModel,commissioningVariablesOptimum,dimension,,scalar,Dimension,,,,1dim
 2025,SourceSinkModel,commissioningVariablesOptimum,timeDependent,,scalar,bool,,,,False
-2025,SourceSinkModel,commissioningVariablesOptimum,values,PV,frame,float64,,,ForesightLand,0.0
-2025,SourceSinkModel,commissioningVariablesOptimum,values,PV,frame,float64,,,PerfectLand,0.0
+2025,SourceSinkModel,commissioningVariablesOptimum,values,PV,frame,float64,,,ForesightLand,-0.0
+2025,SourceSinkModel,commissioningVariablesOptimum,values,PV,frame,float64,,,PerfectLand,-0.0
 2025,SourceSinkModel,decommissioningVariablesOptimum,dimension,,scalar,Dimension,,,,1dim
 2025,SourceSinkModel,decommissioningVariablesOptimum,timeDependent,,scalar,bool,,,,False
 2025,SourceSinkModel,decommissioningVariablesOptimum,values,PV,frame,float64,,,ForesightLand,0.0
