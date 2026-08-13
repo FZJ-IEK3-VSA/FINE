@@ -1021,19 +1021,6 @@ class TransmissionModel(ComponentModel):
                     tacParts.insert(0, results_ip["TAC"])
                 results_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
 
-                # The legacy NPV groupby added the (all-NaN) operation NPV row, leaving the
-                # NPVcontribution values unchanged but normalizing NaN cells (sparse
-                # connections) to 0. That 0 matters: the connection-splitting stack() below
-                # drops NaN cells, so without this the NPVcontribution rows of unused
-                # connections would disappear. Reproduce the NaN->0 normalization.
-                if (
-                    "NPVcontribution" in results_ip
-                    and not results_ip["NPVcontribution"].empty
-                ):
-                    results_ip["NPVcontribution"] = (
-                        results_ip["NPVcontribution"].groupby(level=0).sum()
-                    )
-
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the transmission summary (operation rows + basic summary) as a view.
 
@@ -1130,6 +1117,17 @@ class TransmissionModel(ComponentModel):
             # The TAC row of optSummaryBasic already includes the operation contribution
             # (folded in by _deriveSubclassEconomics); the NPVcontribution row is left
             # unchanged, matching the legacy behavior described there.
+            #
+            # Legacy folded that contribution in with a groupby over this summary frame.
+            # The groupby also turned the all-NaN cells of the location pairs without a
+            # connection into 0. That 0 matters: the stack() below drops NaN cells, so
+            # without it the TAC and NPVcontribution rows lose the unconnected location
+            # pairs. The fold itself now runs on the raw frames, which hold the connected
+            # pairs only, so reproduce the NaN -> 0 normalization here.
+            foldedRows = optSummary.index.get_level_values(1).isin(
+                (CostType.TAC.value, "NPVcontribution")
+            )
+            optSummary.loc[foldedRows] = optSummary.loc[foldedRows].fillna(0)
 
             # Split connection indices to two location indices
             optSummary = optSummary.stack()
