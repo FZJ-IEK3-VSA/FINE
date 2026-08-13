@@ -823,7 +823,7 @@ def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM, tmp_pa
     compare_esm_inputs(esm_original_pf, esm_pf_from_netcdf)
 
 
-def test_operation_export_to_xarray(multi_node_test_esM_init):
+def test_operation_export_to_xarray(multi_node_test_esM_optimized):
     """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
     Check that the results of the transmission model are identical to the initial ones.
 
@@ -831,18 +831,7 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     optimization summary anymore. In that case convertOptimizationOutputToDatasets()
     in xarrayIO.py needs to be adapted.
     """
-    esM = multi_node_test_esM_init
-    esM.aggregateTemporally(
-        numberOfTypicalPeriods=5,
-        segmentation=False,
-        sortValues=True,
-        representationMethod=None,
-        rescaleClusterPeriods=True,
-    )
-    esM.optimize(
-        timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_SOLVER.value,
-    )
+    esM = multi_node_test_esM_optimized
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
     optSum = (
@@ -861,22 +850,11 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
     assert_frame_equal(optSum, xrRes, check_dtype=False)
 
 
-def test_coordinates(multi_node_test_esM_init):
+def test_coordinates(multi_node_test_esM_optimized):
     """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
     Check that the coordinates of the results of the ESM model are as expected.
     """
-    esM = multi_node_test_esM_init
-    esM.aggregateTemporally(
-        numberOfTypicalPeriods=5,
-        segmentation=False,
-        sortValues=True,
-        representationMethod=None,
-        rescaleClusterPeriods=True,
-    )
-    esM.optimize(
-        timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_SOLVER.value,
-    )
+    esM = multi_node_test_esM_optimized
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM)
 
@@ -893,21 +871,11 @@ def test_coordinates(multi_node_test_esM_init):
     )
 
 
-def test_shadow_price_data_exists_in_xarray(multi_node_test_esM_init):
+def test_shadow_price_data_exists_in_xarray(multi_node_test_esM_optimized):
     """Optimize an esM, write it to  xarray datasets, then load the esM from this file.
     Check that the shadow price data is part of the xarray datasets.
     """
-    esM = multi_node_test_esM_init
-    esM.aggregateTemporally(
-        numberOfTypicalPeriods=3,
-        segmentation=False,
-        sortValues=True,
-        representationMethod=None,
-        rescaleClusterPeriods=True,
-    )
-    esM.optimize(
-        timeSeriesAggregation=True, solver=ImplementedSolvers.STANDARD_SOLVER.value
-    )
+    esM = multi_node_test_esM_optimized
 
     xrds = xrIO.writeEnergySystemModelToDatasets(esM, includeShadowPrices=True)
     assert "ShadowPrices" in xrds.keys()
