@@ -1,0 +1,82 @@
+path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
+0,ConversionModel,capacityVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,ConversionModel,capacityVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,ConversionModel,capacityVariablesOptimum,values,Electrolyzers,,frame,float64,,,ElectrolyzerLocation,17142.85714285714
+0,ConversionModel,capacityVariablesOptimum,values,Electrolyzers,,frame,float64,,,IndustryLocation,0.0
+0,ConversionModel,commissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,ConversionModel,commissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,ConversionModel,commissioningVariablesOptimum,values,Electrolyzers,,frame,float64,,,ElectrolyzerLocation,17142.85714285714
+0,ConversionModel,commissioningVariablesOptimum,values,Electrolyzers,,frame,float64,,,IndustryLocation,0.0
+0,ConversionModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,ConversionModel,decommissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,ConversionModel,decommissioningVariablesOptimum,values,Electrolyzers,,frame,float64,,,ElectrolyzerLocation,0.0
+0,ConversionModel,decommissioningVariablesOptimum,values,Electrolyzers,,frame,float64,,,IndustryLocation,0.0
+0,ConversionModel,isBuiltVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,ConversionModel,isBuiltVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,ConversionModel,isBuiltVariablesOptimum,values,,,scalar,NoneType,,,,
+0,ConversionModel,operationVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,ConversionModel,operationVariablesOptimum,timeDependent,,,scalar,bool,,,,True
+0,ConversionModel,operationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=2x4 index=| columns= dtypes=float64
+0,SourceSinkModel,capacityVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,SourceSinkModel,capacityVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,SourceSinkModel,capacityVariablesOptimum,values,,,scalar,NoneType,,,,
+0,SourceSinkModel,commissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,SourceSinkModel,commissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,SourceSinkModel,commissioningVariablesOptimum,values,,,scalar,NoneType,,,,
+0,SourceSinkModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,SourceSinkModel,decommissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,SourceSinkModel,decommissioningVariablesOptimum,values,,,scalar,NoneType,,,,
+0,SourceSinkModel,isBuiltVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,SourceSinkModel,isBuiltVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,SourceSinkModel,isBuiltVariablesOptimum,values,,,scalar,NoneType,,,,
+0,SourceSinkModel,operationVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,SourceSinkModel,operationVariablesOptimum,timeDependent,,,scalar,bool,,,,True
+0,SourceSinkModel,operationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=2x4 index=| columns= dtypes=float64
+0,StorageModel,capacityVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,StorageModel,capacityVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,StorageModel,capacityVariablesOptimum,values,Pressure tank,,frame,float64,,,ElectrolyzerLocation,19611940.298507463
+0,StorageModel,capacityVariablesOptimum,values,Pressure tank,,frame,float64,,,IndustryLocation,0.0
+0,StorageModel,chargeOperationVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,StorageModel,chargeOperationVariablesOptimum,timeDependent,,,scalar,bool,,,,True
+0,StorageModel,chargeOperationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=2x4 index=| columns= dtypes=float64
+0,StorageModel,commissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,StorageModel,commissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,StorageModel,commissioningVariablesOptimum,values,Pressure tank,,frame,float64,,,ElectrolyzerLocation,19611940.298507463
+0,StorageModel,commissioningVariablesOptimum,values,Pressure tank,,frame,float64,,,IndustryLocation,0.0
+0,StorageModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,StorageModel,decommissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,StorageModel,decommissioningVariablesOptimum,values,Pressure tank,,frame,float64,,,ElectrolyzerLocation,0.0
+0,StorageModel,decommissioningVariablesOptimum,values,Pressure tank,,frame,float64,,,IndustryLocation,0.0
+0,StorageModel,dischargeOperationVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,StorageModel,dischargeOperationVariablesOptimum,timeDependent,,,scalar,bool,,,,True
+0,StorageModel,dischargeOperationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=2x4 index=| columns= dtypes=float64
+0,StorageModel,isBuiltVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,StorageModel,isBuiltVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,StorageModel,isBuiltVariablesOptimum,values,,,scalar,NoneType,,,,
+0,StorageModel,stateOfChargeOperationVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
+0,StorageModel,stateOfChargeOperationVariablesOptimum,timeDependent,,,scalar,bool,,,,True
+0,StorageModel,stateOfChargeOperationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=2x4 index=| columns= dtypes=float64
+0,TransmissionModel,capacityVariablesOptimum,dimension,,,scalar,Dimension,,,,2dim
+0,TransmissionModel,capacityVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines,ElectrolyzerLocation,frame,float64,|,,ElectrolyzerLocation,
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines,ElectrolyzerLocation,frame,float64,|,,IndustryLocation,6000.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines,IndustryLocation,frame,float64,|,,ElectrolyzerLocation,6000.0
+0,TransmissionModel,capacityVariablesOptimum,values,Pipelines,IndustryLocation,frame,float64,|,,IndustryLocation,
+0,TransmissionModel,commissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,2dim
+0,TransmissionModel,commissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines,ElectrolyzerLocation,frame,float64,|,,ElectrolyzerLocation,
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines,ElectrolyzerLocation,frame,float64,|,,IndustryLocation,6000.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines,IndustryLocation,frame,float64,|,,ElectrolyzerLocation,6000.0
+0,TransmissionModel,commissioningVariablesOptimum,values,Pipelines,IndustryLocation,frame,float64,|,,IndustryLocation,
+0,TransmissionModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,2dim
+0,TransmissionModel,decommissioningVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,TransmissionModel,decommissioningVariablesOptimum,values,Pipelines,ElectrolyzerLocation,frame,float64,|,,ElectrolyzerLocation,
+0,TransmissionModel,decommissioningVariablesOptimum,values,Pipelines,ElectrolyzerLocation,frame,float64,|,,IndustryLocation,0.0
+0,TransmissionModel,decommissioningVariablesOptimum,values,Pipelines,IndustryLocation,frame,float64,|,,ElectrolyzerLocation,0.0
+0,TransmissionModel,decommissioningVariablesOptimum,values,Pipelines,IndustryLocation,frame,float64,|,,IndustryLocation,
+0,TransmissionModel,isBuiltVariablesOptimum,dimension,,,scalar,Dimension,,,,2dim
+0,TransmissionModel,isBuiltVariablesOptimum,timeDependent,,,scalar,bool,,,,False
+0,TransmissionModel,isBuiltVariablesOptimum,values,,,scalar,NoneType,,,,
+0,TransmissionModel,operationVariablesOptimum,dimension,,,scalar,Dimension,,,,2dim
+0,TransmissionModel,operationVariablesOptimum,timeDependent,,,scalar,bool,,,,True
+0,TransmissionModel,operationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=2x4 index=|| columns= dtypes=float64
