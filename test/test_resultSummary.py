@@ -289,9 +289,31 @@ def test_an_economic_frame_that_is_absent_leaves_its_row_empty():
 
 
 def test_an_empty_economic_frame_is_skipped():
+    """The empty frame writes no value, so the fold normalizes the TAC row to 0."""
     summary = build(raw={"2020": {"TAC": pd.DataFrame()}})["2020"]
 
-    assert summary.loc[("comp", "TAC", "[1e9 Euro/a]")].isna().all()
+    assert (summary.loc[("comp", "TAC", "[1e9 Euro/a]")] == 0).all()
+
+
+def test_the_folded_rows_are_normalized_to_zero():
+    """The former inline implementation wrote the TAC and NPVcontribution rows as a
+    groupby sum over the summary, which turned the cells the derived frames do not cover
+    into 0. Uncovered ``loc2`` must therefore read 0, not NaN, while an unfolded row such
+    as ``invest`` keeps its NaN.
+    """
+    raw = {
+        "2020": {
+            "TAC": frame([[1.5, np.nan]]),
+            "NPVcontribution": frame([[7.0, np.nan]]),
+            "invest": frame([[100.0, np.nan]]),
+        }
+    }
+
+    summary = build(raw=raw)["2020"]
+
+    assert summary.loc[("comp", "TAC", "[1e9 Euro/a]"), "loc2"] == 0
+    assert summary.loc[("comp", "NPVcontribution", "[1e9 Euro]"), "loc2"] == 0
+    assert pd.isna(summary.loc[("comp", "invest", "[1e9 Euro]"), "loc2"])
 
 
 def test_lifetime_corrections_are_written_cell_wise():

@@ -209,6 +209,23 @@ def buildOptimizationSummary(
                     frame.columns,
                 ] = frame.values
 
+        # The former inline implementation wrote the TAC and NPVcontribution rows as a
+        # groupby sum over this summary frame (the base class for TAC, the four component
+        # classes for NPVcontribution). That groupby also turned the all-NaN cells of the
+        # entries the derived frames do not cover (e.g. a location the component is not
+        # eligible in, or a location pair without a transmission connection) into 0. The
+        # fold itself now runs on the raw frames in deriveEconomics, which hold the covered
+        # entries only, so reproduce the NaN -> 0 normalization here. The 0 is not
+        # cosmetic: the transmission summary drops NaN cells when it splits the connection
+        # index, so those rows would otherwise lose the uncovered entries.
+        # ``where`` rather than ``fillna``, so the object dtype of the summary survives
+        # (fillna would downcast it and warn).
+        foldedRows = optSummary_ip.index.get_level_values("Property").isin(
+            ("TAC", "NPVcontribution")
+        )
+        folded = optSummary_ip.loc[foldedRows]
+        optSummary_ip.loc[foldedRows] = folded.where(folded.notna(), 0)
+
         optSummary[ipName] = optSummary_ip
 
     return optSummary

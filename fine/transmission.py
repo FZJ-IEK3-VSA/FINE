@@ -1116,18 +1116,11 @@ class TransmissionModel(ComponentModel):
 
             # The TAC row of optSummaryBasic already includes the operation contribution
             # (folded in by _deriveSubclassEconomics); the NPVcontribution row is left
-            # unchanged, matching the legacy behavior described there.
-            #
-            # Legacy folded that contribution in with a groupby over this summary frame.
-            # The groupby also turned the all-NaN cells of the location pairs without a
-            # connection into 0. That 0 matters: the stack() below drops NaN cells, so
-            # without it the TAC and NPVcontribution rows lose the unconnected location
-            # pairs. The fold itself now runs on the raw frames, which hold the connected
-            # pairs only, so reproduce the NaN -> 0 normalization here.
-            foldedRows = optSummary.index.get_level_values(1).isin(
-                (CostType.TAC.value, "NPVcontribution")
-            )
-            optSummary.loc[foldedRows] = optSummary.loc[foldedRows].fillna(0)
+            # unchanged, matching the legacy behavior described there. Their all-NaN cells
+            # (location pairs without a connection) are already normalized to 0 by
+            # :func:`fine.results.summary.buildOptimizationSummary`. That 0 matters here:
+            # the stack() below drops NaN cells, so without it the TAC and NPVcontribution
+            # rows would lose the unconnected location pairs.
 
             # Split connection indices to two location indices
             optSummary = optSummary.stack()
