@@ -1,0 +1,415 @@
+path0,path1,path2,index0,index1,index2,index3,kind,dtype,index_names,col_name,col,value
+0,ConversionModel,0,Electrolyzers,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1491681.331689218
+0,ConversionModel,0,Electrolyzers,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1491681.331689217
+0,ConversionModel,0,Electrolyzers,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,capacity,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,17142.85714285714
+0,ConversionModel,0,Electrolyzers,capacity,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1277395.6174035026
+0,ConversionModel,0,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,ConversionModel,0,Electrolyzers,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,ConversionModel,0,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,17142.85714285714
+0,ConversionModel,0,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,ConversionModel,0,Electrolyzers,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,8571428.57142857
+0,ConversionModel,0,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,ConversionModel,0,Electrolyzers,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,ConversionModel,0,Electrolyzers,isBuilt,[-],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,ConversionModel,0,Electrolyzers,isBuilt,[-],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,ConversionModel,0,Electrolyzers,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,ConversionModel,0,Electrolyzers,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,ConversionModel,0,Electrolyzers,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,214285.71428571426
+0,ConversionModel,0,Electrolyzers,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,opexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,ConversionModel,0,Electrolyzers,opexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,ConversionModel,0,Electrolyzers,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,ConversionModel,0,Electrolyzers,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,0,Electrolyzers,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,ConversionModel,0,Electrolyzers,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,ConversionModel,1,Electrolyzers,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1491681.331689218
+0,ConversionModel,1,Electrolyzers,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1491681.331689217
+0,ConversionModel,1,Electrolyzers,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,capacity,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,17142.85714285714
+0,ConversionModel,1,Electrolyzers,capacity,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1277395.6174035026
+0,ConversionModel,1,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,17142.85714285714
+0,ConversionModel,1,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,ConversionModel,1,Electrolyzers,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,8571428.57142857
+0,ConversionModel,1,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,ConversionModel,1,Electrolyzers,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,ConversionModel,1,Electrolyzers,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,ConversionModel,1,Electrolyzers,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,ConversionModel,1,Electrolyzers,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,214285.71428571426
+0,ConversionModel,1,Electrolyzers,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,ConversionModel,1,Electrolyzers,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,1,Electrolyzers,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,ConversionModel,1,Electrolyzers,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,ConversionModel,2,Electrolyzers,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1491681.331689218
+0,ConversionModel,2,Electrolyzers,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,2,Electrolyzers,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1491681.331689217
+0,ConversionModel,2,Electrolyzers,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,2,Electrolyzers,capacity,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,17142.85714285714
+0,ConversionModel,2,Electrolyzers,capacity,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,2,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1277395.6174035026
+0,ConversionModel,2,Electrolyzers,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,2,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,17142.85714285714
+0,ConversionModel,2,Electrolyzers,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,2,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,8571428.57142857
+0,ConversionModel,2,Electrolyzers,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,2,Electrolyzers,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,ConversionModel,2,Electrolyzers,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,2,Electrolyzers,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,ConversionModel,2,Electrolyzers,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,ConversionModel,2,Electrolyzers,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,214285.71428571426
+0,ConversionModel,2,Electrolyzers,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,0,Electricity market,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1520485.7142857155
+0,SourceSinkModel,0,Electricity market,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,SourceSinkModel,0,Electricity market,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1520485.7142857143
+0,SourceSinkModel,0,Electricity market,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,SourceSinkModel,0,Electricity market,capacity,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,capacity,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,commissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1895914.2857142857
+0,SourceSinkModel,0,Electricity market,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,375428.5714285714
+0,SourceSinkModel,0,Electricity market,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,decommissioning,[kW$_{el}$],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,isBuilt,[-],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,isBuilt,[-],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,SourceSinkModel,0,Electricity market,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,SourceSinkModel,0,Electricity market,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,opexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,opexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,SourceSinkModel,0,Electricity market,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Electricity market,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Electricity market,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,SourceSinkModel,0,Industry site,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,0,Industry site,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,SourceSinkModel,0,Industry site,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,0,Industry site,capacity,"[kW$_{H_{2},LHV}$]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,capacity,"[kW$_{H_{2},LHV}$]",,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,commissioning,"[kW$_{H_{2},LHV}$]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,commissioning,"[kW$_{H_{2},LHV}$]",,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,0,Industry site,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,0,Industry site,decommissioning,"[kW$_{H_{2},LHV}$]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,decommissioning,"[kW$_{H_{2},LHV}$]",,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,isBuilt,[-],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,isBuilt,[-],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,operation,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,operation,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,52560000.0
+0,SourceSinkModel,0,Industry site,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,IndustryLocation,52560000.0
+0,SourceSinkModel,0,Industry site,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,opexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,opexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,0,Industry site,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,0,Industry site,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,0,Industry site,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,1,Electricity market,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1520485.7142857155
+0,SourceSinkModel,1,Electricity market,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,SourceSinkModel,1,Electricity market,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1520485.7142857143
+0,SourceSinkModel,1,Electricity market,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,SourceSinkModel,1,Electricity market,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1895914.2857142857
+0,SourceSinkModel,1,Electricity market,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,1,Electricity market,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,375428.5714285714
+0,SourceSinkModel,1,Electricity market,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,1,Electricity market,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,SourceSinkModel,1,Electricity market,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,1,Electricity market,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,SourceSinkModel,1,Electricity market,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,1,Electricity market,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,SourceSinkModel,1,Electricity market,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,1,Industry site,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,SourceSinkModel,1,Industry site,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,1,Industry site,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,SourceSinkModel,1,Industry site,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,1,Industry site,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,1,Industry site,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,1,Industry site,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,1,Industry site,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,1,Industry site,operation,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,1,Industry site,operation,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,52560000.0
+0,SourceSinkModel,1,Industry site,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,1,Industry site,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,IndustryLocation,52560000.0
+0,SourceSinkModel,1,Industry site,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,1,Industry site,opexOp,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,SourceSinkModel,2,Electricity market,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1520485.7142857155
+0,SourceSinkModel,2,Electricity market,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,SourceSinkModel,2,Electricity market,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1520485.7142857143
+0,SourceSinkModel,2,Electricity market,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,SourceSinkModel,2,Electricity market,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,1895914.2857142857
+0,SourceSinkModel,2,Electricity market,commodCosts,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,2,Electricity market,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,375428.5714285714
+0,SourceSinkModel,2,Electricity market,commodRevenues,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,2,Electricity market,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,SourceSinkModel,2,Electricity market,operation,[kW$_{el}$*h],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,2,Electricity market,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,75085714.28571428
+0,SourceSinkModel,2,Electricity market,operation_annual,[kW$_{el}$*h/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,SourceSinkModel,2,Industry site,operation,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,2,Industry site,operation,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,52560000.0
+0,SourceSinkModel,2,Industry site,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,SourceSinkModel,2,Industry site,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,IndustryLocation,52560000.0
+0,StorageModel,0,Pressure tank,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304169
+0,StorageModel,0,Pressure tank,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
+0,StorageModel,0,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
+0,StorageModel,0,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
+0,StorageModel,0,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,StorageModel,0,Pressure tank,capexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,StorageModel,0,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
+0,StorageModel,0,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,decommissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,StorageModel,0,Pressure tank,decommissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,9805970.149253732
+0,StorageModel,0,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,StorageModel,0,Pressure tank,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,StorageModel,0,Pressure tank,isBuilt,[-],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,StorageModel,0,Pressure tank,isBuilt,[-],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,StorageModel,0,Pressure tank,operationCharge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,0,Pressure tank,operationCharge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,operationCharge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,0,Pressure tank,operationCharge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,operationDischarge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,0,Pressure tank,operationDischarge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,operationDischarge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,0,Pressure tank,operationDischarge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,StorageModel,0,Pressure tank,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,opexCharge,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,StorageModel,0,Pressure tank,opexCharge,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,opexDischarge,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,StorageModel,0,Pressure tank,opexDischarge,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,0,Pressure tank,opexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,
+0,StorageModel,0,Pressure tank,opexIfBuilt,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,
+0,StorageModel,0,Pressure tank,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,StorageModel,0,Pressure tank,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,StorageModel,1,Pressure tank,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304169
+0,StorageModel,1,Pressure tank,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
+0,StorageModel,1,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
+0,StorageModel,1,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
+0,StorageModel,1,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
+0,StorageModel,1,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,decommissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,StorageModel,1,Pressure tank,decommissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,9805970.149253732
+0,StorageModel,1,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,StorageModel,1,Pressure tank,investLifetimeExtension,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,StorageModel,1,Pressure tank,operationCharge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,1,Pressure tank,operationCharge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,operationCharge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,1,Pressure tank,operationCharge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,operationDischarge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,1,Pressure tank,operationDischarge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,operationDischarge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,1,Pressure tank,operationDischarge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,StorageModel,1,Pressure tank,opexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,opexCharge,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,StorageModel,1,Pressure tank,opexCharge,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,opexDischarge,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0.0
+0,StorageModel,1,Pressure tank,opexDischarge,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,1,Pressure tank,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,0
+0,StorageModel,1,Pressure tank,revenueLifetimeShorteningResale,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0
+0,StorageModel,2,Pressure tank,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304169
+0,StorageModel,2,Pressure tank,NPVcontribution,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,2,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
+0,StorageModel,2,Pressure tank,TAC,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,2,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
+0,StorageModel,2,Pressure tank,capacity,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,2,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,871039.1602304161
+0,StorageModel,2,Pressure tank,capexCap,[1 Euro/a],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,2,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,19611940.298507463
+0,StorageModel,2,Pressure tank,commissioning,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,2,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,ElectrolyzerLocation,9805970.149253732
+0,StorageModel,2,Pressure tank,invest,[1 Euro],,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,2,Pressure tank,operationCharge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,2,Pressure tank,operationCharge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,2,Pressure tank,operationCharge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,2,Pressure tank,operationCharge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,2,Pressure tank,operationDischarge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,2,Pressure tank,operationDischarge,"[kW$_{H_{2},LHV}$*h]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,StorageModel,2,Pressure tank,operationDischarge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,ElectrolyzerLocation,13140000.0
+0,StorageModel,2,Pressure tank,operationDischarge_annual,"[kW$_{H_{2},LHV}$*h/a]",,frame,object,Component|Property|Unit,,IndustryLocation,0.0
+0,TransmissionModel,0,Pipelines,NPVcontribution,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,0,Pipelines,NPVcontribution,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,44.52974575681084
+0,TransmissionModel,0,Pipelines,NPVcontribution,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,44.52974575681084
+0,TransmissionModel,0,Pipelines,NPVcontribution,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,0,Pipelines,TAC,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,0,Pipelines,TAC,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,44.529745756810804
+0,TransmissionModel,0,Pipelines,TAC,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,44.529745756810804
+0,TransmissionModel,0,Pipelines,TAC,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,0,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,6000.0
+0,TransmissionModel,0,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,6000.0
+0,TransmissionModel,0,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,capexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,capexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,44.529745756810804
+0,TransmissionModel,0,Pipelines,capexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,44.529745756810804
+0,TransmissionModel,0,Pipelines,capexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,6000.0
+0,TransmissionModel,0,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,6000.0
+0,TransmissionModel,0,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,decommissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,decommissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0.0
+0,TransmissionModel,0,Pipelines,decommissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,0,Pipelines,decommissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,invest,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,invest,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,531.0
+0,TransmissionModel,0,Pipelines,invest,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,531.0
+0,TransmissionModel,0,Pipelines,invest,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,investLifetimeExtension,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,investLifetimeExtension,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,0,Pipelines,investLifetimeExtension,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,0,Pipelines,investLifetimeExtension,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,52560000.0
+0,TransmissionModel,0,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,0,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,52560000.0
+0,TransmissionModel,0,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,0,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,opexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,opexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0.0
+0,TransmissionModel,0,Pipelines,opexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,0,Pipelines,opexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,opexOp,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,opexOp,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0.0
+0,TransmissionModel,0,Pipelines,opexOp,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,0,Pipelines,opexOp,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,0,Pipelines,revenueLifetimeShorteningResale,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,0,Pipelines,revenueLifetimeShorteningResale,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,0,Pipelines,revenueLifetimeShorteningResale,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,0,Pipelines,revenueLifetimeShorteningResale,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,NPVcontribution,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,1,Pipelines,NPVcontribution,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,44.52974575681084
+0,TransmissionModel,1,Pipelines,NPVcontribution,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,44.52974575681084
+0,TransmissionModel,1,Pipelines,NPVcontribution,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,1,Pipelines,TAC,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,1,Pipelines,TAC,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,44.529745756810804
+0,TransmissionModel,1,Pipelines,TAC,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,44.529745756810804
+0,TransmissionModel,1,Pipelines,TAC,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,1,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,6000.0
+0,TransmissionModel,1,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,6000.0
+0,TransmissionModel,1,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,capexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,capexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,44.529745756810804
+0,TransmissionModel,1,Pipelines,capexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,44.529745756810804
+0,TransmissionModel,1,Pipelines,capexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,6000.0
+0,TransmissionModel,1,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,6000.0
+0,TransmissionModel,1,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,decommissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,decommissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0.0
+0,TransmissionModel,1,Pipelines,decommissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,1,Pipelines,decommissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,invest,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,invest,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,531.0
+0,TransmissionModel,1,Pipelines,invest,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,531.0
+0,TransmissionModel,1,Pipelines,invest,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,investLifetimeExtension,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,investLifetimeExtension,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,1,Pipelines,investLifetimeExtension,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,1,Pipelines,investLifetimeExtension,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,52560000.0
+0,TransmissionModel,1,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,1,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,52560000.0
+0,TransmissionModel,1,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,1,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,opexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,opexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0.0
+0,TransmissionModel,1,Pipelines,opexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,1,Pipelines,opexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,opexOp,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,opexOp,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0.0
+0,TransmissionModel,1,Pipelines,opexOp,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0.0
+0,TransmissionModel,1,Pipelines,opexOp,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,1,Pipelines,revenueLifetimeShorteningResale,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,1,Pipelines,revenueLifetimeShorteningResale,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,1,Pipelines,revenueLifetimeShorteningResale,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,1,Pipelines,revenueLifetimeShorteningResale,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,2,Pipelines,NPVcontribution,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,2,Pipelines,NPVcontribution,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,44.52974575681084
+0,TransmissionModel,2,Pipelines,NPVcontribution,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,44.52974575681084
+0,TransmissionModel,2,Pipelines,NPVcontribution,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,2,Pipelines,TAC,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,0
+0,TransmissionModel,2,Pipelines,TAC,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,44.529745756810804
+0,TransmissionModel,2,Pipelines,TAC,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,44.529745756810804
+0,TransmissionModel,2,Pipelines,TAC,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,0
+0,TransmissionModel,2,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,2,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,6000.0
+0,TransmissionModel,2,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,6000.0
+0,TransmissionModel,2,Pipelines,capacity,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,2,Pipelines,capexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,2,Pipelines,capexCap,[1 Euro/a],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,44.529745756810804
+0,TransmissionModel,2,Pipelines,capexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,44.529745756810804
+0,TransmissionModel,2,Pipelines,capexCap,[1 Euro/a],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,2,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,2,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,6000.0
+0,TransmissionModel,2,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,6000.0
+0,TransmissionModel,2,Pipelines,commissioning,"[kW$_{H_{2},LHV}$]",IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,2,Pipelines,invest,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,2,Pipelines,invest,[1 Euro],ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,531.0
+0,TransmissionModel,2,Pipelines,invest,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,531.0
+0,TransmissionModel,2,Pipelines,invest,[1 Euro],IndustryLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,
+0,TransmissionModel,2,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,2,Pipelines,operation,"[kW$_{H_{2},LHV}$*h]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,52560000.0
+0,TransmissionModel,2,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,ElectrolyzerLocation,
+0,TransmissionModel,2,Pipelines,operation_annual,"[kW$_{H_{2},LHV}$*h/a]",ElectrolyzerLocation,frame,object,Component|Property|Unit|locationIn,,IndustryLocation,52560000.0
