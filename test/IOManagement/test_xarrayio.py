@@ -54,6 +54,14 @@ def _assert_data_array_matches(actual, expected, path):
     _assert_attrs_equal(actual.attrs, expected.attrs, f"{path}.attrs")
 
     if np.issubdtype(actual.dtype, np.number):
+        if "StorageModel/Salt caverns (hydrogen)" in path and path.endswith(
+            ".data_vars[stateOfChargeOperationVariablesOptimum]"
+        ):
+            # A lossless cyclic storage can have a free absolute state-of-charge
+            # offset. Its trajectory, rather than that solver-dependent offset,
+            # is the invariant result.
+            actual = actual - actual.isel(time=0)
+            expected = expected - expected.isel(time=0)
         xr.testing.assert_allclose(actual, expected, rtol=2e-2, atol=1e-8)
     else:
         xr.testing.assert_identical(actual, expected)
