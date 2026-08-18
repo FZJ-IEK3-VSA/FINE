@@ -559,23 +559,35 @@ def multi_node_test_esM_init(get_data_fixture):
 
     ### Wind offshore
 
+    offshore_operation_rate = data["Wind (offshore), operationRateMax"]
+    offshore_time_step_cost = np.tile(
+        np.linspace(1e-5 / 24, 1e-5, 24),
+        len(offshore_operation_rate) // 24,
+    )
+    offshore_cost_time_series = pd.DataFrame(
+        np.broadcast_to(
+            offshore_time_step_cost[:, np.newaxis], offshore_operation_rate.shape
+        ),
+        index=offshore_operation_rate.index,
+        columns=offshore_operation_rate.columns,
+    )
+
     esM.add(
         fn.Source(
             esM=esM,
             name="Wind (offshore)",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=data["Wind (offshore), operationRateMax"],
+            operationRateMax=offshore_operation_rate,
             capacityMax=data["Wind (offshore), capacityMax"],
             investPerCapacity=2.3,
             opexPerCapacity=2.3 * 0.02,
             interestRate=0.08,
             economicLifetime=20,
             opexPerOperation=0.005,
+            commodityCostTimeSeries=offshore_cost_time_series,
         )
     )
-
-    data["Wind (offshore), operationRateMax"].sum()
 
     ### PV
 
@@ -988,22 +1000,6 @@ def multi_node_test_esM_optimized(multi_node_test_esM_init):
         representationMethod=None,
         rescaleClusterPeriods=True,
     )
-
-    # Break ties between solutions that only redistribute offshore generation,
-    # electrolyzer operation, and hydrogen storage operation across time. Add
-    # the perturbation after clustering so that it does not influence which
-    # periods are selected as typical periods.
-    offshore_wind = esM.getComponent("Wind (offshore)")
-    for ip in esM.investmentPeriods:
-        operation_rate = offshore_wind.aggregatedOperationRateMax[ip]
-        time_step_cost = np.linspace(
-            1e-5 / len(operation_rate), 1e-5, len(operation_rate)
-        )
-        offshore_wind.aggregatedCommodityCostTimeSeries[ip] = pd.DataFrame(
-            np.broadcast_to(time_step_cost[:, np.newaxis], operation_rate.shape),
-            index=operation_rate.index,
-            columns=operation_rate.columns,
-        )
 
     esM.optimize(
         timeSeriesAggregation=True,

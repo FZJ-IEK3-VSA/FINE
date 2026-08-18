@@ -10,19 +10,19 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,ConversionModel,capacityVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_6,0.0
 0,ConversionModel,capacityVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_7,0.0
 0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_0,2.585653798277885
-0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_1,4.7823500531708625
+0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_1,4.782350053170864
 0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_2,8.748596649529473
 0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_3,1.199764265368441
 0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_4,1.6435530862847751
-0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_5,2.497142671232028
-0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_6,0.7789442116031629
+0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_5,2.4971426712320275
+0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_6,0.7789442116031626
 0,ConversionModel,capacityVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_7,0.23697393452171978
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_0,0.3540979858587003
-0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_1,0.3400643572736487
+0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_1,0.34006435727364864
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_2,0.0
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_3,0.0
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_4,0.4709982826610248
-0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_5,1.6013589061468259
+0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_5,1.6013589061468263
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_6,0.0
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_7,0.08842939645118003
 0,ConversionModel,capacityVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_0,0.0
@@ -60,19 +60,19 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_6,0.0
 0,ConversionModel,commissioningVariablesOptimum,values,CCGT plants (methane),,frame,float64,,,cluster_7,0.0
 0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_0,2.585653798277885
-0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_1,4.7823500531708625
+0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_1,4.782350053170864
 0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_2,8.748596649529473
 0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_3,1.199764265368441
 0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_4,1.6435530862847751
-0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_5,2.497142671232028
-0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_6,0.7789442116031629
+0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_5,2.4971426712320275
+0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_6,0.7789442116031626
 0,ConversionModel,commissioningVariablesOptimum,values,Electroylzers,,frame,float64,,,cluster_7,0.23697393452171978
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_0,0.3540979858587003
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_1,0.3400643572736487
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_1,0.34006435727364864
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_2,0.0
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_3,0.0
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_4,0.4709982826610248
-0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_5,1.6013589061468259
+0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_5,1.6013589061468263
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_6,0.0
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (biogas),,frame,float64,,,cluster_7,0.08842939645118003
 0,ConversionModel,commissioningVariablesOptimum,values,New CCGT plants (hydrogen),,frame,float64,,,cluster_0,0.0
@@ -241,11 +241,11 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,SourceSinkModel,capacityVariablesOptimum,values,Existing run-of-river plants,,frame,float64,,,cluster_6,
 0,SourceSinkModel,capacityVariablesOptimum,values,Existing run-of-river plants,,frame,float64,,,cluster_7,0.32438601588
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_0,43.31441361123355
-0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_1,3.7860593524984782
+0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_1,3.786059352498483
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_2,0.0
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_3,0.0
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_4,27.59913798002652
-0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_5,10.502663489132695
+0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_5,10.502663489132699
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_6,0.0
 0,SourceSinkModel,capacityVariablesOptimum,values,PV,,frame,float64,,,cluster_7,4.957043988278185
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (offshore),,frame,float64,,,cluster_0,
@@ -259,7 +259,7 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_0,45.06824
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_1,65.91814466666665
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_2,0.0
-0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_3,27.877880388172397
+0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_3,27.877880388172404
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_4,91.72172933333333
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_5,52.801807999999994
 0,SourceSinkModel,capacityVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_6,0.0
@@ -275,11 +275,11 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,SourceSinkModel,commissioningVariablesOptimum,values,Existing run-of-river plants,,frame,float64,,,cluster_6,
 0,SourceSinkModel,commissioningVariablesOptimum,values,Existing run-of-river plants,,frame,float64,,,cluster_7,0.32438601588
 0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_0,43.31441361123355
-0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_1,3.7860593524984782
+0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_1,3.786059352498483
 0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_2,0.0
 0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_3,0.0
 0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_4,27.59913798002652
-0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_5,10.502663489132695
+0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_5,10.502663489132699
 0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_6,0.0
 0,SourceSinkModel,commissioningVariablesOptimum,values,PV,,frame,float64,,,cluster_7,4.957043988278185
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (offshore),,frame,float64,,,cluster_0,
@@ -293,7 +293,7 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_0,45.06824
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_1,65.91814466666665
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_2,0.0
-0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_3,27.877880388172397
+0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_3,27.877880388172404
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_4,91.72172933333333
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_5,52.801807999999994
 0,SourceSinkModel,commissioningVariablesOptimum,values,Wind (onshore),,frame,float64,,,cluster_6,0.0
@@ -343,11 +343,11 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_0,2517.000289009072
 0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_1,44.15363767140029
 0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_2,30.72628869347843
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_3,5.408981699496784
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_3,5.408981699496782
 0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_4,47.94645857683254
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_5,36.09296761745722
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_6,15.463281340137046
-0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_7,721.8490211074018
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_5,36.09296761745702
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_6,15.463281340137092
+0,StorageModel,capacityVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_7,721.8490211074014
 0,StorageModel,capacityVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_0,15.924
 0,StorageModel,capacityVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_1,7.7509999999999994
 0,StorageModel,capacityVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_2,0.8180000000000001
@@ -365,11 +365,11 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_6,0.0
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_7,
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_0,
-0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_1,2854.6493783750843
-0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_2,2648.58870948246
+0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_1,2854.6493783750875
+0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_2,2828.4122875893295
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_3,282.658642128
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_4,
-0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_5,1490.5782083894078
+0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_5,1490.5782083894069
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_6,199.21192467828138
 0,StorageModel,capacityVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_7,
 0,StorageModel,chargeOperationVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
@@ -380,11 +380,11 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_0,2517.000289009072
 0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_1,44.15363767140029
 0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_2,30.72628869347843
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_3,5.408981699496784
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_3,5.408981699496782
 0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_4,47.94645857683254
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_5,36.09296761745722
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_6,15.463281340137046
-0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_7,721.8490211074018
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_5,36.09296761745702
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_6,15.463281340137092
+0,StorageModel,commissioningVariablesOptimum,values,Li-ion batteries,,frame,float64,,,cluster_7,721.8490211074014
 0,StorageModel,commissioningVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_0,15.924
 0,StorageModel,commissioningVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_1,7.7509999999999994
 0,StorageModel,commissioningVariablesOptimum,values,Pumped hydro storage,,frame,float64,,,cluster_2,0.8180000000000001
@@ -402,11 +402,11 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_6,0.0
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (biogas),,frame,float64,,,cluster_7,
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_0,
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_1,2854.6493783750843
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_2,2648.58870948246
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_1,2854.6493783750875
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_2,2828.4122875893295
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_3,282.658642128
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_4,
-0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_5,1490.5782083894078
+0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_5,1490.5782083894069
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_6,199.21192467828138
 0,StorageModel,commissioningVariablesOptimum,values,Salt caverns (hydrogen),,frame,float64,,,cluster_7,
 0,StorageModel,decommissioningVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
