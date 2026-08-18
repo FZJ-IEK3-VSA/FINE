@@ -559,23 +559,38 @@ def multi_node_test_esM_init(get_data_fixture):
 
     ### Wind offshore
 
+    # A small time-dependent cost removes alternate optimal dispatch profiles
+    # across solvers. Repeating it daily prevents it from influencing which
+    # days are selected as typical periods during temporal aggregation.
+    offshore_operation_rate = data["Wind (offshore), operationRateMax"]
+    offshore_time_step_cost = np.tile(
+        np.linspace(1e-5 / 24, 1e-5, 24),
+        len(offshore_operation_rate) // 24,
+    )
+    offshore_cost_time_series = pd.DataFrame(
+        np.broadcast_to(
+            offshore_time_step_cost[:, np.newaxis], offshore_operation_rate.shape
+        ),
+        index=offshore_operation_rate.index,
+        columns=offshore_operation_rate.columns,
+    )
+
     esM.add(
         fn.Source(
             esM=esM,
             name="Wind (offshore)",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=data["Wind (offshore), operationRateMax"],
+            operationRateMax=offshore_operation_rate,
             capacityMax=data["Wind (offshore), capacityMax"],
             investPerCapacity=2.3,
             opexPerCapacity=2.3 * 0.02,
             interestRate=0.08,
             economicLifetime=20,
             opexPerOperation=0.005,
+            commodityCostTimeSeries=offshore_cost_time_series,
         )
     )
-
-    data["Wind (offshore), operationRateMax"].sum()
 
     ### PV
 
