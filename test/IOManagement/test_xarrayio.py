@@ -19,7 +19,6 @@ import xarray as xr
 GOLDEN_DIR = Path(__file__).resolve().parents[1] / "data" / "golden"
 UPDATE_GOLDEN = os.environ.get("UPDATE_GOLDEN", "").lower() in {"1", "true", "yes"}
 
-
 def _assert_same_keys(actual, expected, path):
     actual_keys = set(actual.keys())
     expected_keys = set(expected.keys())
