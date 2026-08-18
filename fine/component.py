@@ -1180,7 +1180,7 @@ class ComponentModel(metaclass=ABCMeta):
         self,
         esM,
         pyM,
-        binaryOperationParameter=["partLoadMin"],
+        binaryOperationParameter=None,
         binaryOperationSetName="operationBinVarSet",
     ):
         """Declare binary operation variables.
@@ -1191,6 +1191,9 @@ class ComponentModel(metaclass=ABCMeta):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
+        if binaryOperationParameter is None:
+            binaryOperationParameter = ["partLoadMin"]
+
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
@@ -3040,8 +3043,8 @@ class ComponentModel(metaclass=ABCMeta):
         lifetimeAttr,
         varName,
         divisorName="",
-        QPfactorNames=[],
-        QPdivisorNames=[],
+        QPfactorNames=None,
+        QPdivisorNames=None,
         getOptValue=False,
         getOptValueCostType=CostType.TAC,
     ):
@@ -3086,6 +3089,11 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is None.
         :type getOptValueCostType: string
         """
+        if QPfactorNames is None:
+            QPfactorNames = []
+        if QPdivisorNames is None:
+            QPdivisorNames = []
+
         try:
             getOptValueCostType = CostType(getOptValueCostType)
         except ValueError as exc:
@@ -3309,8 +3317,8 @@ class ComponentModel(metaclass=ABCMeta):
         compName,
         ip,
         divisorName="",
-        QPfactorNames=[],
-        QPdivisorNames=[],
+        QPfactorNames=None,
+        QPdivisorNames=None,
         getOptValue=False,
     ):
         """Set time-independent equation specified for one component in one location in one investment period.
@@ -3360,6 +3368,11 @@ class ComponentModel(metaclass=ABCMeta):
             |br| * the default value is False.
         :type getoptValue: boolean
         """
+        if QPfactorNames is None:
+            QPfactorNames = []
+        if QPdivisorNames is None:
+            QPdivisorNames = []
+
         # negative ip (historical data) older than technical lifetime
         # round or ceil technical lifetime to interval
         if self.componentsDict[compName].floorTechnicalLifetime:
