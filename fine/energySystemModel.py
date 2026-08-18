@@ -2241,50 +2241,23 @@ class EnergySystemModel:
                 # if _capacityVariablesOptimum is not a dict, convert to dict
                 # (if single year system is optimized several times)
 
-                mdl.setOptimalValues(self, self.pyM)
+                # Result pipeline: read the solved variables, derive the economics from
+                # them and assemble the summary as a view of both. The phases are driven
+                # from here rather than hidden behind a single overridable method, so that
+                # a modeling class only overrides the phase it actually changes.
+                mdl.extractRawResults(self, self.pyM)
+                mdl.deriveEconomics(self, self.pyM)
+                mdl.buildOptimizationSummary(self)
+                # Rename the internal _*VariablesOptimum/_optSummary attributes to their
+                # public names. This is driven from here, once per modeling class, so that
+                # it cannot be forgotten by a modeling class.
+                mdl._convertOptimalValueNames(self)
                 outputString = (
                     ("for {:" + w + "}").format(key + " ...")
                     + "(%.4f" % (time.time() - __t)
                     + "sec)"
                 )
                 utils.output(outputString, self.verboseLogLevel, 0)
-
-                # convert optimal values from internal name to external name
-                # e.g. from _capacityVariablesOptimum to capacityVariablesOptimum
-                # For perfectForesight the data stays the same, for a single year optimization
-                # the data is converted from a dict with a single entry to a dataframe
-                # By this, old models will not fail.
-                def convertOptimalValues(esM, mdl, key):
-                    if key in mdl.__dict__.keys():
-                        if esM.numberOfInvestmentPeriods == 1:
-                            setattr(
-                                mdl,
-                                key.replace("_", ""),
-                                getattr(mdl, key)[esM.investmentPeriodNames[0]],
-                            )
-                        else:
-                            setattr(mdl, key.replace("_", ""), getattr(mdl, key))
-                    else:
-                        pass
-
-                optimalValueParameters = [
-                    "_optSummary",
-                    "_stateOfChargeOperationVSariablesOptimum",
-                    "_chargeOperationVariablesOptimum",
-                    "_dischargeOperationVariablesOptimum",
-                    "_phaseAngleVariablesOptimum",
-                    "_operationVariablesOptimum",
-                    "_discretizationPointVariablesOptimum",
-                    "_discretizationSegmentConVariablesOptimum",
-                    "_discretizationSegmentBinVariablesOptimum",
-                    "_capacityVariablesOptimum",
-                    "_isBuiltVariablesOptimum",
-                    "_commissioningVariablesOptimum",
-                    "_decommissioningVariablesOptimum",
-                ]
-
-                for optParam in optimalValueParameters:
-                    convertOptimalValues(self, mdl, optParam)
 
             if hasattr(self, "pwlcfModel"):
                 self.pwlcfModel.setOptimalValues(self, self.pyM)

@@ -856,69 +856,83 @@ class ConversionPartLoadModel(ConversionModel):
         """
         return super().getObjectiveFunctionContribution(esM, pyM)
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the part-load specific raw solved discretization variables.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Chains the Conversion hook (operation) and adds the discretization point / segment
+        continuous / segment binary variables to ``rawResults`` while populating the
+        corresponding ``self._*VariablesOptimum`` attributes.
         """
-        super().setOptimalValues(esM, pyM)
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
         abbrvName = self.abbrvName
-        discretizationPointVariables = getattr(pyM, "discretizationPoint_" + abbrvName)
-        discretizationSegmentConVariables = getattr(
-            pyM, "discretizationSegmentCon_" + abbrvName
-        )
-        discretizationSegmentBinVariables = getattr(
-            pyM, "discretizationSegmentBin_" + abbrvName
-        )
+        discretizationVars = [
+            (
+                "discretizationPoint",
+                getattr(pyM, "discretizationPoint_" + abbrvName),
+                self._discretizationPointVariablesOptimum,
+            ),
+            (
+                "discretizationSegmentCon",
+                getattr(pyM, "discretizationSegmentCon_" + abbrvName),
+                self._discretizationSegmentConVariablesOptimum,
+            ),
+            (
+                "discretizationSegmentBin",
+                getattr(pyM, "discretizationSegmentBin_" + abbrvName),
+                self._discretizationSegmentBinVariablesOptimum,
+            ),
+        ]
 
         for ip in esM.investmentPeriods:
-            discretizationPointVariablesOptVal_ = utils.formatOptimizationOutput(
-                discretizationPointVariables.get_values(),
-                VarType.OPERATION,
-                Dimension.ONE,
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-            discretizationSegmentConVariablesOptVal_ = utils.formatOptimizationOutput(
-                discretizationSegmentConVariables.get_values(),
-                VarType.OPERATION,
-                Dimension.ONE,
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
-            discretizationSegmentBinVariablesOptVal_ = utils.formatOptimizationOutput(
-                discretizationSegmentBinVariables.get_values(),
-                VarType.OPERATION,
-                Dimension.ONE,
-                ip,
-                esM.periodsOrder[ip],
-                esM=esM,
-            )
+            ipName = esM.investmentPeriodNames[ip]
+            for varName, pyomoVar, optimumAttr in discretizationVars:
+                optVal_ = utils.formatOptimizationOutput(
+                    pyomoVar.get_values(),
+                    VarType.OPERATION,
+                    Dimension.ONE,
+                    ip,
+                    esM.periodsOrder[ip],
+                    esM=esM,
+                )
+                optimumAttr[ipName] = optVal_
+                rawResults[ipName][varName] = optVal_
 
-            self._discretizationPointVariablesOptimum[esM.investmentPeriodNames[ip]] = (
-                discretizationPointVariablesOptVal_
-            )
-            self._discretizationSegmentConVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = discretizationSegmentConVariablesOptVal_
-            self._discretizationSegmentBinVariablesOptimum[
-                esM.investmentPeriodNames[ip]
-            ] = discretizationSegmentBinVariablesOptVal_
+    def _exportOptimumVarMap(self):
+        """Extend the Conversion export map with the part-load discretization variables.
+
+        These are 1-dim, time-dependent variables (like the conversion operation) and were
+        part of the netCDF/xarray export before the results-dict refactor.
+        """
+        d = self.dimension
+        return super()._exportOptimumVarMap() + [
+            ("discretizationPoint", "discretizationPointVariablesOptimum", True, d),
+            (
+                "discretizationSegmentCon",
+                "discretizationSegmentConVariablesOptimum",
+                True,
+                d,
+            ),
+            (
+                "discretizationSegmentBin",
+                "discretizationSegmentBinVariablesOptimum",
+                True,
+                d,
+            ),
+        ]
 
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 
-            * 'capacityVariables',
-            * 'isBuiltVariables',
-            * '_operationVariablesOptimum',
+            * 'capacityVariablesOptimum',
+            * 'isBuiltVariablesOptimum',
+            * 'operationVariablesOptimum',
+            * 'commissioningVariablesOptimum',
+            * 'decommissioningVariablesOptimum',
+            * 'discretizationPointVariablesOptimum',
+            * 'discretizationSegmentConVariablesOptimum',
+            * 'discretizationSegmentBinVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         |br| * the default value is 'all'
@@ -931,28 +945,29 @@ class ConversionPartLoadModel(ConversionModel):
         :returns: a dictionary with the optimal values of the components
         :rtype: dict
         """
-        # return super().getOptimalValues(name)
-
-        timeDependentMapping = {
-            "capacityVariablesOptimum": False,
-            "isBuiltVariablesOptimum": False,
-            "operationVariablesOptimum": True,
-            "discretizationPointVariablesOptimum": True,
-            "discretizationSegmentConVariablesOptimum": True,
-            "discretizationSegmentBinVariablesOptimum": True,
-        }
-
-        if name in timeDependentMapping:
+        discretizationNames = (
+            "discretizationPointVariablesOptimum",
+            "discretizationSegmentConVariablesOptimum",
+            "discretizationSegmentBinVariablesOptimum",
+        )
+        if name in discretizationNames:
             return {
                 "values": getattr(self, f"_{name}")[ip],
-                "timeDependent": timeDependentMapping[name],
+                "timeDependent": True,
                 "dimension": self.dimension,
             }
-        return {
+
+        result = super().getOptimalValues(name, ip=ip)
+        # a single conversion variable was requested and returned by the base class
+        if name != "all" and "values" in result:
+            return result
+        discretizationEntries = {
             valName: {
                 "values": getattr(self, f"_{valName}")[ip],
-                "timeDependent": timeDependentMapping[valName],
+                "timeDependent": True,
                 "dimension": self.dimension,
             }
-            for valName in timeDependentMapping
+            for valName in discretizationNames
         }
+        result.update(discretizationEntries)
+        return result
