@@ -28,8 +28,8 @@ class ComponentEconomicsMixin:
         lifetimeAttr,
         varName,
         divisorName="",
-        QPfactorNames=[],
-        QPdivisorNames=[],
+        QPfactorNames=None,
+        QPdivisorNames=None,
         getOptValue=False,
         getOptValueCostType=CostType.TAC,
     ):
@@ -74,6 +74,11 @@ class ComponentEconomicsMixin:
             |br| * the default value is None.
         :type getOptValueCostType: string
         """
+        if QPfactorNames is None:
+            QPfactorNames = []
+        if QPdivisorNames is None:
+            QPdivisorNames = []
+
         try:
             getOptValueCostType = CostType(getOptValueCostType)
         except ValueError as exc:
@@ -297,8 +302,8 @@ class ComponentEconomicsMixin:
         compName,
         ip,
         divisorName="",
-        QPfactorNames=[],
-        QPdivisorNames=[],
+        QPfactorNames=None,
+        QPdivisorNames=None,
         getOptValue=False,
     ):
         """Set time-independent equation specified for one component in one location in one investment period.
@@ -348,6 +353,11 @@ class ComponentEconomicsMixin:
             |br| * the default value is False.
         :type getoptValue: boolean
         """
+        if QPfactorNames is None:
+            QPfactorNames = []
+        if QPdivisorNames is None:
+            QPdivisorNames = []
+
         # negative ip (historical data) older than technical lifetime
         # round or ceil technical lifetime to interval
         if self.componentsDict[compName].floorTechnicalLifetime:
