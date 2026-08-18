@@ -1182,7 +1182,7 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
         self,
         esM,
         pyM,
-        binaryOperationParameter=["partLoadMin"],
+        binaryOperationParameter=None,
         binaryOperationSetName="operationBinVarSet",
     ):
         """Declare binary operation variables.
@@ -1193,6 +1193,9 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
         """
+        if binaryOperationParameter is None:
+            binaryOperationParameter = ["partLoadMin"]
+
         compDict, abbrvName = self.componentsDict, self.abbrvName
         varSet = getattr(pyM, "operationVarSet_" + abbrvName)
 
