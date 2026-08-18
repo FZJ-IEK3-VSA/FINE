@@ -989,6 +989,22 @@ def multi_node_test_esM_optimized(multi_node_test_esM_init):
         rescaleClusterPeriods=True,
     )
 
+    # Break ties between solutions that only redistribute offshore generation,
+    # electrolyzer operation, and hydrogen storage operation across time. Add
+    # the perturbation after clustering so that it does not influence which
+    # periods are selected as typical periods.
+    offshore_wind = esM.getComponent("Wind (offshore)")
+    for ip in esM.investmentPeriods:
+        operation_rate = offshore_wind.aggregatedOperationRateMax[ip]
+        time_step_cost = np.linspace(
+            1e-5 / len(operation_rate), 1e-5, len(operation_rate)
+        )
+        offshore_wind.aggregatedCommodityCostTimeSeries[ip] = pd.DataFrame(
+            np.broadcast_to(time_step_cost[:, np.newaxis], operation_rate.shape),
+            index=operation_rate.index,
+            columns=operation_rate.columns,
+        )
+
     esM.optimize(
         timeSeriesAggregation=True,
         solver=ImplementedSolvers.STANDARD_SOLVER.value,
