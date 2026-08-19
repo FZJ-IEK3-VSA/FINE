@@ -1094,21 +1094,24 @@ def plotPieChart(
     results_df,
     Property_to_plot="capacity",
     indexColumn_in_shp="index",
-    color_list=[
-        "skyBlue",
-        "green",
-        "yellowGreen",
-        "#FFB732",
-        "yellow",
-        "darkOrange",
-        "#996300",
-        "steelBlue",
-        "darkBlue",
-    ],
+    color_list=None,
     scaling_factor=500,
     legend_fontsize=14,
 ):
     """Plot pie charts on a map."""
+    if color_list is None:
+        color_list = [
+            "skyBlue",
+            "green",
+            "yellowGreen",
+            "#FFB732",
+            "yellow",
+            "darkOrange",
+            "#996300",
+            "steelBlue",
+            "darkBlue",
+        ]
+
     # Import shapefile, add centroid information
     shapefile = gpd.read_file(locFilePath)
     shapefile["centroid"] = shapefile.geometry.centroid

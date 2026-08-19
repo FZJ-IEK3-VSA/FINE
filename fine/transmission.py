@@ -1021,37 +1021,6 @@ class TransmissionModel(ComponentModel):
                     tacParts.insert(0, results_ip["TAC"])
                 results_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
 
-                # The legacy NPV groupby added the (all-NaN) operation NPV row, leaving the
-                # NPVcontribution values unchanged but normalizing NaN cells (sparse
-                # connections) to 0. That 0 matters: the connection-splitting stack() below
-                # drops NaN cells, so without this the NPVcontribution rows of unused
-                # connections would disappear. Reproduce the NaN->0 normalization.
-                if (
-                    "NPVcontribution" in results_ip
-                    and not results_ip["NPVcontribution"].empty
-                ):
-                    results_ip["NPVcontribution"] = (
-                        results_ip["NPVcontribution"].groupby(level=0).sum()
-                    )
-
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
-        """
-        mapC = self._connectionLocationMap(esM)
-        # Set optimal design dimension variables, derive the economics (incl. the
-        # operation opex via _deriveSubclassEconomics, already folded into TAC) and get
-        # the basic optimization summary, then assemble the full summary as a view.
-        optSummaryBasic = super().setOptimalValues(
-            esM, pyM, mapC.keys(), "commodityUnit"
-        )
-        self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
-
     def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
         """Assemble the transmission summary (operation rows + basic summary) as a view.
 
@@ -1065,7 +1034,8 @@ class TransmissionModel(ComponentModel):
         :type esM: EnergySystemModel instance
 
         :param optSummaryBasic: basic summary returned by the base
-            :meth:`~fine.component.Component.setOptimalValues`, keyed by investment period name.
+            :meth:`~fine.component.ComponentModel.buildOptimizationSummary`, keyed by investment
+            period name.
         :type optSummaryBasic: dict
 
         :return: full optimization summary keyed by investment period name.
@@ -1127,7 +1097,7 @@ class TransmissionModel(ComponentModel):
 
             # operation rows (operation, operation_annual, opexOp) are aggregated once in
             # _subclassSummaryFrames and written here (connection-indexed, split into
-            # locationIn/locationOut below), so the summary and the raw-results export
+            # locationIn/locationOut below), so the summary and the staged raw-results export
             # accessor share the same source. opexOp carries the preserved operation-NPV
             # quirk (see _deriveSubclassEconomics).
             self._writeOperationSummaryRows(optSummary, esM, ipName)
@@ -1146,7 +1116,11 @@ class TransmissionModel(ComponentModel):
 
             # The TAC row of optSummaryBasic already includes the operation contribution
             # (folded in by _deriveSubclassEconomics); the NPVcontribution row is left
-            # unchanged, matching the legacy behavior described there.
+            # unchanged, matching the legacy behavior described there. Their all-NaN cells
+            # (location pairs without a connection) are already normalized to 0 by
+            # :func:`fine.results.summary.buildOptimizationSummary`. That 0 matters here:
+            # the stack() below drops NaN cells, so without it the TAC and NPVcontribution
+            # rows would lose the unconnected location pairs.
 
             # Split connection indices to two location indices
             optSummary = optSummary.stack()

@@ -21,10 +21,6 @@ from fine.aggregations.spatialAggregation import manager as spagat
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
 
-warnings.filterwarnings("ignore", category=FutureWarning)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("always", category=UserWarning)
-
 
 class EnergySystemModel:
     r"""EnergySystemModel class.
@@ -2245,10 +2241,16 @@ class EnergySystemModel:
                 # if _capacityVariablesOptimum is not a dict, convert to dict
                 # (if single year system is optimized several times)
 
-                mdl.setOptimalValues(self, self.pyM)
+                # Result pipeline: read the solved variables, derive the economics from
+                # them and assemble the summary as a view of both. The phases are driven
+                # from here rather than hidden behind a single overridable method, so that
+                # a modeling class only overrides the phase it actually changes.
+                mdl.extractRawResults(self, self.pyM)
+                mdl.deriveEconomics(self, self.pyM)
+                mdl.buildOptimizationSummary(self)
                 # Rename the internal _*VariablesOptimum/_optSummary attributes to their
                 # public names. This is driven from here, once per modeling class, so that
-                # it cannot be forgotten by a class that overrides setOptimalValues.
+                # it cannot be forgotten by a modeling class.
                 mdl._convertOptimalValueNames(self)
                 outputString = (
                     ("for {:" + w + "}").format(key + " ...")
