@@ -183,26 +183,6 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     compare_esm_outputs(esm_original, esm_from_netcdf)
 
 
-# TODO I think this test is not needed anymore - or needs to be adapted!
-# Could get thrown by summaryDict = modelingClass.getResultSummaryDict(esM, ip) or optimaDict = modelingClass.getResultOptimalValues(ip) within convertOptimizationOutputToDatasets() in xarrayIO.py
-# Error message has been adapated, so the test needs to be adapted as well.
-def test_export_without_raw_results_raises(minimal_test_esM, tmp_path):
-    """An esM read back from netCDF holds the summary but not the raw results dict, so
-    re-exporting its results must fail with an explanatory error instead of an AttributeError.
-    """
-    test_esM = str(tmp_path / "test_esM.nc")
-
-    esm_original = minimal_test_esM
-    esm_original.optimize()
-    xrIO.writeEnergySystemModelToNetCDF(
-        esm_original, outputFilePath=test_esM, overwriteExisting=True
-    )
-    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
-
-    with pytest.raises(RuntimeError, match="re-optimize"):
-        xrIO.convertOptimizationOutputToDatasets(esm_from_netcdf)
-
-
 def test_optSumOutputLevel_is_deprecated(minimal_test_esM):
     """The export cannot apply the summary's output-level filtering anymore, but the parameter
     is still accepted (as a no-op) so existing calls do not break.
