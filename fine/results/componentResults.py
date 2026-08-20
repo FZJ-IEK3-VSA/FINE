@@ -841,9 +841,36 @@ class ComponentResultsMixin:
         for compName in compDict:
             for prop, frame, unit in rows:
                 values = self._extractComponentResult(frame, compName, esM, mapC)
+                if prop in frames.FOLDED_SUMMARY_PROPERTIES:
+                    # The public optimization summary normalizes uncovered cells of these
+                    # folded cost rows to zero (see ``buildOptimizationSummary``). Recreate
+                    # its complete index here before the raw-results export turns the series
+                    # into xarray; otherwise omitted 2-dim connections reappear as NaN when
+                    # xarray aligns this variable with the component dataset's coordinates.
+                    if self.dimension == Dimension.ONE:
+                        fullIndex = pd.Index(sorted(esM.locations))
+                    else:
+                        fullIndex = pd.MultiIndex.from_tuples(mapC.values())
+                    if values is None or values.isna().all():
+                        # Keep the historical dtype too: a summary row containing only
+                        # synthesized zeros becomes int64 when passed through to_numeric.
+                        values = pd.Series(0, index=fullIndex)
+                    else:
+                        values = values.reindex(fullIndex)
+                        values = values.where(values.notna(), 0)
                 if values is None:
                     continue
-                series = self._nameResultSeries(pd.to_numeric(values), prop)
+                values = pd.to_numeric(values)
+                if (
+                    prop in frames.FOLDED_SUMMARY_PROPERTIES
+                    and self.dimension == Dimension.TWO
+                    and not values.empty
+                    and values.eq(0).all()
+                ):
+                    # Stacking the object-typed 2-dim summary historically converted an
+                    # all-zero folded row to int64. Preserve that serialized dtype as well.
+                    values = values.astype(int)
+                series = self._nameResultSeries(values, prop)
                 out[compName][prop] = (
                     series,
                     unit(compName) if callable(unit) else unit,

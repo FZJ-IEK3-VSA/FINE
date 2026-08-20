@@ -175,6 +175,9 @@ def test_getResultSummaryDict_agrees_with_the_optimization_summary(minimal_test_
                 expected = summary.loc[(component, prop, unit)]
                 if model.dimension == "2dim":
                     expected = expected.stack()
+                assert set(series.index) == set(expected.index), (
+                    f"{name}/{component}/{prop} has different locations/connections"
+                )
                 for location in series.index:
                     got = series.loc[location]
                     want = expected.loc[location]
