@@ -4,7 +4,6 @@ import pytest
 import fine as fn
 from fine.expansionModules.rollingHorizon import (
     rollingHorizonOptimization,
-    _DEFAULT_TSA_SETTINGS,
     _cachedGroupExists,
     _cachedIntervalConfigMismatches,
     _cachedIntervalChainMismatches,
@@ -859,36 +858,20 @@ def test_exceeded_lifetime_stock_dropped_by_2030(rh_results_exceeded_lifetime):
 # used to be individual rollingHorizonOptimization parameters, which restricted
 # callers to only those tsam settings. They are now a single
 # timeSeriesAggregationSettings dict passed straight through to
-# EnergySystemModel.aggregateTemporally, so any tsam kwarg is reachable.
-
-
-def test_default_tsa_settings_match_original_hardcoded_values():
-    """_DEFAULT_TSA_SETTINGS preserves the values that used to be hardcoded,
-    so callers who don't pass timeSeriesAggregationSettings see unchanged
-    behavior.
-    """
-    assert _DEFAULT_TSA_SETTINGS == {
-        "numberOfTypicalPeriods": 7,
-        "numberOfTimeStepsPerPeriod": 24,
-        "numberOfSegmentsPerPeriod": 16,
-        "segmentation": True,
-        "clusterMethod": "hierarchical",
-        "sortValues": True,
-        "rescaleClusterPeriods": True,
-        "representationMethod": None,
-    }
+# EnergySystemModel.aggregateTemporally, so any tsam kwarg is reachable. Settings
+# not given fall back to aggregateTemporally's own defaults directly - rolling
+# horizon no longer maintains a separate default policy of its own.
 
 
 def test_partial_tsa_settings_override_merges_with_defaults():
     """Passing only one key in timeSeriesAggregationSettings must not reset
-    the other tsam settings. numberOfTypicalPeriods is left at its default
-    (7), which the 2-time-step test system cannot satisfy (7*1 > 2),
-    proving the default is still active alongside the override.
+    the other tsam settings. numberOfTypicalPeriods is left at
+    aggregateTemporally's own default (40), which the 2-time-step test
+    system cannot satisfy (40*1 > 2), proving the default is still active
+    alongside the override.
     """
     esM = _build_esM()
-    with pytest.raises(
-        ValueError, match="product of the numberOfTypicalPeriods"
-    ):
+    with pytest.raises(ValueError, match="product of the numberOfTypicalPeriods"):
         rollingHorizonOptimization(
             esM=esM,
             scenario_name="test_partial_tsa",
@@ -902,7 +885,7 @@ def test_partial_tsa_settings_override_merges_with_defaults():
 def rh_results_tsa_custom():
     """Override numberOfTypicalPeriods/numberOfTimeStepsPerPeriod/
     numberOfSegmentsPerPeriod via timeSeriesAggregationSettings to reach
-    aggregateTemporally: the default values (7 typical periods, 24 time
+    aggregateTemporally: the default values (40 typical periods, 24 time
     steps per period) are impossible to satisfy for this 2-time-step test
     system, so a successful run here proves the override was applied.
     """
@@ -1026,9 +1009,7 @@ def _track_optimize_calls(monkeypatch):
     return calls
 
 
-def test_resume_skips_optimize_when_all_intervals_cached(
-    rh_netcdf_cache, monkeypatch
-):
+def test_resume_skips_optimize_when_all_intervals_cached(rh_netcdf_cache, monkeypatch):
     """resume=True must load every interval from its cached group instead
     of rebuilding and re-solving it, once the cache is fully populated.
     This is the point of resuming a finished/interrupted run: no interval

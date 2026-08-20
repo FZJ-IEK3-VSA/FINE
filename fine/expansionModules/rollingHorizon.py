@@ -14,18 +14,6 @@ import copy
 from pathlib import Path
 
 
-_DEFAULT_TSA_SETTINGS = {
-    "numberOfTypicalPeriods": 7,
-    "numberOfTimeStepsPerPeriod": 24,
-    "numberOfSegmentsPerPeriod": 16,
-    "segmentation": True,
-    "clusterMethod": "hierarchical",
-    "sortValues": True,
-    "rescaleClusterPeriods": True,
-    "representationMethod": None,
-}
-
-
 def _cachedGroupExists(netCDFPath, groupPrefix):
     """Check whether a given interval's group is already present in the
     shared rolling horizon netCDF file, without loading it.
@@ -51,7 +39,10 @@ def _cachedIntervalConfigMismatches(
             f"cached startYear ({cachedEsm.startYear}) does not match the "
             f"expected interval start year ({rollingHorizonYears[0]})"
         )
-    if cachedEsm.numberOfInvestmentPeriods != numberOfInvestmentPeriodsForRollingHorizon:
+    if (
+        cachedEsm.numberOfInvestmentPeriods
+        != numberOfInvestmentPeriodsForRollingHorizon
+    ):
         reasons.append(
             "cached numberOfInvestmentPeriods "
             f"({cachedEsm.numberOfInvestmentPeriods}) does not match "
@@ -120,6 +111,322 @@ def _cachedIntervalChainMismatches(cachedEsm, rollingHorizonCompDict):
     return reasons
 
 
+def _updateStockCommissioningForInterval(
+    compEntry,
+    classname,
+    comp,
+    rollingHorizonYears,
+    rollingHorizonIntervals,
+    interval,
+    esM_results,
+    persistedStock,
+):
+    """Update a single component's stockCommissioning for the interval about
+    to be built: restore the stock accumulated from prior intervals, fold in
+    the previous interval's commissioning (if any), and prune stock older
+    than the component's technical lifetime. Mutates compEntry in place and
+    updates persistedStock[classname][comp] for the next interval to pick up.
+    """
+    # restore accumulated stock from previous iterations
+    compEntry["stockCommissioning"] = copy.deepcopy(persistedStock[classname][comp])
+
+    # first rolling horizon requires no changes, just external stock,
+    # further years needs internal optimization results
+    if rollingHorizonYears != rollingHorizonIntervals[0]:
+        # get previous year
+        previousYear = rollingHorizonYears[0] - interval
+        # get model class from previous rolling horizon optimization
+        mdl_class = esM_results[previousYear].componentNames[comp]
+        # get commissioning results of previous rolling horizon
+        previousCommissioning = (
+            esM_results[previousYear]
+            .getOptimizationSummary(mdl_class, ip=previousYear)
+            .loc[comp, "commissioning"]
+        )
+        previousCommissioningLocation = previousCommissioning.loc[
+            previousCommissioning.index[0]
+        ].T
+
+        # add commissioning of previous runs as stock, if there was commissioning
+        if round(previousCommissioningLocation.sum(), 5) > 0:
+            # a) if no stock previously existed, create new structure
+            if compEntry["stockCommissioning"] is None:
+                compEntry["stockCommissioning"] = {}
+                compEntry["stockCommissioning"][previousYear] = (
+                    previousCommissioningLocation
+                )
+            # b) else add to structure
+            else:
+                compEntry["stockCommissioning"][previousYear] = (
+                    previousCommissioningLocation
+                )
+
+            # c) delete "too" old stock, as it will make
+            # problems with setup of parameters otherwise
+            stockData = compEntry["stockCommissioning"]
+            technicalLifetime = compEntry["technicalLifetime"]
+            outdatedStockYears = [
+                x
+                for x in stockData.keys()
+                if x < rollingHorizonYears[0] - technicalLifetime.max()
+            ]
+            for outdatedStockYear in outdatedStockYears:
+                compEntry["stockCommissioning"].pop(outdatedStockYear)
+
+    # persist updated stock for next iteration
+    persistedStock[classname][comp] = copy.deepcopy(compEntry["stockCommissioning"])
+
+
+def _filterComponentParametersForInterval(
+    compEntry, rollingHorizonYears, stockYears, esM
+):
+    """Filter a single component's dict entry down to the parameter values
+    relevant to this rolling horizon interval (plus, for non-operation-rate
+    parameters, its accumulated stock years) so the rebuilt esM only ever
+    sees data for years it actually spans. Mutates compEntry in place.
+    """
+    for parameter_name, parameter_value in compEntry.items():
+        # stock commissioning is handled separately, by
+        # _updateStockCommissioningForInterval
+        if parameter_name == "stockCommissioning":
+            continue
+        # 1.2 commodity conversion factors
+        if parameter_name == "commodityConversionFactors":
+            firstKey = list(parameter_value.keys())[0]
+            # check for ip dependendy
+            if firstKey in esM.investmentPeriodNames:
+                # filter for years of rolling horizon time frame
+                new_parameter_value = {
+                    key: value
+                    for (key, value) in parameter_value.items()
+                    if key in rollingHorizonYears
+                }
+                compEntry[parameter_name] = new_parameter_value
+            # check for (commis, ip dependency)
+            elif isinstance(firstKey, tuple):
+                # filter for correct operation years
+                _new_parameter_value = {
+                    (commisYear, opYear): value
+                    for (
+                        (commisYear, opYear),
+                        value,
+                    ) in parameter_value.items()
+                    if opYear in rollingHorizonYears
+                }
+                # filter out years before the modelyears
+                # without commissioning
+                new_parameter_value = _new_parameter_value.copy()
+                for commisYear, opYear in _new_parameter_value.keys():
+                    if (
+                        commisYear < rollingHorizonYears[0]
+                        and commisYear not in stockYears
+                    ):
+                        new_parameter_value.pop((commisYear, opYear))
+
+                compEntry[parameter_name] = new_parameter_value
+            else:
+                pass
+        # 1.3 other parameter which are yearly dependent
+        elif isinstance(parameter_value, dict):
+            if "PerOperation" in parameter_name:
+                relevantYears = rollingHorizonYears
+            else:
+                relevantYears = rollingHorizonYears + stockYears
+            # filter for years of rolling horizon time frame
+            new_parameter_value = {
+                _year: value
+                for (_year, value) in parameter_value.items()
+                if _year in relevantYears
+            }
+            compEntry[parameter_name] = new_parameter_value
+        # 1.4 other parameters, which do not change over time
+        else:
+            pass
+
+
+def _buildIntervalComponentDict(
+    compDict,
+    rollingHorizonYears,
+    rollingHorizonIntervals,
+    interval,
+    esM_results,
+    esM,
+    persistedStock,
+):
+    """Build this interval's component dict from the original esM's exported
+    compDict: restore/update each component's accumulated stockCommissioning
+    (see _updateStockCommissioningForInterval) and filter every other
+    parameter down to the years this interval actually spans (see
+    _filterComponentParametersForInterval). Mutates persistedStock in place
+    so the next interval picks up the stock this one leaves behind.
+    """
+    rollingHorizonCompDict = copy.deepcopy(dict(compDict))
+    for classname in rollingHorizonCompDict:
+        for comp in rollingHorizonCompDict[classname]:
+            compEntry = rollingHorizonCompDict[classname][comp]
+            _updateStockCommissioningForInterval(
+                compEntry,
+                classname,
+                comp,
+                rollingHorizonYears,
+                rollingHorizonIntervals,
+                interval,
+                esM_results,
+                persistedStock,
+            )
+            stockYears = (
+                list(compEntry["stockCommissioning"].keys())
+                if compEntry["stockCommissioning"] is not None
+                else []
+            )
+            _filterComponentParametersForInterval(
+                compEntry, rollingHorizonYears, stockYears, esM
+            )
+    return rollingHorizonCompDict
+
+
+def _loadCachedInterval(
+    resume,
+    mustSolveFresh,
+    netCDFPath,
+    groupPrefix,
+    rollingHorizonYears,
+    numberOfInvestmentPeriodsForRollingHorizon,
+    rollingHorizonCompDict,
+):
+    """Try to load this interval from the shared netCDF cache.
+
+    Returns (rollingHorizonEsm, loadedFromCache): (None, False) if resuming
+    is off, no cached group exists for this interval, or an earlier interval
+    in this run already had to be solved fresh (see rollingHorizonOptimization's
+    own cache-safety docs). A structurally mismatched cache raises a
+    ValueError; a stale-but-structurally-valid one is discarded with a
+    warning and (None, False) is returned so the caller solves it fresh.
+    """
+    if not (
+        resume
+        and not mustSolveFresh
+        and netCDFPath is not None
+        and _cachedGroupExists(netCDFPath, groupPrefix)
+    ):
+        return None, False
+
+    candidateEsm = readNetCDFtoEnergySystemModel(
+        str(netCDFPath), groupPrefix=groupPrefix
+    )
+
+    configMismatches = _cachedIntervalConfigMismatches(
+        candidateEsm,
+        rollingHorizonYears,
+        numberOfInvestmentPeriodsForRollingHorizon,
+    )
+    if configMismatches:
+        raise ValueError(
+            f"Cached result in group '{groupPrefix}' of {netCDFPath} "
+            f"does not match this call's configuration for interval "
+            f"{rollingHorizonYears}: {'; '.join(configMismatches)}. "
+            "Delete the cache or set resume=False to re-run this interval."
+        )
+
+    chainMismatches = _cachedIntervalChainMismatches(
+        candidateEsm, rollingHorizonCompDict
+    )
+    if chainMismatches:
+        warnings.warn(
+            f"Cached result in group '{groupPrefix}' of {netCDFPath} is "
+            f"stale and will be discarded and re-solved: "
+            f"{'; '.join(chainMismatches)}."
+        )
+        return None, False
+
+    print(
+        f"Resuming: loading cached result for {rollingHorizonYears} "
+        f"from group '{groupPrefix}' of {netCDFPath}"
+    )
+    return candidateEsm, True
+
+
+def _buildIntervalEsm(
+    esmDict,
+    rollingHorizonCompDict,
+    rollingHorizonYears,
+    numberOfInvestmentPeriodsForRollingHorizon,
+    esM,
+):
+    """Construct (but do not yet optimize) the EnergySystemModel for one
+    rolling horizon interval: a copy of the original esM's settings, scoped
+    down to this interval's startYear/numberOfInvestmentPeriods and to the
+    years it spans, with this interval's components added.
+    """
+    rollingHorizonEsmDict = esmDict.copy()
+    rollingHorizonEsmDict["startYear"] = rollingHorizonYears[0]
+    rollingHorizonEsmDict["numberOfInvestmentPeriods"] = (
+        numberOfInvestmentPeriodsForRollingHorizon
+    )
+    for param, value in rollingHorizonEsmDict.items():
+        if isinstance(value, dict) and list(value.keys()) == esM.investmentPeriodNames:
+            rollingHorizonEsmDict[param] = {
+                _year: _value
+                for (_year, _value) in value.items()
+                if _year in rollingHorizonYears
+            }
+    rollingHorizonEsm = fn.EnergySystemModel(**rollingHorizonEsmDict)
+    # add components per class
+    for classname in rollingHorizonCompDict:
+        for comp in rollingHorizonCompDict[classname]:
+            rollingHorizonEsm.add(
+                getattr(fn, classname)(
+                    esM=rollingHorizonEsm,
+                    **rollingHorizonCompDict[classname][
+                        comp
+                    ],  # information of component
+                )
+            )
+    return rollingHorizonEsm
+
+
+def _exportIntervalToNetCDF(rollingHorizonEsm, netCDFPath, groupPrefix):
+    """Write one interval's esM into its own group of the shared rolling
+    horizon netCDF file. overwriteExisting=False: this call only ever
+    touches its own group (groupPrefix); the other intervals' groups in the
+    shared file must be left untouched.
+    """
+    writeEnergySystemModelToNetCDF(
+        rollingHorizonEsm,
+        outputFilePath=str(netCDFPath),
+        overwriteExisting=False,
+        groupPrefix=groupPrefix,
+    )
+
+
+def _exportIntervalToExcel(
+    rollingHorizonEsm,
+    rollingHorizonYears,
+    rollingHorizonIntervals,
+    resultExportPath,
+    scenario_name,
+    excelOutputSettings,
+):
+    """Write one interval's optimization summary to the shared Excel output.
+    For every interval except the last, only its first year is exported; the
+    last interval exports every year it spans.
+    """
+    if rollingHorizonYears != rollingHorizonIntervals[-1]:
+        exportYears = [rollingHorizonYears[0]]
+    else:
+        exportYears = rollingHorizonYears
+
+    for year in exportYears:
+        writeOptimizationOutputToExcel(
+            rollingHorizonEsm,
+            outputFileName=str(
+                Path(resultExportPath) / f"{scenario_name}_rollingHorizon"
+            ),
+            investmentPeriod=year,
+            **excelOutputSettings,
+        )
+
+
 def rollingHorizonOptimization(
     esM,
     numberOfInvestmentPeriodsForRollingHorizon,
@@ -127,7 +434,9 @@ def rollingHorizonOptimization(
     timeSeriesAggregationSettings=None,
     solver="gurobi",
     optimizationSpecs="",
+    optimizeSettings=None,
     writeExcelOutput=False,
+    excelOutputSettings=None,
     writeNetCDFOutput=False,
     resume=False,
     resultExportPath=None,
@@ -163,10 +472,26 @@ def rollingHorizonOptimization(
     :param timeSeriesAggregationSettings: keyword arguments passed directly to
         EnergySystemModel.aggregateTemporally (e.g. numberOfTypicalPeriods, numberOfTimeStepsPerPeriod,
         numberOfSegmentsPerPeriod, segmentation, clusterMethod, sortValues, rescaleClusterPeriods,
-        representationMethod, or any further tsam kwarg). Settings not given fall back to rolling-horizon
-        defaults; only used if timeSeriesAggregation is True.
+        representationMethod, or any further tsam kwarg). Settings not given fall back to
+        aggregateTemporally's own defaults; only used if timeSeriesAggregation is True.
         |br| * the default value is None
     :type timeSeriesAggregationSettings: dict or None
+
+    :param optimizeSettings: keyword arguments passed directly to EnergySystemModel.optimize for every
+        interval (e.g. relaxIsBuiltBinary, logFileName, threads, timeLimit, warmstart, relevanceThreshold,
+        includePerformanceSummary). declaresOptimizationProblem, timeSeriesAggregation, solver and
+        optimizationSpecs are already covered by this function's own parameters and must not be repeated
+        here. Settings not given fall back to optimize's own defaults.
+        |br| * the default value is None
+    :type optimizeSettings: dict or None
+
+    :param excelOutputSettings: keyword arguments passed directly to writeOptimizationOutputToExcel for
+        every exported interval (e.g. optSumOutputLevel, optValOutputLevel). outputFileName and
+        investmentPeriod are already determined by this function and must not be repeated here. Settings
+        not given fall back to writeOptimizationOutputToExcel's own defaults; only used if writeExcelOutput
+        is True.
+        |br| * the default value is None
+    :type excelOutputSettings: dict or None
     """
     saveNetCDF = writeNetCDFOutput or resume
 
@@ -179,7 +504,9 @@ def rollingHorizonOptimization(
             "scenario_name must be set if writeExcelOutput, writeNetCDFOutput or resume is True."
         )
 
-    tsaSettings = {**_DEFAULT_TSA_SETTINGS, **(timeSeriesAggregationSettings or {})}
+    tsaSettings = timeSeriesAggregationSettings or {}
+    optimizeSettings = optimizeSettings or {}
+    excelOutputSettings = excelOutputSettings or {}
 
     if esM.rollingHorizonStartYear is None:
         esM.rollingHorizonStartYear = esM.startYear
@@ -240,152 +567,15 @@ def rollingHorizonOptimization(
             f"Initizializing rolling horizon optimization for {rollingHorizonYears}..."
         )
         # 1. Analyse components and create dicts for adding them
-        rollingHorizonCompDict = copy.deepcopy(dict(compDict))
-        for classname in rollingHorizonCompDict:
-            for comp in rollingHorizonCompDict[classname]:
-                # restore accumulated stock from previous iterations
-                rollingHorizonCompDict[classname][comp]["stockCommissioning"] = (
-                    copy.deepcopy(persistedStock[classname][comp])
-                )
-                # 1.1 update stockCommissioning
-                # first rolling horizon requires no changes, just external stock,
-                # further years needs internal optimization results
-                if rollingHorizonYears != rollingHorizonIntervals[0]:
-                    # get previous year
-                    previousYear = rollingHorizonYears[0] - interval
-                    # get model class from previous rolling horizon optimization
-                    mdl_class = esM_results[previousYear].componentNames[comp]
-                    # get commissioning results of previous rolling horizon
-                    previousCommissioning = (
-                        esM_results[previousYear]
-                        .getOptimizationSummary(mdl_class, ip=previousYear)
-                        .loc[comp, "commissioning"]
-                    )
-                    previousCommissioningLocation = previousCommissioning.loc[
-                        previousCommissioning.index[0]
-                    ].T
-
-                    # add commissioning of previous runs as stock, if there was commissioning
-                    if round(previousCommissioningLocation.sum(), 5) > 0:
-                        # a) if no stock previously existed, create new structure
-                        if (
-                            rollingHorizonCompDict[classname][comp][
-                                "stockCommissioning"
-                            ]
-                            is None
-                        ):
-                            rollingHorizonCompDict[classname][comp][
-                                "stockCommissioning"
-                            ] = {}
-                            rollingHorizonCompDict[classname][comp][
-                                "stockCommissioning"
-                            ][previousYear] = previousCommissioningLocation
-                        # b) else add to structure
-                        else:
-                            rollingHorizonCompDict[classname][comp][
-                                "stockCommissioning"
-                            ][previousYear] = previousCommissioningLocation
-
-                        # c) delete "too" old stock, as it will make
-                        # problems with setup of parameters otherwise
-                        stockData = rollingHorizonCompDict[classname][comp][
-                            "stockCommissioning"
-                        ]
-                        technicalLifetime = rollingHorizonCompDict[classname][comp][
-                            "technicalLifetime"
-                        ]
-                        outdatedStockYears = [
-                            x
-                            for x in stockData.keys()
-                            if x < rollingHorizonYears[0] - technicalLifetime.max()
-                        ]
-                        for outdatedStockYear in outdatedStockYears:
-                            rollingHorizonCompDict[classname][comp][
-                                "stockCommissioning"
-                            ].pop(outdatedStockYear)
-
-                # persist updated stock for next iteration
-                persistedStock[classname][comp] = copy.deepcopy(
-                    rollingHorizonCompDict[classname][comp]["stockCommissioning"]
-                )
-
-                if (
-                    rollingHorizonCompDict[classname][comp]["stockCommissioning"]
-                    is not None
-                ):
-                    stockYears = list(
-                        rollingHorizonCompDict[classname][comp][
-                            "stockCommissioning"
-                        ].keys()
-                    )
-                else:
-                    stockYears = []
-
-                # get data for rolling horizon years from perfect foresight model
-                for parameter_name, parameter_value in rollingHorizonCompDict[
-                    classname
-                ][comp].items():
-                    # stock commissioning
-                    if parameter_name == "stockCommissioning":
-                        continue
-                    # 1.2 commodity conversion factors
-                    if parameter_name == "commodityConversionFactors":
-                        firstKey = list(parameter_value.keys())[0]
-                        # check for ip dependendy
-                        if firstKey in esM.investmentPeriodNames:
-                            # filter for years of rolling horizon time frame
-                            new_parameter_value = {
-                                key: value
-                                for (key, value) in parameter_value.items()
-                                if key in rollingHorizonYears
-                            }
-                            rollingHorizonCompDict[classname][comp][parameter_name] = (
-                                new_parameter_value
-                            )
-                        # check for (commis, ip dependency)
-                        elif isinstance(firstKey, tuple):
-                            # filter for correct operation years
-                            _new_parameter_value = {
-                                (commisYear, opYear): value
-                                for (
-                                    (commisYear, opYear),
-                                    value,
-                                ) in parameter_value.items()
-                                if opYear in rollingHorizonYears
-                            }
-                            # filter out years before the modelyears
-                            # without commissioning
-                            new_parameter_value = _new_parameter_value.copy()
-                            for commisYear, opYear in _new_parameter_value.keys():
-                                if (
-                                    commisYear < rollingHorizonYears[0]
-                                    and commisYear not in stockYears
-                                ):
-                                    new_parameter_value.pop((commisYear, opYear))
-
-                            rollingHorizonCompDict[classname][comp][parameter_name] = (
-                                new_parameter_value
-                            )
-                        else:
-                            pass
-                    # 1.3 other parameter which are yearly dependent
-                    elif isinstance(parameter_value, dict):
-                        if "PerOperation" in parameter_name:
-                            relevantYears = rollingHorizonYears
-                        else:
-                            relevantYears = rollingHorizonYears + stockYears
-                        # filter for years of rolling horizon time frame
-                        new_parameter_value = {
-                            _year: value
-                            for (_year, value) in parameter_value.items()
-                            if _year in relevantYears
-                        }
-                        rollingHorizonCompDict[classname][comp][parameter_name] = (
-                            new_parameter_value
-                        )
-                    # 1.4 other parameters, which do not change over time
-                    else:
-                        pass
+        rollingHorizonCompDict = _buildIntervalComponentDict(
+            compDict,
+            rollingHorizonYears,
+            rollingHorizonIntervals,
+            interval,
+            esM_results,
+            esM,
+            persistedStock,
+        )
 
         # 2. check for a cached result of this interval (its own group in the
         # shared netCDF file) to resume from. Once any interval has had to be
@@ -393,80 +583,26 @@ def rollingHorizonOptimization(
         # surviving downstream of a regenerated predecessor was necessarily
         # built from a different chain.
         groupPrefix = str(rollingHorizonYears[0])
-
-        loadedFromCache = False
-        if (
-            resume
-            and not mustSolveFresh
-            and netCDFPath is not None
-            and _cachedGroupExists(netCDFPath, groupPrefix)
-        ):
-            candidateEsm = readNetCDFtoEnergySystemModel(
-                str(netCDFPath), groupPrefix=groupPrefix
-            )
-
-            configMismatches = _cachedIntervalConfigMismatches(
-                candidateEsm,
-                rollingHorizonYears,
-                numberOfInvestmentPeriodsForRollingHorizon,
-            )
-            if configMismatches:
-                raise ValueError(
-                    f"Cached result in group '{groupPrefix}' of {netCDFPath} "
-                    f"does not match this call's configuration for interval "
-                    f"{rollingHorizonYears}: {'; '.join(configMismatches)}. "
-                    "Delete the cache or set resume=False to re-run this interval."
-                )
-
-            chainMismatches = _cachedIntervalChainMismatches(
-                candidateEsm, rollingHorizonCompDict
-            )
-            if chainMismatches:
-                warnings.warn(
-                    f"Cached result in group '{groupPrefix}' of {netCDFPath} is "
-                    f"stale and will be discarded and re-solved: "
-                    f"{'; '.join(chainMismatches)}."
-                )
-            else:
-                print(
-                    f"Resuming: loading cached result for {rollingHorizonYears} "
-                    f"from group '{groupPrefix}' of {netCDFPath}"
-                )
-                rollingHorizonEsm = candidateEsm
-                loadedFromCache = True
+        rollingHorizonEsm, loadedFromCache = _loadCachedInterval(
+            resume,
+            mustSolveFresh,
+            netCDFPath,
+            groupPrefix,
+            rollingHorizonYears,
+            numberOfInvestmentPeriodsForRollingHorizon,
+            rollingHorizonCompDict,
+        )
 
         if not loadedFromCache:
             mustSolveFresh = True
-            # 2a. init esm with new startYear and numberOfInvestmentPeriods and add components
-            rollingHorizonEsmDict = esmDict.copy()
-            rollingHorizonEsmDict["startYear"] = rollingHorizonYears[0]
-            rollingHorizonEsmDict["numberOfInvestmentPeriods"] = (
-                numberOfInvestmentPeriodsForRollingHorizon
+            # 3. build and optimize the rolling horizon esM
+            rollingHorizonEsm = _buildIntervalEsm(
+                esmDict,
+                rollingHorizonCompDict,
+                rollingHorizonYears,
+                numberOfInvestmentPeriodsForRollingHorizon,
+                esM,
             )
-            for param, value in rollingHorizonEsmDict.items():
-                if (
-                    isinstance(value, dict)
-                    and list(value.keys()) == esM.investmentPeriodNames
-                ):
-                    rollingHorizonEsmDict[param] = {
-                        _year: _value
-                        for (_year, _value) in value.items()
-                        if _year in rollingHorizonYears
-                    }
-            rollingHorizonEsm = fn.EnergySystemModel(**rollingHorizonEsmDict)
-            # add components per class
-            for classname in rollingHorizonCompDict:
-                for comp in rollingHorizonCompDict[classname]:
-                    rollingHorizonEsm.add(
-                        getattr(fn, classname)(
-                            esM=rollingHorizonEsm,
-                            **rollingHorizonCompDict[classname][
-                                comp
-                            ],  # information of component
-                        )
-                    )
-
-            # 3. optimize the rolling horizon esM
             if timeSeriesAggregation:
                 rollingHorizonEsm.aggregateTemporally(solver=solver, **tsaSettings)
 
@@ -475,50 +611,22 @@ def rollingHorizonOptimization(
                 timeSeriesAggregation=timeSeriesAggregation,
                 solver=solver,
                 optimizationSpecs=optimizationSpecs,
+                **optimizeSettings,
             )
 
         # 4. export optimization summaries
         if saveNetCDF and not loadedFromCache:
-            # overwriteExisting=False: this call only ever touches its own
-            # group (groupPrefix); the other intervals' groups in the shared
-            # file must be left untouched.
-            writeEnergySystemModelToNetCDF(
-                rollingHorizonEsm,
-                outputFilePath=str(netCDFPath),
-                overwriteExisting=False,
-                groupPrefix=groupPrefix,
-            )
+            _exportIntervalToNetCDF(rollingHorizonEsm, netCDFPath, groupPrefix)
 
-        # For all optimization than the last rolling horizon optimization, export only first year.
-        # For the last rolling horizon interval, export all years.
         if writeExcelOutput:
-            if rollingHorizonYears != rollingHorizonIntervals[-1]:
-                exportYears = [rollingHorizonYears[0]]
-            else:
-                exportYears = rollingHorizonYears
-
-            for year in exportYears:
-                writeOptimizationOutputToExcel(
-                    rollingHorizonEsm,
-                    outputFileName=str(
-                        Path(resultExportPath) / f"{scenario_name}_rollingHorizon"
-                    ),
-                    optSumOutputLevel={
-                        "SourceSinkModel": 0,
-                        "ConversionModel": 0,
-                        "StorageModel": 0,
-                        "TransmissionModel": 0,
-                        "LOPFModel": 0,
-                    },
-                    optValOutputLevel={
-                        "SourceSinkModel": 0,
-                        "ConversionModel": 0,
-                        "StorageModel": 0,
-                        "TransmissionModel": 0,
-                        "LOPFModel": 0,
-                    },
-                    investmentPeriod=year,
-                )
+            _exportIntervalToExcel(
+                rollingHorizonEsm,
+                rollingHorizonYears,
+                rollingHorizonIntervals,
+                resultExportPath,
+                scenario_name,
+                excelOutputSettings,
+            )
 
         # 5. save esM's
         esM_results[rollingHorizonYears[0]] = rollingHorizonEsm
