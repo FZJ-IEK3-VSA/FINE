@@ -193,8 +193,12 @@ def _leafToIndexedData(data, classname, component, _mapC_dict, locations):
         if "Period" in multi_index_dataframe.index.names:
             multi_index_dataframe = multi_index_dataframe.droplevel(0)
 
-        multi_index_dataframe.index.set_names("time", level=0, inplace=True)
-        multi_index_dataframe.index.set_names("space", level=1, inplace=True)
+        multi_index_dataframe.index = multi_index_dataframe.index.set_names(
+            "time", level=0
+        )
+        multi_index_dataframe.index = multi_index_dataframe.index.set_names(
+            "space", level=1
+        )
 
         if isTransmission:
             # use _mapC to split the packed loc1_loc2 index into two dimensions
@@ -219,7 +223,9 @@ def _leafToIndexedData(data, classname, component, _mapC_dict, locations):
             # 2d (space, space_2): series indices are packed like loc1_loc2
             df = transform1dSeriesto2dDataFrame(data, locations)
             multi_index_dataframe = df.stack()
-            multi_index_dataframe.index.set_names(["space", "space_2"], inplace=True)
+            multi_index_dataframe.index = multi_index_dataframe.index.set_names(
+                ["space", "space_2"]
+            )
             return "2d_", multi_index_dataframe
 
         if set(data.index.values).issubset(set(locations)):
