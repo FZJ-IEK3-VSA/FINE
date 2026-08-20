@@ -101,7 +101,9 @@ def shapeOptimumResult(sub, name, timeDependent, dimension):
             # extra index levels (e.g. discretizationIndex) sit before location; stack
             # every column level so nothing is lost or collides on export, keeping the
             # level names set by formatOptimizationOutput.
-            series = subT.stack(list(range(subT.columns.nlevels)), future_stack=True).dropna()
+            series = subT.stack(
+                list(range(subT.columns.nlevels)), future_stack=True
+            ).dropna()
             extraNames = list(sub.index.names[:-1])
             series.index = series.index.rename(["time", *extraNames, "location"])
     elif timeDependent and dimension == Dimension.TWO:

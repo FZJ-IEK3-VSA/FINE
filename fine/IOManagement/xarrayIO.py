@@ -191,7 +191,11 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                     for component in (
                         dfTD1dim.loc[variable].index.get_level_values(0).unique()
                     ):
-                        df = dfTD1dim.loc[(variable, component)].T.stack(future_stack=True).dropna()
+                        df = (
+                            dfTD1dim.loc[(variable, component)]
+                            .T.stack(future_stack=True)
+                            .dropna()
+                        )
                         df.name = rename_optimum_variables.get(variable, variable)
                         df.index.rename(["time", "location"], inplace=True)
                         xr_da = df.to_xarray()
@@ -208,7 +212,11 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                     for component in (
                         dfTD2dim.loc[variable].index.get_level_values(0).unique()
                     ):
-                        df = dfTD2dim.loc[(variable, component)].stack(future_stack=True).dropna()
+                        df = (
+                            dfTD2dim.loc[(variable, component)]
+                            .stack(future_stack=True)
+                            .dropna()
+                        )
 
                         df.name = rename_optimum_variables.get(variable, variable)
                         df.index.rename(
@@ -246,7 +254,11 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         for component in (
                             dfTI.loc[variable].index.get_level_values(0).unique()
                         ):
-                            df = dfTI.loc[(variable, component)].T.stack(future_stack=True).dropna()
+                            df = (
+                                dfTI.loc[(variable, component)]
+                                .T.stack(future_stack=True)
+                                .dropna()
+                            )
                             df.name = variable
                             df.index.rename(["locationIn", "locationOut"], inplace=True)
                             xr_da = df.to_xarray()

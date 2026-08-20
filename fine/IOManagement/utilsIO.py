@@ -497,7 +497,11 @@ def add2dVariableToDict(
     :return: component_dict
     """
     if drop_component:
-        series = comp_var_xr.drop("component").to_dataframe().stack(level=0, future_stack=True)
+        series = (
+            comp_var_xr.drop("component")
+            .to_dataframe()
+            .stack(level=0, future_stack=True)
+        )
     else:
         series = comp_var_xr.to_dataframe().stack(level=0, future_stack=True)
     series.index = series.index.droplevel(level=2).map("_".join)
