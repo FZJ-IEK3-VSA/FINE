@@ -5,6 +5,7 @@ import pyomo.environ as pyomo
 import pytest
 
 
+# Cover all combinations of capacity variable usage and time segmentation.
 @pytest.mark.parametrize(
     "has_capacity_variable, has_segmentation",
     [
@@ -45,6 +46,7 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
     hours_per_time_step = 1
     segment_start_time = 4
 
+    # Build the minimal TSA structure required by minSOCwithTSAprecise().
     esM.hoursPerTimeStep = hours_per_time_step
     esM.periods = [p_inter]
     esM.timeStepsPerPeriod = [t]
@@ -54,6 +56,8 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
         }
     }
 
+    # With segmentation, the elapsed time relevant for self-discharge is
+    # determined by the segment start time rather than the time-step index.
     esM.segmentStartTime = {
         ip: pd.Series(
             data=[segment_start_time],
@@ -61,36 +65,54 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
         )
     }
 
+    # Update the component through the EnergySystemModel API so that component
+    # attributes are initialized consistently instead of changing them directly.
+    esM.updateComponent(
+        componentName=comp_name,
+        updateAttrs={
+            "hasCapacityVariable": has_capacity_variable,
+            "selfDischarge": self_discharge,
+            "stateOfChargeMin": min_soc_value,
+            "doPreciseTsaModeling": True,
+        },
+    )
+
     storage_model = esM.componentModelingDict[esM.componentNames[comp_name]]
     storage_component = storage_model.componentsDict[comp_name]
     abbrv_name = storage_model.abbrvName
 
-    storage_component.hasCapacityVariable = has_capacity_variable
-    storage_component.selfDischarge = self_discharge
-    storage_component.processedStateOfChargeMin = {
-        ip: {
-            loc: pd.DataFrame(
-                data=[[min_soc_value]],
-                index=[p_inter],
-                columns=[t],
-            )
-        }
-    }
+    # Mimic the aggregated minimum-SOC time series required by the TSA
+    # constraint without running a complete time-series aggregation.
+    storage_component.aggregatedStateOfChargeMin[ip] = pd.DataFrame(
+        data=[min_soc_value],
+        index=pd.MultiIndex.from_tuples([(p_inter, t)]),
+        columns=[loc],
+    )
+    storage_component.setTimeSeriesData(hasTSA=True)
 
+    # Reproduce the elapsed time used by minSOCwithTSAprecise() for the
+    # self-discharge calculation.
     if has_segmentation:
         exponent = segment_start_time * hours_per_time_step
     else:
         exponent = t * hours_per_time_step
 
+    # With a capacity variable, the minimum SOC is relative to capacity.
+    # Otherwise, stateOfChargeMin is already interpreted as an absolute value.
     if has_capacity_variable:
         min_soc_absolute = cap_value * min_soc_value
     else:
         min_soc_absolute = min_soc_value
 
+    # Start exactly at the minimum SOC and let the intra-period SOC compensate
+    # exactly for the self-discharge loss. The resulting constraint must bind.
     soc_inter_value = min_soc_absolute
     soc_value = min_soc_absolute - min_soc_absolute * (1 - self_discharge) ** exponent
 
-    pyM = pyomo.ConcreteModel()
+    # Store the minimal Pyomo model on the EnergySystemModel, as done by FINE
+    # for declared optimization problems.
+    esM.pyM = pyomo.ConcreteModel()
+    pyM = esM.pyM
     pyM.hasSegmentation = has_segmentation
 
     setattr(
@@ -142,10 +164,13 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
     soc = getattr(pyM, f"stateOfCharge_{abbrv_name}")
     cap = getattr(pyM, f"cap_{abbrv_name}")
 
+    # Fix the relevant variables so that the constraint can be evaluated
+    # directly without solving an optimization problem.
     soc_inter[loc, comp_name, ip, p_inter].fix(soc_inter_value)
     soc[loc, comp_name, ip, period, t].fix(soc_value)
     cap[loc, comp_name, ip].fix(cap_value)
 
+    # Create the minimum-SOC constraint under test.
     storage_model.minSOCwithTSAprecise(pyM, esM)
 
     constraint = getattr(pyM, f"ConstrSOCMinPrecise_{abbrv_name}")[
@@ -156,6 +181,7 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
         t,
     ]
 
+    # Independently calculate the expected self-discharge loss.
     expected_soc_after_self_discharge = (
         soc_inter_value * (1 - self_discharge) ** exponent
     )
@@ -164,11 +190,15 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
     assert hasattr(pyM, f"ConstrSOCMinPrecise_{abbrv_name}")
     assert len(getattr(pyM, f"ConstrSOCMinPrecise_{abbrv_name}")) == 1
 
+    # Verify that the constructed values actually represent the intended
+    # boundary case.
     assert soc_inter_value == pytest.approx(min_soc_absolute)
     assert soc_value == pytest.approx(expected_self_discharge_loss)
 
     body_value = pyomo.value(constraint.body)
 
+    # Since the intra-period SOC exactly compensates self-discharge, the
+    # minimum-SOC inequality must be exactly binding.
     if constraint.lower is not None:
         lower_value = pyomo.value(constraint.lower)
         assert body_value == pytest.approx(lower_value)
@@ -177,4 +207,6 @@ def test_minSOCwithTSAprecise_at_min_soc_compensates_self_discharge(
         upper_value = pyomo.value(constraint.upper)
         assert body_value == pytest.approx(upper_value)
 
+    # The model constraint itself remains an inequality. It is only binding
+    # because of the deliberately chosen values in this test.
     assert constraint.equality is False

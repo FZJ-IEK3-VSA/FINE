@@ -181,7 +181,8 @@ def test_functionality_checkSimultaneousChargeDischarge():
     )
 
 
-def test_check_and_set_cost_parameter():
+def test_check_and_set_cost_parameter_for_part_load_conversion_factors():
+    """Test cost parameter validation used by part-load conversion factor functions."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
     # Create an energy system model instance
