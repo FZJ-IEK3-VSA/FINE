@@ -61,7 +61,7 @@ You need conda or mamba installer on your machine, which are mostly interchangea
 ### Installation from conda-forge (Recommended)
 
 ```bash
-mamba create --name fine_env --channel conda-forge fine
+mamba create --name fine_env --channel conda-forge --channel gurobi --strict-channel-priority fine gurobi
 ```
 
 ### Installation from PyPI
