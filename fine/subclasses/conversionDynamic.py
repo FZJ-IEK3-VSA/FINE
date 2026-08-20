@@ -17,6 +17,8 @@ class ConversionDynamic(Conversion):
         upTimeMin=None,
         useTemporalCyclicConstraints=True,
         minimumDowntimeRequired=False,
+        maintenanceTime=None,
+        maintenanceOccurrences=None,
         **kwargs,
     ):
         r"""Create a ConversionDynamic class instance.
@@ -48,6 +50,24 @@ class ConversionDynamic(Conversion):
             |br| * the default value is False
         :type minimumDowntimeRequired: boolean
 
+        :param maintenanceTime: Minimum duration of each scheduled maintenance
+            window [hours]. The value can be specified uniformly, by location,
+            by investment period, or by investment period and location. It must
+            be specified together with ``maintenanceOccurrences``.
+            |br| * the default value is None
+        :type maintenanceTime: None, positive number, Pandas Series, or dict
+
+        :param maintenanceOccurrences: Exact number of distinct maintenance
+            windows required in each investment period. The value can be
+            specified uniformly, by location, by investment period, or by
+            investment period and location. Consecutive windows are separated
+            by at least one non-maintenance time step. Maintenance is only
+            scheduled when positive capacity is installed. Time series
+            aggregation and segmentation are currently unsupported.
+            |br| * the default value is None
+        :type maintenanceOccurrences: None, non-negative integer, Pandas Series,
+            or dict
+
         :param **kwargs: All other keyword arguments of the conversion class can be defined as well.
         :type **kwargs: Check Conversion Class documentation.
         """
@@ -60,6 +80,12 @@ class ConversionDynamic(Conversion):
         self.upTimeMin = upTimeMin
         self.useTemporalCyclicConstraints = useTemporalCyclicConstraints
         self.minimumDowntimeRequired = minimumDowntimeRequired
+        self.maintenanceTime = maintenanceTime
+        self.maintenanceOccurrences = maintenanceOccurrences
+        (
+            self.processedMaintenanceTime,
+            self.processedMaintenanceOccurrences,
+        ) = utils.checkAndSetMaintenanceParameters(self, esM)
         utils.checkConversionDynamicSpecficDesignInputParams(self, esM)
 
         if self.isCommisDepending:
@@ -125,10 +151,51 @@ class ConversionDynamicModel(ConversionModel):
                 "minimumDowntimeRequiredSet_" + self.abbrvName,
                 pyomo.Set(dimen=3, initialize=maintenanceSet),
             )
+
+        scheduledMaintenanceComponents = [
+            name
+            for name, component in self.componentsDict.items()
+            if component.maintenanceTime is not None
+        ]
+        if scheduledMaintenanceComponents and pyM.hasTSA:
+            raise ValueError(
+                "maintenanceTime and maintenanceOccurrences currently do not "
+                "support time series aggregation or segmentation."
+            )
+
+        scheduledMaintenanceSet = [
+            (loc, compName, ip)
+            for loc, compName, ip in operationVarSet
+            if compName in scheduledMaintenanceComponents
+            and self.componentsDict[compName].processedMaintenanceOccurrences[ip][loc]
+            > 0
+        ]
+        if scheduledMaintenanceSet:
+            setattr(
+                pyM,
+                "scheduledMaintenanceSet_" + self.abbrvName,
+                pyomo.Set(dimen=3, initialize=scheduledMaintenanceSet),
+            )
+
+            maintenanceStartSet = []
+            for loc, compName, ip in scheduledMaintenanceSet:
+                duration = int(
+                    self.componentsDict[compName].processedMaintenanceTime[ip][loc]
+                    / esM.hoursPerTimeStep
+                )
+                for p, t in pyM.intraYearTimeSet:
+                    if t + duration <= esM.numberOfTimeSteps:
+                        maintenanceStartSet.append((loc, compName, ip, p, t))
+            setattr(
+                pyM,
+                "maintenanceStartSet_" + self.abbrvName,
+                pyomo.Set(dimen=5, initialize=maintenanceStartSet),
+            )
         allBinaryParameters = [
             "partLoadMin",
             "downTimeMin",
             "upTimeMin",
+            "maintenanceTime",
         ]
         self.declareBinOpVarSet(
             esM,
@@ -172,6 +239,34 @@ class ConversionDynamicModel(ConversionModel):
         :type relevanceThreshold: float (>=0) or None
         """
         super().declareVariables(esM, pyM, relaxIsBuiltBinary, relevanceThreshold)
+
+        maintenanceSetName = "scheduledMaintenanceSet_" + self.abbrvName
+        if hasattr(pyM, maintenanceSetName):
+            setattr(
+                pyM,
+                "maintenanceStart_" + self.abbrvName,
+                pyomo.Var(
+                    getattr(pyM, "maintenanceStartSet_" + self.abbrvName),
+                    domain=pyomo.Binary,
+                ),
+            )
+            setattr(
+                pyM,
+                "maintenanceInstalled_" + self.abbrvName,
+                pyomo.Var(
+                    getattr(pyM, maintenanceSetName),
+                    domain=pyomo.Binary,
+                ),
+            )
+            setattr(
+                pyM,
+                "maintenanceActive_" + self.abbrvName,
+                pyomo.Var(
+                    getattr(pyM, maintenanceSetName),
+                    pyM.intraYearTimeSet,
+                    domain=pyomo.Binary,
+                ),
+            )
 
         hasTemporalRestrictions = any(
             x
@@ -315,7 +410,7 @@ class ConversionDynamicModel(ConversionModel):
 
         self.binaryOperation(
             pyM,
-            "ConstrOperation",
+            "ConstrDynamicOperation",
             "operationBinVarSet",
             "",
             "op",
@@ -329,6 +424,7 @@ class ConversionDynamicModel(ConversionModel):
         self.minimumTimeConstraints(pyM, esM, timeType="downTimeMin")
         self.minimumTimeConstraints(pyM, esM, timeType="upTimeMin")
         self.minimumDowntimeRequiredConstraint(pyM, esM)
+        self.scheduledMaintenanceConstraints(pyM, esM)
 
     def minimumDowntimeRequiredConstraint(self, pyM, esM):
         """Require a minimum amount of offline time for selected components."""
@@ -352,4 +448,129 @@ class ConversionDynamicModel(ConversionModel):
             pyM,
             "ConstrMinimumDowntimeRequired_" + self.abbrvName,
             pyomo.Constraint(maintenanceSet, rule=minimumDowntimeRequired),
+        )
+
+    def scheduledMaintenanceConstraints(self, pyM, esM):
+        """Schedule distinct maintenance windows and force operation offline."""
+        setName = "scheduledMaintenanceSet_" + self.abbrvName
+        if not hasattr(pyM, setName):
+            return
+
+        abbrvName = self.abbrvName
+        maintenanceSet = getattr(pyM, setName)
+        maintenanceStartSet = getattr(pyM, "maintenanceStartSet_" + abbrvName)
+        maintenanceStart = getattr(pyM, "maintenanceStart_" + abbrvName)
+        maintenanceActive = getattr(pyM, "maintenanceActive_" + abbrvName)
+        maintenanceInstalled = getattr(pyM, "maintenanceInstalled_" + abbrvName)
+        opVarBin = getattr(pyM, "op_bin_" + abbrvName)
+        capVar = getattr(pyM, "cap_" + abbrvName)
+
+        def installedUpper(pyM, loc, compName, ip):
+            component = self.componentsDict[compName]
+            if component.processedCapacityFix[ip] is not None:
+                capacityUpper = component.processedCapacityFix[ip][loc]
+            elif component.processedCapacityMax[ip] is not None:
+                capacityUpper = component.processedCapacityMax[ip][loc]
+            else:
+                capacityUpper = component.bigM
+            return (
+                capVar[loc, compName, ip]
+                <= capacityUpper * maintenanceInstalled[loc, compName, ip]
+            )
+
+        def installedLower(pyM, loc, compName, ip):
+            return capVar[loc, compName, ip] >= (
+                1e-4 * maintenanceInstalled[loc, compName, ip]
+            )
+
+        def occurrenceCount(pyM, loc, compName, ip):
+            occurrences = self.componentsDict[compName].processedMaintenanceOccurrences[
+                ip
+            ][loc]
+            return (
+                pyomo.quicksum(
+                    maintenanceStart[index]
+                    for index in maintenanceStartSet
+                    if index[:3] == (loc, compName, ip)
+                )
+                == occurrences * maintenanceInstalled[loc, compName, ip]
+            )
+
+        def forceOffline(pyM, loc, compName, ip, p, t):
+            return (
+                opVarBin[loc, compName, ip, p, t]
+                <= 1 - maintenanceActive[loc, compName, ip, p, t]
+            )
+
+        def activateMinimumDuration(pyM, loc, compName, ip, p, start):
+            duration = int(
+                self.componentsDict[compName].processedMaintenanceTime[ip][loc]
+                / esM.hoursPerTimeStep
+            )
+            return (
+                pyomo.quicksum(
+                    maintenanceActive[loc, compName, ip, p, t]
+                    for t in range(start, start + duration)
+                )
+                >= duration * maintenanceStart[loc, compName, ip, p, start]
+            )
+
+        def activeRiseRequiresStart(pyM, loc, compName, ip, p, t):
+            start = (
+                maintenanceStart[loc, compName, ip, p, t]
+                if (loc, compName, ip, p, t) in maintenanceStartSet
+                else 0
+            )
+            if t == 0:
+                return maintenanceActive[loc, compName, ip, p, t] <= start
+            return (
+                maintenanceActive[loc, compName, ip, p, t]
+                - maintenanceActive[loc, compName, ip, p, t - 1]
+                <= start
+            )
+
+        def separateWindows(pyM, loc, compName, ip, p, start):
+            if start == 0:
+                return pyomo.Constraint.Skip
+            return (
+                maintenanceStart[loc, compName, ip, p, start]
+                <= 1 - (maintenanceActive[loc, compName, ip, p, start - 1])
+            )
+
+        setattr(
+            pyM,
+            "ConstrMaintenanceInstalledUpper_" + abbrvName,
+            pyomo.Constraint(maintenanceSet, rule=installedUpper),
+        )
+        setattr(
+            pyM,
+            "ConstrMaintenanceInstalledLower_" + abbrvName,
+            pyomo.Constraint(maintenanceSet, rule=installedLower),
+        )
+        setattr(
+            pyM,
+            "ConstrMaintenanceOccurrences_" + abbrvName,
+            pyomo.Constraint(maintenanceSet, rule=occurrenceCount),
+        )
+        setattr(
+            pyM,
+            "ConstrMaintenanceOffline_" + abbrvName,
+            pyomo.Constraint(maintenanceSet, pyM.intraYearTimeSet, rule=forceOffline),
+        )
+        setattr(
+            pyM,
+            "ConstrMaintenanceMinimumDuration_" + abbrvName,
+            pyomo.Constraint(maintenanceStartSet, rule=activateMinimumDuration),
+        )
+        setattr(
+            pyM,
+            "ConstrMaintenanceActiveRise_" + abbrvName,
+            pyomo.Constraint(
+                maintenanceSet, pyM.intraYearTimeSet, rule=activeRiseRequiresStart
+            ),
+        )
+        setattr(
+            pyM,
+            "ConstrMaintenanceSeparation_" + abbrvName,
+            pyomo.Constraint(maintenanceStartSet, rule=separateWindows),
         )
