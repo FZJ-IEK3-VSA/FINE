@@ -1,5 +1,6 @@
 from fine.transmission import Transmission, TransmissionModel
 from fine import utils
+from fine.enums import ComponentAbbreviation, Dimension, VarType
 import pyomo.environ as pyomo
 import pandas as pd
 
@@ -105,7 +106,7 @@ class LinearOptimalPowerFlow(Transmission):
             self.reactances = pd.Series(self._mapC).apply(
                 lambda loc: self.reactances2dim[loc[0]][loc[1]]
             )
-        except Exception:
+        except (KeyError, TypeError, IndexError):
             self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
 
@@ -118,8 +119,8 @@ class LOPFModel(TransmissionModel):
 
     def __init__(self):
         super().__init__()
-        self.abbrvName = "lopf"
-        self.dimension = "2dim"
+        self.abbrvName = ComponentAbbreviation.LOPF
+        self.dimension = Dimension.TWO
         self._operationVariablesOptimum = {}
         self._phaseAngleVariablesOptimum = {}
 
@@ -312,68 +313,68 @@ class LOPFModel(TransmissionModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the LOPF specific raw solved ``phaseAngle`` variable.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Chains the Transmission hook (operation) and adds ``phaseAngle`` to ``rawResults``
+        while populating ``self._phaseAngleVariablesOptimum``.
         """
-        super().setOptimalValues(esM, pyM)
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
+        phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
         for ip in esM.investmentPeriods:
-            abbrvName = self.abbrvName
-            phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
-
+            ipName = esM.investmentPeriodNames[ip]
             optVal_ = utils.formatOptimizationOutput(
                 phaseAngleVar.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._phaseAngleVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
+            self._phaseAngleVariablesOptimum[ipName] = optVal_
+            rawResults[ipName]["phaseAngle"] = optVal_
+
+    def _exportOptimumVarMap(self):
+        """Extend the Transmission export map with the LOPF phase angle.
+
+        The phase angle is a 1-dim, time-dependent variable even though the LOPF component
+        itself is 2-dim, so its dimension is given explicitly. It was part of the
+        netCDF/xarray export before the results-dict refactor.
+        """
+        return super()._exportOptimumVarMap() + [
+            ("phaseAngle", "phaseAngleVariablesOptimum", True, Dimension.ONE),
+        ]
 
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 
-            * 'capacityVariables',
-            * 'isBuiltVariables',
-            * '_operationVariablesOptimum',
+            * 'capacityVariablesOptimum',
+            * 'isBuiltVariablesOptimum',
+            * 'operationVariablesOptimum',
+            * 'commissioningVariablesOptimum',
+            * 'decommissioningVariablesOptimum',
             * 'phaseAngleVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         :type name: string
         """
-        timeDependentMapping = {
-            "capacityVariablesOptimum": False,
-            "isBuiltVariablesOptimum": False,
-            "operationVariablesOptimum": True,
-            "phaseAngleVariablesOptimum": True,
-        }
-
-        dimensionMapping = {
-            "capacityVariablesOptimum": self.dimension,
-            "isBuiltVariablesOptimum": self.dimension,
-            "operationVariablesOptimum": self.dimension,
-            "phaseAngleVariablesOptimum": "1dim",
-        }
-
-        if name in timeDependentMapping:
+        if name == "phaseAngleVariablesOptimum":
             return {
-                "values": getattr(self, f"_{name}")[ip],
-                "timeDependent": timeDependentMapping[name],
-                "dimension": dimensionMapping[name],
+                "values": self._phaseAngleVariablesOptimum[ip],
+                "timeDependent": True,
+                "dimension": Dimension.ONE,
             }
-        return {
-            valName: {
-                "values": getattr(self, f"_{valName}")[ip],
-                "timeDependent": timeDependentMapping[valName],
-                "dimension": dimensionMapping[valName],
-            }
-            for valName in timeDependentMapping
+
+        result = super().getOptimalValues(name, ip=ip)
+        # a single transmission variable was requested and returned by the base class
+        if name != "all" and "values" in result:
+            return result
+        # 'all' or an unknown name: the base class returned every variable it knows
+        result["phaseAngleVariablesOptimum"] = {
+            "values": self._phaseAngleVariablesOptimum[ip],
+            "timeDependent": True,
+            "dimension": Dimension.ONE,
         }
+        return result

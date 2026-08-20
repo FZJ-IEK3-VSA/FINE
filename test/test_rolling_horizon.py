@@ -948,7 +948,7 @@ def _write_cached_group(esM_obj, dir_path, startYear, scenario_name="netcdf_cach
     specific (partial, mixed-origin, ...) cache scenarios directly from
     already-solved esM objects, without re-solving or copying files.
     """
-    fn.writeEnergySystemModelToNetCDF(
+    fn.xrIO.writeEnergySystemModelToNetCDF(
         esM_obj,
         outputFilePath=str(_shared_netcdf_path(dir_path, scenario_name)),
         overwriteExisting=False,
@@ -1003,7 +1003,7 @@ def test_netcdf_output_round_trips_optimization_summary(rh_netcdf_cache):
     commissioning values as the in-memory result it was written from.
     """
     results, export_dir = rh_netcdf_cache
-    loaded = fn.readNetCDFtoEnergySystemModel(
+    loaded = fn.xrIO.readNetCDFtoEnergySystemModel(
         str(_shared_netcdf_path(export_dir)), groupPrefix="2020"
     )
     assert _commissioning(loaded, 2020) == pytest.approx(
