@@ -3115,7 +3115,7 @@ class ImplementedSolvers:
         env = None
         model = None
         try:
-            import gurobipy as gp # noqa: PLC0415
+            import gurobipy as gp  # noqa: PLC0415
         except ImportError:
             return False
         try:
