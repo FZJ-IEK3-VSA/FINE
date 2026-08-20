@@ -104,7 +104,6 @@ class LinearOptimalPowerFlow(Transmission):
             pathwayBalanceLimitID=pathwayBalanceLimitID,
             pwlcfParameters=pwlcfParameters,
             linkedQuantityID=linkedQuantityID,
-            
         )
 
         self.modelingClass = LOPFModel
