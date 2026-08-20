@@ -3116,6 +3116,9 @@ class ImplementedSolvers:
         model = None
         try:
             import gurobipy as gp
+        except ImportError:
+            return False
+        try:
             env = gp.Env(empty=True)
             env.setParam("OutputFlag", 0)
             env.start()
