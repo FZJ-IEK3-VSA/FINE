@@ -95,23 +95,23 @@ def shapeOptimumResult(sub, name, timeDependent, dimension):
     if timeDependent and dimension == Dimension.ONE:
         subT = sub.T
         if subT.columns.nlevels == 1:
-            series = subT.stack()
+            series = subT.stack(future_stack=True).dropna()
             series.index = series.index.rename(["time", "location"])
         else:
             # extra index levels (e.g. discretizationIndex) sit before location; stack
             # every column level so nothing is lost or collides on export, keeping the
             # level names set by formatOptimizationOutput.
-            series = subT.stack(list(range(subT.columns.nlevels)))
+            series = subT.stack(list(range(subT.columns.nlevels)), future_stack=True).dropna()
             extraNames = list(sub.index.names[:-1])
             series.index = series.index.rename(["time", *extraNames, "location"])
     elif timeDependent and dimension == Dimension.TWO:
-        series = sub.stack()
+        series = sub.stack(future_stack=True).dropna()
         series.index = series.index.rename(["locationIn", "locationOut", "time"])
         series = series.reorder_levels(["time", "locationIn", "locationOut"])
     elif not timeDependent and dimension == Dimension.ONE:
         series = sub.rename_axis("location")
     else:  # time-independent 2-dim
-        series = sub.T.stack()
+        series = sub.T.stack(future_stack=True).dropna()
         series.index = series.index.rename(["locationIn", "locationOut"])
     series = series.copy()
     series.name = name
