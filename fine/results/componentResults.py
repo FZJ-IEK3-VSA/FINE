@@ -661,7 +661,7 @@ class ComponentResultsMixin:
             ("decommissioning", "decommissioningVariablesOptimum", False, d),
         ]
 
-    def getResultOptimalValues(self, ip):
+    def getResultOptimalValues(self, ip, exclude=()):
         """Return the design/operation optima for the export, read from ``self._rawResults``.
 
         Per component, each optimum variable is shaped into a ``Series`` ready for
@@ -673,12 +673,21 @@ class ComponentResultsMixin:
         :param ip: investment period name (key into ``self._rawResults``).
         :type ip: string
 
+        :param exclude: optimum variable names to leave out. Shaping a variable costs a
+            ``stack``/``transpose`` per component, so a caller that discards a variable anyway
+            should name it here instead of filtering the result afterwards.
+            |br| * the default value is ()
+        :type exclude: iterable of string
+
         :return: ``{componentName: {optimumVariableName: (values, None)}}``.
         :rtype: dict
         """
         results_ip = self._requireRawResults(ip)
+        exclude = set(exclude)
         out = {compName: {} for compName in self.componentsDict}
         for rawKey, optName, timeDependent, dimension in self._exportOptimumVarMap():
+            if optName in exclude:
+                continue
             frame = results_ip.get(rawKey)
             if frame is None:
                 continue
@@ -832,9 +841,36 @@ class ComponentResultsMixin:
         for compName in compDict:
             for prop, frame, unit in rows:
                 values = self._extractComponentResult(frame, compName, esM, mapC)
+                if prop in frames.FOLDED_SUMMARY_PROPERTIES:
+                    # The public optimization summary normalizes uncovered cells of these
+                    # folded cost rows to zero (see ``buildOptimizationSummary``). Recreate
+                    # its complete index here before the raw-results export turns the series
+                    # into xarray; otherwise omitted 2-dim connections reappear as NaN when
+                    # xarray aligns this variable with the component dataset's coordinates.
+                    if self.dimension == Dimension.ONE:
+                        fullIndex = pd.Index(sorted(esM.locations))
+                    else:
+                        fullIndex = pd.MultiIndex.from_tuples(mapC.values())
+                    if values is None or values.isna().all():
+                        # Keep the historical dtype too: a summary row containing only
+                        # synthesized zeros becomes int64 when passed through to_numeric.
+                        values = pd.Series(0, index=fullIndex)
+                    else:
+                        values = values.reindex(fullIndex)
+                        values = values.where(values.notna(), 0)
                 if values is None:
                     continue
-                series = self._nameResultSeries(pd.to_numeric(values), prop)
+                values = pd.to_numeric(values)
+                if (
+                    prop in frames.FOLDED_SUMMARY_PROPERTIES
+                    and self.dimension == Dimension.TWO
+                    and not values.empty
+                    and values.eq(0).all()
+                ):
+                    # Stacking the object-typed 2-dim summary historically converted an
+                    # all-zero folded row to int64. Preserve that serialized dtype as well.
+                    values = values.astype(int)
+                series = self._nameResultSeries(values, prop)
                 out[compName][prop] = (
                     series,
                     unit(compName) if callable(unit) else unit,

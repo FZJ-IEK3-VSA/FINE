@@ -14,6 +14,12 @@ import pandas as pd
 from fine.enums import Dimension
 
 
+# ``buildOptimizationSummary`` historically obtains these rows by folding several cost
+# contributions with ``groupby.sum``.  That operation turns uncovered locations/connections
+# into zero.  Every other view of the raw results must preserve the same public semantics.
+FOLDED_SUMMARY_PROPERTIES = frozenset({"TAC", "NPVcontribution"})
+
+
 @lru_cache(maxsize=8)
 def _connectionLocationPairs(locations):
     """Build the connection pairs for a hashable location set (cached).

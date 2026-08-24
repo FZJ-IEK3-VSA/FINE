@@ -13,7 +13,7 @@ import warnings
 
 import pandas as pd
 
-from fine.results.frames import economicSummaryUnits
+from fine.results.frames import FOLDED_SUMMARY_PROPERTIES, economicSummaryUnits
 
 
 def buildOptimizationSummary(
@@ -221,7 +221,7 @@ def buildOptimizationSummary(
         # ``where`` rather than ``fillna``, so the object dtype of the summary survives
         # (fillna would downcast it and warn).
         foldedRows = optSummary_ip.index.get_level_values("Property").isin(
-            ("TAC", "NPVcontribution")
+            FOLDED_SUMMARY_PROPERTIES
         )
         folded = optSummary_ip.loc[foldedRows]
         optSummary_ip.loc[foldedRows] = folded.where(folded.notna(), 0)
