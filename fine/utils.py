@@ -4,7 +4,6 @@ import warnings
 
 import numpy as np
 import pandas as pd
-import gurobipy as gp
 
 import fine as fn
 from fine.enums import Dimension, VarType
@@ -3155,6 +3154,10 @@ class ImplementedSolvers:
         """
         env = None
         model = None
+        try:
+            import gurobipy as gp  # noqa: PLC0415
+        except ImportError:
+            return False
         try:
             env = gp.Env(empty=True)
             env.setParam("OutputFlag", 0)
