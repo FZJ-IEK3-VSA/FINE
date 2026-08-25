@@ -2,6 +2,7 @@ import tempfile
 from pathlib import Path
 import types
 
+import fine as fn
 import geopandas as gpd
 import matplotlib as mpl
 
@@ -13,12 +14,7 @@ import pytest
 from matplotlib.collections import LineCollection
 from shapely.geometry import LineString, Polygon
 
-from fine.IOManagement.standardIO import (
-    plotTransmission,
-    plotOperation,
-    plotLocations,
-    plotLocationalColorMap,
-)
+from fine.utils import ImplementedSolvers
 
 
 def test_plotTransmission(minimal_test_esM):
@@ -65,7 +61,7 @@ def test_plotTransmission(minimal_test_esM):
         )
         gdf.to_file(shp_path)
 
-        fig, ax = plotTransmission(
+        fig, ax = fn.plotTransmission(
             esM=esM,
             compName=comp_name,
             transmissionShapeFileName=str(shp_path),
@@ -87,6 +83,7 @@ def test_plotTransmission(minimal_test_esM):
         assert ax is not None
         assert len(plotted_lines) > 0
         assert any(width > 0 for width in detected_widths)
+        assert ax.get_legend() is not None
 
         plt.close(fig)
 
@@ -112,7 +109,7 @@ def test_plotOperation(minimal_test_esM):
         component_model,
     )
 
-    fig, ax = plotOperation(
+    fig, ax = fn.plotOperation(
         esM=esM,
         compName=comp_name,
         loc=loc,
@@ -131,6 +128,43 @@ def test_plotOperation(minimal_test_esM):
     assert list(plotted_line.get_ydata()) == [2, 3, 4]
     assert ax.get_xlabel() == "test x label"
     assert ax.get_ylabel() == "test y label"
+
+    plt.close(fig)
+
+    default_fig, default_ax = fn.plotOperation(
+        esM=esM,
+        compName=comp_name,
+        loc=loc,
+        save=False,
+    )
+
+    assert default_ax.get_xlabel() == "time step"
+
+    plt.close(default_fig)
+
+
+def test_plot_operation_colormap_returns_figure_and_axis(minimal_test_esM):
+    esM = minimal_test_esM
+
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
+
+    fig, ax = fn.plotOperationColorMap(
+        esM,
+        "Electrolyzers",
+        "ElectrolyzerLocation",
+        figsize=(4, 3),
+        nbTimeStepsPerPeriod=1,
+        nbPeriods=4,
+        yticks=[0, 1],
+    )
+
+    assert fig is not None
+    assert ax is not None
+    assert ax.get_xlabel() == "period"
+    assert ax.get_ylabel() == "timestep per period"
 
     plt.close(fig)
 
@@ -159,7 +193,7 @@ def test_plotLocations(plot_loc_names, index_column, expected_labels):
         )
         gdf.to_file(shp_path)
 
-        fig, ax = plotLocations(
+        fig, ax = fn.plotLocations(
             locationsShapeFileName=str(shp_path),
             indexColumn=index_column,
             plotLocNames=plot_loc_names,
@@ -178,6 +212,7 @@ def test_plotLocations(plot_loc_names, index_column, expected_labels):
         assert ax is not None
         assert actual_labels == expected_labels
         assert ax.axison is False
+        assert len(ax.collections) > 0
 
         plt.close(fig)
 
@@ -229,7 +264,7 @@ def test_plotLocationalColorMap(minimal_test_esM, per_area, area_factor):
         )
         gdf.to_file(shp_path)
 
-        fig, ax = plotLocationalColorMap(
+        fig, ax = fn.plotLocationalColorMap(
             esM=esM,
             compName=comp_name,
             locationsShapeFileName=str(shp_path),
@@ -247,5 +282,60 @@ def test_plotLocationalColorMap(minimal_test_esM, per_area, area_factor):
         assert ax is not None
         assert ax.axison is False
         assert len(fig.axes) == 2
+        assert len(ax.collections) > 0
 
         plt.close(fig)
+
+
+@pytest.fixture
+def simple_shapefile(tmp_path):
+    gdf = gpd.GeoDataFrame(
+        {
+            "region": ["A", "B"],
+            "geometry": [
+                Polygon([(0, 0), (1, 0), (1, 1), (0, 1)]),
+                Polygon([(1, 1), (2, 1), (2, 2), (1, 2)]),
+            ],
+        },
+        crs="EPSG:3035",
+    )
+
+    shp_path = tmp_path / "regions.shp"
+    gdf.to_file(shp_path)
+
+    return shp_path
+
+
+def test_plot_pie_chart_returns_figure_and_axis(simple_shapefile):
+    index = pd.MultiIndex.from_tuples(
+        [
+            ("capacity", "MW", "Component 1"),
+            ("capacity", "MW", "Component 2"),
+        ],
+        names=["Property", "Unit", "Component"],
+    )
+
+    results_df = pd.DataFrame(
+        {
+            "A": [10, 30],
+            "B": [20, 40],
+        },
+        index=index,
+    )
+
+    fn.plotPieChart(
+        locFilePath=simple_shapefile,
+        results_df=results_df,
+        Property_to_plot="capacity",
+        indexColumn_in_shp="region",
+    )
+
+    fig = plt.gcf()
+    ax = plt.gca()
+
+    assert fig is not None
+    assert ax is not None
+    assert ax.get_legend() is not None
+    assert len(ax.patches) >= 4
+
+    plt.close(fig)
