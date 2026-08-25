@@ -1,4 +1,12 @@
 from fine.component import Component, ComponentModel
+from fine.enums import (
+    ComponentAbbreviation,
+    CostType,
+    Dimension,
+    FncType,
+    RampingType,
+    VarType,
+)
 from fine import utils
 import warnings
 import pandas as pd
@@ -270,7 +278,7 @@ class Conversion(Component):
             self,
             esM,
             name,
-            dimension="1dim",
+            dimension=Dimension.ONE,
             hasCapacityVariable=hasCapacityVariable,
             capacityVariableDomain=capacityVariableDomain,
             capacityPerPlantUnit=capacityPerPlantUnit,
@@ -308,7 +316,7 @@ class Conversion(Component):
             esM,
             name,
             opexPerOperation,
-            "1dim",
+            Dimension.ONE,
             locationalEligibility,
             esM.investmentPeriods,
         )
@@ -359,6 +367,14 @@ class Conversion(Component):
         )
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
+
+        utils.checkOperationRateForCapacityVariable(
+            name,
+            self.hasCapacityVariable,
+            self.fullOperationRateMin,
+            self.fullOperationRateMax,
+            self.fullOperationRateFix,
+        )
 
         self.rampUpMax = rampUpMax
         self.rampDownMax = rampDownMax
@@ -597,8 +613,8 @@ class ConversionModel(ComponentModel):
     def __init__(self):
         """Create a ConversionModel class instance."""
         super().__init__()
-        self.abbrvName = "conv"
-        self.dimension = "1dim"
+        self.abbrvName = ComponentAbbreviation.CONVERSION
+        self.dimension = Dimension.ONE
         self._operationVariablesOptimum = {}
 
     ####################################################################################################################
@@ -979,10 +995,12 @@ class ConversionModel(ComponentModel):
             |br| * the default value is None.
 
         """
-        if rampingType not in ["rampDownMax", "rampUpMax"]:
+        try:
+            rampingType = RampingType(rampingType)
+        except ValueError as exc:
             raise ValueError(
                 f"Ramping type {rampingType} is not valid. Please choose between rampDownMax and rampUpMax."
-            )
+            ) from exc
 
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
@@ -996,7 +1014,7 @@ class ConversionModel(ComponentModel):
 
         constrSetRamp = getattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName)
 
-        factor = 1 if rampingType == "rampDownMax" else -1
+        factor = 1 if rampingType == RampingType.DOWN_MAX else -1
 
         if not pyM.hasSegmentation:
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
@@ -1053,7 +1071,7 @@ class ConversionModel(ComponentModel):
         capVar = getattr(pyM, "cap_" + abbrvName)
         constrSetRamp = getattr(pyM, f"opConstrSet_{rampingType}_" + abbrvName)
 
-        factor = 1 if rampingType == "rampDownMax" else -1
+        factor = 1 if rampingType == RampingType.DOWN_MAX else -1
 
         if not pyM.hasSegmentation:
             numberOfTimeSteps = len(esM.timeStepsPerPeriod)
@@ -1265,11 +1283,11 @@ class ConversionModel(ComponentModel):
             isOperationCommisYearDepending=True,
         )
 
-        self.declareRampingConstraints(pyM, esM, rampingType="rampUpMax")
-        self.declareRampingConstraints(pyM, esM, rampingType="rampDownMax")
+        self.declareRampingConstraints(pyM, esM, rampingType=RampingType.UP_MAX)
+        self.declareRampingConstraints(pyM, esM, rampingType=RampingType.DOWN_MAX)
         if pyM.hasTSA:
-            self.interPeriodRamping(esM, pyM, rampingType="rampUpMax")
-            self.interPeriodRamping(esM, pyM, rampingType="rampDownMax")
+            self.interPeriodRamping(esM, pyM, rampingType=RampingType.UP_MAX)
+            self.interPeriodRamping(esM, pyM, rampingType=RampingType.DOWN_MAX)
 
         ################################################################################################################
         #                                    Declare pathway constraints                                               #
@@ -1639,7 +1657,12 @@ class ConversionModel(ComponentModel):
         :type pyM: pyomo ConcreteModel
         """
         opexOp = self.getEconomicsOperation(
-            pyM, esM, "TD", ["processedOpexPerOperation"], "op", "operationVarDict"
+            pyM,
+            esM,
+            FncType.TD,
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
         )
 
         return super().getObjectiveFunctionContribution(esM, pyM) + opexOp
@@ -1648,64 +1671,106 @@ class ConversionModel(ComponentModel):
     #                                  Return optimal values of the component class                                    #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
-        """Set the optimal values of the components.
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the conversion specific raw solved ``operation`` variable.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo ConcreteModel
+        Adds ``operation`` to ``rawResults`` and populates
+        ``self._operationVariablesOptimum``.
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
-
-        # Set optimal design dimension variables and get basic optimization summary
-        optSummaryBasic = super().setOptimalValues(
-            esM, pyM, esM.locations, "physicalUnit"
-        )
-
-        # Get class related results
-        resultsTAC_opexOp = self.getEconomicsOperation(
-            pyM,
-            esM,
-            "TD",
-            ["processedOpexPerOperation"],
-            "op",
-            "operationVarDict",
-            getOptValue=True,
-            getOptValueCostType="TAC",
-        )
-        resultsNPV_opexOp = self.getEconomicsOperation(
-            pyM,
-            esM,
-            "TD",
-            ["processedOpexPerOperation"],
-            "op",
-            "operationVarDict",
-            getOptValue=True,
-            getOptValueCostType="NPV",
-        )
-
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
+        opVar = getattr(pyM, "op_" + self.abbrvName)
         for ip in esM.investmentPeriods:
-            # Set optimal operation variables and append optimization summary
+            ipName = esM.investmentPeriodNames[ip]
             optVal = utils.formatOptimizationOutput(
                 opVar.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._operationVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal
+            self._operationVariablesOptimum[ipName] = optVal
+            rawResults[ipName]["operation"] = optVal
 
-            props = ["operation", "operation_annual", "opexOp", "NPV_opexOp"]
+    def _deriveSubclassEconomics(self, esM, pyM, rawResults):
+        """Derive the conversion specific operational costs.
+
+        Adds the ``opexOp`` frame to ``rawResults`` and folds the operation contribution
+        into the aggregated ``TAC`` and ``NPVcontribution`` frames.
+        """
+        super()._deriveSubclassEconomics(esM, pyM, rawResults)
+
+        resultsTAC_opexOp = self.getEconomicsOperation(
+            pyM,
+            esM,
+            FncType.TD,
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType=CostType.TAC,
+        )
+        resultsNPV_opexOp = self.getEconomicsOperation(
+            pyM,
+            esM,
+            FncType.TD,
+            ["processedOpexPerOperation"],
+            "op",
+            "operationVarDict",
+            getOptValue=True,
+            getOptValueCostType=CostType.NPV,
+        )
+
+        for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+            results_ip = rawResults[ipName]
+
+            if results_ip["operation"] is not None:
+                # operation opex (TAC) shown in the summary
+                results_ip["opexOp"] = resultsTAC_opexOp[ip]
+                # fold the operation opex into the total annual cost. Components without a
+                # capacity variable have no base TAC frame, so it is built from the
+                # operation opex alone (matching the former groupby over the summary).
+                tacParts = [results_ip["opexOp"]]
+                if "TAC" in results_ip:
+                    tacParts.insert(0, results_ip["TAC"])
+                results_ip["TAC"] = pd.concat(tacParts).groupby(level=0).sum()
+                # fold the operation NPV contribution into NPVcontribution
+                if "NPVcontribution" in results_ip:
+                    results_ip["NPVcontribution"] = results_ip["NPVcontribution"].add(
+                        resultsNPV_opexOp[ip], fill_value=0
+                    )
+
+    def _buildSubclassOptimizationSummary(self, esM, optSummaryBasic):
+        """Assemble the conversion summary (operation rows + basic summary) as a view.
+
+        Reads the operation frames extracted by :meth:`_extractSubclassRawResults` and the
+        operation opex derived by :meth:`_deriveSubclassEconomics` from ``self._rawResults``
+        and concatenates them with the basic summary. Performs no extraction or economics.
+
+        :param esM: EnergySystemModel instance.
+        :type esM: EnergySystemModel instance
+
+        :param optSummaryBasic: basic summary returned by the base
+            :meth:`~fine.component.ComponentModel.buildOptimizationSummary`, keyed by investment
+            period name.
+        :type optSummaryBasic: dict
+
+        :return: full optimization summary keyed by investment period name.
+        :rtype: dict
+        """
+        compDict = self.componentsDict
+
+        optSummaryDict = {}
+        for ip in esM.investmentPeriods:
+            ipName = esM.investmentPeriodNames[ip]
+
+            props = ["operation", "operation_annual", "opexOp"]
             # Unit dict: Specify units for props
             units = {
                 props[0]: ["[-*h]"],
                 props[1]: ["[-*h/a]"],
                 props[2]: ["[" + esM.costUnit + "/a]"],
-                props[3]: ["[" + esM.costUnit + "/a]"],
             }
             # Create tuples for the optSummary's multiIndex. Combine component with the respective properties and units.
             tuples = [
@@ -1723,7 +1788,7 @@ class ConversionModel(ComponentModel):
                             x[1],
                             x[2].replace("-", compDict[x[0]].physicalUnit),
                         )
-                        if x[1] == "operation" or "operation_annual"
+                        if x[1] in ("operation", "operation_annual")
                         else x
                     ),
                     tuples,
@@ -1736,49 +1801,10 @@ class ConversionModel(ComponentModel):
                 index=mIndex, columns=sorted(esM.locations)
             ).sort_index()
 
-            if optVal is not None:
-                idx = pd.IndexSlice
-                optVal = optVal.loc[
-                    idx[:, :], :
-                ]  # perfect foresight: added ip and deleted again
-                opSum = optVal.sum(axis=1).unstack(-1)
-
-                # operation
-                optSummary.loc[
-                    [
-                        (ix, "operation", "[" + compDict[ix].physicalUnit + "*h]")
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values
-
-                optSummary.loc[
-                    [
-                        (
-                            ix,
-                            "operation_annual",
-                            "[" + compDict[ix].physicalUnit + "*h/a]",
-                        )
-                        for ix in opSum.index
-                    ],
-                    opSum.columns,
-                ] = opSum.values / esM.numberOfYears
-
-                # operation cost - TAC
-                tac_ox = resultsTAC_opexOp[ip]
-                optSummary.loc[
-                    [(ix, "opexOp", "[" + esM.costUnit + "/a]") for ix in tac_ox.index],
-                    tac_ox.columns,
-                ] = tac_ox.values
-                # operation cost - NPV contribution
-                npv_ox = resultsNPV_opexOp[ip]
-                optSummary.loc[
-                    [
-                        (ix, "NPV_opexOp", "[" + esM.costUnit + "/a]")
-                        for ix in npv_ox.index
-                    ],
-                    npv_ox.columns,
-                ] = npv_ox.values
+            # operation rows (operation, operation_annual, opexOp) are aggregated once in
+            # _subclassSummaryFrames and written here, so the summary and the staged
+            # raw-results export accessor share the same source.
+            self._writeOperationSummaryRows(optSummary, esM, ipName)
 
             optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]
             if isinstance(optSummaryBasic_frame, pd.Series):
@@ -1792,33 +1818,40 @@ class ConversionModel(ComponentModel):
                 axis=0,
             ).sort_index()
 
-            # Summarize all contributions to the total annual cost
-            optSummary.loc[optSummary.index.get_level_values(1) == "TAC"] = (
-                optSummary.loc[
-                    (optSummary.index.get_level_values(1) == "TAC")
-                    | (optSummary.index.get_level_values(1) == "opexOp")
-                ]
-                .groupby(level=0)
-                .sum()
-                .values
-            )
-            # Update the NPV contribution
-            optSummary.loc[
-                optSummary.index.get_level_values(1) == "NPVcontribution"
-            ] = (
-                optSummary.loc[
-                    (optSummary.index.get_level_values(1) == "NPVcontribution")
-                    | (optSummary.index.get_level_values(1) == "NPV_opexOp")
-                ]
-                .groupby(level=0)
-                .sum()
-                .values
-            )
-            # # Delete details of NPV contributions
-            optSummary = optSummary.drop("NPV_opexOp", level=1)
+            # The TAC and NPVcontribution rows of optSummaryBasic already include the
+            # operation contribution (folded in by _deriveSubclassEconomics), so no
+            # further aggregation is required here.
 
-            # save the optimization summary
-            self._optSummary[esM.investmentPeriodNames[ip]] = optSummary
+            optSummaryDict[esM.investmentPeriodNames[ip]] = optSummary
+
+        return optSummaryDict
+
+    def _summaryPlantUnit(self):
+        return "physicalUnit", ""
+
+    def _subclassSummaryFrames(self, esM, ip):
+        """Conversion operation summary rows derived from ``self._rawResults`` (see
+        :meth:`fine.component.Component.getResultSummaryDict`).
+        """
+        compDict = self.componentsDict
+        results_ip = self._rawResults[ip]
+        perA = "[" + esM.costUnit + "/a]"
+
+        optVal = results_ip.get("operation")
+        if optVal is not None:
+            opSum = optVal.sum(axis=1).unstack(-1)
+            annual = opSum / esM.numberOfYears
+        else:
+            opSum = annual = None
+        return [
+            ("operation", opSum, lambda c: "[" + compDict[c].physicalUnit + "*h]"),
+            (
+                "operation_annual",
+                annual,
+                lambda c: "[" + compDict[c].physicalUnit + "*h/a]",
+            ),
+            ("opexOp", results_ip.get("opexOp"), perA),
+        ]
 
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.

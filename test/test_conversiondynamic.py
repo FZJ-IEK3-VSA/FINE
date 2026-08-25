@@ -3,6 +3,7 @@
 # # Workflow for a multi-regional energy system
 #
 import fine as fn
+import numpy as np
 import pandas as pd
 
 import pytest
@@ -134,6 +135,68 @@ def test_downTimeMin(hoursPerTimeStep, partLoadMin, useTemporalCyclicConstraints
     )
 
     assert expectedOperation == heater_operation
+
+
+@pytest.mark.parametrize("hoursPerTimeStep", [0.25, 1])
+def test_minimumDowntimeRequired(hoursPerTimeStep):
+    """A profitable converter is required to be offline for downTimeMin hours."""
+    esM = _create_system(
+        numberOfTimeSteps=NUMBER_OF_HOURS / hoursPerTimeStep,
+        hoursPerTimeStep=hoursPerTimeStep,
+    )
+    esM.updateComponent(
+        "Methane heater",
+        {
+            "downTimeMin": 3,
+            "minimumDowntimeRequired": True,
+            "bigM": 1000,
+        },
+    )
+
+    esM.optimize()
+
+    heater_operation = (
+        esM.getOptimizationSummary("ConversionDynamicModel")
+        .loc["Methane heater", "operation", "[kW*h]"]
+        .loc["region1"]
+    )
+    assert np.isclose(
+        heater_operation,
+        ENERGY_FLOW * (NUMBER_OF_HOURS - 3),
+        rtol=1e-6,
+        atol=1e-8,
+    )
+
+
+@pytest.mark.parametrize(
+    "updates, error, message",
+    [
+        (
+            {"minimumDowntimeRequired": 1},
+            TypeError,
+            "minimumDowntimeRequired must be a boolean",
+        ),
+        (
+            {"minimumDowntimeRequired": True},
+            ValueError,
+            "downTimeMin needs to be specified",
+        ),
+        (
+            {
+                "minimumDowntimeRequired": True,
+                "downTimeMin": 2,
+                "bigM": 100,
+                "useTemporalCyclicConstraints": False,
+            },
+            ValueError,
+            "useTemporalCyclicConstraints=True",
+        ),
+    ],
+)
+def test_minimumDowntimeRequired_validation(updates, error, message):
+    esM = _create_system(numberOfTimeSteps=NUMBER_OF_HOURS, hoursPerTimeStep=1)
+    with pytest.raises(error, match=message):
+        esM.updateComponent("Methane heater", updates)
 
 
 @pytest.mark.parametrize(

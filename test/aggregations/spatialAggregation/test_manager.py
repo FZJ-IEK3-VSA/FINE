@@ -21,8 +21,8 @@ def test_esm_to_xr_and_back_during_spatial_aggregation(
     """
     SHAPEFILE_PATH = os.path.join(  # noqa: PTH118 # uses basic aggragation functions and when changing to pathlib output the error: TypeError: shapefile must either be a path to a shapefile or a geopandas dataframe --> therefore excluded here
         os.path.dirname(__file__),  # noqa: PTH120
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
+        "../../../examples/data/multiRegion/",
+        "SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
     PATH_TO_SAVE = str(tmp_path)
@@ -120,8 +120,8 @@ def test_error_in_reading_shp(test_esM_for_spagat):
     with pytest.raises(FileNotFoundError):
         SHAPEFILE_PATH = os.path.join(  # noqa: PTH118
             os.path.dirname(__file__),  # noqa: PTH120
-            "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-            "InputData/SpatialData/ShapeFiles",
+            "../../../examples/data/multiRegion/",
+            "SpatialData/ShapeFiles",
         )
 
         _ = test_esM_for_spagat.aggregateSpatially(
@@ -142,8 +142,8 @@ def test_error_in_reading_shp(test_esM_for_spagat):
     with pytest.raises(ValueError):
         SHAPEFILE_PATH = os.path.join(  # noqa: PTH118
             os.path.dirname(__file__),  # noqa: PTH120
-            "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-            "InputData/SpatialData/ShapeFiles/three_regions.shp",
+            "../../../examples/data/multiRegion/",
+            "SpatialData/ShapeFiles/three_regions.shp",
         )
 
         _ = test_esM_for_spagat.aggregateSpatially(
@@ -156,8 +156,8 @@ def test_error_in_reading_shp(test_esM_for_spagat):
 def test_spatial_aggregation_string_based(test_esM_for_spagat):
     SHAPEFILE_PATH = os.path.join(  # noqa: PTH118
         os.path.dirname(__file__),  # noqa: PTH120
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
+        "../../../examples/data/multiRegion/",
+        "SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
     # FUNCTION CALL
@@ -201,8 +201,8 @@ def test_spatial_aggregation_distance_based(
 ):
     SHAPEFILE_PATH = os.path.join(  # noqa: PTH118
         os.path.dirname(__file__),  # noqa: PTH120
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
+        "../../../examples/data/multiRegion/",
+        "SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
     # FUNCTION CALL
@@ -238,8 +238,8 @@ def test_spatial_aggregation_parameter_based(
 ):
     SHAPEFILE_PATH = os.path.join(  # noqa: PTH118
         os.path.dirname(__file__),  # noqa: PTH120
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
+        "../../../examples/data/multiRegion/",
+        "SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
     # FUNCTION CALL
@@ -267,8 +267,8 @@ def test_aggregation_of_balanceLimit(balanceLimitConstraint_test_esM):
     esM = balanceLimitConstraint_test_esM[0]
     SHAPEFILE_PATH = os.path.join(  # noqa: PTH118
         os.path.dirname(__file__),  # noqa: PTH120
-        "../../../examples/03_Multi-regional_Energy_System_Workflow/",
-        "InputData/SpatialData/ShapeFiles/clusteredRegions.shp",
+        "../../../examples/data/multiRegion/",
+        "SpatialData/ShapeFiles/clusteredRegions.shp",
     )
 
     gdf = gpd.read_file(SHAPEFILE_PATH)
