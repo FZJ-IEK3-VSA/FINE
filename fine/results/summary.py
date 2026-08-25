@@ -78,6 +78,15 @@ def buildOptimizationSummary(
         "isBuilt": "[-]",
         **economicSummaryUnits(esM.costUnit),
     }
+    # A rolling-horizon run re-discounts NPVcontribution back to the true overall start
+    # year: esM.startYear is only the current window's start year, so
+    # esM.rollingHorizonStartYear (set once, on the first window) is needed to express the
+    # additional discounting distance. getattr, not esM.rollingHorizonStartYear directly:
+    # this module is exercised on hand-built esM doubles (see the module docstring) that
+    # need not carry every EnergySystemModel attribute.
+    rollingHorizonStartYear = getattr(esM, "rollingHorizonStartYear", None)
+    if rollingHorizonStartYear is not None:
+        summaryUnits["NPVcontributionRH"] = "[" + esM.costUnit + "]"
     # Design rows are written explicitly below (from the 1-dim frames, with their own
     # conditionals); the remaining rows are the economic frames derived by deriveEconomics.
     designProps = ("capacity", "commissioning", "decommissioning", "isBuilt")
@@ -225,6 +234,23 @@ def buildOptimizationSummary(
         )
         folded = optSummary_ip.loc[foldedRows]
         optSummary_ip.loc[foldedRows] = folded.where(folded.notna(), 0)
+
+        # Discount NPVcontribution back to the true overall start year for a rolling
+        # horizon run (see the summaryUnits note above for why esM.startYear alone is not
+        # enough). Reads the already NaN -> 0 normalized NPVcontribution row above, so the
+        # division below never hits a NaN.
+        if rollingHorizonStartYear is not None:
+            rhExponent = esM.startYear - rollingHorizonStartYear
+            unit = "[" + esM.costUnit + "]"
+            for compName in compDict:
+                interestRate = compDict[compName].interestRate
+                for loc in optSummary_ip.columns:
+                    npvValue = optSummary_ip.loc[
+                        (compName, "NPVcontribution", unit), loc
+                    ]
+                    optSummary_ip.loc[(compName, "NPVcontributionRH", unit), loc] = (
+                        npvValue / (1 + interestRate[loc]) ** rhExponent
+                    )
 
         optSummary[ipName] = optSummary_ip
 

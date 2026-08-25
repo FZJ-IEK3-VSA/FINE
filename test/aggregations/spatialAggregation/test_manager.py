@@ -224,11 +224,11 @@ def test_spatial_aggregation_distance_based(
     [
         None,
         {
-            "operationRateMax": ("weighted mean", "capacityMax"),
-            "operationRateFix": ("sum", None),
-            "capacityMax": ("sum", None),
-            "capacityFix": ("sum", None),
-            "locationalEligibility": ("bool", None),
+            "processedOperationRateMax": ("weighted mean", "capacityMax"),
+            "processedOperationRateFix": ("sum", None),
+            "processedCapacityMax": ("sum", None),
+            "processedCapacityFix": ("sum", None),
+            "processedLocationalEligibility": ("bool", None),
         },
     ],
 )

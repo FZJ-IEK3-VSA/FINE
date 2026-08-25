@@ -84,6 +84,7 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
+        rollingHorizonStartYear=None,
     ):
         r"""Create an EnergySystemModel class instance.
 
@@ -294,6 +295,7 @@ class EnergySystemModel:
             stochasticModel,
             costUnit,
             lengthUnit,
+            rollingHorizonStartYear,
         )
 
         ################################################################################################################
@@ -367,6 +369,8 @@ class EnergySystemModel:
         self.annuityPerpetuity = utils.checkAndSetAnnuityPerpetuity(
             annuityPerpetuity, numberOfInvestmentPeriods
         )
+        self.rollingHorizonStartYear = rollingHorizonStartYear
+
         # set up the modelling years by the start year, interval and number of investment periods
         finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval
         # clear names, e.g.  [2020, 2025,...]
