@@ -1,9 +1,11 @@
 import inspect
+from dataclasses import replace
 from pathlib import Path
 import time
 import warnings
 import importlib.util
 import os
+from typing import Any
 
 import gurobi_logtools as glt
 import pandas as pd
@@ -13,13 +15,28 @@ from pyomo.common.errors import ApplicationError
 from pyomo import opt
 from pyomo.contrib.appsi.base import LegacySolverInterface
 from pyomo.contrib.appsi.solvers import Highs
-from tsam.timeseriesaggregation import TimeSeriesAggregation
+import tsam
+from tsam import ClusterConfig, ExtremeConfig, SegmentConfig
 
 from fine import utils
 from fine.utils import ImplementedSolvers
 from fine.aggregations.spatialAggregation import manager as spagat
+
+# Deprecation shim, removed together with the ETHOS.TSAM 3.x keywords.
+from fine.aggregations.temporalAggregation.deprecatedKeywords import (
+    translateDeprecatedKeywords,
+)
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
+
+#: The clustering :meth:`EnergySystemModel.aggregateTemporally` uses unless told
+#: otherwise. It is the clustering the removed ETHOS.TSAM 3.x signature defaulted
+#: to, so that the default aggregation keeps producing the results it used to.
+DEFAULT_CLUSTER = ClusterConfig(method="hierarchical", representation="distribution")
+
+#: The segmentation :meth:`EnergySystemModel.aggregateTemporally` uses unless told
+#: otherwise. Pass None to switch segmentation off.
+DEFAULT_SEGMENTS = SegmentConfig(n_segments=12, representation="distribution")
 
 
 class EnergySystemModel:
@@ -346,14 +363,16 @@ class EnergySystemModel:
         # The isTimeSeriesDataClustered parameter is used to check data consistency.
         # It is set to True if the class' cluster function is called. It is set to False if a new component is added.
         # If the cluster function is called, the typicalPeriods parameter is set from None to
-        # [0, ..., numberOfTypicalPeriods-1] and, if specified, the resulting TimeSeriesAggregation instance is stored
-        # in the tsaInstance parameter (default None).
+        # [0, ..., numberOfTypicalPeriods-1] and, if specified, the resulting tsam.AggregationResult is
+        # stored in the tsaInstance parameter (default None).
         # The time unit refers to time measure referred throughout the model. Currently, it has to be an hour 'h'.
         self.isTimeSeriesDataClustered, self.typicalPeriods, self.tsaInstance = (
             False,
             None,
             None,
         )
+        # Wall clock time the last aggregateTemporally call took, None until it is called.
+        self.tsaBuildTime = None
         self.timeUnit = "h"
 
         ################################################################################################################
@@ -781,7 +800,7 @@ class EnergySystemModel:
 
                 - 'kmedoids_contiguity':
                     kmedoids clustering with added contiguity constraint.
-                    Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+                    Refer to :mod:`fine.aggregations.spatialAggregation.kMedoidsContiguity` for more info
                 - 'hierarchical':
                     sklearn's agglomerative clustering with complete linkage, with a connectivity matrix to ensure contiguity.
                     Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
@@ -868,27 +887,40 @@ class EnergySystemModel:
         # STEP 3. Obtain aggregated esM
         return xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
+    @translateDeprecatedKeywords
     def aggregateTemporally(
         self,
-        numberOfTypicalPeriods=40,
-        numberOfTimeStepsPerPeriod=24,
-        segmentation=True,
-        numberOfSegmentsPerPeriod=12,
-        clusterMethod="hierarchical",
-        representationMethod="durationRepresentation",
-        sortValues=False,
-        storeTSAinstance=False,
-        rescaleClusterPeriods=False,
-        **kwargs,
-    ):
+        n_clusters: int = 40,
+        period_duration: int | float | str | None = None,
+        cluster: ClusterConfig = DEFAULT_CLUSTER,
+        segments: SegmentConfig | None = DEFAULT_SEGMENTS,
+        extremes: ExtremeConfig | None = None,
+        preserve_column_means: bool = False,
+        storeTSAinstance: bool = False,
+        **kwargs: Any,
+    ) -> None:
         """Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
         stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
         days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
         time steps with an irregular duration using the segmentation option.
-        For the clustering itself, the tsam package is used (cf. https://github.com/FZJ-IEK3-VSA/tsam). Additional
-        keyword arguments for the TimeSeriesAggregation instance can be added (facilitated by kwargs). As an example: it
-        might be useful to add extreme periods to the clustered typical periods.
+        For the clustering itself, the tsam package is used (cf. https://github.com/FZJ-IEK3-VSA/tsam).
+
+        The parameters below are those of :func:`tsam.aggregate` and its configuration objects
+        :class:`tsam.ClusterConfig`, :class:`tsam.SegmentConfig` and :class:`tsam.ExtremeConfig`. Its remaining
+        arguments (``rescale_exclude_columns``, ``round_decimals``, ``numerical_tolerance``) can be added
+        through kwargs and are forwarded unchanged. The time series itself and the weights of its columns are
+        derived from the components of this model, so ``weights`` and ``temporal_resolution`` are not accepted.
+
+        .. deprecated:: 2.8.0
+            The ETHOS.TSAM 3.x keywords (``numberOfTypicalPeriods``, ``numberOfTimeStepsPerPeriod``,
+            ``segmentation``, ``numberOfSegmentsPerPeriod``, ``clusterMethod``, ``representationMethod``,
+            ``sortValues``, ``rescaleClusterPeriods``, ``addPeakMax``, ``extremePeriodMethod``, ...) are still
+            accepted through kwargs. They are converted to the parameters below by
+            :mod:`fine.aggregations.temporalAggregation.deprecatedKeywords`, which warns and will be removed in
+            a future release. The two interfaces describe the same aggregation in incompatible terms and
+            therefore cannot be combined: mixing them raises a TypeError naming the replacement for every
+            deprecated keyword.
 
         .. note::
             The segmentation option can be freely combined with all subclasses. However, an irregular time step length
@@ -897,94 +929,105 @@ class EnergySystemModel:
 
         **Default arguments:**
 
-        :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
-            should be clustered. The number of time steps per period must be an integer multiple of the total
-            number of considered time steps in the energy system.
+        :param n_clusters: states the number of typical periods into which the time series data should be
+            clustered.
+            |br| * the default value is 40
+        :type n_clusters: strictly positive integer
+
+        :param period_duration: states the length of one period, either as a number of hours or as a pandas
+            Timedelta string such as '24h' or '1d'. It has to be an integer multiple of the length of one time
+            step of the energy system, and the resulting number of time steps per period has to be an integer
+            divisor of the total number of time steps.
+            |br| * the default value is None, i.e. the length of 24 time steps
+        :type period_duration: strictly positive integer, float, string or None
+
+        :param cluster: states how the periods are clustered and how a cluster is represented.
 
             .. note::
-                Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
-                information.
+                Please refer to the tsam package documentation of ClusterConfig for more information.
 
-            |br| * the default value is 7
-        :type numberOfTypicalPeriods: strictly positive integer
+            |br| * the default value is hierarchical clustering with a distribution representation
+        :type cluster: tsam.ClusterConfig
 
-        :param numberOfTimeStepsPerPeriod: states the number of time steps per period
-            |br| * the default value is 24
-        :type numberOfTimeStepsPerPeriod: strictly positive integer
+        :param segments: states whether and how the typical periods are further segmented to fewer time steps.
+            Pass None to switch segmentation off.
 
-        :param segmentation: states whether the typical periods should be further segmented to fewer time steps
+            .. note::
+                Please refer to the tsam package documentation of SegmentConfig for more information.
+
+            |br| * the default value is 12 segments per period
+        :type segments: tsam.SegmentConfig or None
+
+        :param extremes: states which extreme periods are preserved next to the typical periods, e.g. the
+            period holding the peak demand.
+
+            .. note::
+                Please refer to the tsam package documentation of ExtremeConfig for more information.
+
+            |br| * the default value is None, i.e. no extreme periods are added
+        :type extremes: tsam.ExtremeConfig or None
+
+        :param preserve_column_means: states if the cluster periods shall get rescaled such that their weighted
+            mean value fits the mean value of the original time series.
             |br| * the default value is False
-        :type segmentation: boolean
+        :type preserve_column_means: boolean
 
-        :param numberOfSegmentsPerPeriod: states the number of segments per period
-            |br| * the default value is 24
-        :type numberOfSegmentsPerPeriod:  strictly positive integer
-
-        :param clusterMethod: states the method which is used in the tsam package for clustering the time series
-            data. Options are for example 'averaging', 'k_means', 'exact k_medoid' or 'hierarchical'.
-
-            .. note::
-                Please refer to the tsam package documentation of the parameter clusterMethod for more information.
-
-            |br| * the default value is 'hierarchical'
-        :type clusterMethod: string
-
-        :param representationMethod: Chosen representation. If specified, the clusters are represented in the chosen
-            way. Otherwise, each clusterMethod has its own commonly used default representation method.
-
-            .. note::
-                Please refer to the tsam package documentation of the parameter representationMethod for more information.
-
-            |br| * the default Value is "durationRepresentation"
-        :type representationMethod: string
-
-        :param rescaleClusterPeriods: states if the cluster periods shall get rescaled such that their
-            weighted mean value fits the mean value of the original time series
-
-            .. note::
-                Please refer to the tsam package documentation of the parameter rescaleClusterPeriods for more information.
-
-            |br| * the default value is False
-        :type rescaleClusterPeriods: boolean
-
-        :param sortValues: states if the algorithm in the tsam package should use
-
-            (a) the sorted duration curves (-> True) or
-            (b) the original profiles (-> False)
-
-            of the time series data within a period for clustering.
-
-            .. note::
-                Please refer to the tsam package documentation of the parameter sortValues for more information.
-
-            |br| * the default value is True
-        :type sortValues: boolean
-
-        :param storeTSAinstance: states if the TimeSeriesAggregation instance created during clustering should be
-            stored in the EnergySystemModel instance.
+        :param storeTSAinstance: states if the :class:`tsam.AggregationResult` created during clustering
+            should be stored in the EnergySystemModel instance (as `esM.tsaInstance`). It is the ETHOS.TSAM
+            result itself, so its own attributes apply: ``cluster_representatives``,
+            ``cluster_assignments``, ``period_index``, ``n_clusters``, ``n_segments``, ``accuracy`` and
+            ``clustering``. The time the aggregation took is stored as `esM.tsaBuildTime` either way.
             |br| * the default value is False
         :type storeTSAinstance: boolean
+
+        :param kwargs: further arguments of :func:`tsam.aggregate`.
+
+        Examples:
+            Cluster into 7 typical days of 24 hourly time steps, without segmentation::
+
+                esM.aggregateTemporally(n_clusters=7, period_duration=24, segments=None)
+
+            Cluster with k-means, segment each period into 6 segments and preserve the peak demand::
+
+                esM.aggregateTemporally(
+                    n_clusters=7,
+                    cluster=fn.ClusterConfig(method="kmeans", representation="mean"),
+                    segments=fn.SegmentConfig(n_segments=6),
+                    extremes=fn.ExtremeConfig(max_value=["Industry site_operationRateFix_IndustryLocation"]),
+                )
+
         """
+        # The number of time steps per period shapes the temporal structure of the model itself, so the period
+        # length is expressed in time steps here rather than left to ETHOS.TSAM.
+        numberOfTimeStepsPerPeriod = (
+            24
+            if period_duration is None
+            else round(
+                utils.parsePeriodDurationHours(period_duration) / self.hoursPerTimeStep
+            )
+        )
+        segmentation = segments is not None
+
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(
-            numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps)
+            n_clusters, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps)
         )
-        if segmentation:
-            if numberOfSegmentsPerPeriod > numberOfTimeStepsPerPeriod:
-                if self.verboseLogLevel < 2:
-                    warnings.warn(
-                        "The chosen number of segments per period exceeds the number of time steps per"
-                        "period. The number of segments per period is set to the number of time steps per "
-                        "period."
-                    )
-                numberOfSegmentsPerPeriod = numberOfTimeStepsPerPeriod
+        if segmentation and segments.n_segments > numberOfTimeStepsPerPeriod:
+            if self.verboseLogLevel < 2:
+                warnings.warn(
+                    "The chosen number of segments per period exceeds the number of time steps per"
+                    "period. The number of segments per period is set to the number of time steps per "
+                    "period."
+                )
+            segments = replace(segments, n_segments=numberOfTimeStepsPerPeriod)
+        numberOfSegmentsPerPeriod = segments.n_segments if segmentation else 0
         hoursPerPeriod = int(numberOfTimeStepsPerPeriod * self.hoursPerTimeStep)
 
         timeStart = time.time()
         if segmentation:
             utils.output(
                 "\nClustering time series data with "
-                + str(numberOfTypicalPeriods)
+                + str(n_clusters)
                 + " typical periods and "
                 + str(numberOfTimeStepsPerPeriod)
                 + " time steps per period \nfurther clustered to "
@@ -996,7 +1039,7 @@ class EnergySystemModel:
         else:
             utils.output(
                 "\nClustering time series data with "
-                + str(numberOfTypicalPeriods)
+                + str(n_clusters)
                 + " typical periods and "
                 + str(numberOfTimeStepsPerPeriod)
                 + " time steps per period...",
@@ -1024,45 +1067,34 @@ class EnergySystemModel:
                 self.createTimeSeriesDataForAggregation(ip)
             )
 
+            aggregationResult = tsam.aggregate(
+                timeSeriesData,
+                n_clusters=n_clusters,
+                period_duration=hoursPerPeriod,
+                temporal_resolution=self.hoursPerTimeStep,
+                cluster=cluster,
+                segments=segments,
+                extremes=extremes,
+                weights=weightDict,
+                preserve_column_means=preserve_column_means,
+                **kwargs,
+            )
+            typicalPeriods = aggregationResult.cluster_representatives
+
             if segmentation:
-                clusterClass = TimeSeriesAggregation(
-                    timeSeries=timeSeriesData,
-                    noTypicalPeriods=numberOfTypicalPeriods,
-                    segmentation=segmentation,
-                    noSegments=numberOfSegmentsPerPeriod,
-                    hoursPerPeriod=hoursPerPeriod,
-                    clusterMethod=clusterMethod,
-                    sortValues=sortValues,
-                    weightDict=weightDict,
-                    rescaleClusterPeriods=rescaleClusterPeriods,
-                    representationMethod=representationMethod,
-                    **kwargs,
+                # The typical periods are indexed by typical period number, segment number per
+                # typical period and the length of that segment. Split the length off, so that
+                # the data carries the same two index levels as without segmentation.
+                data = typicalPeriods.reset_index(level=2, drop=True)
+                timeStepsPerSegment = pd.Series(
+                    typicalPeriods.index.get_level_values("Segment Duration"),
+                    index=data.index,
                 )
-                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-                # second index as segment number per typical period.
-                data = pd.DataFrame.from_dict(
-                    clusterClass.clusterPeriodDict
-                ).reset_index(level=2, drop=True)
-                # Get the length of each segment in each typical period with the first index as typical period number and
-                # the second index as segment number per typical period.
-                timeStepsPerSegment = pd.DataFrame.from_dict(
-                    clusterClass.segmentDurationDict
-                )["Segment Duration"]
             else:
-                clusterClass = TimeSeriesAggregation(
-                    timeSeries=timeSeriesData,
-                    noTypicalPeriods=numberOfTypicalPeriods,
-                    hoursPerPeriod=hoursPerPeriod,
-                    clusterMethod=clusterMethod,
-                    sortValues=sortValues,
-                    weightDict=weightDict,
-                    rescaleClusterPeriods=rescaleClusterPeriods,
-                    representationMethod=representationMethod,
-                    **kwargs,
-                )
-                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-                # second index as time step number per typical period.
-                data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+                # The typical periods are indexed by typical period number and time step number
+                # per typical period. Copied because the zero columns are added back below, which
+                # must not reach the result stored as esM.tsaInstance.
+                data = typicalPeriods.copy()
 
             # add zeros data back to data
             data[zero_data_cols] = 0.0
@@ -1074,8 +1106,8 @@ class EnergySystemModel:
 
             # Store time series aggregation parameters in class instance
             if storeTSAinstance:
-                self.tsaInstance = clusterClass
-            self.typicalPeriods = clusterClass.clusterPeriodIdx
+                self.tsaInstance = aggregationResult
+            self.typicalPeriods = aggregationResult.period_index
             self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
             self.segmentation = segmentation
             if segmentation:
@@ -1097,7 +1129,7 @@ class EnergySystemModel:
                 segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
                 self.segmentStartTime[ip] = segmentStartTime  # ip-dependent
 
-            self.periodsOrder[ip] = clusterClass.clusterOrder
+            self.periodsOrder[ip] = aggregationResult.cluster_assignments
             self.periodOccurrences[ip] = [
                 (self.periodsOrder[ip] == tp).sum() for tp in self.typicalPeriods
             ]
@@ -1117,9 +1149,9 @@ class EnergySystemModel:
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
         timeEnd = time.time()
-        if storeTSAinstance:
-            clusterClass.tsaBuildTime = timeEnd - timeStart
-            self.tsaInstance = clusterClass
+        # The time the aggregation took as a whole, i.e. including the preparation of the time
+        # series. ETHOS.TSAM reports its own share of it as result.clustering_duration.
+        self.tsaBuildTime = timeEnd - timeStart
         utils.output(
             "\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verboseLogLevel, 0
         )
@@ -1156,8 +1188,8 @@ class EnergySystemModel:
             tz="Europe/Berlin",
         )
 
-        # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
-        # call) depending on whether segmentation is activated or not
+        # Sort the columns so that the aggregation is reproducible: the column order otherwise
+        # follows the order the components were added in, which ETHOS.TSAM's clustering sees.
         timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
         # find data with only zeros
         zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
@@ -2298,17 +2330,19 @@ class EnergySystemModel:
 
             # TSA Values
             if self.isTimeSeriesDataClustered and (self.tsaInstance is not None):
-                tsaBuildTime = self.tsaInstance.tsaBuildTime
+                tsaBuildTime = self.tsaBuildTime
+                clusterConfig = self.tsaInstance.clustering.cluster_config
 
                 tsa_parameters_dict = {
-                    "clusterMethod": self.tsaInstance.clusterMethod,
-                    "noTypicalPeriods": self.tsaInstance.noTypicalPeriods,
-                    "hoursPerPeriod": self.tsaInstance.hoursPerPeriod,
-                    "segmentation": self.tsaInstance.segmentation,
-                    "noSegments": self.tsaInstance.noSegments,
-                    "tsaSolver": self.tsaInstance.solver,
-                    "timeStepsPerPeriod": self.tsaInstance.timeStepsPerPeriod,
-                    "tsaBuildTime": self.tsaInstance.tsaBuildTime,
+                    "clusterMethod": clusterConfig.method,
+                    "noTypicalPeriods": self.tsaInstance.n_clusters,
+                    "hoursPerPeriod": self.tsaInstance.n_timesteps_per_period
+                    * self.hoursPerTimeStep,
+                    "segmentation": self.tsaInstance.n_segments is not None,
+                    "noSegments": self.tsaInstance.n_segments,
+                    "tsaSolver": clusterConfig.solver,
+                    "timeStepsPerPeriod": self.tsaInstance.n_timesteps_per_period,
+                    "tsaBuildTime": tsaBuildTime,
                 }
             else:
                 tsa_parameters_dict = {}
