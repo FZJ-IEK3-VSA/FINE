@@ -1,6 +1,88 @@
 import fine as fn
 import pandas as pd
 import numpy as np
+import pytest
+
+
+def _create_delayed_transmission_esM(timeDelay=1, losses=0):
+    """Create a two-location system whose demand can only be met via transmission."""
+    esM = fn.EnergySystemModel(
+        locations={"A", "B"},
+        commodities={"commodity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"commodity": "unit"},
+        hoursPerTimeStep=1,
+        costUnit="cost_unit",
+        lengthUnit="length_unit",
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="supply",
+            commodity="commodity",
+            hasCapacityVariable=False,
+            operationRateMax=pd.DataFrame({"A": [10, 0, 0, 0], "B": [0, 0, 0, 0]}),
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="demand",
+            commodity="commodity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame(
+                {"A": [0, 0, 0, 0], "B": [0, 10 * (1 - losses), 0, 0]}
+            ),
+        )
+    )
+    eligibility = pd.DataFrame([[0, 1], [1, 0]], index=["A", "B"], columns=["A", "B"])
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="shipment",
+            commodity="commodity",
+            losses=losses,
+            distances=1,
+            timeDelay=timeDelay,
+            hasCapacityVariable=False,
+            locationalEligibility=eligibility,
+        )
+    )
+    return esM
+
+
+def test_transmission_time_delay_shifts_arrival_and_applies_losses():
+    esM = _create_delayed_transmission_esM(losses=0.1)
+    esM.optimize(solver="glpk")
+
+    operation = esM.componentModelingDict[
+        "TransmissionModel"
+    ].operationVariablesOptimum[esM.investmentPeriodNames[0]]
+    assert operation.loc[("shipment", "A", "B"), 0] == pytest.approx(10)
+    assert operation.loc[("shipment", "A", "B"), 1] == pytest.approx(0)
+
+
+def test_transmission_time_delay_closes_horizon():
+    esM = _create_delayed_transmission_esM()
+    esM.declareOptimizationProblem()
+
+    constraint = esM.pyM.ConstrTimeDelay_trans["A_B", "shipment", 0, 0, 3]
+    assert constraint.lower() == 0
+    assert constraint.upper() == 0
+
+
+@pytest.mark.parametrize(
+    "timeDelay, exception", [(-1, ValueError), (0.5, TypeError), (4, ValueError)]
+)
+def test_transmission_time_delay_is_validated(timeDelay, exception):
+    with pytest.raises(exception, match="timeDelay"):
+        _create_delayed_transmission_esM(timeDelay=timeDelay)
+
+
+def test_transmission_time_delay_rejects_time_series_aggregation():
+    transmission = _create_delayed_transmission_esM().getComponent("shipment")
+    with pytest.raises(ValueError, match="timeDelay.*time series aggregation"):
+        transmission.setTimeSeriesData(hasTSA=True)
 
 
 def test_initializeTransmission():

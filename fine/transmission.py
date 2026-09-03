@@ -17,6 +17,7 @@ class Transmission(Component):
         commodity,
         losses=0,
         distances=None,
+        timeDelay=0,
         hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -81,6 +82,13 @@ class Transmission(Component):
             |br| * the default value is None
         :type distances: positive float (>= 0) or Pandas DataFrame with positive values (>= 0). The row and
             column indices of the DataFrame have to equal the in the energy system model specified locations.
+
+        :param timeDelay: transit time between dispatch and arrival, measured in model time steps. A commodity
+            dispatched at time step ``t`` arrives at its destination at ``t + timeDelay``. The default of 0
+            preserves instantaneous transmission. Delayed transmission is currently incompatible with time series
+            aggregation. The modeled horizon is closed: no commodity is initially in transit and dispatches that
+            would arrive after the final time step are prohibited.
+        :type timeDelay: non-negative integer, strictly smaller than the number of modeled time steps
 
         :param operationRateMax: if specified, indicates a maximum operation rate for all possible connections
             (both directions) of the transmission component at each time step, if required also for each investment period, by a positive float. If
@@ -308,6 +316,15 @@ class Transmission(Component):
             commodity,
             esM.commodityUnitsDict[commodity],
         )
+        if not isinstance(timeDelay, int):
+            raise TypeError("timeDelay must be a non-negative integer.")
+        if timeDelay < 0:
+            raise ValueError("timeDelay must be a non-negative integer.")
+        if timeDelay >= esM.numberOfTimeSteps:
+            raise ValueError(
+                "timeDelay must be smaller than the number of modeled time steps."
+            )
+        self.timeDelay = timeDelay
         self.distances = utils.preprocess2dimData(
             distances, self._mapC, locationalEligibility=self.locationalEligibility
         )
@@ -460,6 +477,12 @@ class Transmission(Component):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
+        if hasTSA and self.timeDelay:
+            raise ValueError(
+                "Transmission components with a positive timeDelay are not compatible "
+                "with time series aggregation."
+            )
+
         self.processedOperationRateMax = (
             self.aggregatedOperationRateMax if hasTSA else self.fullOperationRateMax
         )
@@ -745,6 +768,27 @@ class TransmissionModel(ComponentModel):
         self.additionalMinPartLoad(
             pyM, esM, "ConstrOperation", "opConstrSet", "op", "op_bin", "cap"
         )
+        self.timeDelayConstraint(pyM, esM)
+
+    def timeDelayConstraint(self, pyM, esM):
+        """Prohibit dispatches whose delayed arrival would be outside the modeled horizon."""
+        if not any(comp.timeDelay for comp in self.componentsDict.values()):
+            return
+
+        opVar = getattr(pyM, "op_" + self.abbrvName)
+        opVarSet = getattr(pyM, "operationVarSet_" + self.abbrvName)
+
+        def timeDelayConstraint(pyM, loc, compName, ip, p, t):
+            delay = self.componentsDict[compName].timeDelay
+            if delay and t >= len(esM.timeStepsPerPeriod) - delay:
+                return opVar[loc, compName, ip, p, t] == 0
+            return pyomo.Constraint.Skip
+
+        setattr(
+            pyM,
+            "ConstrTimeDelay_" + self.abbrvName,
+            pyomo.Constraint(opVarSet, pyM.intraYearTimeSet, rule=timeDelayConstraint),
+        )
 
     ####################################################################################################################
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
@@ -782,7 +826,7 @@ class TransmissionModel(ComponentModel):
             :nowrap:
 
             \\begin{eqnarray*}
-            \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}: loc_{in}=loc}}{ \\sum } \\left(1-\\eta_{(loc_{in},loc_{out})} \\cdot I_{(loc_{in},loc_{out})} \\right) \\cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} \\\\
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}: loc_{in}=loc}}{ \\sum } \\left(1-\\eta_{(loc_{in},loc_{out})} \\cdot I_{(loc_{in},loc_{out})} \\right) \\cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t-\\Delta t} \\\\
                 & - & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}:loc_{out}=loc}}{ \\sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
             \\end{eqnarray*}
         """
@@ -793,7 +837,13 @@ class TransmissionModel(ComponentModel):
         )
         opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
         return sum(
-            opVar[loc_ + "_" + loc, compName, ip, p, t]
+            opVar[
+                loc_ + "_" + loc,
+                compName,
+                ip,
+                p,
+                t - compDict[compName].timeDelay,
+            ]
             * (
                 1
                 - compDict[compName].losses[loc_ + "_" + loc]
@@ -802,6 +852,7 @@ class TransmissionModel(ComponentModel):
             for loc_ in opVarDictIn[ip][loc].keys()
             for compName in opVarDictIn[ip][loc][loc_]
             if commod == compDict[compName].commodity
+            and t >= compDict[compName].timeDelay
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t]
             for loc_ in opVarDictOut[ip][loc].keys()
