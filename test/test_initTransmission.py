@@ -71,8 +71,30 @@ def test_transmission_time_delay_closes_horizon():
     assert constraint.upper() == 0
 
 
+def test_transmission_time_delay_accepts_connection_specific_dataframe():
+    timeDelay = pd.DataFrame([[0, 1], [2, 0]], index=["A", "B"], columns=["A", "B"])
+    esM = _create_delayed_transmission_esM(timeDelay=timeDelay)
+    transmission = esM.getComponent("shipment")
+
+    assert transmission.timeDelay["A_B"] == 2
+    assert transmission.timeDelay["B_A"] == 1
+
+    esM.declareOptimizationProblem()
+    assert esM.pyM.ConstrTimeDelay_trans["A_B", "shipment", 0, 0, 2].upper() == 0
+    assert esM.pyM.ConstrTimeDelay_trans["B_A", "shipment", 0, 0, 3].upper() == 0
+
+
 @pytest.mark.parametrize(
-    "timeDelay, exception", [(-1, ValueError), (0.5, TypeError), (4, ValueError)]
+    "timeDelay, exception",
+    [
+        (-1, ValueError),
+        (0.5, TypeError),
+        (4, ValueError),
+        (
+            pd.DataFrame([[0, 1.5], [1, 0]], index=["A", "B"], columns=["A", "B"]),
+            ValueError,
+        ),
+    ],
 )
 def test_transmission_time_delay_is_validated(timeDelay, exception):
     with pytest.raises(exception, match="timeDelay"):

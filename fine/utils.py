@@ -343,6 +343,22 @@ def checkAndSetTransmissionLosses(losses, distances, locationalEligibility):
     return losses
 
 
+def checkAndSetTransmissionTimeDelay(timeDelay, locationalEligibility, esM):
+    """Validate and format transmission delays for all eligible connections."""
+    timeDelay = checkConnectionIndex(timeDelay, locationalEligibility)
+    if timeDelay.isnull().any() or not np.isfinite(timeDelay).all():
+        raise ValueError("The timeDelay parameter contains values which are not finite.")
+    if (timeDelay < 0).any():
+        raise ValueError("timeDelay values must be non-negative integers.")
+    if not np.equal(timeDelay, np.floor(timeDelay)).all():
+        raise ValueError("timeDelay values must be integers.")
+    if (timeDelay >= esM.numberOfTimeSteps).any():
+        raise ValueError(
+            "timeDelay values must be smaller than the number of modeled time steps."
+        )
+    return timeDelay.astype(int)
+
+
 def getCapitalChargeFactor(interestRate, economicLifetime, investmentPeriods):
     """Compute and return capital charge factor (inverse of annuity factor)."""
     CCF = {}

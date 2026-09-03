@@ -84,11 +84,15 @@ class Transmission(Component):
             column indices of the DataFrame have to equal the in the energy system model specified locations.
 
         :param timeDelay: transit time between dispatch and arrival, measured in model time steps. A commodity
-            dispatched at time step ``t`` arrives at its destination at ``t + timeDelay``. The default of 0
+            dispatched at time step ``t`` arrives at its destination at ``t + timeDelay``. The delay can be a
+            single non-negative integer applied to every connection or a Pandas DataFrame with a distinct
+            non-negative integer for every directed connection, analogous to ``distances``. The DataFrame columns
+            denote origins and its rows denote destinations. The default of 0
             preserves instantaneous transmission. Delayed transmission is currently incompatible with time series
             aggregation. The modeled horizon is closed: no commodity is initially in transit and dispatches that
             would arrive after the final time step are prohibited.
-        :type timeDelay: non-negative integer, strictly smaller than the number of modeled time steps
+        :type timeDelay: non-negative integer, strictly smaller than the number of modeled time steps, or Pandas
+            DataFrame with locations as row and column indices and non-negative integer entries
 
         :param operationRateMax: if specified, indicates a maximum operation rate for all possible connections
             (both directions) of the transmission component at each time step, if required also for each investment period, by a positive float. If
@@ -316,15 +320,18 @@ class Transmission(Component):
             commodity,
             esM.commodityUnitsDict[commodity],
         )
-        if not isinstance(timeDelay, int):
-            raise TypeError("timeDelay must be a non-negative integer.")
-        if timeDelay < 0:
-            raise ValueError("timeDelay must be a non-negative integer.")
-        if timeDelay >= esM.numberOfTimeSteps:
-            raise ValueError(
-                "timeDelay must be smaller than the number of modeled time steps."
+        if not isinstance(timeDelay, int) and not isinstance(timeDelay, pd.DataFrame):
+            raise TypeError(
+                "timeDelay must be a non-negative integer or a pandas DataFrame."
             )
-        self.timeDelay = timeDelay
+        self.timeDelay = utils.preprocess2dimData(
+            timeDelay,
+            {loc: self._mapC[loc] for loc in self.locationalEligibility.index},
+            locationalEligibility=self.locationalEligibility,
+        )
+        self.timeDelay = utils.checkAndSetTransmissionTimeDelay(
+            self.timeDelay, self.locationalEligibility, esM
+        )
         self.distances = utils.preprocess2dimData(
             distances, self._mapC, locationalEligibility=self.locationalEligibility
         )
@@ -477,7 +484,7 @@ class Transmission(Component):
         :param hasTSA: states whether a time series aggregation is requested (True) or not (False).
         :type hasTSA: boolean
         """
-        if hasTSA and self.timeDelay:
+        if hasTSA and self.timeDelay.any():
             raise ValueError(
                 "Transmission components with a positive timeDelay are not compatible "
                 "with time series aggregation."
@@ -772,14 +779,14 @@ class TransmissionModel(ComponentModel):
 
     def timeDelayConstraint(self, pyM, esM):
         """Prohibit dispatches whose delayed arrival would be outside the modeled horizon."""
-        if not any(comp.timeDelay for comp in self.componentsDict.values()):
+        if not any(comp.timeDelay.any() for comp in self.componentsDict.values()):
             return
 
         opVar = getattr(pyM, "op_" + self.abbrvName)
         opVarSet = getattr(pyM, "operationVarSet_" + self.abbrvName)
 
         def timeDelayConstraint(pyM, loc, compName, ip, p, t):
-            delay = self.componentsDict[compName].timeDelay
+            delay = self.componentsDict[compName].timeDelay[loc]
             if delay and t >= len(esM.timeStepsPerPeriod) - delay:
                 return opVar[loc, compName, ip, p, t] == 0
             return pyomo.Constraint.Skip
@@ -842,7 +849,7 @@ class TransmissionModel(ComponentModel):
                 compName,
                 ip,
                 p,
-                t - compDict[compName].timeDelay,
+                t - compDict[compName].timeDelay[loc_ + "_" + loc],
             ]
             * (
                 1
@@ -852,7 +859,7 @@ class TransmissionModel(ComponentModel):
             for loc_ in opVarDictIn[ip][loc].keys()
             for compName in opVarDictIn[ip][loc][loc_]
             if commod == compDict[compName].commodity
-            and t >= compDict[compName].timeDelay
+            and t >= compDict[compName].timeDelay[loc_ + "_" + loc]
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t]
             for loc_ in opVarDictOut[ip][loc].keys()
