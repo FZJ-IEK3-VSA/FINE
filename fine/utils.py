@@ -177,6 +177,26 @@ def checkRegionalColumnTitles(esM, data, locationalEligibility):
     return data
 
 
+def sortTimeSeriesColumns(data):
+    """Return time-series input with DataFrame columns sorted.
+
+    Time-series parameters can be provided either as a single DataFrame or as a
+    dictionary containing one DataFrame per investment period. Sorting copies
+    the DataFrames, so storing normalized component input does not mutate the
+    object supplied by the user.
+    """
+    if isinstance(data, pd.DataFrame):
+        return data.sort_index(axis=1)
+    if isinstance(data, dict):
+        return {
+            investmentPeriod: value.sort_index(axis=1)
+            if isinstance(value, pd.DataFrame)
+            else value
+            for investmentPeriod, value in data.items()
+        }
+    return data
+
+
 def checkRegionalIndex(esM, data, locationalEligibility):
     """Necessary if the data rows represent the location-dependent data:
     Check if the row-indices match the location indices of the energy system model.
