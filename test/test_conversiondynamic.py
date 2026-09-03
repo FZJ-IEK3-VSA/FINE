@@ -3,6 +3,7 @@
 # # Workflow for a multi-regional energy system
 #
 import fine as fn
+import fine.IOManagement.xarrayIO as xrIO
 import numpy as np
 import pandas as pd
 
@@ -224,6 +225,49 @@ def test_scheduled_maintenance_windows():
     assert heater_operation == ENERGY_FLOW * (NUMBER_OF_HOURS - 4)
     assert len(start_times) == 2
     assert abs(start_times[1] - start_times[0]) > 2
+
+    maintenance_active = esM.componentModelingDict[
+        "ConversionDynamicModel"
+    ].maintenanceActiveVariablesOptimum
+    assert maintenance_active.loc["Methane heater", "region1"].sum() == 4
+
+
+def test_scheduled_maintenance_is_exported_to_xarray_and_netcdf(tmp_path):
+    """Export active maintenance through the xarray and netCDF result pipelines."""
+    esM = _create_system(numberOfTimeSteps=NUMBER_OF_HOURS, hoursPerTimeStep=1)
+    esM.updateComponent(
+        "Methane heater",
+        {
+            "maintenanceTime": 2,
+            "maintenanceOccurrences": 2,
+            "bigM": 1000,
+        },
+    )
+    esM.optimize()
+
+    datasets = xrIO.writeEnergySystemModelToDatasets(esM)
+    exported = datasets["Results"][0]["ConversionDynamicModel"]["Methane heater"]
+
+    assert "maintenanceActiveVariablesOptimum" in exported
+    expected = esM.componentModelingDict[
+        "ConversionDynamicModel"
+    ].maintenanceActiveVariablesOptimum.loc["Methane heater", "region1"]
+    np.testing.assert_array_equal(
+        exported["maintenanceActiveVariablesOptimum"].sel(location="region1"),
+        expected,
+    )
+
+    output_file = tmp_path / "scheduled_maintenance.nc"
+    xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=output_file)
+    restored = xrIO.readNetCDFToDatasets(output_file)
+    restored_component = restored["Results"]["0"]["ConversionDynamicModel"][
+        "Methane heater"
+    ]
+    assert "maintenanceActiveVariablesOptimum" in restored_component
+    np.testing.assert_array_equal(
+        restored_component["maintenanceActiveVariablesOptimum"].sel(location="region1"),
+        expected,
+    )
 
 
 def test_no_scheduled_maintenance_without_installed_capacity():

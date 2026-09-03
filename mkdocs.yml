@@ -179,6 +179,7 @@ nav:
           - "08 Stochastic Optimization": "examples/08_Stochastic_Optimization/08_Stochastic Optimization.ipynb"
           - "09 Perfect Foresight": examples/09_PerfectForesight/09_perfectForesight_example.ipynb
           - "10 Partload": examples/10_Partload/10_Partload_Example.ipynb
+          - "11 Scheduled Maintenance": examples/11_Scheduled_Maintenance/11_Scheduled_Maintenance.ipynb
 
     - Integrated Software: integrated_software.md
     - Further Reading: further_reading.md
