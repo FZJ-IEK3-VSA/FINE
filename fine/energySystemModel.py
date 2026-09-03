@@ -2149,9 +2149,7 @@ class EnergySystemModel:
     ):
         """Solve the declared optimization problem with the specified solver.
 
-        If no solver is specified explicitly, or if the specified solver is not available,
-        the first available solver of the implemented solvers is chosen. The solve time is
-        stored in the solverSpecs of the EnergySystemModel instance. The arguments correspond
+        The solve time is stored in the solverSpecs of the EnergySystemModel instance. The arguments correspond
         to the ones of the optimize function; timeStart is the starting time returned by the
         _prepareOptimization function.
 
@@ -2400,7 +2398,12 @@ class EnergySystemModel:
         )
 
     def _buildPerformanceSummary(
-        self, logFileName, solver, includePerformanceSummary, process, rss_by_psutil_start
+        self,
+        logFileName,
+        solver,
+        includePerformanceSummary,
+        process,
+        rss_by_psutil_start,
     ):
         """Build the performance summary of the optimize function call and store it as
         attribute ('self.performanceSummary') in the EnergySystemModel instance.
