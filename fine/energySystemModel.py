@@ -2017,6 +2017,61 @@ class EnergySystemModel:
         Last edited: November 16, 2023
         |br| @author: FINE Developer Team (FZJ IEK-3)
         """
+        timeStart, process, rss_by_psutil_start = self._prepareOptimization(
+            declaresOptimizationProblem,
+            relaxIsBuiltBinary,
+            timeSeriesAggregation,
+            logFileName,
+            threads,
+            solver,
+            timeLimit,
+            optimizationSpecs,
+            warmstart,
+            relevanceThreshold,
+            includePerformanceSummary,
+        )
+        solver, solver_info = self._runOptimization(
+            logFileName,
+            threads,
+            solver,
+            timeLimit,
+            optimizationSpecs,
+            warmstart,
+            timeStart,
+        )
+        self._runPostprocessing(solver_info, timeStart)
+        self._buildPerformanceSummary(
+            logFileName, solver, includePerformanceSummary, process, rss_by_psutil_start
+        )
+
+    def _prepareOptimization(
+        self,
+        declaresOptimizationProblem,
+        relaxIsBuiltBinary,
+        timeSeriesAggregation,
+        logFileName,
+        threads,
+        solver,
+        timeLimit,
+        optimizationSpecs,
+        warmstart,
+        relevanceThreshold,
+        includePerformanceSummary,
+    ):
+        """Prepare the optimization run of the optimize function.
+
+        The pyomo ConcreteModel instance is declared (if requested), the optimize inputs are
+        checked and the keyword arguments are stored in the solverSpecs of the
+        EnergySystemModel instance. If a performance summary is requested, the RAM usage
+        before the optimization is recorded as well. The arguments correspond to the ones of
+        the optimize function.
+
+        :return: starting time of the optimization, the psutil process handle and the RAM
+            usage before the optimization (the latter two are None if no performance summary
+            is requested).
+        :rtype: tuple
+        """
+        process, rss_by_psutil_start = None, None
         if not timeSeriesAggregation:
             self.segmentation = False
 
@@ -2080,6 +2135,29 @@ class EnergySystemModel:
             timeSeriesAggregation,
         )
 
+        return timeStart, process, rss_by_psutil_start
+
+    def _runOptimization(
+        self,
+        logFileName,
+        threads,
+        solver,
+        timeLimit,
+        optimizationSpecs,
+        warmstart,
+        timeStart,
+    ):
+        """Solve the declared optimization problem with the specified solver.
+
+        If no solver is specified explicitly, or if the specified solver is not available,
+        the first available solver of the implemented solvers is chosen. The solve time is
+        stored in the solverSpecs of the EnergySystemModel instance. The arguments correspond
+        to the ones of the optimize function; timeStart is the starting time returned by the
+        _prepareOptimization function.
+
+        :return: the solver which was actually used and the results object returned by it.
+        :rtype: tuple
+        """
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
         solverList = [
@@ -2206,6 +2284,21 @@ class EnergySystemModel:
             0,
         )
 
+        return solver, solver_info
+
+    def _runPostprocessing(self, solver_info, timeStart):
+        """Process the optimization output of the component modeling classes.
+
+        The solver status and the termination condition are evaluated first; output is only
+        generated if they are acceptable. The objective value and the runtime of the optimize
+        function call are stored in the EnergySystemModel instance.
+
+        :param solver_info: results object returned by the _runOptimization function
+        :type solver_info: pyomo results object
+
+        :param timeStart: starting time returned by the _prepareOptimization function
+        :type timeStart: float
+        """
         ################################################################################################################
         #                                      Post-process optimization output                                        #
         ################################################################################################################
@@ -2306,6 +2399,29 @@ class EnergySystemModel:
             self.solverSpecs["buildtime"] + time.time() - timeStart
         )
 
+    def _buildPerformanceSummary(
+        self, logFileName, solver, includePerformanceSummary, process, rss_by_psutil_start
+    ):
+        """Build the performance summary of the optimize function call and store it as
+        attribute ('self.performanceSummary') in the EnergySystemModel instance.
+
+        Nothing is done if includePerformanceSummary is False.
+
+        :param logFileName: logFileName of the optimize function call
+        :type logFileName: string
+
+        :param solver: the solver which was used, as returned by the _runOptimization function
+        :type solver: string
+
+        :param includePerformanceSummary: states if a performance summary should be built
+        :type includePerformanceSummary: boolean
+
+        :param process: psutil process handle returned by the _prepareOptimization function
+        :type process: psutil.Process or None
+
+        :param rss_by_psutil_start: RAM usage before the optimization in GB
+        :type rss_by_psutil_start: float or None
+        """
         if includePerformanceSummary:
             rss_by_psutil_end = process.memory_info().rss / (
                 1024 * 1024 * 1024
