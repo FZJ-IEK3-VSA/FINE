@@ -347,7 +347,7 @@ def test_import_from_dict(test_esM_fixture, request):
         output_df = output_esM.getComponentAttribute(
             "Electricity market", "operationRateMax"
         )
-        output_df.reset_index(level=0, drop=True, inplace=True)
+        output_df = output_df.reset_index(level=0, drop=True)
 
         output_value = output_esM.getComponentAttribute(
             "Electrolyzers", "investPerCapacity"
@@ -369,7 +369,7 @@ def test_import_from_dict(test_esM_fixture, request):
         output_df = output_esM.getComponentAttribute(
             "Hydrogen demand", "operationRateFix"
         )
-        output_df.reset_index(level=0, drop=True, inplace=True)
+        output_df = output_df.reset_index(level=0, drop=True)
 
         output_series = output_esM.getComponentAttribute(
             "AC cables", "reactances"

@@ -799,9 +799,8 @@ class Component(metaclass=ABCMeta):
         if data_ is not None:
             data_ = data_.copy()
             uniqueIdentifiers = [self.name + rateName + loc for loc in data_.columns]
-            data_.rename(
+            data_ = data_.rename(
                 columns={loc: self.name + rateName + loc for loc in data_.columns},
-                inplace=True,
             )
             (
                 weightDict.update({id: rateWeight for id in uniqueIdentifiers}),
@@ -836,20 +835,18 @@ class Component(metaclass=ABCMeta):
                     self.name + rateName + loc for loc in rate[ip].columns
                 ]
                 data_ = data[uniqueIdentifiers].copy(deep=True)
-                data_.rename(
+                data_ = data_.rename(
                     columns={
                         self.name + rateName + loc: loc for loc in rate[ip].columns
-                    },
-                    inplace=True,
+                    }
                 )
             else:
                 return None
         elif isinstance(rate, pd.DataFrame):
             uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
             data_ = data[uniqueIdentifiers].copy(deep=True)
-            data_.rename(
-                columns={self.name + rateName + loc: loc for loc in rate.columns},
-                inplace=True,
+            data_ = data_.rename(
+                columns={self.name + rateName + loc: loc for loc in rate.columns}
             )
         else:
             raise ValueError(f"Wrong type for rate of '{self.name}': {type(rate)}")
