@@ -4,7 +4,6 @@ import warnings
 
 import numpy as np
 import pandas as pd
-import gurobipy as gp
 
 import fine as fn
 from fine.enums import Dimension, VarType
@@ -746,7 +745,6 @@ def checkCapacityDevelopmentWithStock(
                             + "commissioning and the technical lifetime) and "
                             + "capacityFix"
                         )
-
     if capacityFix is not None:
         if all(x is None for x in capacityFix.values()):
             return
@@ -877,6 +875,19 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     name = compFancy.name
     bigM = compFancy.bigM
     useTemporalCyclicConstraints = compFancy.useTemporalCyclicConstraints
+    minimumDowntimeRequired = compFancy.minimumDowntimeRequired
+
+    if not isinstance(minimumDowntimeRequired, bool):
+        raise TypeError("minimumDowntimeRequired must be a boolean.")
+    if minimumDowntimeRequired and downTimeMin is None:
+        raise ValueError(
+            "downTimeMin needs to be specified when minimumDowntimeRequired is True."
+        )
+    if minimumDowntimeRequired and not useTemporalCyclicConstraints:
+        raise ValueError(
+            "minimumDowntimeRequired currently requires "
+            "useTemporalCyclicConstraints=True."
+        )
 
     if downTimeMin is not None:
         # Check if values are integers and in the intervall ]0,numberOfTimeSteps].
@@ -1767,6 +1778,21 @@ def checkAndSetFullLoadHoursParameter(
     return parameter
 
 
+def parsePeriodDurationHours(periodDuration):
+    """Return the length of one period in hours.
+
+    :param periodDuration: Length of a period, either a number of hours or a
+        pandas Timedelta string such as '24h', '1d' or '1w'.
+    :type periodDuration: integer, float or string
+
+    :returns: The period length in hours.
+    :rtype: float
+    """
+    if isinstance(periodDuration, str):
+        return pd.Timedelta(periodDuration).total_seconds() / 3600
+    return float(periodDuration)
+
+
 def checkClusteringInput(
     numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, totalNumberOfTimeSteps
 ):
@@ -1874,11 +1900,32 @@ def buildFullTimeSeries(df, periodsOrder, ip, axis=1, esM=None, divide=True):
     return pd.concat(data, axis=axis, ignore_index=True)
 
 
+def _operationIndexNames(nlevels):
+    """Index level names for a formatted 1-dim operation frame.
+
+    The frame is ``(component, location)`` by default. Variables carrying an extra pyomo
+    set (currently only the part-load discretization point/segment) add middle level(s)
+    between ``component`` and ``location``, named ``discretizationIndex``.
+
+    :param nlevels: number of index levels of the formatted frame.
+    :return: list of level names, length ``nlevels``.
+    :rtype: list
+    """
+    nExtra = nlevels - 2
+    if nExtra <= 0:
+        return ["component", "location"]
+    extras = [
+        "discretizationIndex" if nExtra == 1 else f"discretizationIndex{i}"
+        for i in range(nExtra)
+    ]
+    return ["component", *extras, "location"]
+
+
 def formatOptimizationOutput(
     data, varType, dimension, ip, periodsOrder=None, compDict=None, esM=None
 ):
-    """Functionality for formatting the optimization output. The function is used in the
-    setOptimalValues()-method of the ComponentModel class.
+    """Functionality for formatting the optimization output. The function is used by the
+    result pipeline of the ComponentModel class.
 
     **Required arguments:**
 
@@ -1938,6 +1985,10 @@ def formatOptimizationOutput(
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level
         df.columns = df.columns.droplevel()
+        # Label the axes so downstream consumers (e.g. the xarray export) can rely on
+        # names instead of positions. 1-dim design: rows = component, columns = location.
+        df.index = df.index.set_names("component")
+        df.columns = df.columns.set_names("location")
         return df
     if varType == VarType.DESIGN and dimension == Dimension.TWO:
         # Convert dictionary to DataFrame, transpose, put the components name first while keeping the order of the
@@ -1957,6 +2008,10 @@ def formatOptimizationOutput(
         df = df.unstack(level=-1)
         # Get rid of the unnecessary 0 level
         df.columns = df.columns.droplevel()
+        # Label the axes. 2-dim design: rows = (component, locationIn), columns =
+        # locationOut (following the mapC convention "locationIn_locationOut").
+        df.index = df.index.set_names(["component", "locationIn"])
+        df.columns = df.columns.set_names("locationOut")
         return df
     if varType == VarType.OPERATION and dimension == Dimension.ONE:
         # Convert dictionary to DataFrame, transpose, put the period column first and sort the index
@@ -1975,7 +2030,13 @@ def formatOptimizationOutput(
         df = df[df.index.get_level_values(2) == ip]
         # drop ip from index
         df.reset_index(level=2, drop=True, inplace=True)
-        return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
+        df = buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
+        # Label the axes. 1-dim operation: rows = (component, location) with columns =
+        # time. Variables with an extra pyomo set (the part-load discretization
+        # point/segment) carry an additional middle level, named "discretizationIndex".
+        df.index = df.index.set_names(_operationIndexNames(df.index.nlevels))
+        df.columns = df.columns.set_names("time")
+        return df
     if varType == VarType.OPERATION and dimension == Dimension.TWO:
         # Convert dictionary to DataFrame, transpose, put the period column first while keeping the order of the
         # regions and sort the index
@@ -2007,7 +2068,12 @@ def formatOptimizationOutput(
 
         # Re-engineer full time series by using Pandas' concat method (only one loop if time series aggregation was not
         # used)
-        return buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
+        df = buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
+        # Label the axes. 2-dim operation: rows = (component, locationIn, locationOut),
+        # columns = time.
+        df.index = df.index.set_names(["component", "locationIn", "locationOut"])
+        df.columns = df.columns.set_names("time")
+        return df
     raise ValueError(
         "The varType parameter has to be either 'designVariables' or 'operationVariables'\n"
         + "and the dimension parameter has to be either '1dim' or '2dim'."
@@ -3102,6 +3168,10 @@ class ImplementedSolvers:
         """
         env = None
         model = None
+        try:
+            import gurobipy as gp  # noqa: PLC0415
+        except ImportError:
+            return False
         try:
             env = gp.Env(empty=True)
             env.setParam("OutputFlag", 0)

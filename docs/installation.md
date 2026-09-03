@@ -16,7 +16,7 @@ In the following, you find information on:
 If you would like to run ETHOS.FINE for your analysis we recommend to install it directly from conda-forge into a new Python environment with
 
 ```bash
-mamba create --name fine_env --channel conda-forge fine
+mamba create --name fine_env --channel conda-forge --channel gurobi --strict-channel-priority fine gurobi
 ```
 
 !!! note "Mamba vs. Conda"
