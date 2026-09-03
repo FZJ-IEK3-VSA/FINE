@@ -25,7 +25,7 @@ dependencies:
   - networkx >=2.5,<=3.6.1
   - pwlf >=2.5.0,<=2.6.0
   - psutil >=5.8.0,<=7.2.2
-  - gurobi >=10.0.0,<=13.0.2
+  - gurobi >=10.0.0,<=13.0.3
   - gurobi-logtools >=3.2.0,<=4.0.1
   - highspy >=1.13.1, <=1.14.0
   # Examples
