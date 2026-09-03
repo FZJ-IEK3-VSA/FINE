@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from fine.utils import ImplementedSolvers
+from fine.utils import checkCallableConversionFactor
 
 
 def test_checkSimultaneousChargeDischarge():
@@ -180,7 +181,8 @@ def test_functionality_checkSimultaneousChargeDischarge():
     )
 
 
-def test_check_and_set_cost_parameter():
+def test_check_and_set_cost_parameter_for_part_load_conversion_factors():
+    """Test cost parameter validation used by part-load conversion factor functions."""
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190
     # Create an energy system model instance
@@ -221,3 +223,52 @@ def test_check_and_set_cost_parameter():
         assert utils.checkAndSetCostParameter(
             esM, "testParam", invalid_series_with_nan, "2dim", None
         ).equals(invalid_series_with_nan, index=esM.locations)
+
+
+def positive_factor(x):
+    """Return a positive value in the interval [0, 1]."""
+    return 0.5 + x
+
+
+def zero_factor(_):
+    """Return zero."""
+    return 0
+
+
+def negative_factor(_):
+    """Return a negative value."""
+    return -1
+
+
+def crossing_factor(x):
+    """Return values crossing zero within the interval [0, 1]."""
+    return x - 0.5
+
+
+@pytest.mark.parametrize(
+    "conversion_factor, should_raise",
+    [
+        (positive_factor, False),
+        (zero_factor, True),
+        (negative_factor, True),
+        (crossing_factor, True),
+    ],
+)
+def test_checkCallableConversionFactor(conversion_factor, should_raise):
+    """Test checkCallableConversionFactor for valid and invalid callables.
+
+    The function should accept conversion factors that are strictly positive
+    over the entire part-load range [0, 1] and raise a ValueError if the
+    conversion factor becomes zero or negative at least once.
+    """
+    if should_raise:
+        with pytest.raises(
+            ValueError,
+            match=(
+                "The callable part load conversion factor is smaller or equal "
+                "to 0 at least once within \\[0,1\\]."
+            ),
+        ):
+            checkCallableConversionFactor(conversion_factor)
+    else:
+        checkCallableConversionFactor(conversion_factor)
