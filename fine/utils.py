@@ -1604,7 +1604,7 @@ def checkAndSetTimeSeriesConversionFactors(
 
         checkTimeSeriesIndex(esM, fullCommodityConversionFactorsTimeSeries)
 
-        checkRegionalColumnTitles(
+        fullCommodityConversionFactorsTimeSeries = checkRegionalColumnTitles(
             esM, fullCommodityConversionFactorsTimeSeries, locationalEligibility
         )
 
