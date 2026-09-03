@@ -310,6 +310,18 @@ class ConversionPartLoad(Conversion):
                 # Definition of commodityConversionFactorsPartLoad
                 -> the commodityConversionFactorsPartLoad are defined as {'electricity':-1,'hydrogen':partLoadData}.
 
+            * Alternatively, the part load behavior can be passed as a callable that maps the operation level
+                (between 0 and 1) to the corresponding conversion factor (efficiency). The callable is internally
+                evaluated on the [0, 1] interval to generate the data points for the piecewise linearization.
+                For the same electrolyzer, the hydrogen production efficiency could be described by a quadratic
+                relationship instead of a DataFrame.
+
+                # Efficiency Curve of Electrolyzer as a callable
+                partLoadFunction = lambda operation_level: -0.5 * operation_level**2 + 0.8 * operation_level + 0.3
+
+                # Definition of commodityConversionFactorsPartLoad
+                -> the commodityConversionFactorsPartLoad are defined as {'electricity':-1,'hydrogen':partLoadFunction}.
+
         **Default arguments:**
 
         :param nSegments: Number of line segments used for piecewise linearization and generation of point variable (nSegment+1) and

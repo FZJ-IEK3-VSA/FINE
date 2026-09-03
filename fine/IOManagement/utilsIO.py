@@ -189,7 +189,7 @@ def _leafToIndexedData(data, classname, component, _mapC_dict, locations):
 
     # regional time series (time, space) - or (time, space, space_2) for Transmission
     if isinstance(data, pd.DataFrame):
-        multi_index_dataframe = data.stack()
+        multi_index_dataframe = data.stack(future_stack=True).dropna()
         if "Period" in multi_index_dataframe.index.names:
             multi_index_dataframe = multi_index_dataframe.droplevel(0)
 
@@ -222,7 +222,7 @@ def _leafToIndexedData(data, classname, component, _mapC_dict, locations):
         if isTransmission:
             # 2d (space, space_2): series indices are packed like loc1_loc2
             df = transform1dSeriesto2dDataFrame(data, locations)
-            multi_index_dataframe = df.stack()
+            multi_index_dataframe = df.stack(future_stack=True).dropna()
             multi_index_dataframe.index = multi_index_dataframe.index.set_names(
                 ["space", "space_2"]
             )
@@ -503,9 +503,13 @@ def add2dVariableToDict(
     :return: component_dict
     """
     if drop_component:
-        series = comp_var_xr.drop("component").to_dataframe().stack(level=0)
+        series = (
+            comp_var_xr.drop("component")
+            .to_dataframe()
+            .stack(level=0, future_stack=True)
+        )
     else:
-        series = comp_var_xr.to_dataframe().stack(level=0)
+        series = comp_var_xr.to_dataframe().stack(level=0, future_stack=True)
     series.index = series.index.droplevel(level=2).map("_".join)
 
     # NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other

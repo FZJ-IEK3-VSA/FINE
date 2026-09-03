@@ -3,6 +3,7 @@
 # # Workflow for a multi-regional energy system
 #
 import fine as fn
+import numpy as np
 import pandas as pd
 
 import pytest
@@ -159,7 +160,12 @@ def test_minimumDowntimeRequired(hoursPerTimeStep):
         .loc["Methane heater", "operation", "[kW*h]"]
         .loc["region1"]
     )
-    assert heater_operation == ENERGY_FLOW * (NUMBER_OF_HOURS - 3)
+    assert np.isclose(
+        heater_operation,
+        ENERGY_FLOW * (NUMBER_OF_HOURS - 3),
+        rtol=1e-6,
+        atol=1e-8,
+    )
 
 
 @pytest.mark.parametrize(

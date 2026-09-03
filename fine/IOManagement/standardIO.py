@@ -273,7 +273,7 @@ def getShadowPrices(
         SP = fn.utils.buildFullTimeSeries(
             SP, periodsOrder[ip], ip, esM=esM, divide=False
         )
-        SP = SP.stack()
+        SP = SP.stack(future_stack=True).dropna()
 
     return SP
 

@@ -4,7 +4,6 @@ import warnings
 
 import numpy as np
 import pandas as pd
-import gurobipy as gp
 
 import fine as fn
 from fine.enums import Dimension, VarType
@@ -746,7 +745,6 @@ def checkCapacityDevelopmentWithStock(
                             + "commissioning and the technical lifetime) and "
                             + "capacityFix"
                         )
-
     if capacityFix is not None:
         if all(x is None for x in capacityFix.values()):
             return
@@ -1776,6 +1774,21 @@ def checkAndSetFullLoadHoursParameter(
             elif _data is None:
                 parameter[ip] = None
     return parameter
+
+
+def parsePeriodDurationHours(periodDuration):
+    """Return the length of one period in hours.
+
+    :param periodDuration: Length of a period, either a number of hours or a
+        pandas Timedelta string such as '24h', '1d' or '1w'.
+    :type periodDuration: integer, float or string
+
+    :returns: The period length in hours.
+    :rtype: float
+    """
+    if isinstance(periodDuration, str):
+        return pd.Timedelta(periodDuration).total_seconds() / 3600
+    return float(periodDuration)
 
 
 def checkClusteringInput(
@@ -3149,6 +3162,10 @@ class ImplementedSolvers:
         """
         env = None
         model = None
+        try:
+            import gurobipy as gp  # noqa: PLC0415
+        except ImportError:
+            return False
         try:
             env = gp.Env(empty=True)
             env.setParam("OutputFlag", 0)

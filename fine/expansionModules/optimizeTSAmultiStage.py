@@ -2,10 +2,17 @@ from fine import utils
 import fine as fn
 import numpy as np
 import logging
+from tsam import ClusterConfig
+
+# Deprecation shim, removed together with the ETHOS.TSAM 3.x keywords.
+from fine.aggregations.temporalAggregation.deprecatedKeywords import (
+    translateDeprecatedClusterMethod,
+)
 
 logger = logging.getLogger(__name__)
 
 
+@translateDeprecatedClusterMethod
 def optimizeTSAmultiStage(
     esM,
     declaresOptimizationProblem=True,
@@ -61,10 +68,14 @@ def optimizeTSAmultiStage(
     :type numberOfTimeStepsPerPeriod: strictly positive integer
 
     :param clusterMethod: states the method which is used in the tsam package for clustering the time series
-        data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
+        data. Options are 'averaging', 'kmeans', 'kmedoids', 'kmaxoids', 'hierarchical' and 'contiguous'.
 
         .. note::
-            Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+            Please refer to the tsam package documentation of the parameter method of the ClusterConfig for more information.
+
+        .. deprecated:: 2.8.0
+            The ETHOS.TSAM 3.x values ('k_means', 'k_medoids', 'k_maxoids' and 'adjacent_periods')
+            are still accepted. They are converted to the names above and warn.
 
         |br| * the default value is 'hierarchical'
     :type clusterMethod: string
@@ -124,14 +135,15 @@ def optimizeTSAmultiStage(
         lowerBound = esM.objectiveValue
 
     esM.aggregateTemporally(
-        numberOfTypicalPeriods=numberOfTypicalPeriods,
-        numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
-        segmentation=False,
-        clusterMethod=clusterMethod,
-        solver=solver,
-        sortValues=True,
-        rescaleClusterPeriods=True,
-        representationMethod=None,
+        n_clusters=numberOfTypicalPeriods,
+        period_duration=numberOfTimeStepsPerPeriod * esM.hoursPerTimeStep,
+        cluster=ClusterConfig(
+            method=clusterMethod,
+            use_duration_curves=True,
+            solver=solver,
+        ),
+        segments=None,
+        preserve_column_means=True,
     )
 
     esM.optimize(

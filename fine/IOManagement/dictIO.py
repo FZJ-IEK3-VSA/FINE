@@ -16,7 +16,7 @@ def reconstruct_full_timeseries(esM, timeseries, ip):
 
     # switch first index level and column level
     df = timeseries.copy()
-    df = df.stack().unstack(level=1)
+    df = df.stack(future_stack=True).dropna().unstack(level=1)
     number_of_index_level = df.index.nlevels
     df.index = df.index.set_names(names=[None] * number_of_index_level)
     full_df = (

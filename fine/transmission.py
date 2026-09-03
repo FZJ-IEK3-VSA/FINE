@@ -1123,7 +1123,7 @@ class TransmissionModel(ComponentModel):
             # rows would lose the unconnected location pairs.
 
             # Split connection indices to two location indices
-            optSummary = optSummary.stack()
+            optSummary = optSummary.stack(future_stack=True).dropna()
             indexNew = []
             for tup in optSummary.index.tolist():
                 loc1, loc2 = mapC[tup[3]]
