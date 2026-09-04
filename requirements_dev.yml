@@ -45,5 +45,5 @@ dependencies:
   - mkdocs-gen-files >=0.5,<=0.6.1
   - mkdocs-literate-nav >=0.6,<=0.6.3
   - mkdocs-section-index >=0.3,<=0.3.12
-  - griffe >=0.45,<=2.1.0
+  - griffe >=0.45,<=2.3.0
 
