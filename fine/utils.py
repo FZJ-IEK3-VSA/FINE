@@ -142,12 +142,6 @@ def checkEnergySystemModelInput(
             raise ValueError("rollingHorizonStartYear cannot exceed startYear")
 
 
-def checkTimeUnit(timeUnit):
-    """Check if the timeUnit input argument is equal to 'h'."""
-    if not timeUnit == "h":
-        raise ValueError("The timeUnit input argument has to be 'h'")
-
-
 def checkTimeSeriesIndex(esM, data):
     """Necessary if the data rows represent the time-dependent data:
     Check if the row-indices of the data match the time indices of the energy system model.

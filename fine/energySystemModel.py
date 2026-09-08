@@ -298,6 +298,17 @@ class EnergySystemModel:
             |br| * the default value is False
         :type: annuityPerpetuity: bool
 
+        :param rollingHorizonStartYear: first year of the overall transformation pathway, if this model is one
+            window of a rolling horizon run (see
+            :func:`fine.expansionModules.rollingHorizon.rollingHorizonOptimization`, which sets it on every
+            window it builds). While startYear is the first year of the window itself, this is the first year
+            of the pathway the window belongs to, which the optimization summary needs to discount the window's
+            NPVcontribution back onto a start year shared by every window: it reports that value in the
+            additional row NPVcontributionRH. It must not be later than startYear. If it is None, no such row
+            is reported and the model is a stand-alone one.
+            |br| * the default value is None
+        :type rollingHorizonStartYear: int or None
+
         """
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(

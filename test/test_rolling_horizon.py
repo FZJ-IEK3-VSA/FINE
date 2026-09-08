@@ -1,14 +1,21 @@
 import copy
+import inspect
+import warnings
 
 import pytest
 import fine as fn
 from fine.expansionModules.rollingHorizon import (
     rollingHorizonOptimization,
+    _STOCK_YEAR_PARAMETERS,
+    _buildIntervalComponentDict,
     _cachedGroupExists,
     _cachedIntervalConfigMismatches,
     _cachedIntervalChainMismatches,
+    _filterComponentParametersForInterval,
     _stockCommissioningDiffers,
 )
+from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
+from fine.utils import ImplementedSolvers
 import numpy as np
 import pandas as pd
 
@@ -28,11 +35,11 @@ def _ts(value, n_steps=2):
 def _build_esM(edemand2020=2190):
     """Construct an esM whose components exercise all rolling horizon code paths.
 
-    Source_cheap_then_expensive : stock accumulation + non-PerOperation dict param filtering
-    Source_expensive_then_cheap : zero-commissioning guard (line 96 False branch)
-    Source_short_lifetime       : outdated stock cleanup (lines 113-132); dedicated heat commodity
-    Electrolyzer                : ip-dependent CCF (line 162)
-    FuelCell                    : time-constant CCF (line 196 else:pass)
+    Source_cheap_then_expensive : stock accumulation + stock-year parameter filtering
+    Source_expensive_then_cheap : commissioning below stockCommissioningThreshold
+    Source_short_lifetime       : outdated stock cleanup; dedicated heat commodity
+    Electrolyzer                : ip-dependent commodityConversionFactors
+    FuelCell                    : time-constant commodityConversionFactors
     EDemand / H2Demand          : electricity and hydrogen sinks
     HeatDemand                  : growing demand forces new commissioning every period
 
@@ -58,7 +65,7 @@ def _build_esM(edemand2020=2190):
         verboseLogLevel=0,
     )
 
-    # year-keyed investPerCapacity covers the non-PerOperation dict param branch (line 202)
+    # year-keyed investPerCapacity covers the stock-year parameter branch
     esM.add(
         fn.Source(
             esM=esM,
@@ -73,7 +80,8 @@ def _build_esM(edemand2020=2190):
         )
     )
 
-    # opex=100 in 2020-2030 → optimizer commissions 0 → covers line 96 False branch
+    # opex=100 in 2020-2030 → optimizer commissions 0 → covers the branch of
+    # _updateStockCommissioningForInterval that carries nothing over as stock
     esM.add(
         fn.Source(
             esM=esM,
@@ -89,7 +97,8 @@ def _build_esM(edemand2020=2190):
 
     # Dedicated heat commodity forces commissioning in every period via growing HeatDemand.
     # technicalLifetime=9 → cleanup condition 2020 < 2030-9=2021 fires in [2030,2035].
-    # Covers lines 113-132 (non-empty outdatedStockYears path).
+    # Covers the non-empty outdatedStockYears path of
+    # _updateStockCommissioningForInterval.
     esM.add(
         fn.Source(
             esM=esM,
@@ -104,7 +113,8 @@ def _build_esM(edemand2020=2190):
         )
     )
 
-    # ip-dependent CCF: firstKey is a year → covers line 162 branch
+    # ip-dependent CCF: firstKey is a year → covers that branch of
+    # _filterComponentParametersForInterval
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -123,7 +133,8 @@ def _build_esM(edemand2020=2190):
         )
     )
 
-    # tuple-keyed CCF: firstKey is (commisYear, opYear) → covers lines 173-195 branch.
+    # tuple-keyed CCF: firstKey is (commisYear, opYear) → covers that branch of
+    # _filterComponentParametersForInterval.
     # Exactly 9 valid pairs for technicalLifetime=15 across [2020,2025,2030,2035].
     # Varying efficiency per commissioning year makes FINE set isCommisDepending=True.
     esM.add(
@@ -150,7 +161,8 @@ def _build_esM(edemand2020=2190):
         )
     )
 
-    # time-constant CCF: firstKey is a commodity string → covers line 196 else:pass branch
+    # time-constant CCF: firstKey is a commodity string → covers the branch of
+    # _filterComponentParametersForInterval that leaves the parameter untouched
     esM.add(
         fn.Conversion(
             esM=esM,
@@ -235,11 +247,11 @@ def _minimal_esM(n_periods):
     )
 
 
-# ─── Error path tests (lines 26-32) ───────────────────────────────────────────
+# ─── Error path tests ─────────────────────────────────────────────────────────
 
 
 def test_raises_on_single_investment_period():
-    """Line 26: numberOfInvestmentPeriods < 2 raises ValueError."""
+    """A model of fewer than two investment periods raises ValueError."""
     with pytest.raises(ValueError, match="At least two"):
         rollingHorizonOptimization(
             esM=_minimal_esM(1),
@@ -249,7 +261,7 @@ def test_raises_on_single_investment_period():
 
 
 def test_raises_when_window_not_smaller_than_periods():
-    """Line 28: window >= numberOfInvestmentPeriods raises ValueError."""
+    """A window as long as the pathway is perfect foresight and raises ValueError."""
     with pytest.raises(ValueError, match="at least one more"):
         rollingHorizonOptimization(
             esM=_minimal_esM(4),
@@ -258,18 +270,24 @@ def test_raises_when_window_not_smaller_than_periods():
         )
 
 
-def test_raises_typeerror_for_non_int_window():
-    """Line 34: non-integer window raises TypeError via isStrictlyPositiveInt."""
-    with pytest.raises(TypeError, match="integer"):
+@pytest.mark.parametrize("window", [2.0, "2", None])
+def test_raises_typeerror_for_non_int_window(window):
+    """A non-integer window raises TypeError via utils.isStrictlyPositiveInt.
+
+    The type check runs before the window is compared against the number of investment
+    periods, so the error names the actual problem instead of failing inside a
+    comparison that a wrongly typed window does not support.
+    """
+    with pytest.raises(TypeError, match="has to be an integer"):
         rollingHorizonOptimization(
             esM=_minimal_esM(4),
             scenario_name="err",
-            numberOfInvestmentPeriodsForRollingHorizon=2.0,
+            numberOfInvestmentPeriodsForRollingHorizon=window,
         )
 
 
 def test_raises_valueerror_for_non_positive_window():
-    """Line 34: zero/negative window raises ValueError via isStrictlyPositiveInt."""
+    """A zero/negative window raises ValueError via utils.isStrictlyPositiveInt."""
     with pytest.raises(ValueError, match="strictly positive"):
         rollingHorizonOptimization(
             esM=_minimal_esM(4),
@@ -278,21 +296,42 @@ def test_raises_valueerror_for_non_positive_window():
         )
 
 
-def test_rolling_horizon_start_year_set_as_side_effect():
-    """Lines 22-23: esM.rollingHorizonStartYear defaults to esM.startYear.
+def test_the_passed_esm_is_not_modified():
+    """The windows are built from a copy; the caller's model keeps its own state.
 
-    This happens before the input checks raise, so it is observable even
-    when the call errors out afterwards.
+    rollingHorizonStartYear used to be set on the passed esM so that exportToDict would
+    pick it up, which left it behind afterwards and made a later stand-alone optimize of
+    the same model report an NPVcontributionRH row it has no rolling horizon for.
     """
-    esM = _minimal_esM(1)
+    esM = _build_esM()
+    before = copy.deepcopy(esM.componentNames)
     assert esM.rollingHorizonStartYear is None
-    with pytest.raises(ValueError):
-        rollingHorizonOptimization(
-            esM=esM,
-            scenario_name="err",
-            numberOfInvestmentPeriodsForRollingHorizon=1,
-        )
-    assert esM.rollingHorizonStartYear == esM.startYear == 2020
+
+    results = rollingHorizonOptimization(
+        esM=esM,
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+
+    assert esM.rollingHorizonStartYear is None
+    assert esM.startYear == 2020
+    assert esM.numberOfInvestmentPeriods == 4
+    assert esM.componentNames == before
+    # the windows still inherit the pathway's start year, which is what
+    # NPVcontributionRH is discounted onto
+    assert all(sub.rollingHorizonStartYear == 2020 for sub in results.values())
+
+
+def test_a_user_set_rolling_horizon_start_year_is_kept():
+    """An explicitly set rollingHorizonStartYear wins over the pathway's startYear."""
+    esM = _minimal_esM_with_source(n_periods=3, rollingHorizonStartYear=2010)
+    results = rollingHorizonOptimization(
+        esM=esM,
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert esM.rollingHorizonStartYear == 2010
+    assert all(sub.rollingHorizonStartYear == 2010 for sub in results.values())
 
 
 def test_raises_when_write_excel_output_without_export_path():
@@ -365,22 +404,22 @@ def test_raises_when_resume_without_scenario_name():
 
 
 def test_results_keys(rh_results):
-    """Line 299: results keyed by first year of each interval (3 intervals for 4 periods, window=2)."""
+    """Results are keyed by the first year of each interval (3 intervals for 4 periods, window=2)."""
     assert set(rh_results.keys()) == {2020, 2025, 2030}
 
 
 def test_sub_esm_start_year(rh_results):
-    """Line 219: each sub-esM has the correct startYear."""
+    """_buildIntervalEsm gives each sub-esM the interval's own startYear."""
     assert rh_results[2025].startYear == 2025
 
 
 def test_sub_esm_number_of_investment_periods(rh_results):
-    """Line 220: each sub-esM has numberOfInvestmentPeriods equal to the window size."""
+    """_buildIntervalEsm gives each sub-esM numberOfInvestmentPeriods equal to the window size."""
     assert rh_results[2025].numberOfInvestmentPeriods == 2
 
 
 def test_sub_esm_rolling_horizon_start_year_is_global_start_year(rh_results):
-    """Lines 22-23/218: every sub-esM keeps the original overall startYear (2020)
+    """Every sub-esM keeps the original overall startYear (2020)
     as rollingHorizonStartYear, independent of its own local startYear.
 
     This is what NPV reporting (component.py/sourceSink.py/storage.py/transmission.py)
@@ -395,7 +434,7 @@ def test_sub_esm_rolling_horizon_start_year_is_global_start_year(rh_results):
 
 
 def test_stock_from_first_to_second_interval(rh_results):
-    """Lines 98-109 (branch a): 2020 commissioning stored as stock in [2025,2030]."""
+    """_updateStockCommissioningForInterval, no stock yet: 2020 commissioning stored as stock in [2025,2030]."""
     commis_2020 = (
         rh_results[2020]
         .getOptimizationSummary("SourceSinkModel", ip=2020)
@@ -407,11 +446,13 @@ def test_stock_from_first_to_second_interval(rh_results):
         .getComponent("Source_cheap_then_expensive")
         .stockCommissioning[2020]["PerfectLand"]
     )
-    assert commis_2020 == stock_2020
+    # approx, not equality: the commissioning result is rounded before it is stored as
+    # stock, as utils.checkAndSetStock expects for that quantity
+    assert stock_2020 == pytest.approx(commis_2020)
 
 
 def test_stock_accumulates_across_intervals(rh_results):
-    """Lines 111-114 (branch b): both 2020 and 2025 commissioning present in [2030,2035] stock."""
+    """_updateStockCommissioningForInterval, stock exists: 2020 and 2025 commissioning both in [2030,2035] stock."""
     stock = (
         rh_results[2030].getComponent("Source_cheap_then_expensive").stockCommissioning
     )
@@ -436,12 +477,12 @@ def test_stock_values_match_commissioning(rh_results):
     stock = (
         rh_results[2030].getComponent("Source_cheap_then_expensive").stockCommissioning
     )
-    assert stock[2020]["PerfectLand"] == commis_2020
-    assert stock[2025]["PerfectLand"] == commis_2025
+    assert stock[2020]["PerfectLand"] == pytest.approx(commis_2020)
+    assert stock[2025]["PerfectLand"] == pytest.approx(commis_2025)
 
 
 def test_zero_commissioning_not_added_to_stock(rh_results):
-    """Line 96 False branch: zero commissioning in 2020 produces no stock entry in [2025,2030]."""
+    """Commissioning below stockCommissioningThreshold produces no stock entry in [2025,2030]."""
     stock = (
         rh_results[2025].getComponent("Source_expensive_then_cheap").stockCommissioning
     )
@@ -449,7 +490,7 @@ def test_zero_commissioning_not_added_to_stock(rh_results):
 
 
 def test_outdated_stock_removed(rh_results):
-    """Lines 113-132: stock older than technicalLifetime removed.
+    """_updateStockCommissioningForInterval prunes stock older than technicalLifetime.
 
     Source_short_lifetime (technicalLifetime=9): 2020 < 2030-9=2021 → cleaned in [2030,2035].
     """
@@ -461,7 +502,7 @@ def test_outdated_stock_removed(rh_results):
 
 
 def test_operation_params_filtered_to_window(rh_results):
-    """Lines 200-201: PerOperation params filtered to rolling horizon years only.
+    """_filterComponentParametersForInterval keeps PerOperation params of the window years only.
 
     [2025,2030] sub-esM opexPerOperation must only contain {2025, 2030}.
     """
@@ -470,8 +511,9 @@ def test_operation_params_filtered_to_window(rh_results):
     assert set(opex.keys()) == {2025, 2030}
 
 
-def test_non_operation_dict_params_include_stock_years(rh_results):
-    """Lines 202-203: non-PerOperation dict params filtered to window + stockYears.
+def test_stock_year_dict_params_include_stock_years(rh_results):
+    """_filterComponentParametersForInterval keeps a stock-year parameter for the window
+    years plus the stockYears.
 
     In [2025,2030], 2020 is a stockYear → investPerCapacity keeps key 2020.
     """
@@ -484,7 +526,7 @@ def test_non_operation_dict_params_include_stock_years(rh_results):
 
 
 def test_ccf_ip_dependent_filtered_to_window(rh_results):
-    """Lines 162-171: ip-dependent CCF filtered to rolling horizon years only.
+    """_filterComponentParametersForInterval keeps ip-dependent CCF of the window years only.
 
     [2025,2030] sub-esM Electrolyzer CCF must only contain {2025, 2030}.
     """
@@ -494,7 +536,7 @@ def test_ccf_ip_dependent_filtered_to_window(rh_results):
 
 
 def test_ccf_tuple_keyed_filtered_to_window(rh_results):
-    """Lines 173-195: tuple (commisYear, opYear) CCF filtered so every opYear is in the window.
+    """_filterComponentParametersForInterval keeps tuple (commisYear, opYear) CCF whose opYear is in the window.
 
     [2025,2030] sub-esM ElectrolyzerTuple CCF must only contain tuples with opYear in {2025, 2030}.
     Pairs with opYear=2035 (e.g. (2025,2035)) and opYear=2020 must be absent.
@@ -507,7 +549,7 @@ def test_ccf_tuple_keyed_filtered_to_window(rh_results):
 
 
 def test_ccf_time_constant_unchanged_across_windows(rh_results):
-    """Line 196 (else: pass): a CCF keyed directly by commodity name (no year/tuple
+    """_filterComponentParametersForInterval leaves a CCF keyed directly by commodity name (no year/tuple
     dependency) must be passed through unchanged into every rolling horizon window.
     """
     expected = {"hydrogen": -1, "electricity": 0.5}
@@ -562,7 +604,7 @@ def test_myopic_stock_accumulates_over_three_handoffs(rh_results_myopic):
 
 
 def test_myopic_outdated_stock_still_removed(rh_results_myopic):
-    """Lines 113-132 also apply when chaining single-period windows:
+    """Pruning also applies when chaining single-period windows:
     Source_short_lifetime (technicalLifetime=9) must have its 2020 stock
     dropped by the time the 2030 window is built (2020 < 2030-9=2021).
     """
@@ -854,21 +896,19 @@ def test_exceeded_lifetime_stock_dropped_by_2030(rh_results_exceeded_lifetime):
 
 # ─── timeSeriesAggregationSettings passthrough ─────────────────────────────────
 #
-# numberOfTypicalPeriods/numberOfTimeStepsPerPeriod/numberOfSegments/clusterMethod
-# used to be individual rollingHorizonOptimization parameters, which restricted
-# callers to only those tsam settings. They are now a single
+# The individual clustering parameters rollingHorizonOptimization used to carry
+# restricted callers to exactly those tsam settings. They are now a single
 # timeSeriesAggregationSettings dict passed straight through to
-# EnergySystemModel.aggregateTemporally, so any tsam kwarg is reachable. Settings
-# not given fall back to aggregateTemporally's own defaults directly - rolling
-# horizon no longer maintains a separate default policy of its own.
+# EnergySystemModel.aggregateTemporally, so any ETHOS.TSAM keyword argument is
+# reachable. Settings not given fall back to aggregateTemporally's own defaults
+# directly - rolling horizon no longer maintains a default policy of its own.
 
 
 def test_partial_tsa_settings_override_merges_with_defaults():
     """Passing only one key in timeSeriesAggregationSettings must not reset
-    the other tsam settings. numberOfTypicalPeriods is left at
-    aggregateTemporally's own default (40), which the 2-time-step test
-    system cannot satisfy (40*1 > 2), proving the default is still active
-    alongside the override.
+    the other tsam settings. n_clusters is left at aggregateTemporally's own
+    default (40), which the 2-time-step test system cannot satisfy, proving
+    the default is still active alongside the override.
     """
     esM = _build_esM()
     with pytest.raises(ValueError, match="product of the numberOfTypicalPeriods"):
@@ -876,18 +916,17 @@ def test_partial_tsa_settings_override_merges_with_defaults():
             esM=esM,
             scenario_name="test_partial_tsa",
             timeSeriesAggregation=True,
-            timeSeriesAggregationSettings={"numberOfTimeStepsPerPeriod": 1},
+            timeSeriesAggregationSettings={"period_duration": 7860},
             numberOfInvestmentPeriodsForRollingHorizon=2,
         )
 
 
 @pytest.fixture(scope="module")
 def rh_results_tsa_custom():
-    """Override numberOfTypicalPeriods/numberOfTimeStepsPerPeriod/
-    numberOfSegmentsPerPeriod via timeSeriesAggregationSettings to reach
-    aggregateTemporally: the default values (40 typical periods, 24 time
-    steps per period) are impossible to satisfy for this 2-time-step test
-    system, so a successful run here proves the override was applied.
+    """Override the clustering through timeSeriesAggregationSettings to reach
+    aggregateTemporally: its default values (40 typical periods of 24 hours)
+    are impossible to satisfy for this 2-time-step test system, so a
+    successful run here proves the override was applied.
     """
     esM = _build_esM()
     return rollingHorizonOptimization(
@@ -895,9 +934,9 @@ def rh_results_tsa_custom():
         scenario_name="test_tsa_custom",
         timeSeriesAggregation=True,
         timeSeriesAggregationSettings={
-            "numberOfTypicalPeriods": 2,
-            "numberOfTimeStepsPerPeriod": 1,
-            "numberOfSegmentsPerPeriod": 1,
+            "n_clusters": 2,
+            "period_duration": 7860,
+            "segments": fn.SegmentConfig(n_segments=1),
         },
         numberOfInvestmentPeriodsForRollingHorizon=2,
     )
@@ -909,6 +948,32 @@ def test_tsa_settings_passthrough_controls_clustering(rh_results_tsa_custom):
     assert len(esM.typicalPeriods) == 2
     assert len(esM.timeStepsPerPeriod) == 1
     assert len(esM.segmentsPerPeriod) == 1
+
+
+def test_tsa_settings_accept_a_cluster_config_with_its_own_solver():
+    """The clustering solver is part of timeSeriesAggregationSettings, not of this
+    function's solver argument (which selects the solver of the optimization).
+    Passing a ClusterConfig must therefore not collide with anything rolling
+    horizon injects itself - it used to pass solver= to aggregateTemporally, which
+    the ETHOS.TSAM 4.x interface refuses to combine with a ClusterConfig.
+    """
+    esM = _build_esM()
+    results = rollingHorizonOptimization(
+        esM=esM,
+        scenario_name="test_tsa_cluster_config",
+        timeSeriesAggregation=True,
+        timeSeriesAggregationSettings={
+            "n_clusters": 2,
+            "period_duration": 7860,
+            "segments": None,
+            "cluster": fn.ClusterConfig(
+                method="hierarchical",
+                solver=ImplementedSolvers.STANDARD_SOLVER.value,
+            ),
+        },
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert len(results[2020].typicalPeriods) == 2
 
 
 # ─── netCDF output (xarrayIO) and resume ───────────────────────────────────────
@@ -1269,3 +1334,1143 @@ def test_resume_discards_stale_cache_and_solves_fresh(
         assert _commissioning(resumed_results[year], year) == pytest.approx(
             _commissioning(original_results[year], year)
         )
+
+
+# ─── Energy system model settings a window cannot inherit ─────────────────────
+#
+# Some settings of the original esM do not survive being cut into windows: their
+# meaning refers to the pathway as a whole. They are refused rather than silently
+# reinterpreted per window.
+
+
+def _minimal_esM_with_source(n_periods=3, **esMKwargs):
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=4380,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=n_periods,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        lengthUnit="km",
+        verboseLogLevel=0,
+        **esMKwargs,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=1000,
+            interestRate=0.02,
+            economicLifetime=20,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=_ts(1000),
+        )
+    )
+    return esM
+
+
+def test_stochastic_model_is_refused():
+    """In a stochastic model the investment periods are the scenarios of one year,
+    not a pathway a window can be moved along.
+    """
+    esM = _minimal_esM_with_source(stochasticModel=True)
+    with pytest.raises(NotImplementedError, match="stochastic"):
+        rollingHorizonOptimization(
+            esM=esM,
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            timeSeriesAggregation=False,
+        )
+
+
+def test_pathway_balance_limit_is_refused():
+    """A pathwayBalanceLimit is a budget for the whole pathway. Every window would
+    enforce it again in full, so the run would emit a multiple of the budget.
+    """
+    pathwayBalanceLimit = pd.DataFrame(
+        index=["CO2 limit"], columns=["PerfectLand", "lowerBound"], data=[[100, False]]
+    )
+    esM = _minimal_esM_with_source(pathwayBalanceLimit=pathwayBalanceLimit)
+    with pytest.raises(NotImplementedError, match="pathwayBalanceLimit"):
+        rollingHorizonOptimization(
+            esM=esM,
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            timeSeriesAggregation=False,
+        )
+
+
+def test_annuity_perpetuity_is_refused():
+    """The annuityPerpetuity setting refers to the last investment period of the
+    pathway. Per window it would refer to the last year of the window instead.
+    """
+    esM = _minimal_esM_with_source(annuityPerpetuity=True)
+    with pytest.raises(NotImplementedError, match="annuityPerpetuity"):
+        rollingHorizonOptimization(
+            esM=esM,
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            timeSeriesAggregation=False,
+        )
+
+
+def test_none_of_the_refused_settings_blocks_a_plain_model():
+    """The three guards above must not trip on a model that sets none of them."""
+    results = rollingHorizonOptimization(
+        esM=_minimal_esM_with_source(),
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        timeSeriesAggregation=False,
+    )
+    assert sorted(results) == [2020, 2025]
+
+
+# ─── Input the rolling horizon has to accept ──────────────────────────────────
+
+
+def test_already_aggregated_esm_can_be_rolled():
+    """Aggregating temporally and then optimizing is the normal FINE workflow, so an
+    esM whose time series are already clustered must be accepted. exportToDict adds
+    the aggregated* parameters for such a model, which are not constructor arguments
+    - dictIO.importFromDict drops them for the same reason.
+    """
+    esM = _build_esM()
+    esM.aggregateTemporally(n_clusters=1, period_duration=7860, segments=None)
+    assert esM.isTimeSeriesDataClustered
+
+    results = rollingHorizonOptimization(
+        esM=esM,
+        scenario_name="test_pre_aggregated",
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert sorted(results) == [2020, 2025, 2030]
+
+
+def test_rolling_horizon_optimization_is_exported_by_the_package():
+    """The module is reachable as fn.rollingHorizonOptimization, like the other
+    expansion modules (fn.optimizeTSAmultiStage).
+    """
+    assert fn.rollingHorizonOptimization is rollingHorizonOptimization
+
+
+# ─── Transmission components ──────────────────────────────────────────────────
+
+
+def _build_transmission_esM():
+    """Two locations connected by a transmission line, with the demand in the
+    location that cannot generate, so the line has to be built.
+    """
+    esM = fn.EnergySystemModel(
+        locations={"north", "south"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=4380,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Wind",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            locationalEligibility=pd.Series({"north": 1, "south": 0}),
+            investPerCapacity=1000,
+            interestRate=0.02,
+            economicLifetime=20,
+        )
+    )
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="Line",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=100,
+            interestRate=0.02,
+            economicLifetime=20,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame(
+                {"north": [0.0, 0.0], "south": [1000.0, 1000.0]}
+            ),
+        )
+    )
+    return esM
+
+
+@pytest.fixture(scope="module")
+def rh_results_transmission():
+    return rollingHorizonOptimization(
+        esM=_build_transmission_esM(),
+        scenario_name="test_transmission",
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+
+
+def test_transmission_component_summary_is_built(rh_results_transmission):
+    """A rolling horizon run of a model with a transmission component must produce
+    its optimization summary. The summary spans every location pair, including the
+    self-pairs, while a 2-dim component's interestRate is indexed by the connections
+    it actually has - so NPVcontributionRH must not look its interest rate up per
+    column (which raised a KeyError on every pair the component does not connect).
+    """
+    summary = rh_results_transmission[2020].getOptimizationSummary(
+        "TransmissionModel", ip=2020, outputLevel=0
+    )
+    assert not summary.empty
+    assert "NPVcontributionRH" in summary.index.get_level_values("Property")
+
+
+def test_transmission_capacity_is_carried_over_as_stock(rh_results_transmission):
+    """The line built in the first window must reappear as stock of the second,
+    exactly as for a 1-dim component.
+    """
+    commissioned = (
+        rh_results_transmission[2020]
+        .getOptimizationSummary("TransmissionModel", ip=2020, outputLevel=0)
+        .xs(("Line", "commissioning"), level=("Component", "Property"))
+        .max()
+        .max()
+    )
+    assert commissioned > 0
+    stock = rh_results_transmission[2025].getComponent("Line").stockCommissioning
+    assert stock is not None and 2020 in stock
+    assert stock[2020].max() == pytest.approx(commissioned)
+
+
+# ─── NPVcontributionRH ────────────────────────────────────────────────────────
+#
+# Every window optimizes its own years, so its NPVcontribution is discounted onto
+# its own start year. NPVcontributionRH re-bases that onto the first year of the
+# whole pathway (esM.rollingHorizonStartYear), so that the windows' contributions
+# are expressed in the same reference year and can be compared or added up.
+
+
+def _npv_rows(esM, compName, year):
+    summary = esM.getOptimizationSummary("SourceSinkModel", ip=year, outputLevel=0)
+    npv = summary.xs(
+        (compName, "NPVcontribution"), level=("Component", "Property")
+    ).iloc[0]
+    npvRH = summary.xs(
+        (compName, "NPVcontributionRH"), level=("Component", "Property")
+    ).iloc[0]
+    return npv["PerfectLand"], npvRH["PerfectLand"]
+
+
+def test_npv_contribution_rh_is_the_contribution_of_the_first_window(rh_results):
+    """The first window starts in the pathway's own start year, so there is nothing
+    to re-base and both rows are equal.
+    """
+    npv, npvRH = _npv_rows(rh_results[2020], "Source_cheap_then_expensive", 2020)
+    assert npvRH == pytest.approx(npv)
+
+
+def test_npv_contribution_rh_discounts_later_windows_onto_the_start_year(rh_results):
+    """A later window is discounted by its distance to the pathway's start year, at
+    the component's own interest rate. The (1 + interestRate) convention factor of
+    utils.discountFactor is contained in both rows and cancels.
+    """
+    esM_2030 = rh_results[2030]
+    interestRate = esM_2030.getComponent("Source_cheap_then_expensive").interestRate[
+        "PerfectLand"
+    ]
+    assert esM_2030.rollingHorizonStartYear == 2020
+    for year in (2030, 2035):
+        npv, npvRH = _npv_rows(esM_2030, "Source_cheap_then_expensive", year)
+        assert npvRH == pytest.approx(npv / (1 + interestRate) ** (2030 - 2020))
+
+
+def test_npv_contribution_rh_is_absent_without_a_rolling_horizon():
+    """A stand-alone model does not report the row at all."""
+    esM = _minimal_esM_with_source()
+    esM.optimize(timeSeriesAggregation=False)
+    summary = esM.getOptimizationSummary("SourceSinkModel", ip=2020, outputLevel=0)
+    properties = summary.index.get_level_values("Property")
+    assert "NPVcontribution" in properties
+    assert "NPVcontributionRH" not in properties
+
+
+# ─── Pass-through settings dicts ──────────────────────────────────────────────
+#
+# optimize, writeOptimizationOutputToExcel and writeEnergySystemModelToNetCDF are
+# reachable through their own settings dict each, so that callers are not limited
+# to the arguments rollingHorizonOptimization happens to name itself. The
+# arguments it determines itself are refused instead of colliding as duplicate
+# keyword arguments deep inside the callee.
+
+
+@pytest.mark.parametrize(
+    "settingsName, settings, reserved",
+    [
+        ("optimizeSettings", {"solver": "glpk"}, "solver"),
+        (
+            "optimizeSettings",
+            {"timeSeriesAggregation": True},
+            "timeSeriesAggregation",
+        ),
+        ("excelOutputSettings", {"investmentPeriod": 2020}, "investmentPeriod"),
+        ("netCDFOutputSettings", {"groupPrefix": "2020"}, "groupPrefix"),
+    ],
+)
+def test_reserved_settings_are_refused(settingsName, settings, reserved):
+    esM = _minimal_esM_with_source()
+    with pytest.raises(ValueError, match=reserved):
+        rollingHorizonOptimization(
+            esM=esM,
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            timeSeriesAggregation=False,
+            **{settingsName: settings},
+        )
+
+
+def test_optimize_settings_reach_optimize():
+    """A setting of EnergySystemModel.optimize that rollingHorizonOptimization does
+    not name itself is reachable through optimizeSettings.
+    """
+    esM = _minimal_esM_with_source()
+    results = rollingHorizonOptimization(
+        esM=esM,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        timeSeriesAggregation=False,
+        optimizeSettings={"includePerformanceSummary": True},
+    )
+    for esM_window in results.values():
+        assert esM_window.performanceSummary is not None
+
+
+def _written_summary_rows(dir_path, scenario_name):
+    loaded = fn.xrIO.readNetCDFtoEnergySystemModel(
+        str(_shared_netcdf_path(dir_path, scenario_name)), groupPrefix="2020"
+    )
+    return len(loaded.getOptimizationSummary("SourceSinkModel", ip=2020))
+
+
+def test_netcdf_output_settings_reach_the_writer(tmp_path):
+    """The optSumOutputLevel argument of writeEnergySystemModelToNetCDF is not named by
+    rollingHorizonOptimization itself; it is reachable through netCDFOutputSettings and
+    decides what the written file holds. Level 2 drops the summary rows that are zero or
+    empty everywhere, level 0 keeps them.
+    """
+    rowsPerLevel = {}
+    for optSumOutputLevel in (0, 2):
+        scenario_name = f"netcdf_settings_{optSumOutputLevel}"
+        rollingHorizonOptimization(
+            esM=_minimal_esM_with_source(),
+            scenario_name=scenario_name,
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+            timeSeriesAggregation=False,
+            writeNetCDFOutput=True,
+            resultExportPath=str(tmp_path),
+            netCDFOutputSettings={"optSumOutputLevel": optSumOutputLevel},
+        )
+        rowsPerLevel[optSumOutputLevel] = _written_summary_rows(tmp_path, scenario_name)
+
+    assert rowsPerLevel[2] > 0
+    assert rowsPerLevel[2] < rowsPerLevel[0]
+
+
+# ─── Excel output ─────────────────────────────────────────────────────────────
+
+
+def _excel_files(dir_path):
+    return sorted(path.name for path in dir_path.glob("*.xlsx"))
+
+
+def test_excel_output_writes_one_file_per_exported_year(tmp_path):
+    """Every window except the last exports its first year; the last exports all of
+    its years. With 4 investment periods and a window of 2 that is 2020, 2025 and
+    then 2030 + 2035.
+    """
+    rollingHorizonOptimization(
+        esM=_build_esM(),
+        scenario_name="excel",
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        writeExcelOutput=True,
+        resultExportPath=str(tmp_path),
+    )
+    assert _excel_files(tmp_path) == [
+        "excel_rollingHorizon_2020.xlsx",
+        "excel_rollingHorizon_2025.xlsx",
+        "excel_rollingHorizon_2030.xlsx",
+        "excel_rollingHorizon_2035.xlsx",
+    ]
+
+
+def test_myopic_excel_output_does_not_overwrite_itself(tmp_path):
+    """A myopic window holds a single investment period. The exported year has to be
+    part of the file name for those too, or every window would write the same file
+    and only the last one would survive.
+    """
+    rollingHorizonOptimization(
+        esM=_build_esM(),
+        scenario_name="excel_myopic",
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=1,
+        writeExcelOutput=True,
+        resultExportPath=str(tmp_path),
+    )
+    assert _excel_files(tmp_path) == [
+        "excel_myopic_rollingHorizon_2020.xlsx",
+        "excel_myopic_rollingHorizon_2025.xlsx",
+        "excel_myopic_rollingHorizon_2030.xlsx",
+        "excel_myopic_rollingHorizon_2035.xlsx",
+    ]
+
+
+def test_excel_output_settings_reach_the_writer(tmp_path):
+    """The optSumOutputLevel argument of writeOptimizationOutputToExcel is not named by
+    rollingHorizonOptimization itself.
+    """
+    rollingHorizonOptimization(
+        esM=_minimal_esM_with_source(),
+        scenario_name="excel_settings",
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        writeExcelOutput=True,
+        resultExportPath=str(tmp_path),
+        excelOutputSettings={"optSumOutputLevel": 0, "optValOutputLevel": 0},
+    )
+    # three investment periods and a window of two: the first window exports 2020, the
+    # last one both of its years
+    assert _excel_files(tmp_path) == [
+        "excel_settings_rollingHorizon_2020.xlsx",
+        "excel_settings_rollingHorizon_2025.xlsx",
+        "excel_settings_rollingHorizon_2030.xlsx",
+    ]
+
+
+# ─── Stock commissioning handed from one window to the next ───────────────────
+
+
+def test_stock_commissioning_is_rounded_before_it_is_handed_on():
+    """A commissioning result carries the full float64 precision, which the stock
+    checks of utils warn about and round to 10 digits themselves. Rounding it here
+    keeps a rolling horizon run from warning about its own results.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        results = rollingHorizonOptimization(
+            esM=_build_esM(),
+            timeSeriesAggregation=False,
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+        )
+    stockWarnings = [
+        str(warning.message)
+        for warning in caught
+        if "will be rounded to 10 digits" in str(warning.message)
+    ]
+    assert stockWarnings == []
+
+    stock = results[2025].getComponent("Source_cheap_then_expensive").stockCommissioning
+    assert stock[2020]["PerfectLand"] == round(stock[2020]["PerfectLand"], 10)
+
+
+def test_stock_commissioning_threshold_controls_what_is_carried_over():
+    """A window's commissioning is only handed on as stock if it exceeds the
+    threshold, which lets the caller decide how much solver noise counts as zero.
+    """
+    results = rollingHorizonOptimization(
+        esM=_build_esM(),
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        stockCommissioningThreshold=1e9,
+    )
+    stock = results[2025].getComponent("Source_cheap_then_expensive").stockCommissioning
+    assert stock is None or 2020 not in stock
+
+
+def test_outdated_stock_is_pruned_without_new_commissioning():
+    """Pruning must not depend on the previous window having commissioned anything:
+    an entry that has outlived its technical lifetime has to go either way. Here the
+    stock of 2015 is given externally and nothing is ever built on top of it.
+    """
+    esM = _minimal_esM(4)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=1000,
+            interestRate=0.02,
+            economicLifetime=9,
+            technicalLifetime=9,
+            stockCommissioning={2015: pd.Series({"PerfectLand": 1.0})},
+            commissioningFix={year: pd.Series({"PerfectLand": 0.0}) for year in _YEARS},
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=_ts(0),
+        )
+    )
+
+    results = rollingHorizonOptimization(
+        esM=esM,
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    # 2015 has outlived its technical lifetime of 9 years by the window starting in
+    # 2025 (2015 < 2025 - 9), even though no window commissioned anything
+    stock = results[2025].getComponent("Src").stockCommissioning
+    assert stock is None or 2015 not in stock
+
+
+def test_investment_period_parameters_are_filtered_whatever_their_key_order():
+    """A parameter given per investment period describes the same years no matter
+    which order they were written down in, so the window must be scoped down to its
+    own years either way.
+    """
+    esM = _minimal_esM(3)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity={year: 1000 for year in reversed([2020, 2025, 2030])},
+            interestRate=0.02,
+            economicLifetime=20,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=_ts(1000),
+        )
+    )
+
+    results = rollingHorizonOptimization(
+        esM=esM,
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert results[2025].investmentPeriodNames == [2025, 2030]
+
+
+# â”€â”€â”€ Parameters given per investment period â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+#
+# A window only holds its own investment periods, so every parameter given per
+# investment period has to be scoped down to them. Which years a window's copy may
+# carry differs by parameter: the ones describing capacity that is commissioned once
+# and paid for over its lifetime (_STOCK_YEAR_PARAMETERS) are given for the stock
+# years too, every other one for the investment periods alone. Getting that wrong is
+# invisible until a stock year coincides with an investment period of the pathway,
+# which is exactly what the rolling horizon itself produces: from the second window
+# on, the stock is keyed by the year a previous window commissioned it in.
+
+
+def _esM_with_committed_source(sourceKwargs=None, storageKwargs=None):
+    """Build a pathway whose components are forced to commission in every window.
+
+    commissioningMin is a plain Series, not a dict per investment period, so that
+    forcing the commissioning does not itself introduce the kind of parameter these
+    tests are about.
+    """
+    esM = _minimal_esM(4)
+    source = {
+        "name": "Src",
+        "commodity": "electricity",
+        "hasCapacityVariable": True,
+        "investPerCapacity": 1000,
+        "interestRate": 0.02,
+        "economicLifetime": 20,
+        "technicalLifetime": 20,
+        "commissioningMin": pd.Series({"PerfectLand": 1.0}),
+    }
+    source.update(sourceKwargs or {})
+    esM.add(fn.Source(esM=esM, **source))
+    if storageKwargs is not None:
+        esM.add(
+            fn.Storage(
+                esM=esM,
+                name="Bat",
+                commodity="electricity",
+                hasCapacityVariable=True,
+                investPerCapacity=100,
+                interestRate=0.02,
+                economicLifetime=20,
+                technicalLifetime=20,
+                commissioningMin=pd.Series({"PerfectLand": 1.0}),
+                **storageKwargs,
+            )
+        )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix={year: _ts(1000) for year in _YEARS},
+        )
+    )
+    return esM
+
+
+@pytest.mark.parametrize(
+    "sourceKwargs",
+    [
+        pytest.param(
+            {"operationRateMax": {year: _ts(1.0) for year in _YEARS}},
+            id="operationRateMax",
+        ),
+        pytest.param(
+            {"capacityMax": {year: pd.Series({"PerfectLand": 1e6}) for year in _YEARS}},
+            id="capacityMax",
+        ),
+        pytest.param(
+            {"commodityCost": {year: 0.05 for year in _YEARS}}, id="commodityCost"
+        ),
+        pytest.param(
+            {"opexPerOperation": {year: 0.5 for year in _YEARS}},
+            id="opexPerOperation",
+        ),
+        pytest.param(
+            {"investPerCapacity": {year: 1000 for year in _YEARS}},
+            id="investPerCapacity",
+        ),
+    ],
+)
+def test_investment_period_parameters_survive_internally_generated_stock(sourceKwargs):
+    """A component that both carries a per-investment-period parameter and commissions
+    something has stock keyed by a year that is also a key of that parameter, from the
+    second window on. Only the parameters that are given per stock year as well may
+    keep it; handing it to any other one makes rebuilding the component fail.
+    """
+    results = rollingHorizonOptimization(
+        esM=_esM_with_committed_source(sourceKwargs),
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert sorted(results) == [2020, 2025, 2030]
+    # the stock that makes this case non-trivial is really there
+    assert 2020 in results[2025].getComponent("Src").stockCommissioning
+
+
+@pytest.mark.parametrize(
+    "storageKwargs",
+    [
+        pytest.param(
+            {"opexPerChargeOperation": {year: 0.01 for year in _YEARS}},
+            id="opexPerChargeOperation",
+        ),
+        pytest.param(
+            {"chargeOpRateMax": {year: _ts(1.0) for year in _YEARS}},
+            id="chargeOpRateMax",
+        ),
+    ],
+)
+def test_storage_investment_period_parameters_survive_internally_generated_stock(
+    storageKwargs,
+):
+    """The same for a Storage, whose charge and discharge parameters are named so that
+    a rule going by the parameter name alone does not recognize them.
+    """
+    results = rollingHorizonOptimization(
+        esM=_esM_with_committed_source(storageKwargs=storageKwargs),
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert 2020 in results[2025].getComponent("Bat").stockCommissioning
+
+
+def test_stock_year_parameters_keep_their_stock_years():
+    """Capacity commissioned before the window is charged with investPerCapacity, so a
+    window's copy of it must cover the stock years on top of its own investment periods.
+    """
+    results = rollingHorizonOptimization(
+        esM=_esM_with_committed_source(
+            {"investPerCapacity": {year: 1000 for year in _YEARS}}
+        ),
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert sorted(results[2025].getComponent("Src").investPerCapacity) == [
+        2020,
+        2025,
+        2030,
+    ]
+    # the operation side of the same component is scoped to the window alone
+    assert results[2025].investmentPeriodNames == [2025, 2030]
+
+
+def test_parameters_that_are_dicts_for_another_reason_are_left_alone():
+    """The pwlcfParameters dict is keyed by the cost function, not by year. Filtering it
+    as if it were given per investment period leaves an empty dict behind, which silently
+    disables the piecewise linear cost function of the rebuilt component.
+    """
+    esM = _minimal_esM(4)
+    pwlcfParameters = {
+        "etlParameters": {
+            "initCost": 1000,
+            "learningRate": 0.18,
+            "initCapacity": 10,
+            "maxCapacity": 50,
+            "noSegments": 4,
+        }
+    }
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=1000,
+            interestRate=0.02,
+            economicLifetime=20,
+            pwlcfParameters=pwlcfParameters,
+        )
+    )
+    _, compDict = fn.dictIO.exportToDict(esM)
+    compEntry = copy.deepcopy(dict(compDict))["Source"]["Src"]
+
+    _filterComponentParametersForInterval(compEntry, [2025, 2030], [2020], esM)
+
+    assert compEntry["pwlcfParameters"] == pwlcfParameters
+
+
+def test_empty_commodity_conversion_factors_are_left_alone():
+    """An empty commodityConversionFactors dict has no first key to inspect."""
+    esM = _minimal_esM(4)
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Conv",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={},
+            hasCapacityVariable=True,
+            investPerCapacity=1,
+            interestRate=0.02,
+            economicLifetime=10,
+        )
+    )
+    _, compDict = fn.dictIO.exportToDict(esM)
+    compEntry = copy.deepcopy(dict(compDict))["Conversion"]["Conv"]
+
+    _filterComponentParametersForInterval(compEntry, [2025, 2030], [2020], esM)
+
+    assert compEntry["commodityConversionFactors"] == {}
+
+
+def test_endogenous_technological_learning_is_refused():
+    """A learning curve accumulates over the pathway, while every window is built and
+    solved on its own, so it would restart in each of them.
+    """
+    esM = _minimal_esM_with_source(n_periods=3)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Learning",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=1000,
+            interestRate=0.02,
+            economicLifetime=20,
+            pwlcfParameters={
+                "etlParameters": {
+                    "initCost": 1000,
+                    "learningRate": 0.18,
+                    "initCapacity": 10,
+                    "maxCapacity": 50,
+                    "noSegments": 4,
+                }
+            },
+        )
+    )
+    with pytest.raises(NotImplementedError, match="pwlcfParameters"):
+        rollingHorizonOptimization(
+            esM=esM,
+            timeSeriesAggregation=False,
+            numberOfInvestmentPeriodsForRollingHorizon=2,
+        )
+
+
+# â”€â”€â”€ Costs across the windows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+
+def _pathway_years(results):
+    """Return the years of the pathway, and which window is responsible for each of them.
+
+    The windows overlap, so a year is reported by every window that spans it. Exactly
+    one of them owns it: every window its own first year, and the last window all of
+    the years it spans. This is the selection the Excel output writes, and the one that
+    adds up to the pathway without counting an overlap twice.
+    """
+    lastWindow = max(results)
+    return [
+        (startYear, year)
+        for startYear in sorted(results)
+        for year in (
+            results[startYear].investmentPeriodNames
+            if startYear == lastWindow
+            else [startYear]
+        )
+    ]
+
+
+def _fixed_commissioning_esM(n_periods=4):
+    """Build a pathway whose commissioning is fixed, so that a rolling horizon and a
+    perfect foresight run of it differ in nothing but how the costs are booked.
+    """
+    esM = _minimal_esM(n_periods)
+    years = esM.investmentPeriodNames
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            commissioningFix={
+                year: pd.Series({"PerfectLand": 1.0 if year == years[0] else 0.0})
+                for year in years
+            },
+            investPerCapacity=1000,
+            interestRate=0.02,
+            economicLifetime=20,
+            technicalLifetime=20,
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Slack",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            opexPerOperation=1,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix={year: _ts(1000) for year in years},
+        )
+    )
+    return esM
+
+
+def _npv(esM, year, compName, propertyName):
+    summary = esM.getOptimizationSummary("SourceSinkModel", ip=year, outputLevel=0)
+    row = summary.xs((compName, propertyName), level=("Component", "Property"))
+    return float(row.iloc[0]["PerfectLand"])
+
+
+@pytest.mark.parametrize("window", [1, 2, 3])
+def test_chain_books_the_same_net_present_value_as_perfect_foresight(window):
+    """No cost is lost or counted twice between the windows.
+
+    A window charges an annuity for the investment periods it spans, and the capacity it
+    commissions keeps being charged in the following windows, where it arrives as stock.
+    Summed over the years the windows own, and re-based onto the pathway's start year by
+    NPVcontributionRH, that has to reproduce what perfect foresight books for the same
+    commissioning decisions - which commissioningFix pins down here.
+    """
+    perfectForesight = _fixed_commissioning_esM()
+    perfectForesight.optimize(timeSeriesAggregation=False)
+    expected = sum(
+        _npv(perfectForesight, year, "Src", "NPVcontribution")
+        for year in perfectForesight.investmentPeriodNames
+    )
+
+    results = rollingHorizonOptimization(
+        esM=_fixed_commissioning_esM(),
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=window,
+    )
+    booked = sum(
+        _npv(results[startYear], year, "Src", "NPVcontributionRH")
+        for startYear, year in _pathway_years(results)
+    )
+
+    assert booked == pytest.approx(expected, rel=1e-6)
+
+
+# â”€â”€â”€ Excel output â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+
+def test_excel_export_accepts_a_numpy_investment_period(tmp_path):
+    """A year read off a pandas index is a numpy integer, which is just as valid a year
+    as an int here.
+    """
+    esM = _minimal_esM_with_source(n_periods=2)
+    esM.optimize(timeSeriesAggregation=False)
+    year = pd.Index(esM.investmentPeriodNames)[0]
+    assert not isinstance(year, int)
+
+    writeOptimizationOutputToExcel(
+        esM,
+        outputFileName=str(tmp_path / "numpyYear"),
+        investmentPeriod=year,
+    )
+
+    assert [path.name for path in tmp_path.glob("*.xlsx")] == ["numpyYear_2020.xlsx"]
+
+
+def test_excel_export_refuses_a_boolean_investment_period():
+    """A bool is an int, but not a year."""
+    esM = _minimal_esM_with_source(n_periods=2)
+    with pytest.raises(ValueError, match="must be type int"):
+        writeOptimizationOutputToExcel(
+            esM, outputFileName="unused", investmentPeriod=True
+        )
+
+
+def test_every_netcdf_writer_argument_is_reachable(tmp_path, monkeypatch):
+    """Settings are passed on unchanged, so an argument of the writer that
+    rollingHorizonOptimization does not name itself reaches it - including
+    includeShadowPrices and shadowPriceConstraintStr, which it cannot demonstrate end to
+    end because writeEnergySystemModelToNetCDF fails on them for any energy system model
+    (independently of the rolling horizon). The call is recorded rather than executed, so
+    that this stays a statement about the pass-through and not about the writer.
+    """
+    seen = []
+
+    def _recordingWriter(esM, **kwargs):
+        seen.append(kwargs)
+
+    monkeypatch.setattr(
+        "fine.expansionModules.rollingHorizon.writeEnergySystemModelToNetCDF",
+        _recordingWriter,
+    )
+
+    rollingHorizonOptimization(
+        esM=_minimal_esM_with_source(),
+        scenario_name="passthrough",
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+        timeSeriesAggregation=False,
+        writeNetCDFOutput=True,
+        resultExportPath=str(tmp_path),
+        netCDFOutputSettings={
+            "optSumOutputLevel": 1,
+            "includeShadowPrices": True,
+            "shadowPriceConstraintStr": "commodityBalanceConstraint",
+        },
+    )
+
+    assert seen, "the writer was never called"
+    for kwargs in seen:
+        assert kwargs["optSumOutputLevel"] == 1
+        assert kwargs["includeShadowPrices"] is True
+        assert kwargs["shadowPriceConstraintStr"] == "commodityBalanceConstraint"
+        # the three the function determines itself are still its own
+        assert kwargs["overwriteExisting"] is False
+        assert kwargs["groupPrefix"] in ("2020", "2025")
+
+
+# â”€â”€â”€ The module's assumptions about FINE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+
+def _parametersKeyedByStockYears(esM, compName):
+    """Return the parameters whose processed counterpart is keyed by the stock years.
+
+    A component builds the per-investment-period parameters that are charged for
+    capacity commissioned before the first modeled year over
+    ``processedStockYears + esM.investmentPeriods``, and every other one over the
+    investment periods alone. On a component that has stock, the two are therefore told
+    apart by the keys of the processed counterpart.
+    """
+    component = esM.getComponent(compName)
+    keyedByStockYears = set()
+    for name in inspect.getfullargspec(type(component).__init__).args:
+        processed = getattr(component, f"processed{name[:1].upper()}{name[1:]}", None)
+        if isinstance(processed, dict) and set(processed) > set(esM.investmentPeriods):
+            keyedByStockYears.add(name)
+    return keyedByStockYears
+
+
+def _esM_with_source_stock():
+    esM = _minimal_esM(3)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="WithStock",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=1000,
+            interestRate=0.02,
+            economicLifetime=20,
+            technicalLifetime=20,
+            stockCommissioning={2015: pd.Series({"PerfectLand": 1.0})},
+        )
+    )
+    return esM
+
+
+def _esM_with_transmission_stock():
+    """Build a model whose Transmission has stock.
+
+    A Transmission keeps its investment parameters under preprocessed* as well, so it is
+    worth checking separately that the processed* ones still carry the signal.
+    """
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand", "OtherLand"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=4380,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="WithStock",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=50,
+            interestRate=0.02,
+            economicLifetime=20,
+            technicalLifetime=20,
+            stockCommissioning={
+                2015: pd.Series(
+                    {"PerfectLand_OtherLand": 1.0, "OtherLand_PerfectLand": 1.0}
+                )
+            },
+        )
+    )
+    return esM
+
+
+@pytest.mark.parametrize(
+    "esMWithStock",
+    [
+        pytest.param(_esM_with_source_stock, id="Source"),
+        pytest.param(_esM_with_transmission_stock, id="Transmission"),
+    ],
+)
+def test_stock_year_parameters_still_match_what_fine_builds(esMWithStock):
+    """_STOCK_YEAR_PARAMETERS is written out rather than derived, so it can go stale.
+
+    The list cannot be derived where it is used - the components it filters come from
+    the original pathway model, which normally has no stock, and without stock the
+    runtime signal is silent for every parameter (see the test below). It can be checked
+    here though, against a component that does have stock. This fails if a parameter is
+    added to or removed from the ``processedStockYears + esM.investmentPeriods`` calls
+    in component.py or transmission.py.
+    """
+    esM = esMWithStock()
+
+    keyedByStockYears = _parametersKeyedByStockYears(esM, "WithStock")
+
+    assert keyedByStockYears, (
+        "the runtime signal is silent - the component has no stock"
+    )
+    assert keyedByStockYears == set(_STOCK_YEAR_PARAMETERS)
+
+
+def test_the_runtime_signal_is_silent_without_stock():
+    """Why _STOCK_YEAR_PARAMETERS cannot be derived where it is used.
+
+    The filter runs against the original pathway model's components, which normally
+    carry no stock. Deriving the set from them would answer "no stock years" for every
+    parameter and strip the years the previous windows commissioned in.
+    """
+    esM = _minimal_esM_with_source(n_periods=3)
+
+    assert _parametersKeyedByStockYears(esM, "Src") == set()
+
+
+def test_non_constructor_parameters_are_dropped_from_a_clustered_model():
+    """Non-constructor keys are dropped by the constructor's signature, not by name.
+
+    exportToDict adds the aggregated time series of a clustered model on top of the
+    constructor arguments, and a component cannot be rebuilt with them. They are
+    recognized by the constructor's signature rather than by their name, so that
+    anything else exportToDict may add later is dropped as well.
+    """
+    esM = fn.EnergySystemModel(
+        locations={"PerfectLand"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        numberOfTimeSteps=8,
+        hoursPerTimeStep=1095,
+        costUnit="1 Euro",
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=pd.DataFrame({"PerfectLand": np.linspace(0.1, 0.9, 8)}),
+            investPerCapacity=1000,
+            interestRate=0.02,
+            economicLifetime=20,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame({"PerfectLand": np.full(8, 100.0)}),
+        )
+    )
+    esM.aggregateTemporally(n_clusters=2, period_duration=4 * 1095)
+    _, compDict = fn.dictIO.exportToDict(esM)
+    assert any(name.startswith("aggregated") for name in compDict["Source"]["Src"])
+
+    # the first interval, so that no previous window's results are looked up
+    built = _buildIntervalComponentDict(
+        compDict,
+        [2020, 2025],
+        [[2020, 2025], [2025, 2030]],
+        5,
+        {},
+        esM,
+        {
+            classname: {comp: None for comp in compDict[classname]}
+            for classname in compDict
+        },
+        1e-5,
+    )
+
+    for classname, comps in built.items():
+        constructorArguments = set(
+            inspect.getfullargspec(getattr(fn, classname).__init__).args
+        )
+        for compName, compEntry in comps.items():
+            leftOver = set(compEntry) - constructorArguments
+            assert not leftOver, f"{classname} '{compName}' kept {sorted(leftOver)}"
