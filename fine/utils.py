@@ -172,8 +172,28 @@ def checkRegionalColumnTitles(esM, data, locationalEligibility):
 
     # Sort data according to _locationsOrdered, if not already sorted
     if not np.array_equal(data.columns, esM._locationsOrdered):
-        data.sort_index(inplace=True, axis=1)
+        data = data.sort_index(axis=1)
 
+    return data
+
+
+def sortTimeSeriesColumns(data):
+    """Return time-series input with DataFrame columns sorted.
+
+    Time-series parameters can be provided either as a single DataFrame or as a
+    dictionary containing one DataFrame per investment period. Sorting copies
+    the DataFrames, so storing normalized component input does not mutate the
+    object supplied by the user.
+    """
+    if isinstance(data, pd.DataFrame):
+        return data.sort_index(axis=1)
+    if isinstance(data, dict):
+        return {
+            investmentPeriod: value.sort_index(axis=1)
+            if isinstance(value, pd.DataFrame)
+            else value
+            for investmentPeriod, value in data.items()
+        }
     return data
 
 
@@ -200,7 +220,7 @@ def checkRegionalIndex(esM, data, locationalEligibility):
 
     # Sort data according to _locationsOrdered, if not already sorted
     if not np.array_equal(data.index, esM._locationsOrdered):
-        data.sort_index(inplace=True)
+        data = data.sort_index()
 
     return data
 
@@ -1051,14 +1071,12 @@ def setLocationalEligibility(
             if loc1 != loc2
         }
         data = pd.Series([1 for key in keys], index=keys)
-        data.sort_index(inplace=True)
-        return data
+        return data.sort_index()
     if isBuiltFix is not None and isinstance(isBuiltFix, pd.Series):
         # If the isBuiltFix is not empty, the eligibility is set based on the fixed capacity
         data = isBuiltFix.copy()
         data[data > 0] = 1
-        data.sort_index(inplace=True)
-        return data
+        return data.sort_index()
     # If the fixCapacity is not empty, the eligibility is set based on the fixed capacity
     # either use capacityFix or capacityMax
     if isinstance(capacityFix, dict):
@@ -1606,7 +1624,7 @@ def checkAndSetTimeSeriesConversionFactors(
 
         checkTimeSeriesIndex(esM, fullCommodityConversionFactorsTimeSeries)
 
-        checkRegionalColumnTitles(
+        fullCommodityConversionFactorsTimeSeries = checkRegionalColumnTitles(
             esM, fullCommodityConversionFactorsTimeSeries, locationalEligibility
         )
 
@@ -2029,7 +2047,7 @@ def formatOptimizationOutput(
         # filter results for ip
         df = df[df.index.get_level_values(2) == ip]
         # drop ip from index
-        df.reset_index(level=2, drop=True, inplace=True)
+        df = df.reset_index(level=2, drop=True)
         df = buildFullTimeSeries(df, periodsOrder, ip, esM=esM)
         # Label the axes. 1-dim operation: rows = (component, location) with columns =
         # time. Variables with an extra pyomo set (the part-load discretization
@@ -2142,7 +2160,7 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                 index, data_ = [], []
                 counter = 0
                 if data.isnull().values.any():
-                    data.fillna(0, inplace=True)
+                    data = data.fillna(0)
                     warnings.warn(
                         "Invalid input.  A matrix contains NaNs. NaN-values are adapted to Zero automatically. Please check your input!"
                     )
@@ -2170,19 +2188,15 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
                                 counter = counter + 1
 
                 data_ = pd.Series(data_, index=index)
-                data_.sort_index(inplace=True)
-                return data_
+                return data_.sort_index()
             data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
-            data_.sort_index(inplace=True)
-            return data_
+            return data_.sort_index()
         if isinstance(data, float) and locationalEligibility is not None:
             data_ = data * locationalEligibility
-            data_.sort_index(inplace=True)
-            return data_
+            return data_.sort_index()
         if isinstance(data, int) and locationalEligibility is not None:
             data_ = data * locationalEligibility
-            data_.sort_index(inplace=True)
-            return data_
+            return data_.sort_index()
         if isinstance(data, pd.Series):
             return data.sort_index()
         return data

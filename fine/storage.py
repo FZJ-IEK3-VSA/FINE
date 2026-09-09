@@ -314,8 +314,8 @@ class Storage(Component):
         self.dischargeEfficiency = utils.isInRange(dischargeEfficiency, 0, 1)
         self.selfDischarge = utils.isInRange(selfDischarge, 0, 1)
         self.cyclicLifetime = cyclicLifetime
-        self.stateOfChargeMin = stateOfChargeMin
-        self.stateOfChargeMax = stateOfChargeMax
+        self.stateOfChargeMin = utils.sortTimeSeriesColumns(stateOfChargeMin)
+        self.stateOfChargeMax = utils.sortTimeSeriesColumns(stateOfChargeMax)
         self.isPeriodicalStorage = isPeriodicalStorage
         self.doPreciseTsaModeling = doPreciseTsaModeling
         self.socOffsetUp = socOffsetUp
@@ -323,12 +323,12 @@ class Storage(Component):
         self.modelingClass = StorageModel
 
         self.fullStateOfChargeMin = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, stateOfChargeMin, locationalEligibility
+            esM, name, self.stateOfChargeMin, locationalEligibility
         )
         self.aggregatedStateOfChargeMin = dict.fromkeys(esM.investmentPeriods)
 
         self.fullStateOfChargeMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, stateOfChargeMax, locationalEligibility
+            esM, name, self.stateOfChargeMax, locationalEligibility
         )
         self.aggregatedStateOfChargeMax = dict.fromkeys(esM.investmentPeriods)
 
@@ -359,32 +359,32 @@ class Storage(Component):
         )
 
         # chargeOpRateFix and chargeOpRateMax
-        self.chargeOpRateMax = chargeOpRateMax
-        self.chargeOpRateFix = chargeOpRateFix
+        self.chargeOpRateMax = utils.sortTimeSeriesColumns(chargeOpRateMax)
+        self.chargeOpRateFix = utils.sortTimeSeriesColumns(chargeOpRateFix)
 
         # chargeOpRateMax
         self.fullChargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, chargeOpRateMax, locationalEligibility
+            esM, name, self.chargeOpRateMax, locationalEligibility
         )
         self.aggregatedChargeOpRateMax = dict.fromkeys(esM.investmentPeriods)
 
         # chargeOpRateFix
         self.fullChargeOpRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, chargeOpRateFix, locationalEligibility
+            esM, name, self.chargeOpRateFix, locationalEligibility
         )
         self.aggregatedChargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
 
         # dischargeOpRateMax
-        self.dischargeOpRateMax = dischargeOpRateMax
+        self.dischargeOpRateMax = utils.sortTimeSeriesColumns(dischargeOpRateMax)
         self.fullDischargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, dischargeOpRateMax, locationalEligibility
+            esM, name, self.dischargeOpRateMax, locationalEligibility
         )
         self.aggregatedDischargeOpRateMax = {}
 
         # dischargeOpRateFix
-        self.dischargeOpRateFix = dischargeOpRateFix
+        self.dischargeOpRateFix = utils.sortTimeSeriesColumns(dischargeOpRateFix)
         self.fullDischargeOpRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, dischargeOpRateFix, locationalEligibility
+            esM, name, self.dischargeOpRateFix, locationalEligibility
         )
         self.aggregatedDischargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
 
