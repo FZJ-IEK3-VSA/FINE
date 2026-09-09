@@ -2,11 +2,14 @@ import logging
 import math
 import warnings
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 
 import fine as fn
 from fine.enums import Dimension, VarType
+
+from collections import defaultdict
 
 
 def checkAndSetBalanceLimitID(balanceLimitID):
@@ -3136,6 +3139,1299 @@ def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
         hasDesignCostsInStartingPartOfLastEconomicLifetimeInterval,
         hasDesignCostsInEndingPartOfLastTechnicalLifetimeInterval,
     )
+
+
+# ============================== START OF INFEASIBILITY CHECKS ==============================
+# Infeasibility pre-checks
+#
+# The functions below detect model setups which are provably infeasible
+# before the optimization problem is declared, so that the user gets a
+# readable message instead of a solver 'infeasible' status.
+#
+# Every check is a NECESSARY condition and is deliberately optimistic:
+# unknown or unbounded quantities are resolved in favour of feasibility.
+# A reported problem therefore proves infeasibility, while a clean run is
+# no feasibility guarantee. Known blind spots are documented per check.
+
+
+def _getFirstInvestmentPeriodData(data):
+    """Return the data of the first investment period.
+
+    Processed component attributes are stored as dictionaries keyed by
+    investment period, e.g. {0: pandas Series}. Any other input is
+    returned unchanged.
+
+    :param data: attribute value of a component
+    :type data: dict, pandas Series, pandas DataFrame, number or None
+
+    :return: data of the first investment period
+    :rtype: pandas Series, pandas DataFrame, number or None
+    """
+    if isinstance(data, dict):
+        if not data:
+            return None
+        return data[sorted(data.keys())[0]]
+    return data
+
+
+def _getComponentTimeSeries(comp, baseName):
+    """Return a time series of a component independent of the attribute naming.
+
+    The processed, full and raw attribute names are tried in that order.
+    The processed time series is preferred because it is the one the
+    optimization problem is built from.
+
+    :param comp: component of interest
+    :type comp: Component instance
+
+    :param baseName: name of the time series without prefix,
+        e.g. 'operationRateFix'
+    :type baseName: string
+
+    :return: time series with the locations as columns, or None if the
+        component does not hold such a time series
+    :rtype: pandas DataFrame or None
+    """
+    for attr in (
+        f"processed{baseName[0].upper()}{baseName[1:]}",
+        f"full{baseName[0].upper()}{baseName[1:]}",
+        baseName,
+    ):
+        timeSeries = _getFirstInvestmentPeriodData(getattr(comp, attr, None))
+        if isinstance(timeSeries, pd.DataFrame):
+            return timeSeries
+    return None
+
+
+def _getEligibleLocations(comp, esM):
+    """Return the locations at which a component can be built or operated.
+
+    A locationalEligibility of None means that the component is eligible
+    everywhere.
+
+    :param comp: component of interest
+    :type comp: Component instance
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: eligible locations
+    :rtype: set of strings
+    """
+    eligibility = _getFirstInvestmentPeriodData(
+        getattr(comp, "processedLocationalEligibility", None)
+    )
+    if eligibility is None:
+        eligibility = _getFirstInvestmentPeriodData(
+            getattr(comp, "locationalEligibility", None)
+        )
+    if eligibility is not None:
+        return {loc for loc, val in eligibility.items() if val > 0}
+    return set(esM.locations)
+
+
+def _parseTransmissionEdgeKey(edgeKey, locations):
+    """Split a transmission edge key 'loc1_loc2' into its two locations.
+
+    The known location names are matched (longest first) instead of
+    splitting at the underscore, so that location names containing
+    underscores are handled correctly.
+
+    :param edgeKey: edge key of a transmission component
+    :type edgeKey: string
+
+    :param locations: locations of the energy system model
+    :type locations: set of strings
+
+    :return: the two connected locations
+    :rtype: tuple of two strings
+    """
+    for loc in sorted(locations, key=len, reverse=True):
+        if edgeKey.startswith(loc + "_"):
+            rest = edgeKey[len(loc) + 1 :]
+            if rest in locations:
+                return loc, rest
+    raise ValueError(f"The edge key '{edgeKey}' could not be parsed.")
+
+
+def _getCapacityPerLocation(comp, esM):
+    """Return the upper capacity bound of a component per location.
+
+    A fixed capacity takes precedence over a maximum capacity. Missing
+    values are set to infinity, i.e. an unbounded capacity, which keeps
+    the checks optimistic. A scalar capacity applies per location.
+
+    :param comp: component of interest
+    :type comp: Component instance
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: capacity bound indexed by location
+    :rtype: pandas Series
+    """
+    for attr in (
+        "processedCapacityFix",
+        "capacityFix",
+        "processedCapacityMax",
+        "capacityMax",
+    ):
+        capacity = _getFirstInvestmentPeriodData(getattr(comp, attr, None))
+        if capacity is None:
+            continue
+        if isinstance(capacity, pd.Series):
+            return capacity.astype(float).fillna(np.inf)
+        return pd.Series(
+            float(capacity), index=sorted(_getEligibleLocations(comp, esM))
+        )
+    return pd.Series(np.inf, index=sorted(_getEligibleLocations(comp, esM)))
+
+
+def _getCapacityPerEdge(comp):
+    """Return the capacity bound of a transmission component per edge.
+
+    A defaultdict is returned so that a lookup works for scalar
+    capacities and for edges which are not contained in the data. Missing
+    values are set to infinity.
+
+    :param comp: transmission component of interest
+    :type comp: Transmission instance
+
+    :return: capacity bound indexed by edge key
+    :rtype: collections.defaultdict
+    """
+    for attr in (
+        "processedCapacityFix",
+        "capacityFix",
+        "processedCapacityMax",
+        "capacityMax",
+    ):
+        capacity = _getFirstInvestmentPeriodData(getattr(comp, attr, None))
+        if capacity is None:
+            continue
+        if isinstance(capacity, pd.Series):
+            capacityDict = capacity.astype(float).fillna(np.inf).to_dict()
+            return defaultdict(lambda: np.inf, capacityDict)
+        value = float(capacity)
+        return defaultdict(lambda: value)
+    return defaultdict(lambda: np.inf)
+
+
+def _getEdgeValue(data, edgeKey, default=0.0):
+    """Resolve a transmission attribute for one specific edge.
+
+    The attribute may be None, a scalar or a Series indexed by edge key.
+    NaN values are replaced by the default.
+
+    :param data: attribute value, e.g. losses or distances
+    :type data: None, number, pandas Series or dict
+
+    :param edgeKey: edge key of interest
+    :type edgeKey: string
+
+    :param default: value used if no entry exists
+        |br| * the default value is 0.0
+    :type default: float
+
+    :return: value of the attribute at this edge
+    :rtype: float
+    """
+    data = _getFirstInvestmentPeriodData(data)
+    if data is None:
+        return default
+    if isinstance(data, pd.Series):
+        if edgeKey in data.index:
+            value = data[edgeKey]
+            return default if pd.isna(value) else float(value)
+        return default
+    return float(data)
+
+
+def _hasPositiveSupply(comp, loc):
+    """Check whether a source can deliver a positive amount at a location.
+
+    A source with an operation rate time series which is zero at a
+    location cannot supply anything there, even though it may be eligible.
+
+    :param comp: source component of interest
+    :type comp: Source instance
+
+    :param loc: location of interest
+    :type loc: string
+
+    :return: True if the source can deliver at this location
+    :rtype: bool
+    """
+    for baseName in ("operationRateMax", "operationRateFix"):
+        rate = _getComponentTimeSeries(comp, baseName)
+        if rate is not None and loc in rate.columns:
+            return rate[loc].sum() > 0
+    return True
+
+
+def _splitSourcesAndSinks(esM):
+    """Split the components of the SourceSinkModel into sources and sinks.
+
+    A Sink inherits from Source, therefore the sign attribute
+    (1 for sources, -1 for sinks) is used to distinguish them.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: sources and sinks
+    :rtype: tuple of two lists
+    """
+    sources, sinks = [], []
+    for model in esM.componentModelingDict.values():
+        for comp in model.componentsDict.values():
+            sign = getattr(comp, "sign", None)
+            if sign == 1:
+                sources.append(comp)
+            elif sign == -1:
+                sinks.append(comp)
+    return sources, sinks
+
+
+def _reduceConversionFactor(value):
+    """Reduce a location- or time-dependent conversion factor to a single
+    number. Inputs are reduced to their smallest and outputs to their
+    largest magnitude, so that the checks stay optimistic.
+    """
+    if not isinstance(value, (pd.Series, pd.DataFrame)):
+        return float(value)
+    values = np.asarray(value, dtype=float).flatten()
+    values = values[~np.isnan(values)]
+    if len(values) == 0:
+        return 0.0
+    if float(max(values, key=abs)) < 0:
+        return float(min(values, key=abs))
+    return float(max(values, key=abs))
+
+
+def _getScalarConversionFactors(comp):
+    """Return the commodity conversion factors as a plain
+    {commodity: float} dictionary, together with a flag stating whether
+    the component uses flexible conversion.
+
+    An investment-period nesting is unwrapped, and location- or
+    time-dependent factors are reduced to a single number. For flexible
+    conversion components the commodity groups are flattened; the flag is
+    then True, because only one commodity of an input group is required.
+
+    :param comp: conversion component of interest
+    :type comp: Conversion instance
+
+    :return: conversion factors and flexible conversion flag
+    :rtype: tuple of dict and bool
+    """
+    factors = comp.commodityConversionFactors
+    if isinstance(factors, dict) and not all(isinstance(key, str) for key in factors):
+        factors = _getFirstInvestmentPeriodData(factors)
+    if not isinstance(factors, dict):
+        return {}, False
+
+    flatFactors, isFlexible = {}, False
+    for commodity, value in factors.items():
+        if isinstance(value, dict):
+            isFlexible = True
+            for groupCommodity, groupValue in value.items():
+                flatFactors[groupCommodity] = _reduceConversionFactor(groupValue)
+        else:
+            flatFactors[commodity] = _reduceConversionFactor(value)
+    return flatFactors, isFlexible
+
+
+def _getTransmissionComponents(esM):
+    """Return all components which connect two locations, independent of
+    their modeling class. Transmission subclasses such as
+    LinearOptimalPowerFlow use their own modeling class and would be
+    missed by a lookup of 'TransmissionModel' alone.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: transmission components
+    :rtype: list
+    """
+    return [
+        comp
+        for model in esM.componentModelingDict.values()
+        for comp in model.componentsDict.values()
+        if getattr(comp, "dimension", None) == Dimension.TWO
+        and hasattr(comp, "commodity")
+    ]
+
+
+def _getTransmissionLinks(esM):
+    """Return the usable transmission links with their maximum flow per time step.
+
+    The maximum flow is the capacity multiplied by the hours per time step
+    and reduced by the transmission losses. If processed losses are
+    available they already include the distance, otherwise the losses per
+    distance unit are multiplied by the distance.
+
+    Both directions of a symmetric eligibility matrix describe the same
+    physical link and are therefore not added up. Parallel links, i.e.
+    several transmission components between the same locations, are added up.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: maximum flow per time step, indexed by commodity and by the
+        frozenset of the two connected locations
+    :rtype: dict of dicts
+    """
+    hoursPerTimeStep = esM.hoursPerTimeStep
+    links = defaultdict(dict)
+
+    for comp in _getTransmissionComponents(esM):
+        eligibility = _getFirstInvestmentPeriodData(
+            getattr(comp, "processedLocationalEligibility", None)
+        )
+        if eligibility is None:
+            eligibility = _getFirstInvestmentPeriodData(
+                getattr(comp, "locationalEligibility", None)
+            )
+
+        if eligibility is None:
+            # Optimistic fallback. It is stated explicitly because it can
+            # hide network bottlenecks from all subsequent checks.
+            warnings.warn(
+                f"No locationalEligibility found for '{comp.name}'. The "
+                "infeasibility pre-checks assume that all location pairs "
+                "are connected."
+            )
+            edgeItems = [
+                (f"{loc1}_{loc2}", 1)
+                for loc1 in esM.locations
+                for loc2 in esM.locations
+                if loc1 != loc2
+            ]
+        else:
+            edgeItems = list(eligibility.items())
+
+        capacities = _getCapacityPerEdge(comp)
+
+        # Processed losses, if available, already include the distance
+        losses = getattr(comp, "processedLosses", None)
+        lossesIncludeDistance = losses is not None
+        if losses is None:
+            losses = getattr(comp, "losses", None)
+        distances = getattr(comp, "processedDistances", None)
+        if distances is None:
+            distances = getattr(comp, "distances", None)
+
+        for edgeKey, isEligible in edgeItems:
+            if isEligible <= 0:
+                continue
+            loc1, loc2 = _parseTransmissionEdgeKey(edgeKey, esM.locations)
+            capacity = capacities[edgeKey]
+            loss = _getEdgeValue(losses, edgeKey, 0.0)
+            if lossesIncludeDistance:
+                efficiency = max(0.0, 1.0 - loss)
+            else:
+                distance = _getEdgeValue(distances, edgeKey, 0.0)
+                efficiency = max(0.0, 1.0 - loss * distance)
+            flow = float(capacity) * hoursPerTimeStep * efficiency
+
+            key = frozenset({loc1, loc2})
+            previousFlow = links[comp.commodity].get((comp.name, key), 0.0)
+            links[comp.commodity][(comp.name, key)] = max(previousFlow, flow)
+
+    aggregatedLinks = defaultdict(lambda: defaultdict(float))
+    for commodity, componentLinks in links.items():
+        for (_, key), flow in componentLinks.items():
+            aggregatedLinks[commodity][key] += flow
+    return {
+        commodity: dict(componentLinks)
+        for commodity, componentLinks in aggregatedLinks.items()
+    }
+
+
+def _getTransmissionIslands(esM, transmissionEdges):
+    """Return the connected groups of locations per commodity.
+
+    Locations which are not connected by a transmission component of that
+    commodity form a group of their own. Every commodity of the energy
+    system model is contained in the result, so that a lookup never fails
+    for commodities which only occur inside conversion processes.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :param transmissionEdges: edges given as (commodity, loc1, loc2)
+    :type transmissionEdges: list of tuples
+
+    :return: mapping of location to its connected group, per commodity
+    :rtype: dict of dicts
+    """
+    edgesPerCommodity = defaultdict(set)
+    for commodity, loc1, loc2 in transmissionEdges:
+        edgesPerCommodity[commodity].add((loc1, loc2))
+
+    allCommodities = (
+        set(getattr(esM, "commodities", set()))
+        | set(edgesPerCommodity)
+        | {
+            comp.commodity
+            for model in esM.componentModelingDict.values()
+            for comp in model.componentsDict.values()
+            if hasattr(comp, "commodity")
+        }
+    )
+
+    islands = {}
+    for commodity in allCommodities:
+        remaining = set(esM.locations)
+        locationToIsland = {}
+        adjacency = defaultdict(set)
+        for loc1, loc2 in edgesPerCommodity.get(commodity, ()):
+            adjacency[loc1].add(loc2)
+            adjacency[loc2].add(loc1)
+        while remaining:
+            start = remaining.pop()
+            group, stack = {start}, [start]
+            while stack:
+                for neighbour in adjacency[stack.pop()]:
+                    if neighbour in remaining:
+                        remaining.discard(neighbour)
+                        group.add(neighbour)
+                        stack.append(neighbour)
+            island = frozenset(group)
+            for loc in group:
+                locationToIsland[loc] = island
+        islands[commodity] = locationToIsland
+    return islands
+
+
+def _getMaxTransportableFlow(supplyPerLocation, demandPerLocation, links, tol=1e-6):
+    """Return the maximum transportable flow of one commodity in one time step.
+
+    A maximum flow problem is solved on a network with an artificial
+    source connected to the local supply, an artificial sink connected to
+    the local demand and the transmission links in between. By the
+    max-flow min-cut theorem this covers every possible group of
+    locations at once and therefore also detects bottlenecks on a path
+    across intermediate locations.
+
+    :param supplyPerLocation: local supply indexed by location
+    :type supplyPerLocation: dict
+
+    :param demandPerLocation: fixed demand indexed by location
+    :type demandPerLocation: dict
+
+    :param links: maximum flow per link, indexed by the frozenset of the
+        two connected locations
+    :type links: dict
+
+    :param tol: numerical tolerance
+        |br| * the default value is 1e-6
+    :type tol: float
+
+    :return: maximum transportable flow and total demand
+    :rtype: tuple of two floats
+    """
+    totalDemand = sum(value for value in demandPerLocation.values() if value > 0)
+    if totalDemand <= tol:
+        return np.inf, 0.0
+
+    # An infinite capacity is replaced by a value which clearly exceeds
+    # the total demand, because the maximum flow algorithm requires
+    # finite capacities.
+    bigCapacity = totalDemand * 1e6
+
+    graph = nx.DiGraph()
+    for loc, supply in supplyPerLocation.items():
+        if supply > 0:
+            graph.add_edge("_supply_", loc, capacity=min(supply, bigCapacity))
+    for loc, demand in demandPerLocation.items():
+        if demand > 0:
+            graph.add_edge(loc, "_demand_", capacity=demand)
+    for locations, linkCapacity in links.items():
+        loc1, loc2 = sorted(locations)
+        boundedCapacity = min(linkCapacity, bigCapacity)
+        graph.add_edge(loc1, loc2, capacity=boundedCapacity)
+        graph.add_edge(loc2, loc1, capacity=boundedCapacity)
+
+    if "_supply_" not in graph or "_demand_" not in graph:
+        return 0.0, totalDemand
+
+    maxFlow, _ = nx.maximum_flow(graph, "_supply_", "_demand_")
+    return maxFlow, totalDemand
+
+
+def _hasConsistentTimeSeriesLength(esM, timeSeriesList):
+    """Check whether all given time series cover the full time horizon.
+
+    Time-step-resolved checks can only be evaluated if the time series
+    match the number of time steps of the energy system model, which is
+    not the case for aggregated time series.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :param timeSeriesList: time series to be checked
+    :type timeSeriesList: list of pandas DataFrames and None
+
+    :return: True if all time series cover the full time horizon
+    :rtype: bool
+    """
+    return all(
+        len(timeSeries) == esM.numberOfTimeSteps
+        for timeSeries in timeSeriesList
+        if timeSeries is not None
+    )
+
+
+def _getConversionComponents(esM):
+    """Return all components which convert commodities, independent of
+    their modeling class. Conversion subclasses such as ConversionPartLoad
+    or ConversionDynamic use their own modeling class and would be missed
+    by a lookup of 'ConversionModel' alone.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: conversion components
+    :rtype: list
+    """
+    return [
+        comp
+        for model in esM.componentModelingDict.values()
+        for comp in model.componentsDict.values()
+        if hasattr(comp, "commodityConversionFactors")
+    ]
+
+
+def _getStorageComponents(esM):
+    """Return all components which store a commodity, independent of their
+    modeling class.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: storage components
+    :rtype: list
+    """
+    return [
+        comp
+        for model in esM.componentModelingDict.values()
+        for comp in model.componentsDict.values()
+        if hasattr(comp, "chargeEfficiency")
+    ]
+
+
+def checkCommodityReachability(esM):
+    """Check whether every demanded commodity can be provided at its location.
+
+    Starting from the commodities which the sources can deliver, the set
+    of available (commodity, location) pairs is extended until it does not
+    grow any further: a conversion component adds its output commodities
+    at a location if all of its input commodities are available there, and
+    a transmission component spreads a commodity to the connected location.
+
+    The check is purely qualitative and detects structural errors such as
+    missing components, missing transmission links or supply time series
+    which are zero. Quantities are not considered at all.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: description of every detected problem, empty if the check passed
+    :rtype: list of strings
+    """
+    problems = []
+    sources, sinks = _splitSourcesAndSinks(esM)
+    conversions = _getConversionComponents(esM)
+
+    available = set()
+    for comp in sources:
+        for loc in _getEligibleLocations(comp, esM):
+            if _hasPositiveSupply(comp, loc):
+                available.add((comp.commodity, loc))
+
+    transmissionEdges = []
+    for comp in _getTransmissionComponents(esM):
+        eligibility = _getFirstInvestmentPeriodData(
+            getattr(comp, "processedLocationalEligibility", None)
+        )
+        if eligibility is None:
+            eligibility = _getFirstInvestmentPeriodData(
+                getattr(comp, "locationalEligibility", None)
+            )
+        if eligibility is not None:
+            locationPairs = [
+                _parseTransmissionEdgeKey(edgeKey, esM.locations)
+                for edgeKey, isEligible in eligibility.items()
+                if isEligible > 0
+            ]
+        else:
+            locationPairs = [
+                (loc1, loc2)
+                for loc1 in esM.locations
+                for loc2 in esM.locations
+                if loc1 != loc2
+            ]
+        for loc1, loc2 in locationPairs:
+            # Transmission components can be operated in both directions
+            transmissionEdges.append((comp.commodity, loc1, loc2))
+            transmissionEdges.append((comp.commodity, loc2, loc1))
+
+    changed = True
+    while changed:
+        changed = False
+        for comp in conversions:
+            factors, isFlexible = _getScalarConversionFactors(comp)
+            inputs = {commod for commod, factor in factors.items() if factor < 0}
+            outputs = {commod for commod, factor in factors.items() if factor > 0}
+            for loc in _getEligibleLocations(comp, esM):
+                # a flexible conversion only requires one commodity of
+                # its input group, not all of them
+                if isFlexible:
+                    inputsAvailable = not inputs or any(
+                        (commod, loc) in available for commod in inputs
+                    )
+                else:
+                    inputsAvailable = all(
+                        (commod, loc) in available for commod in inputs
+                    )
+                if inputsAvailable:
+                    newlyAvailable = {(commod, loc) for commod in outputs} - available
+                    if newlyAvailable:
+                        available |= newlyAvailable
+                        changed = True
+        for commodity, loc1, loc2 in transmissionEdges:
+            if (commodity, loc1) in available and (commodity, loc2) not in available:
+                available.add((commodity, loc2))
+                changed = True
+
+    for snk in sinks:
+        demand = _getComponentTimeSeries(snk, "operationRateFix")
+        if demand is None:
+            continue
+        for loc in demand.columns:
+            if demand[loc].sum() > 0 and (snk.commodity, loc) not in available:
+                problems.append(
+                    f"The sink '{snk.name}' has a demand for the commodity "
+                    f"'{snk.commodity}' in location '{loc}', but the commodity "
+                    "can neither be produced nor imported there."
+                )
+    return problems
+
+
+def checkJointInputDemand(esM, aggregate=True, tol=1e-6, maxIteration=50):
+    """Check whether the sources cover the input demand of all sinks at once.
+
+    The fixed demand of all sinks is propagated backwards through the
+    conversion chains, so that conversion components which consume the
+    same commodity are considered simultaneously. This detects a shortage
+    which only occurs because several conversion components compete for
+    the same input commodity, e.g. an electrolyzer and a heat pump which
+    both consume electricity.
+
+    The check is exact if every commodity is produced by exactly one type
+    of conversion component. If several components produce the same
+    commodity, only their combined capacity is checked and the input
+    demand is not propagated, which keeps the check optimistic.
+
+    Not considered: the state of charge of storage components over time,
+    and transmission capacities within a connected group of locations.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :param aggregate: if True, the balance is set up for the whole time
+        horizon and storage components are not considered, because they
+        only shift energy in time. If False, the balance is set up for
+        each time step and the discharge bound of the storage components
+        is added to the supply.
+        |br| * the default value is True
+    :type aggregate: bool
+
+    :param tol: numerical tolerance
+        |br| * the default value is 1e-6
+    :type tol: float
+
+    :param maxIteration: maximum number of backward propagation steps
+        |br| * the default value is 50
+    :type maxIteration: int
+
+    :return: description of every detected problem, empty if the check passed
+    :rtype: list of strings
+    """
+    problems = []
+    hoursPerTimeStep = esM.hoursPerTimeStep
+    numberOfTimeSteps = esM.numberOfTimeSteps
+
+    sources, sinks = _splitSourcesAndSinks(esM)
+    conversions = _getConversionComponents(esM)
+    storages = _getStorageComponents(esM)
+
+    transmissionLinks = _getTransmissionLinks(esM)
+    islands = _getTransmissionIslands(
+        esM,
+        [
+            (commodity, *sorted(locations))
+            for commodity, links in transmissionLinks.items()
+            for locations in links
+        ],
+    )
+
+    sourceData = [
+        (
+            comp,
+            _getComponentTimeSeries(comp, "operationRateFix"),
+            _getComponentTimeSeries(comp, "operationRateMax"),
+            _getCapacityPerLocation(comp, esM),
+            _getEligibleLocations(comp, esM),
+        )
+        for comp in sources
+    ]
+
+    conversionData = []
+    for comp in conversions:
+        factors, isFlexible = _getScalarConversionFactors(comp)
+        # the input demand of a flexible conversion cannot be assigned to a
+        # single commodity, so it is not restricted by its inputs here
+        conversionData.append(
+            (
+                comp,
+                {}
+                if isFlexible
+                else {
+                    commod: abs(factor)
+                    for commod, factor in factors.items()
+                    if factor < 0
+                },
+                {commod: factor for commod, factor in factors.items() if factor > 0},
+                _getCapacityPerLocation(comp, esM),
+                _getEligibleLocations(comp, esM),
+            )
+        )
+
+    sinkData = [
+        (snk, _getComponentTimeSeries(snk, "operationRateFix")) for snk in sinks
+    ]
+
+    if not aggregate:
+        allTimeSeries = [rate for _, rate in sinkData] + [
+            rateFix if rateFix is not None else rateMax
+            for _, rateFix, rateMax, _, _ in sourceData
+        ]
+        if not _hasConsistentTimeSeriesLength(esM, allTimeSeries):
+            output(
+                "The time-step-resolved input demand check is skipped because "
+                "the time series do not cover the full time horizon.",
+                esM.verboseLogLevel,
+                0,
+            )
+            return problems
+
+    timeSteps = [None] if aggregate else list(range(numberOfTimeSteps))
+
+    for timeStep in timeSteps:
+        label = "Total time horizon" if timeStep is None else f"Time step {timeStep}"
+        numberOfSteps = numberOfTimeSteps if timeStep is None else 1
+
+        # Supply per commodity and connected group of locations
+        supply = defaultdict(float)
+        for comp, rateFix, rateMax, capacities, eligibleLocations in sourceData:
+            rate = rateFix if rateFix is not None else rateMax
+            for loc in eligibleLocations:
+                key = (comp.commodity, islands[comp.commodity][loc])
+                if comp.hasCapacityVariable:
+                    capacity = float(capacities.get(loc, np.inf))
+                    if rate is not None and loc in rate.columns:
+                        relativeOperation = (
+                            float(rate[loc].sum())
+                            if timeStep is None
+                            else float(rate[loc].iloc[timeStep])
+                        )
+                    else:
+                        relativeOperation = float(numberOfSteps)
+                    supply[key] += (
+                        0.0
+                        if relativeOperation == 0
+                        else capacity * relativeOperation * hoursPerTimeStep
+                    )
+                elif rate is not None and loc in rate.columns:
+                    supply[key] += (
+                        float(rate[loc].sum())
+                        if timeStep is None
+                        else float(rate[loc].iloc[timeStep])
+                    )
+                else:
+                    supply[key] += np.inf
+
+        if timeStep is not None:
+            # The discharge bound is an upper bound only. Whether the
+            # storage could have been charged before is not checked.
+            for comp in storages:
+                capacities = _getCapacityPerLocation(comp, esM)
+                dischargeRate = float(getattr(comp, "dischargeRate", 1) or 1)
+                dischargeEfficiency = float(
+                    getattr(comp, "dischargeEfficiency", 1) or 1
+                )
+                for loc in _getEligibleLocations(comp, esM):
+                    key = (comp.commodity, islands[comp.commodity][loc])
+                    supply[key] += (
+                        float(capacities.get(loc, np.inf))
+                        * dischargeRate
+                        * dischargeEfficiency
+                        * hoursPerTimeStep
+                    )
+
+        # Fixed demand per commodity and connected group of locations
+        required = defaultdict(float)
+        for snk, demand in sinkData:
+            if demand is None:
+                continue
+            commodity = snk.commodity
+            for loc in demand.columns:
+                demandValue = (
+                    float(demand[loc].sum())
+                    if timeStep is None
+                    else float(demand[loc].iloc[timeStep])
+                )
+                if demandValue > 0:
+                    required[(commodity, islands[commodity][loc])] += demandValue
+
+        # Backward propagation of the deficits through the conversion chains
+        for _ in range(maxIteration):
+            changed = False
+            for (commodity, island), requiredValue in list(required.items()):
+                deficit = requiredValue - supply[(commodity, island)]
+                if deficit <= tol:
+                    continue
+
+                producers = [
+                    (comp, inputs, outputs, capacities, eligibleLocations)
+                    for comp, inputs, outputs, capacities, eligibleLocations in conversionData
+                    if commodity in outputs
+                    and any(loc in island for loc in eligibleLocations)
+                ]
+
+                if not producers:
+                    problems.append(
+                        f"{label}: the joint demand of {requiredValue:.4g} for the "
+                        f"commodity '{commodity}' in the locations {sorted(island)} "
+                        f"exceeds the supply of {supply[(commodity, island)]:.4g} "
+                        "and no component produces this commodity."
+                    )
+                    supply[(commodity, island)] = requiredValue
+                    changed = True
+                    continue
+
+                combinedOutput = sum(
+                    float(capacities.get(loc, np.inf))
+                    * hoursPerTimeStep
+                    * numberOfSteps
+                    * outputs[commodity]
+                    for _, _, outputs, capacities, eligibleLocations in producers
+                    for loc in eligibleLocations
+                    if loc in island
+                )
+                if combinedOutput + tol < deficit:
+                    problems.append(
+                        f"{label}: the deficit of {deficit:.4g} for the commodity "
+                        f"'{commodity}' in the locations {sorted(island)} exceeds "
+                        f"the combined conversion capacity of {combinedOutput:.4g}."
+                    )
+
+                if len(producers) == 1:
+                    # A unique producer allows to propagate its input demand
+                    _, inputs, outputs, _, eligibleLocations = producers[0]
+                    operation = deficit / outputs[commodity]
+                    locationsInIsland = [
+                        loc for loc in eligibleLocations if loc in island
+                    ]
+                    for inputCommodity, factor in inputs.items():
+                        inputIslands = {
+                            islands[inputCommodity][loc] for loc in locationsInIsland
+                        }
+                        if len(inputIslands) == 1:
+                            required[(inputCommodity, next(iter(inputIslands)))] += (
+                                operation * factor
+                            )
+                    for outputCommodity, factor in outputs.items():
+                        if outputCommodity != commodity:
+                            outputIslands = {
+                                islands[outputCommodity][loc]
+                                for loc in locationsInIsland
+                            }
+                            if len(outputIslands) == 1:
+                                supply[
+                                    (outputCommodity, next(iter(outputIslands)))
+                                ] += operation * factor
+
+                supply[(commodity, island)] = requiredValue
+                changed = True
+            if not changed:
+                break
+
+    return problems
+
+
+def checkJointInputDemandAggregated(esM):
+    """Check the joint input demand for the whole time horizon.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: description of every detected problem, empty if the check passed
+    :rtype: list of strings
+    """
+    return checkJointInputDemand(esM, aggregate=True)
+
+
+def checkJointInputDemandPerTimeStep(esM):
+    """Check the joint input demand for each time step.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :return: description of every detected problem, empty if the check passed
+    :rtype: list of strings
+    """
+    return checkJointInputDemand(esM, aggregate=False)
+
+
+def checkTimeStepBalance(esM, tol=1e-6, maxIteration=50):
+    """Check the commodity balance for each time step and each location.
+
+    Three necessary conditions are evaluated per time step and commodity:
+
+    a) per location: the local supply of the sources, the discharge bound
+       of the storage components, the local conversion output and the
+       capacity of the adjacent transmission links have to cover the
+       fixed demand of that location,
+    b) per connected group of locations: the pooled supply has to cover
+       the pooled demand,
+    c) over the whole network: the maximum transportable flow has to
+       cover the total demand. This also detects bottlenecks on a path
+       across intermediate locations, which a) and b) cannot see.
+
+    Condition c) is the strictest one, a) and b) are kept because they
+    localize the shortage and therefore give a more specific message.
+
+    Not considered: the state of charge of storage components over time,
+    the competition of conversion components for the same input commodity
+    and the simultaneous optimization of several commodities.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :param tol: numerical tolerance
+        |br| * the default value is 1e-6
+    :type tol: float
+
+    :param maxIteration: maximum number of conversion iterations
+        |br| * the default value is 50
+    :type maxIteration: int
+
+    :return: description of every detected problem, empty if the check passed
+    :rtype: list of strings
+    """
+    problems = []
+    hoursPerTimeStep = esM.hoursPerTimeStep
+    numberOfTimeSteps = esM.numberOfTimeSteps
+
+    sources, sinks = _splitSourcesAndSinks(esM)
+    conversions = _getConversionComponents(esM)
+    storages = _getStorageComponents(esM)
+
+    transmissionLinks = _getTransmissionLinks(esM)
+    transmissionEdges = [
+        (commodity, *sorted(locations))
+        for commodity, links in transmissionLinks.items()
+        for locations in links
+    ]
+    islands = _getTransmissionIslands(esM, transmissionEdges)
+
+    importCapacity = defaultdict(float)
+    for commodity, links in transmissionLinks.items():
+        for locations, flow in links.items():
+            for loc in locations:
+                importCapacity[(commodity, loc)] += flow
+
+    sourceData = [
+        (
+            comp,
+            _getComponentTimeSeries(comp, "operationRateFix"),
+            _getComponentTimeSeries(comp, "operationRateMax"),
+            _getCapacityPerLocation(comp, esM),
+            _getEligibleLocations(comp, esM),
+        )
+        for comp in sources
+    ]
+
+    storageSupply = defaultdict(float)
+    for comp in storages:
+        capacities = _getCapacityPerLocation(comp, esM)
+        dischargeRate = float(getattr(comp, "dischargeRate", 1) or 1)
+        dischargeEfficiency = float(getattr(comp, "dischargeEfficiency", 1) or 1)
+        for loc in _getEligibleLocations(comp, esM):
+            storageSupply[(comp.commodity, loc)] += (
+                float(capacities.get(loc, np.inf))
+                * dischargeRate
+                * dischargeEfficiency
+                * hoursPerTimeStep
+            )
+
+    conversionData = []
+    for comp in conversions:
+        factors, isFlexible = _getScalarConversionFactors(comp)
+        # the input demand of a flexible conversion cannot be assigned to a
+        # single commodity, so it is not restricted by its inputs here
+        conversionData.append(
+            (
+                comp,
+                {}
+                if isFlexible
+                else {
+                    commod: abs(factor)
+                    for commod, factor in factors.items()
+                    if factor < 0
+                },
+                {commod: factor for commod, factor in factors.items() if factor > 0},
+                _getCapacityPerLocation(comp, esM),
+                _getEligibleLocations(comp, esM),
+            )
+        )
+
+    sinkData = [
+        (snk, _getComponentTimeSeries(snk, "operationRateFix")) for snk in sinks
+    ]
+
+    allTimeSeries = [rate for _, rate in sinkData] + [
+        rateFix if rateFix is not None else rateMax
+        for _, rateFix, rateMax, _, _ in sourceData
+    ]
+    if not _hasConsistentTimeSeriesLength(esM, allTimeSeries):
+        output(
+            "The time-step-resolved balance check is skipped because the time "
+            "series do not cover the full time horizon.",
+            esM.verboseLogLevel,
+            0,
+        )
+        return problems
+
+    for timeStep in range(numberOfTimeSteps):
+        # Local supply of the sources and the storage components
+        localSupply = defaultdict(float)
+        for comp, rateFix, rateMax, capacities, eligibleLocations in sourceData:
+            rate = rateFix if rateFix is not None else rateMax
+            for loc in eligibleLocations:
+                if comp.hasCapacityVariable:
+                    capacity = float(capacities.get(loc, np.inf))
+                    relativeOperation = (
+                        float(rate[loc].iloc[timeStep])
+                        if rate is not None and loc in rate.columns
+                        else 1.0
+                    )
+                    localSupply[(comp.commodity, loc)] += (
+                        0.0
+                        if relativeOperation == 0
+                        else capacity * relativeOperation * hoursPerTimeStep
+                    )
+                elif rate is not None and loc in rate.columns:
+                    localSupply[(comp.commodity, loc)] += float(
+                        rate[loc].iloc[timeStep]
+                    )
+                else:
+                    localSupply[(comp.commodity, loc)] += np.inf
+        for key, value in storageSupply.items():
+            localSupply[key] += value
+
+        # Conversion output, with the inputs taken from the connected group
+        conversionOutput = defaultdict(float)
+        for _ in range(maxIteration):
+            pooledSupply = defaultdict(float)
+            for (commodity, loc), value in localSupply.items():
+                pooledSupply[(commodity, islands[commodity][loc])] += value
+            for (commodity, loc), value in conversionOutput.items():
+                pooledSupply[(commodity, islands[commodity][loc])] += value
+
+            newOutput = defaultdict(float)
+            for _, inputs, outputs, capacities, eligibleLocations in conversionData:
+                for loc in eligibleLocations:
+                    capacity = float(capacities.get(loc, np.inf))
+                    operation = (
+                        np.inf if np.isinf(capacity) else capacity * hoursPerTimeStep
+                    )
+                    for inputCommodity, factor in inputs.items():
+                        operation = min(
+                            operation,
+                            pooledSupply[(inputCommodity, islands[inputCommodity][loc])]
+                            / factor,
+                        )
+                    if operation > 0:
+                        for outputCommodity, factor in outputs.items():
+                            newOutput[(outputCommodity, loc)] += operation * factor
+
+            keys = set(conversionOutput) | set(newOutput)
+            if all(
+                math.isclose(
+                    conversionOutput[key], newOutput[key], rel_tol=1e-9, abs_tol=tol
+                )
+                or (np.isinf(conversionOutput[key]) and np.isinf(newOutput[key]))
+                for key in keys
+            ):
+                conversionOutput = newOutput
+                break
+            conversionOutput = newOutput
+
+        totalLocalSupply = defaultdict(float, localSupply)
+        for key, value in conversionOutput.items():
+            totalLocalSupply[key] += value
+
+        pooledSupply = defaultdict(float)
+        for (commodity, loc), value in totalLocalSupply.items():
+            pooledSupply[(commodity, islands[commodity][loc])] += value
+
+        # a) Balance per location
+        islandDemand = defaultdict(float)
+        locationDemand = defaultdict(float)
+        for snk, demand in sinkData:
+            if demand is None:
+                continue
+            commodity = snk.commodity
+            for loc in demand.columns:
+                demandValue = float(demand[loc].iloc[timeStep])
+                if demandValue <= 0:
+                    continue
+                islandDemand[(commodity, islands[commodity][loc])] += demandValue
+                locationDemand[(commodity, loc)] += demandValue
+
+        for (commodity, loc), demandValue in locationDemand.items():
+            supply = totalLocalSupply[(commodity, loc)]
+            imports = importCapacity[(commodity, loc)]
+            if supply + imports + tol < demandValue:
+                problems.append(
+                    f"Time step {timeStep}: the demand of {demandValue:.4g} for the "
+                    f"commodity '{commodity}' in the location '{loc}' exceeds the "
+                    f"local supply of {supply:.4g} plus the import capacity of "
+                    f"{imports:.4g}."
+                )
+
+        # b) Balance per connected group of locations
+        for (commodity, island), demandValue in islandDemand.items():
+            supply = pooledSupply[(commodity, island)]
+            if supply + tol < demandValue:
+                problems.append(
+                    f"Time step {timeStep}: the demand of {demandValue:.4g} for the "
+                    f"commodity '{commodity}' in the locations {sorted(island)} "
+                    f"exceeds the maximum supply of {supply:.4g}."
+                )
+
+        # c) Maximum transportable flow over the whole network
+        for commodity in {commodity for commodity, _ in locationDemand}:
+            supplyPerLocation = {
+                loc: totalLocalSupply[(commodity, loc)] for loc in esM.locations
+            }
+            demandPerLocation = {
+                loc: value
+                for (commod, loc), value in locationDemand.items()
+                if commod == commodity
+            }
+            maxFlow, totalDemand = _getMaxTransportableFlow(
+                supplyPerLocation,
+                demandPerLocation,
+                transmissionLinks.get(commodity, {}),
+                tol,
+            )
+            if maxFlow + tol < totalDemand:
+                problems.append(
+                    f"Time step {timeStep}: the maximum transportable flow of "
+                    f"{maxFlow:.4g} for the commodity '{commodity}' is smaller than "
+                    f"the total demand of {totalDemand:.4g}. The supply or the "
+                    "transmission capacity of the network is insufficient."
+                )
+
+    return problems
+
+
+#: Pre-checks which are run by default, ordered from a coarse structural
+#: check to the more detailed quantitative ones. Each of them detects a
+#: type of error which the others cannot detect.
+INFEASIBILITY_PRECHECKS = (
+    checkCommodityReachability,
+    checkJointInputDemandAggregated,
+    checkTimeStepBalance,
+    checkJointInputDemandPerTimeStep,
+)
+
+
+def runInfeasibilityPrechecks(esM, checks=INFEASIBILITY_PRECHECKS, raiseError=True):
+    """Run the infeasibility pre-checks on an energy system model.
+
+    Every check proves infeasibility if it reports a problem, therefore a
+    ValueError is raised by default. A check which fails to run, e.g.
+    because a component holds unexpected data, only causes a warning so
+    that it never blocks a valid model.
+
+    :param esM: EnergySystemModel instance
+    :type esM: EnergySystemModel instance
+
+    :param checks: pre-checks to be run. Every check is a function which
+        takes an EnergySystemModel instance and returns a list of strings.
+        |br| * the default value is INFEASIBILITY_PRECHECKS
+    :type checks: tuple of functions
+
+    :param raiseError: if True, a ValueError is raised if a problem was
+        detected. If False, the problems are only returned and logged.
+        |br| * the default value is True
+    :type raiseError: bool
+
+    :return: description of every detected problem, empty if all checks passed
+    :rtype: list of strings
+    """
+    isEnergySystemModelInstance(esM)
+
+    problems = []
+    for check in checks:
+        checkName = getattr(check, "__name__", str(check))
+        try:
+            checkProblems = list(check(esM))
+        except Exception as exception:
+            warnings.warn(
+                f"The infeasibility pre-check '{checkName}' could not be run "
+                f"and is skipped: {exception!r}"
+            )
+            continue
+
+        if checkProblems:
+            problems.extend(f"{checkName}: {problem}" for problem in checkProblems)
+        else:
+            output(
+                f"The infeasibility pre-check '{checkName}' passed.",
+                esM.verboseLogLevel,
+                0,
+            )
+
+    if problems:
+        message = (
+            "The infeasibility pre-checks detected that the model cannot be "
+            "solved:\n"
+            + "\n".join(f"  - {problem}" for problem in problems)
+            + "\n\nThe pre-checks can be deactivated by setting "
+            "'runInfeasibilityPrechecks' to False."
+        )
+        if raiseError:
+            raise ValueError(message)
+        warnings.warn(message)
+    else:
+        output(
+            "All infeasibility pre-checks passed. Note that they evaluate "
+            "necessary conditions only and are no feasibility guarantee.",
+            esM.verboseLogLevel,
+            0,
+        )
+
+    return problems
+
+
+# ============================== END OF INFEASIBILITY CHECKS ==============================
 
 
 class _Solver:
