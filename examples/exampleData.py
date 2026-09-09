@@ -10,7 +10,7 @@ from pathlib import Path
 
 DATA_PATH = Path(__file__).parent.absolute() / "data"
 
-#: Input data of the multi-region examples (03 and 07).
+#: Input data of the multi-region examples (03, 07 and 11).
 MULTI_REGION_DATA_PATH = DATA_PATH / "multiRegion"
 
 #: Input data of the one-node examples (01, 09 and 10).

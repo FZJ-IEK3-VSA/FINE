@@ -101,6 +101,7 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
+        pooledCommodities=None,
     ):
         r"""Create an EnergySystemModel class instance.
 
@@ -297,6 +298,33 @@ class EnergySystemModel:
             |br| * the default value is False
         :type: annuityPerpetuity: bool
 
+        :param pooledCommodities: Defines commodities for which the commodity balance is enforced
+            over a group of locations, called a trading pool, instead of individually at
+            each location. This allows trade inside regions in the trading pool without adding a transmission cmponent. The expected format is
+            ``{commodity: {pool_name: [location_1, location_2, ...]}}``.
+
+            Multiple pools can be defined for the same commodity trading should happen between a set of regions inside a pool. Each pool is balanced
+            independently. For example::
+
+                pooledCommodities = {
+                    "hydrogen_trade": {
+                        "DE_hydrogen_pool_1": ["location_1", "location_2", ...]],
+                        "DE_hydrogen_pool_2": ["location_3", "location_4", ...]],
+                    }
+                }
+
+            For a pooled commodity, the sum of all commodity balance contributions across
+            all locations in the same pool must be zero at each time step. Individual
+            locations within the pool may therefore have non-zero net contributions, as
+            long as the pool as a whole is balanced.
+
+            Each location may belong to at most one pool per commodity. Transmission
+            components for pooled commodities are not allowed.
+
+            |br| * the default value is None
+        :type pooledCommodities: dict or None
+
+
         """
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(
@@ -407,6 +435,36 @@ class EnergySystemModel:
         self.commodities = commodities
         self.commodityUnitsDict = commodityUnitsDict
 
+        # pooledCommodities defines commodities whose balance is enforced over a group of locations
+        # rather than per individual location. Format: {commodity: {pool_name: [locations]}}
+        self.pooledCommodities = (
+            pooledCommodities if isinstance(pooledCommodities, dict) else {}
+        )
+        # check if pooled commodities are part of the model
+        for commod, pools in self.pooledCommodities.items():
+            if commod not in self.commodities:
+                raise ValueError(
+                    f"Pooled commodity '{commod}' is not in the commodities set."
+                )
+            # check if locations  listed in the pool are part of the model - if not list all unkown locations
+            for pool_name, locs in pools.items():
+                unknown = set(locs) - self.locations
+                if unknown:
+                    raise ValueError(
+                        f"Pool '{pool_name}' for commodity '{commod}' contains unknown"
+                        f" locations: {unknown}"
+                    )
+            # check that no region appears in more than one pool for the same commodity
+            seen_locs: dict = {}
+            for pool_name, locs in pools.items():
+                for loc in locs:
+                    if loc in seen_locs:
+                        raise ValueError(
+                            f"Location '{loc}' for commodity '{commod}' appears in both"
+                            f" pool '{seen_locs[loc]}' and pool '{pool_name}'."
+                        )
+                    seen_locs[loc] = pool_name
+
         # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
         self.balanceLimit = balanceLimit
         self.pathwayBalanceLimit = pathwayBalanceLimit
@@ -490,6 +548,16 @@ class EnergySystemModel:
         if not issubclass(component.modelingClass, ComponentModel):
             raise TypeError(
                 "The added component has to inherit from the FINE class ComponentModel."
+            )
+        # Transmission components are incompatible with pooled commodities. For each commodity only trade via transmission commponent OR pooled trade is alloud
+        if (
+            hasattr(component, "commodity")
+            and component.commodity in self.pooledCommodities
+            and component.__class__.__name__ == "Transmission"
+        ):
+            raise ValueError(
+                f"Commodity '{component.commodity}' is pooled. "
+                "Transmission components are not allowed for pooled commodities."
             )
         component.addToEnergySystemModel(self)
 
@@ -1661,14 +1729,18 @@ class EnergySystemModel:
         """
         utils.output("Declaring commodity balances...", self.verboseLogLevel, 0)
 
+        pooled_commodities = set(self.pooledCommodities.keys())
+
         # Declare and initialize a set that states for which location and commodity the commodity balance constraints
         # are non-trivial (i.e. not 0 == 0; trivial constraints raise errors in pyomo).
+        # Pooled commodities are excluded here — they get their own constraint below.
         def initLocationCommoditySet(pyM):
             return (
                 (loc, commod)
                 for loc in self.locations
                 for commod in self.commodities
-                if any(
+                if commod not in pooled_commodities
+                and any(
                     [
                         mdl.hasOpVariablesForLocationCommodity(self, loc, commod)
                         for mdl in self.componentModelingDict.values()
@@ -1694,6 +1766,39 @@ class EnergySystemModel:
 
         pyM.commodityBalanceConstraint = pyomo.Constraint(
             pyM.locationCommoditySet, pyM.timeSet, rule=commodityBalanceConstraint
+        )
+
+        # Declare pool-level balance constraints for pooled commodities.
+        # For each (pool_name, commodity) pair the sum of contributions across all pool
+        # locations must equal zero at every time step.
+        def initPoolCommoditySet(pyM):
+            return (
+                (pool_name, commod)
+                for commod, pools in self.pooledCommodities.items()
+                for pool_name, locs in pools.items()
+                # include only pools with valid operation variable
+                if any(
+                    mdl.hasOpVariablesForLocationCommodity(self, loc, commod)
+                    for loc in locs
+                    for mdl in self.componentModelingDict.values()
+                )
+            )
+
+        pyM.poolCommoditySet = pyomo.Set(dimen=2, initialize=initPoolCommoditySet)
+
+        def poolCommodityBalanceConstraint(pyM, pool_name, commod, ip, p, t):
+            pool_locs = self.pooledCommodities[commod][pool_name]
+            return (
+                sum(
+                    mdl.getCommodityBalanceContribution(pyM, commod, loc, ip, p, t)
+                    for loc in pool_locs
+                    for mdl in self.componentModelingDict.values()
+                )
+                == 0
+            )
+
+        pyM.poolCommodityBalanceConstraint = pyomo.Constraint(
+            pyM.poolCommoditySet, pyM.timeSet, rule=poolCommodityBalanceConstraint
         )
 
     def declareObjective(self, pyM):
