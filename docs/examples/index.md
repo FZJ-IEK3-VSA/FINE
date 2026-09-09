@@ -20,3 +20,4 @@ The examples are sorted by their complexity and should provide a good overview o
 | [08 Stochastic Optimization](08_Stochastic_Optimization/08_Stochastic Optimization.ipynb) | A stochastic optimization is performed with different input parameter sets for a more robust solution. |
 | [09 Perfect Foresight](09_PerfectForesight/09_perfectForesight_example.ipynb) | A transformation pathway is modeled and optimized with several investment periods. |
 | [10 Partload](10_Partload/10_Partload_Example.ipynb) | A hydrogen system is modeled and optimized considering partload behavior of an electrolyzer. |
+| [11 Scheduled Maintenance](11_Scheduled_Maintenance/11_Scheduled_Maintenance.ipynb) | Shows how to schedule and visualize multiple independent maintenance windows for a dynamic conversion component. |

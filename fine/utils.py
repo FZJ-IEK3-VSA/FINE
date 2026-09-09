@@ -931,7 +931,7 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
                 + " needs to be an integer in the intervall ]0,numberOfTimeSteps]."
             )
 
-    if any(x is not None for x in [downTimeMin, upTimeMin]):
+    if any(x is not None for x in [downTimeMin, upTimeMin, compFancy.maintenanceTime]):
         if bigM is None:
             raise ValueError(
                 "bigM for "
@@ -942,6 +942,96 @@ def checkConversionDynamicSpecficDesignInputParams(compFancy, esM):
     # check cyclic constraints
     if not isinstance(useTemporalCyclicConstraints, bool):
         raise ValueError("useTemporalCyclicConstraints must be a boolean.")
+
+
+def checkAndSetMaintenanceParameters(comp, esM):
+    """Validate maintenance inputs and process them by IP and location."""
+    maintenanceTime = comp.maintenanceTime
+    maintenanceOccurrences = comp.maintenanceOccurrences
+
+    if (maintenanceTime is None) != (maintenanceOccurrences is None):
+        raise ValueError(
+            "maintenanceTime and maintenanceOccurrences must be specified together."
+        )
+    if maintenanceTime is None:
+        return None, None
+
+    supportedTypes = (int, float, np.integer, np.floating, pd.Series, dict)
+    if isinstance(maintenanceTime, bool) or not isinstance(
+        maintenanceTime, supportedTypes
+    ):
+        raise TypeError(
+            "maintenanceTime must be a number, Pandas Series, or dictionary."
+        )
+    if isinstance(maintenanceOccurrences, bool) or not isinstance(
+        maintenanceOccurrences, supportedTypes
+    ):
+        raise TypeError(
+            "maintenanceOccurrences must be an integer, Pandas Series, or dictionary."
+        )
+
+    checkInvestmentPeriodParameters(
+        comp.name, maintenanceTime, esM.investmentPeriodNames
+    )
+    checkInvestmentPeriodParameters(
+        comp.name, maintenanceOccurrences, esM.investmentPeriodNames
+    )
+    processedTime = processBoundParams(esM, maintenanceTime)
+    processedOccurrences = processBoundParams(esM, maintenanceOccurrences)
+    eligibleLocations = comp.processedLocationalEligibility[
+        comp.processedLocationalEligibility == 1
+    ].index
+
+    for ip in esM.investmentPeriods:
+        if processedTime[ip] is None or processedOccurrences[ip] is None:
+            raise ValueError(
+                "maintenanceTime and maintenanceOccurrences must contain values "
+                "for every investment period."
+            )
+        missingTime = set(eligibleLocations) - set(processedTime[ip].index)
+        missingOccurrences = set(eligibleLocations) - set(
+            processedOccurrences[ip].index
+        )
+        if missingTime or missingOccurrences:
+            raise ValueError(
+                "maintenanceTime and maintenanceOccurrences must be specified "
+                "for every eligible location."
+            )
+
+        for loc in eligibleLocations:
+            duration = processedTime[ip][loc]
+            occurrences = processedOccurrences[ip][loc]
+            if isinstance(duration, bool) or not isinstance(
+                duration, (int, float, np.integer, np.floating)
+            ):
+                raise TypeError("maintenanceTime values must be numbers.")
+            if duration <= 0:
+                raise ValueError("maintenanceTime values must be positive.")
+            durationInTimeSteps = duration / esM.hoursPerTimeStep
+            if not math.isclose(durationInTimeSteps, round(durationInTimeSteps)):
+                raise ValueError(
+                    "maintenanceTime values must be multiples of hoursPerTimeStep."
+                )
+            if isinstance(occurrences, bool) or not isinstance(
+                occurrences, (int, np.integer)
+            ):
+                raise TypeError(
+                    "maintenanceOccurrences values must be non-negative integers."
+                )
+            if occurrences < 0:
+                raise ValueError(
+                    "maintenanceOccurrences values must be non-negative integers."
+                )
+
+            durationSteps = round(durationInTimeSteps)
+            maximumOccurrences = (esM.numberOfTimeSteps + 1) // (durationSteps + 1)
+            if occurrences > maximumOccurrences:
+                raise ValueError(
+                    "maintenanceOccurrences cannot fit into the time horizon with "
+                    "the requested maintenanceTime and a separating time step."
+                )
+
+    return processedTime, processedOccurrences
 
 
 def setLocationalEligibility(
