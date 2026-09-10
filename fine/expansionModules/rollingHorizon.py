@@ -601,11 +601,19 @@ def _filterComponentParametersForReoptimization(
     """Filter component parameters to the tail years.
 
     Operational parameters are only kept for active reoptimization years.
-    materialIntensity also keeps stock years because old stock may decommission
-    in the tail and material recovery/demand logic can still need its intensity.
+    materialIntensity and stock-related cost parameters also keep stock years
+    because old stock may decommission or still require cost data in the tail.
     """
     reoptimizationYears = set(reoptimizationYears)
     stockYears = set(stockYears)
+    
+    stockCostParameters = {
+        "investPerCapacity",
+        "investIfBuilt",
+        "opexPerCapacity",
+        "opexIfBuilt",
+        "QPcostScale",
+    }
 
     for parameterName, parameterValue in compEntry.items():
         if parameterName == "stockCommissioning":
@@ -642,6 +650,9 @@ def _filterComponentParametersForReoptimization(
             continue
 
         if parameterName == "materialIntensity":
+            relevantYears = reoptimizationYears | stockYears
+
+        elif parameterName in stockCostParameters:
             relevantYears = reoptimizationYears | stockYears
 
         elif parameterName == "materialCollection":
