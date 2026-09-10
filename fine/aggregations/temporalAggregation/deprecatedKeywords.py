@@ -15,10 +15,9 @@ old keywords keep working for a deprecation period:
   incompatible terms, so combining them is refused; using the deprecated one
   warns.
 * :func:`translateDeprecatedClusterMethod` does the same for the ``clusterMethod``
-  argument of :func:`~fine.expansionModules.optimizeTSAmultiStage.optimizeTSAmultiStage`
-  and :func:`~fine.expansionModules.transformationPath.optimizeSimpleMyopic`. Those
-  keep their FINE parameter names, but the values they accept were renamed along
-  with the rest of the ETHOS.TSAM interface.
+  argument of :func:`~fine.expansionModules.optimizeTSAmultiStage.optimizeTSAmultiStage`.
+  That function keeps its FINE parameter names, but the values they accept were
+  renamed along with the rest of the ETHOS.TSAM interface.
 
 .. note::
     This module exists only for the deprecation period. To end it, delete
@@ -27,16 +26,15 @@ old keywords keep working for a deprecation period:
        test_deprecatedKeywords.py``,
     2. the ``@translateDeprecatedKeywords`` decorator on
        :meth:`~fine.energySystemModel.EnergySystemModel.aggregateTemporally` and
-       the ``@translateDeprecatedClusterMethod`` decorators on
-       :func:`~fine.expansionModules.optimizeTSAmultiStage.optimizeTSAmultiStage`
-       and :func:`~fine.expansionModules.transformationPath.optimizeSimpleMyopic`,
+       the ``@translateDeprecatedClusterMethod`` decorator on
+       :func:`~fine.expansionModules.optimizeTSAmultiStage.optimizeTSAmultiStage`,
        together with the two imports marked as a deprecation shim,
-    3. the ``.. deprecated:: 2.8.0`` note in the docstring of each of those three
+    3. the ``.. deprecated:: 2.8.0`` note in the docstring of each of those two
        functions,
     4. the 'Deprecated ETHOS.TSAM 3.x keywords' section of
        ``docs/user_guide/python_package/aggregations.md``.
 
-    Nothing else refers to it: the three functions are written against the
+    Nothing else refers to it: the two functions are written against the
     ETHOS.TSAM 4.x interface only.
 """
 
@@ -573,10 +571,10 @@ RENAMED_CLUSTER_METHODS = {
 def translateDeprecatedClusterMethod(function):
     """Let a ``clusterMethod`` argument accept the deprecated ETHOS.TSAM 3.x values.
 
-    ``optimizeTSAmultiStage`` and ``optimizeSimpleMyopic`` pass their
-    ``clusterMethod`` on to :class:`tsam.ClusterConfig`, which knows the 4.x
-    names only. This converts a renamed value before the wrapped function is
-    entered, so that models calling them with the old value keep running. Values
+    ``optimizeTSAmultiStage`` passes its ``clusterMethod`` on to
+    :class:`tsam.ClusterConfig`, which knows the 4.x names only. This converts a
+    renamed value before the wrapped function is entered, so that models calling
+    it with the old value keep running. Values
     that were not renamed, and unknown ones, are passed through untouched and
     left for ETHOS.TSAM to reject.
 
