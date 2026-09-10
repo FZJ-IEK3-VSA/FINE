@@ -362,15 +362,17 @@ def test_variable_conversion_export_to_xarray():
     # Normalize index/column names
     number_of_index_level_expected = expected_df.index.nlevels
     number_of_index_level_actual = actual_df.index.nlevels
-    expected_df.index.set_names(
-        names=[None] * number_of_index_level_expected, inplace=True
+    expected_df.index = expected_df.index.set_names(
+        names=[None] * number_of_index_level_expected
     )
-    actual_df.index.set_names(names=[None] * number_of_index_level_actual, inplace=True)
-    expected_df.columns.set_names(
-        names=[None] * number_of_index_level_expected, inplace=True
+    actual_df.index = actual_df.index.set_names(
+        names=[None] * number_of_index_level_actual
     )
-    actual_df.columns.set_names(
-        names=[None] * number_of_index_level_actual, inplace=True
+    expected_df.columns = expected_df.columns.set_names(
+        names=[None] * number_of_index_level_expected
+    )
+    actual_df.columns = actual_df.columns.set_names(
+        names=[None] * number_of_index_level_actual
     )
 
     assert_frame_equal(
