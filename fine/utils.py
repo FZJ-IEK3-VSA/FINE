@@ -84,6 +84,7 @@ def checkEnergySystemModelInput(
     stochasticModel,
     costUnit,
     lengthUnit,
+    rollingHorizonStartYear=None,
 ):
     """Check input arguments of an EnergySystemModel instance for value/type correctness."""
 
@@ -122,6 +123,11 @@ def checkEnergySystemModelInput(
 
     # The costUnit and lengthUnit input parameter have to be strings
     isString(costUnit), isString(lengthUnit)
+    if rollingHorizonStartYear is not None:
+        if not isinstance(rollingHorizonStartYear, int):
+            raise TypeError("rollingHorizonStartYear must be an integer")
+        if rollingHorizonStartYear > startyear:
+            raise ValueError("rollingHorizonStartYear cannot exceed startYear")
 
 
 def checkTimeUnit(timeUnit):

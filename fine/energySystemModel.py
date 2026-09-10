@@ -89,6 +89,8 @@ class EnergySystemModel:
         materials=None,
         materialUnitsDict=None,
         initialMaterialCost=None,
+        rollingHorizonStartYear=None,
+        materialDemandSameInvestmentPeriod=False,
     ):
         r"""Create an EnergySystemModel class instance.
 
@@ -264,6 +266,7 @@ class EnergySystemModel:
             stochasticModel,
             costUnit,
             lengthUnit,
+            rollingHorizonStartYear,
         )
 
         ################################################################################################################
@@ -337,6 +340,8 @@ class EnergySystemModel:
         self.annuityPerpetuity = utils.checkAndSetAnnuityPerpetuity(
             annuityPerpetuity, numberOfInvestmentPeriods
         )
+        self.rollingHorizonStartYear = rollingHorizonStartYear
+        self.materialDemandSameInvestmentPeriod = materialDemandSameInvestmentPeriod
         # set up the modelling years by the start year, interval and number of investment periods
         finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval
         # clear names, e.g.  [2020, 2025,...]
@@ -1803,6 +1808,19 @@ class EnergySystemModel:
                 if hasattr(mdl, "getMaterialDemandContribution")
             )
             print("RHS_demand", rhs)
+            
+            if getattr(self, "materialDemandSameInvestmentPeriod", False):
+                lhs = sum(
+                    opVar[loc, sinkName, ip, p, t]
+                    * self.periodOccurrences[ip][p]
+                    * self.investmentPeriodInterval
+                    for p, t in m.intraYearTimeSet
+                    if (loc, sinkName, ip, p, t) in opVar
+                )
+
+                print("LHS_demand", lhs)
+
+                return lhs == rhs
 
             if ip == 0:
                 if (loc, mat) in m.initialMaterialSet:
