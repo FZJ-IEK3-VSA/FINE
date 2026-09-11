@@ -534,6 +534,44 @@ def _getCommissioningFromSolvedEsm(solvedEsm, comp, year):
 
     return commissioningByLocation
 
+def _getExpectedStockIndex(classname, esM):
+    """Return the complete stockCommissioning index expected by FINE."""
+
+    if classname in {"Transmission", "LinearOptimalPowerFlow"}:
+        return [
+            f"{loc1}_{loc2}"
+            for loc1 in esM.locations
+            for loc2 in esM.locations
+            if loc1 != loc2
+        ]
+
+    return list(esM.locations)
+
+def _completeStockCommissioningIndex(commissioning, classname, esM):
+    """Add explicit zero stock entries for all missing locations or edges."""
+
+    expectedIndex = _getExpectedStockIndex(classname, esM)
+
+    if isinstance(commissioning, pd.DataFrame):
+        commissioning = commissioning.squeeze()
+
+    commissioning = commissioning.copy()
+
+    if isinstance(commissioning.index, pd.MultiIndex):
+        commissioning.index = [
+            f"{idx[0]}_{idx[1]}" if len(idx) >= 2 else idx[0]
+            for idx in commissioning.index
+        ]
+    else:
+        commissioning.index = [
+            f"{idx[0]}_{idx[1]}"
+            if isinstance(idx, tuple) and len(idx) >= 2
+            else idx
+            for idx in commissioning.index
+        ]
+
+    return commissioning.reindex(expectedIndex, fill_value=0.0).astype(float)
+
 def _getMaxLifetime(technicalLifetime):
     """Return the maximum technical lifetime from scalar, Series or dict input."""
     if isinstance(technicalLifetime, dict):
@@ -566,6 +604,7 @@ def _pruneStockToLifetime(compEntry, firstYear):
 def _addCommittedCommissioningToStock(
     compEntry,
     comp,
+    classname,
     solvedEsm,
     committedYears,
     firstReoptimizationYear,
@@ -584,6 +623,12 @@ def _addCommittedCommissioningToStock(
 
         if commissioning is None:
             continue
+
+        commissioning = _completeStockCommissioningIndex(
+            commissioning,
+            classname,
+            solvedEsm,
+        )
 
         if compEntry["stockCommissioning"] is None:
             compEntry["stockCommissioning"] = {}
@@ -684,6 +729,7 @@ def _buildReoptimizationComponentDict(
             _addCommittedCommissioningToStock(
                 compEntry,
                 comp,
+                classname,
                 solvedEsm,
                 committedYears,
                 reoptimizationYears[0],
