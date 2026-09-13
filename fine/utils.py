@@ -2348,6 +2348,27 @@ def checkStockYears(
 
     return stockYears, processedStockYears
 
+def getStockRegions(component, esM, dimension):
+    """Return the locations or modeled connections expected for stock data."""
+
+    if dimension == "1dim":
+        return esM.locations
+
+    if dimension == "2dim":
+        if hasattr(component.ipTechnicalLifetime, "index"):
+            return list(component.ipTechnicalLifetime.index)
+
+        if hasattr(component.technicalLifetime, "index"):
+            return list(component.technicalLifetime.index)
+
+        return [
+            loc1 + "_" + loc2
+            for loc1 in esM.locations
+            for loc2 in esM.locations
+            if loc1 != loc2
+        ]
+
+    raise ValueError("The dimension parameter has to be either '1dim' or '2dim'")
 
 def checkAndSetStock(component, esM, stockCommissioning):
     if stockCommissioning is None:
@@ -2358,19 +2379,8 @@ def checkAndSetStock(component, esM, stockCommissioning):
         raise TypeError("stockCommissioning must be None or a dict")
 
     # get regions
-    if component.dimension == "1dim":
-        regions = esM.locations
-
-    elif component.dimension == "2dim":
-        if hasattr(component.technicalLifetime, "index"):
-            regions = list(component.technicalLifetime.index)
-        else:
-            regions = [
-                loc1 + "_" + loc2
-                for loc1 in esM.locations
-                for loc2 in esM.locations
-                if loc1 != loc2
-            ]
+    regions = getStockRegions(component, esM, component.dimension)
+    
     # check data for stockCommissioning
     for year, yearly_stock in stockCommissioning.items():
         if not isinstance(year, int):
@@ -2499,15 +2509,7 @@ def checkAndSetStock(component, esM, stockCommissioning):
 
 
 def setStockCapacityStartYear(component, esM, dimension):
-    if dimension == "1dim":
-        regions = esM.locations
-    elif dimension == "2dim":
-        regions = [
-            loc1 + "_" + loc2
-            for loc1 in esM.locations
-            for loc2 in esM.locations
-            if loc1 != loc2
-        ]
+    regions = getStockRegions(component, esM, dimension)    
     if component.processedStockCommissioning is None:
         return pd.Series(index=regions, data=0)
     else:
