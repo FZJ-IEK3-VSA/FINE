@@ -2360,13 +2360,17 @@ def checkAndSetStock(component, esM, stockCommissioning):
     # get regions
     if component.dimension == "1dim":
         regions = esM.locations
-    if component.dimension == "2dim":
-        regions = [
-            loc1 + "_" + loc2
-            for loc1 in esM.locations
-            for loc2 in esM.locations
-            if loc1 != loc2
-        ]
+
+    elif component.dimension == "2dim":
+        if hasattr(component.technicalLifetime, "index"):
+            regions = list(component.technicalLifetime.index)
+        else:
+            regions = [
+                loc1 + "_" + loc2
+                for loc1 in esM.locations
+                for loc2 in esM.locations
+                if loc1 != loc2
+            ]
     # check data for stockCommissioning
     for year, yearly_stock in stockCommissioning.items():
         if not isinstance(year, int):

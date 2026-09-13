@@ -534,23 +534,21 @@ def _getCommissioningFromSolvedEsm(solvedEsm, comp, year):
 
     return commissioningByLocation
 
-def _getExpectedStockIndex(classname, esM):
+def _getExpectedStockIndex(classname, compEntry, esM):
     """Return the complete stockCommissioning index expected by FINE."""
 
     if classname in {"Transmission", "LinearOptimalPowerFlow"}:
-        return [
-            f"{loc1}_{loc2}"
-            for loc1 in esM.locations
-            for loc2 in esM.locations
-            if loc1 != loc2
-        ]
+        technicalLifetime = compEntry.get("technicalLifetime")
+
+        if hasattr(technicalLifetime, "index"):
+            return list(technicalLifetime.index)
 
     return list(esM.locations)
 
-def _completeStockCommissioningIndex(commissioning, classname, esM):
+def _completeStockCommissioningIndex(commissioning, classname, compEntry, esM):
     """Add explicit zero stock entries for all missing locations or edges."""
 
-    expectedIndex = _getExpectedStockIndex(classname, esM)
+    expectedIndex = _getExpectedStockIndex(classname, compEntry, esM)
 
     if isinstance(commissioning, pd.DataFrame):
         commissioning = commissioning.squeeze()
@@ -627,6 +625,7 @@ def _addCommittedCommissioningToStock(
         commissioning = _completeStockCommissioningIndex(
             commissioning,
             classname,
+            compEntry,
             solvedEsm,
         )
 
