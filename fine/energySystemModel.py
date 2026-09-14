@@ -89,6 +89,7 @@ class EnergySystemModel:
         materials=None,
         materialUnitsDict=None,
         initialMaterialCost=None,
+        initialMaterialLimit=None,
     ):
         r"""Create an EnergySystemModel class instance.
 
@@ -392,6 +393,7 @@ class EnergySystemModel:
         )
 
         self.initialMaterialCost = initialMaterialCost or {}
+        self.initialMaterialLimit = initialMaterialLimit or {}
 
         ################################################################################################################
         #                                        Component specific parameters                                         #
@@ -1747,6 +1749,27 @@ class EnergySystemModel:
         pyM.initialMaterialSupply = pyomo.Var(
             pyM.initialMaterialSet,
             domain=pyomo.NonNegativeReals,
+        )
+
+        def initialMaterialSupplyLimitConstraint(m, mat):
+
+            relevant_locations = [
+                loc
+                for loc, material in m.initialMaterialSet
+                if material == mat
+            ]
+
+            return (
+                sum(
+                    m.initialMaterialSupply[loc, mat]
+                    for loc in relevant_locations
+                )
+                <= self.initialMaterialLimit[mat]
+            )
+
+        pyM.initialMaterialSupplyLimitConstraint = pyomo.Constraint(
+            self.initialMaterialLimit.keys(),
+            rule=initialMaterialSupplyLimitConstraint,
         )
 
     def declareMaterialDemandConstraints(self, pyM):
