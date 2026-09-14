@@ -6,7 +6,8 @@ import pytest
 # covers the same myopic foresight use case (see issue #640) and is the
 # recommended replacement. It also supports CO2 reduction pathways (via a
 # per-investment-period balanceLimit) and technical-lifetime expiry, which are
-# covered by test_co2_target_* and test_exceeded_lifetime_* in
+# covered by test_a_myopic_co2_reduction_pathway_tightens_as_its_balance_limit_does
+# and test_stock_accumulates_and_outdated_entries_are_dropped in
 # test/test_rolling_horizon.py.
 
 
