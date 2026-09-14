@@ -10,7 +10,20 @@ system models multiple times or can be applied in the pre- and post-processing o
         show_root_heading: true
         show_source: false
 
+## Rolling Horizon
+
+::: fine.expansionModules.rollingHorizon
+    options:
+        show_root_heading: true
+        show_source: false
+
 ## Transformation Path
+
+!!! warning "Removed"
+    `optimizeSimpleMyopic` has been removed and now raises a
+    `NotImplementedError`. Use [Rolling Horizon](#rolling-horizon) with
+    `numberOfInvestmentPeriodsForRollingHorizon=1` instead, which covers the
+    same myopic foresight use case.
 
 ::: fine.expansionModules.transformationPath
     options:

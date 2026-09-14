@@ -1342,8 +1342,13 @@ def balanceLimitConstraint_test_esM():
     return esM, losses, distances, balanceLimit
 
 
-@pytest.fixture(scope="function")
-def perfectForesight_test_esM():
+def build_perfectForesight_test_esM():
+    """Build the transformation pathway test model.
+
+    Exposed next to the fixture so that tests which need it in a broader fixture scope
+    (e.g. test_rolling_horizon.py, which solves it once per module) can build it without
+    going through the function-scoped fixture.
+    """
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},
@@ -1446,3 +1451,8 @@ def perfectForesight_test_esM():
     )
 
     return esM
+
+
+@pytest.fixture(scope="function")
+def perfectForesight_test_esM():
+    return build_perfectForesight_test_esM()
