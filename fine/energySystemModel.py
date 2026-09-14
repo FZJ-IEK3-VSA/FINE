@@ -1752,18 +1752,12 @@ class EnergySystemModel:
         )
 
         def initialMaterialSupplyLimitConstraint(m, mat):
-
             relevant_locations = [
-                loc
-                for loc, material in m.initialMaterialSet
-                if material == mat
+                loc for loc, material in m.initialMaterialSet if material == mat
             ]
 
             return (
-                sum(
-                    m.initialMaterialSupply[loc, mat]
-                    for loc in relevant_locations
-                )
+                sum(m.initialMaterialSupply[loc, mat] for loc in relevant_locations)
                 <= self.initialMaterialLimit[mat]
             )
 
@@ -1771,7 +1765,6 @@ class EnergySystemModel:
             self.initialMaterialLimit.keys(),
             rule=initialMaterialSupplyLimitConstraint,
         )
-
 
     def declareMaterialDemandConstraints(self, pyM):
         r"""Declare material balance constraints (one constraint for each location, material, and investment period) summed over all components.
