@@ -552,6 +552,26 @@ def processXarrayAttributes(xarray_dataset):
 
     dot_attrs_dict = PowerDict()
     keys_to_delete = []
+    
+    def _restore_serialized_attr_value(value):
+        if isinstance(value, bytes):
+            value = value.decode()
+        if isinstance(value, np.bytes_):
+            value = value.decode()
+
+        if isinstance(value, str):
+            if value == "None":
+                return None
+            if value == "True":
+                return True
+            if value == "False":
+                return False
+            try:
+                return float(value)
+            except ValueError:
+                return value
+
+        return value
 
     # STEP 1. Loop through each attribute, convert datatypes
     # or append to dot_attrs_dict for conversion in a later step
@@ -559,8 +579,22 @@ def processXarrayAttributes(xarray_dataset):
     balanceLimit_columns = None
     balanceLimit_dtypes = {}
     hasBalanceLimit = False
+    
+    pathwayBalanceLimit_dict = {}
+    hasPathwayBalanceLimit = False
+    
     for attr_name, attr_value in _xarray_dataset.attrs.items():
-        if "balanceLimit" in attr_name:
+        if attr_name.startswith("pathwayBalanceLimit."):
+            pathway_id = attr_name.replace("pathwayBalanceLimit.", "")
+            pathwayBalanceLimit_dict[pathway_id] = [
+                _restore_serialized_attr_value(value)
+                for value in attr_value
+            ]
+            keys_to_delete.append(attr_name)
+            hasPathwayBalanceLimit = True
+            continue
+
+        if attr_name.startswith("balanceLimit"):
             if attr_name == "balanceLimit_index":
                 keys_to_delete.append("balanceLimit_index")
                 continue
@@ -583,9 +617,23 @@ def processXarrayAttributes(xarray_dataset):
         ).T
         for column, dtype in zip(balanceLimit_df.columns, balanceLimit_dtypes):
             balanceLimit_df[column] = balanceLimit_df[column].astype(dtype)
+            
+    if hasPathwayBalanceLimit:
+        locations = sorted(xarray_dataset.attrs["locations"])
+        pathway_columns = locations + ["Total", "lowerBound"]
+
+        pathwayBalanceLimit_df = pd.DataFrame.from_dict(
+            pathwayBalanceLimit_dict,
+            orient="index",
+            columns=pathway_columns,
+        )
+    else:
+        pathwayBalanceLimit_df = None
 
     for attr_name, attr_value in _xarray_dataset.attrs.items():
-        if "balanceLimit" in attr_name:
+        if attr_name.startswith("pathwayBalanceLimit."):
+            continue
+        if attr_name.startswith("balanceLimit"):
             continue
         if attr_name in ["locations", "commodities"] and isinstance(attr_value, str):
             xarray_dataset.attrs[attr_name] = set([attr_value])
@@ -657,6 +705,7 @@ def processXarrayAttributes(xarray_dataset):
         xarray_dataset.attrs.pop(key)
 
     xarray_dataset.attrs["balanceLimit"] = balanceLimit_df
+    xarray_dataset.attrs["pathwayBalanceLimit"] = pathwayBalanceLimit_df
 
     return xarray_dataset
 
