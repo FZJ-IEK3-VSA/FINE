@@ -3,8 +3,8 @@
 <!-- logo:header:start -->
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/fine_logo_v19_dark.svg">
-    <img src="./docs/fine_logo_v19_no_overlap.svg" alt="ETHOS.FINE logo" height="80">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/FZJ-IEK3-VSA/README_assets/blob/v.1.0.0/software_logos/fine/fine_logo_v19_dark.svg">
+    <img src="https://github.com/FZJ-IEK3-VSA/README_assets/blob/v.1.0.0/software_logos/fine/fine_logo_v19_no_overlap.svg" alt="ETHOS.FINE logo" height="80">
   </picture>
   &nbsp;&nbsp;
   <a href="https://www.fz-juelich.de/en/ice/ice-2">
@@ -61,7 +61,7 @@ You need conda or mamba installer on your machine, which are mostly interchangea
 ### Installation from conda-forge (Recommended)
 
 ```bash
-mamba create --name fine_env --channel conda-forge fine
+mamba create --name fine_env --channel conda-forge --channel gurobi --strict-channel-priority fine gurobi
 ```
 
 ### Installation from PyPI

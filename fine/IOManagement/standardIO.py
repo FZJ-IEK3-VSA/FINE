@@ -179,7 +179,9 @@ def writeOptimizationOutputToExcel(
                 columns={"Segment Duration": "timeStepsPerSegment"}
             )
 
-            segmentDuration.index.set_names(names="segmentNumber", inplace=True)
+            segmentDuration.index = segmentDuration.index.set_names(
+                names="segmentNumber"
+            )
             segmentDuration.to_excel(writer, sheet_name="Misc", startrow=3)
         utils.output("\tSaving file...", esM.verboseLogLevel, 0)
         writer.close()
@@ -271,7 +273,7 @@ def getShadowPrices(
         SP = fn.utils.buildFullTimeSeries(
             SP, periodsOrder[ip], ip, esM=esM, divide=False
         )
-        SP = SP.stack()
+        SP = SP.stack(future_stack=True).dropna()
 
     return SP
 
@@ -1003,8 +1005,8 @@ def plotLocationalColorMap(
 
     # Make sure the data and gdf indices match
     ## 1. Sort the indices to obtain same order
-    data.sort_index(inplace=True)
-    gdf.sort_values(indexColumn, inplace=True)
+    data = data.sort_index()
+    gdf = gdf.sort_values(indexColumn)
 
     ## 2. Take first 20 characters of the string for matching. (In gdfs usually long strings are cut in the end)
     gdf[indexColumn] = gdf[indexColumn].apply(lambda x: x[:20])
@@ -1094,21 +1096,24 @@ def plotPieChart(
     results_df,
     Property_to_plot="capacity",
     indexColumn_in_shp="index",
-    color_list=[
-        "skyBlue",
-        "green",
-        "yellowGreen",
-        "#FFB732",
-        "yellow",
-        "darkOrange",
-        "#996300",
-        "steelBlue",
-        "darkBlue",
-    ],
+    color_list=None,
     scaling_factor=500,
     legend_fontsize=14,
 ):
     """Plot pie charts on a map."""
+    if color_list is None:
+        color_list = [
+            "skyBlue",
+            "green",
+            "yellowGreen",
+            "#FFB732",
+            "yellow",
+            "darkOrange",
+            "#996300",
+            "steelBlue",
+            "darkBlue",
+        ]
+
     # Import shapefile, add centroid information
     shapefile = gpd.read_file(locFilePath)
     shapefile["centroid"] = shapefile.geometry.centroid
@@ -1120,7 +1125,7 @@ def plotPieChart(
 
     property_subset = property_subset.droplevel(["Property", "Unit"]).fillna(0)
     property_subset = property_subset.transpose()
-    property_subset.index.set_names(names=indexColumn_in_shp, inplace=True)
+    property_subset.index = property_subset.index.set_names(names=indexColumn_in_shp)
 
     # Total property values in each region
     regional_property_sum = property_subset.sum(axis=1)

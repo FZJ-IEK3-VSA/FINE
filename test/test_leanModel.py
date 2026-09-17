@@ -55,8 +55,12 @@ def test_leanModel_with_wrong_locationalEligibility(esM_init, locationalEligibil
 
     esM = esM_init
     # Wind (onshore): Delete operationRateMax and capacityMax data corresponding to cluster_0
-    data["Wind (onshore), operationRateMax"].drop("cluster_0", axis=1, inplace=True)
-    data["Wind (onshore), capacityMax"].drop("cluster_0", inplace=True)
+    data["Wind (onshore), operationRateMax"] = data[
+        "Wind (onshore), operationRateMax"
+    ].drop("cluster_0", axis=1)
+    data["Wind (onshore), capacityMax"] = data["Wind (onshore), capacityMax"].drop(
+        "cluster_0"
+    )
 
     with pytest.raises(ValueError):
         esM.add(
@@ -97,8 +101,12 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
 
     # 1. Wind (onshore)
     # Delete operationRateMax and capacityMax data corresponding to cluster_0
-    data["Wind (onshore), operationRateMax"].drop("cluster_0", axis=1, inplace=True)
-    data["Wind (onshore), capacityMax"].drop("cluster_0", inplace=True)
+    data["Wind (onshore), operationRateMax"] = data[
+        "Wind (onshore), operationRateMax"
+    ].drop("cluster_0", axis=1)
+    data["Wind (onshore), capacityMax"] = data["Wind (onshore), capacityMax"].drop(
+        "cluster_0"
+    )
 
     _locationalEligibility = locationalEligibility.copy()
     _locationalEligibility.update({"cluster_0": 0})
@@ -150,7 +158,9 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
 
     # 3. Pumped hydro storage
     # Delete capacityFix data corresponding to cluster_7
-    data["Pumped hydro storage, capacityFix"].drop("cluster_7", inplace=True)
+    data["Pumped hydro storage, capacityFix"] = data[
+        "Pumped hydro storage, capacityFix"
+    ].drop("cluster_7")
 
     _locationalEligibility = locationalEligibility.copy()
     _locationalEligibility.update({"cluster_7": 0})
@@ -247,7 +257,9 @@ def test_leanModel_with_matching_locationalEligibility(esM_init):
 
     # 6. Hydrogen sinks
     # Delete operationRateFix data corresponding to cluster_3
-    data["Hydrogen demand, operationRateFix"].drop("cluster_3", axis=1, inplace=True)
+    data["Hydrogen demand, operationRateFix"] = data[
+        "Hydrogen demand, operationRateFix"
+    ].drop("cluster_3", axis=1)
 
     _locationalEligibility = locationalEligibility.copy()
     _locationalEligibility.update({"cluster_3": 0})
