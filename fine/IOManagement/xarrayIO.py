@@ -481,8 +481,13 @@ def convertDatasetsToEnergySystemModel(datasets):
     for model, comps in datasets["Input"].items():
         for component_name, comp_xr in comps.items():
             for variable, comp_var_xr in comp_xr.data_vars.items():
-                if not pd.isnull(comp_var_xr.values).all():  # Skip if all are NAs
+                if (
+                    not pd.isnull(comp_var_xr.values).all()
+                    or "." in variable # empty entries of nested parameters are retained
+                ):
+
                     component = f"{model}; {component_name}"
+
 
                     # STEP 4 (i). Set regional time series (region, time)
                     if variable[:3] == "ts_":
@@ -519,7 +524,6 @@ def convertDatasetsToEnergySystemModel(datasets):
                         component_dict = utilsIO.add0dVariableToDict(
                             component_dict, comp_var_xr, component, variable
                         )
-
     # Create esm from esm_dict and component_dict
     esM = dictIO.importFromDict(esm_dict, component_dict)
 
