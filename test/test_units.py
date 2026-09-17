@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+import pint
 
 import fine as fn
 
@@ -9,8 +10,6 @@ pytest.importorskip("pint")
 
 @pytest.fixture
 def ureg():
-    import pint
-
     r = pint.UnitRegistry()
     # Define a simple currency dimension for tests
     try:
@@ -96,7 +95,7 @@ def test_incompatible_unit_raises(esm, ureg):
 
 
 def test_no_pint_quantity_leakage(esm, ureg):
-    import pint
+    # pint imported at module level for linting
 
     comp = fn.Source(
         esM=esm,

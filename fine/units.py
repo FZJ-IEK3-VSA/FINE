@@ -35,7 +35,7 @@ class FineUnitRegistry:
             return self._ureg
 
         try:
-            import pint
+            import pint  # noqa: PLC0415
         except ImportError as exc:
             raise ImportError(
                 "Unit-aware inputs require the optional 'pint' dependency. "
@@ -52,7 +52,6 @@ class FineUnitRegistry:
 
     def _define_fine_units(self):
         """Register FINE-specific aliases without introducing FX conversion."""
-
         definitions = (
             "EUR = [currency_EUR]",
             "euro = EUR",
@@ -84,8 +83,8 @@ class FineUnitRegistry:
         kg_H2/h        -> kg/h
         Mio.t_CO2/h    -> 1e6 * t/h
         1e9 Euro       -> 1e9 * EUR
-        """
 
+        """
         if not isinstance(unit, str):
             raise TypeError("FINE base units must be strings.")
 
@@ -121,13 +120,10 @@ class FineUnitRegistry:
 
         value = re.sub(pattern, r"\1", value)
 
-        value = value.replace("^", "**")
-
-        return value
+        return value.replace("^", "**")
 
     def parse_fine_unit(self, unit: str):
         """Return a Pint Unit/Quantity expression for a FINE unit string."""
-
         ureg = self._require_pint()
         normalized = self._normalize_fine_unit_string(unit)
 
@@ -145,20 +141,10 @@ class FineUnitRegistry:
     @staticmethod
     def _scale_value(value: Any, factor: float):
         """Scale supported FINE numeric input containers."""
-
-        if value is None:
-            return None
-
-        if isinstance(value, bool):
+        if value is None or isinstance(value, bool):
             return value
 
-        if isinstance(value, (int, float)):
-            return value * factor
-
-        if isinstance(value, pd.Series):
-            return value * factor
-
-        if isinstance(value, pd.DataFrame):
+        if isinstance(value, (int, float, pd.Series, pd.DataFrame)):
             return value * factor
 
         if isinstance(value, dict):
@@ -171,7 +157,6 @@ class FineUnitRegistry:
 
     def convert(self, value, source_unit, target_unit, parameter_name=None):
         """Convert a FINE parameter while preserving its container type."""
-
         if value is None:
             return None
 
@@ -209,29 +194,44 @@ class FineUnitRegistry:
     # ------------------------------------------------------------------
 
     def commodity_unit(self, commodity: str) -> str:
+        """Return the commodity's canonical unit string stored in the ESM."""
         try:
             return self.commodityUnitsDict[commodity]
         except KeyError as exc:
             raise FineUnitError(f"Unknown commodity '{commodity}'.") from exc
 
     def storage_capacity_unit(self, commodity: str) -> str:
+        """Return the canonical storage capacity unit for a commodity.
+
+        The storage capacity unit combines the commodity unit with the model's
+        time unit (e.g. MWh for electricity when commodity unit is MW and time
+        unit is hours).
+        """
         return f"({self.commodity_unit(commodity)}) * ({self.timeUnit})"
 
     def operation_unit(self, physical_unit: str) -> str:
+        """Return an operation unit for a given physical unit (per timestep)."""
         return f"({physical_unit}) * ({self.timeUnit})"
 
     def cost_per_operation_unit(self, physical_unit: str) -> str:
+        """Return the unit used for cost per operation (e.g. EUR / (MW * h))."""
         return f"({self.costUnit}) / (({physical_unit}) * ({self.timeUnit}))"
 
     def cost_per_capacity_unit(
         self, physical_unit: str, distance_dependent: bool = False
     ) -> str:
+        """Return the unit used for cost per capacity, optionally distance-dependent.
+
+        If `distance_dependent` is True, the denominator includes the model's
+        length unit.
+        """
         if distance_dependent:
             return f"({self.costUnit}) / (({self.lengthUnit}) * ({physical_unit}))"
 
         return f"({self.costUnit}) / ({physical_unit})"
 
     def cost_if_built_unit(self, distance_dependent: bool = False) -> str:
+        """Return the unit for fixed (if-built) costs, optionally per distance."""
         if distance_dependent:
             return f"({self.costUnit}) / ({self.lengthUnit})"
 
@@ -249,7 +249,6 @@ class FineUnitRegistry:
         distance_dependent: bool = False,
     ) -> dict:
         """Convert parameters common to all Component subclasses."""
-
         if not units:
             return values
 
@@ -301,6 +300,7 @@ class FineUnitRegistry:
 
     @staticmethod
     def check_unit_keys(units, supported_parameters):
+        """Validate that provided `units` keys are among supported parameters."""
         if units is None:
             return
 
