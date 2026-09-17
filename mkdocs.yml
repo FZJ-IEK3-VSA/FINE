@@ -16,6 +16,15 @@ docs_dir: docs
 site_dir: site
 use_directory_urls: false
 
+# Files excluded from the documentation build. docs/scripts/*.py are build
+# helpers (gen-files), not content, and mkdocs-jupyter's default `include`
+# covers *.py, so without this it would try to execute them as notebooks.
+# docs/overrides/ is Material theme template source (see theme.custom_dir),
+# likewise not content.
+exclude_docs: |
+  scripts/*.py
+  overrides/
+
 validation:
     links:
         anchors: warn
@@ -88,6 +97,7 @@ plugins:
 
     - gen-files:
           scripts:
+              - docs/scripts/gen_index_from_readme.py
               - docs/scripts/gen_ref_pages.py
 
     - literate-nav:
@@ -116,6 +126,9 @@ markdown_extensions:
 extra_javascript:
     - javascripts/mathjax.js
     - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+extra:
+    generator: false
 
 extra_css:
     - stylesheets/extra.css
@@ -157,16 +170,15 @@ nav:
           - "03 Multi-regional Energy System":
                 - Workflow: examples/03_Multi-regional_Energy_System_Workflow/03_Multi-regional_Energy_System_Workflow.ipynb
                 - Performance Summary: examples/03_Multi-regional_Energy_System_Workflow/03b_Performance_Summary_Example.ipynb
-          - "04 Model Run from Excel": examples/04_Model_Run_from_Excel/04_Model_Run_from_Excel.ipynb
-          - "05 District Optimization": examples/05_District_Optimization/05_Urban_District_Optimization_Workflow.ipynb
-          - "06 Water Supply System": "examples/06_Water_Supply_System/06_Water Supply System.ipynb"
-          - "07 NetCDF Model Instance": examples/07_NetCDF_to_save_and_set_up_model_instance/07_NetCDF_to_save_and_set_up_model_instance.ipynb
-          - "08 Aggregation":
-                - Spatial Aggregation: examples/08_Spatial_and_technology_aggregation/08a_Spatial_aggregation_of_energy_system_model.ipynb
-                - Technology Aggregation: examples/08_Spatial_and_technology_aggregation/08b_Technology_aggregation.ipynb
-          - "09 Stochastic Optimization": "examples/09_Stochastic_Optimization/09_Stochastic Optimization.ipynb"
-          - "10 Perfect Foresight": examples/10_PerfectForesight/10_perfectForesight_example.ipynb
-          - "11 Partload": examples/11_Partload/11_Partload_Example.ipynb
+          - "04 District Optimization": examples/04_District_Optimization/04_Urban_District_Optimization_Workflow.ipynb
+          - "05 Water Supply System": "examples/05_Water_Supply_System/05_Water Supply System.ipynb"
+          - "06 NetCDF Model Instance": examples/06_NetCDF_to_save_and_set_up_model_instance/06_NetCDF_to_save_and_set_up_model_instance.ipynb
+          - "07 Aggregation":
+                - Spatial Aggregation: examples/07_Spatial_and_technology_aggregation/07a_Spatial_aggregation_of_energy_system_model.ipynb
+                - Technology Aggregation: examples/07_Spatial_and_technology_aggregation/07b_Technology_aggregation.ipynb
+          - "08 Stochastic Optimization": "examples/08_Stochastic_Optimization/08_Stochastic Optimization.ipynb"
+          - "09 Perfect Foresight": examples/09_PerfectForesight/09_perfectForesight_example.ipynb
+          - "10 Partload": examples/10_Partload/10_Partload_Example.ipynb
 
     - Integrated Software: integrated_software.md
     - Further Reading: further_reading.md

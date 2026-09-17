@@ -45,7 +45,7 @@ def create_gdf(df, geometries, crs=3035, file_path=None, files_name="xr_regions"
     gdf = gpd.GeoDataFrame(df, geometry=geometries, crs=f"EPSG:{crs}")
 
     if file_path is not None:
-        gdf.reset_index(drop=True, inplace=True)
+        gdf = gdf.reset_index(drop=True)
         Path(file_path).mkdir(parents=True, exist_ok=True)  # create folder if not exist
         file_path_including_name = str(Path(file_path) / f"{files_name}.shp")
         gdf.to_file(file_path_including_name)
