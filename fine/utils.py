@@ -1431,8 +1431,6 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             + " detected.\n"
             + "All entries in economic parameter series have to be positive."
         )
-    # print(type(_data))
-    # print(type(_data))
     return _data
 
 
@@ -1618,7 +1616,8 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
             )
         elif isinstance(data, pd.Series):
             if set(data.index) == esM.locations or (
-                dimension != "1dim" and set(data.index) == set(locationalEligibility.index)
+                dimension != "1dim"
+                and set(data.index) == set(locationalEligibility.index)
             ):
                 parameterCost[ip] = checkAndSetCostParameter(
                     esM, name, data, dimension, locationalEligibility
@@ -1679,7 +1678,6 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
             parameterCost[ip] = checkAndSetTimeSeries(
                 esM, name, df, locationalEligibility, dimension=dimension
             )
-
     return parameterCost
 
 

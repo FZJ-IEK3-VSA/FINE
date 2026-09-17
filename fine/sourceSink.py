@@ -51,6 +51,7 @@ class Source(Component):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         pwlcfParameters=None,
+        **kwargs,
     ):
         """Create a Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -274,6 +275,17 @@ class Source(Component):
 
         # commodityCost (accepts a scalar, a location-indexed Series, a time-indexed
         # DataFrame, or a dict of any of these per investment period)
+        # Check if legacy key exists in kwargs
+        if "commodityCostTimeSeries" in kwargs:
+            warnings.warn(
+                "'commodityCostTimeSeries' is deprecated; use 'commodityCost' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if commodityCost is None:
+                commodityCost = kwargs.pop("commodityCostTimeSeries")
+
+        self.commodityCost = commodityCost
         self.commodityCost = utils.sortTimeSeriesColumns(commodityCost)
         self.fullCommodityCost = utils.processCommodityCost(
             esM,
@@ -288,6 +300,17 @@ class Source(Component):
 
         # commodityRevenue (accepts a scalar, a location-indexed Series, a time-indexed
         # DataFrame, or a dict of any of these per investment period)
+        # Check if legacy key exists in kwargs
+        if "commodityRevenueTimeSeries" in kwargs:
+            warnings.warn(
+                "'commodityRevenueTimeSeries' is deprecated; use 'commodityRevenue' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if commodityRevenue is None:
+                commodityRevenue = kwargs.pop("commodityRevenueTimeSeries")
+
+        self.commodityRevenue = commodityRevenue
         self.commodityRevenue = utils.sortTimeSeriesColumns(commodityRevenue)
         self.fullCommodityRevenue = utils.processCommodityCost(
             esM,

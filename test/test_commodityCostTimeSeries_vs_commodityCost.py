@@ -60,11 +60,11 @@ def test_miniSystem():
             commodity="electricity",
             hasCapacityVariable=False,
             # commodityCost = {0: costTS},
-            commodityCost={0: costSeries},
+            commodityCost=costSeries,
             # commodityCost = {0:None}
             # commodityCost = 1,
             # commodityCost = None,
-            # commodityCost = costSeries,
+            # commodityCostTimeSeries = costSeries,
             # commodityCost = costTS,
         )
     )
