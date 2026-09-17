@@ -483,11 +483,10 @@ def convertDatasetsToEnergySystemModel(datasets):
             for variable, comp_var_xr in comp_xr.data_vars.items():
                 if (
                     not pd.isnull(comp_var_xr.values).all()
-                    or "." in variable # empty entries of nested parameters are retained
+                    or "."
+                    in variable  # empty entries of nested parameters are retained
                 ):
-
                     component = f"{model}; {component_name}"
-
 
                     # STEP 4 (i). Set regional time series (region, time)
                     if variable[:3] == "ts_":
