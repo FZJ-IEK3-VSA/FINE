@@ -18,7 +18,7 @@ def reconstruct_full_timeseries(esM, timeseries, ip):
     df = timeseries.copy()
     df = df.stack(future_stack=True).dropna().unstack(level=1)
     number_of_index_level = df.index.nlevels
-    df.index.set_names(names=[None] * number_of_index_level, inplace=True)
+    df.index = df.index.set_names(names=[None] * number_of_index_level)
     full_df = (
         buildFullTimeSeries(df, esM.periodsOrder[ip], ip=ip, esM=esM, divide=False)
         .reset_index(level=0, drop=True)
