@@ -22,6 +22,7 @@ class Conversion(Component):
         name,
         physicalUnit,
         commodityConversionFactors,
+        units=None,
         hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -258,6 +259,12 @@ class Conversion(Component):
             }
         :type flowShares: dict
 
+        :param units: Optional mapping of parameter names to `pint.Unit` objects. When provided,
+            the constructor will convert matching input parameters (operation rates, cost parameters,
+            capacities) to the EnergySystemModel's canonical units or the specified `physicalUnit`.
+            Plain floats and pandas objects remain supported and are unchanged when `units` is None.
+        :type units: dict(str -> pint.Unit) or None
+
         :param rampUpMax: A maximum ramping rate to limit the increase in the operation of the component as share of the installed capacity.
             The maximum ramping is defined per hour and not per hoursPerTimeStep.
             |br| * the default value is None
@@ -274,6 +281,46 @@ class Conversion(Component):
         :type useTemporalCyclicConstraints: boolean
 
         """
+        # Unit-aware preprocessing
+        if units:
+            supported = {
+                "capacityPerPlantUnit",
+                "bigM",
+                "capacityMin",
+                "capacityMax",
+                "capacityFix",
+                "commissioningMin",
+                "commissioningMax",
+                "commissioningFix",
+                "stockCommissioning",
+                "investPerCapacity",
+                "investIfBuilt",
+                "opexPerCapacity",
+                "opexIfBuilt",
+                # conversion-specific
+                "operationRateMin",
+                "operationRateMax",
+                "operationRateFix",
+                "opexPerOperation",
+            }
+            esM.unitRegistry.check_unit_keys(units, supported)
+
+            rate_target = "dimensionless" if hasCapacityVariable else physicalUnit
+            for param in ("operationRateMin", "operationRateMax", "operationRateFix"):
+                if param in units and locals().get(param) is not None:
+                    val = locals()[param]
+                    locals()[param] = esM.unitRegistry.convert(
+                        val, units[param], rate_target, param
+                    )
+
+            if "opexPerOperation" in units and opexPerOperation is not None:
+                opexPerOperation = esM.unitRegistry.convert(
+                    opexPerOperation,
+                    units["opexPerOperation"],
+                    esM.unitRegistry.cost_per_operation_unit(physicalUnit),
+                    "opexPerOperation",
+                )
+
         Component.__init__(
             self,
             esM,
@@ -308,6 +355,8 @@ class Conversion(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
             pwlcfParameters=pwlcfParameters,
+            physicalUnit=physicalUnit,
+            units=units,
         )
 
         # opexPerOperation

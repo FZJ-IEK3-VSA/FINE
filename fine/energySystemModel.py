@@ -28,6 +28,7 @@ from fine.aggregations.temporalAggregation.deprecatedKeywords import (
 )
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
+from fine.units import FineUnitRegistry
 
 #: The clustering :meth:`EnergySystemModel.aggregateTemporally` uses unless told
 #: otherwise. It is the clustering the removed ETHOS.TSAM 3.x signature defaulted
@@ -489,6 +490,8 @@ class EnergySystemModel:
         self.componentModelingDict = {}
         self.sharedPotentialDict = {}
         self.costUnit = costUnit
+        # Unit conversion/validation registry. Pint is loaded lazily only when used.
+        self.unitRegistry = FineUnitRegistry(self)
 
         ################################################################################################################
         #                                           Optimization parameters                                            #

@@ -72,6 +72,10 @@ develop = [
     "ruff<=0.13.1",
 ]
 
+units = [
+    "pint>=0.24,<1.0",
+]
+
 # Configuration options
 # https://docs.pytest.org/en/7.1.x/reference/reference.html#configuration-options
 [tool.pytest.ini_options]

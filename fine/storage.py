@@ -62,6 +62,7 @@ class Storage(Component):
         socOffsetUp=-1,
         stockCommissioning=None,
         pwlcfParameters=None,
+        units=None,
     ):
         """Create a Storage class instance.
         The Storage component specific input arguments are described below. The general component
@@ -247,6 +248,13 @@ class Storage(Component):
             * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the energy system model specified locations.
             * a dictionary with investment periods as keys and one of the two options above as values.
 
+        :param units: Optional mapping of parameter names to `pint.Unit` objects. When provided,
+            the constructor will convert matching input parameters (capacity, rates, and operation costs)
+            to the EnergySystemModel's canonical units (and storage-specific `physicalUnit`) before
+            further preprocessing. Plain floats and pandas objects remain supported and are unchanged when
+            `units` is None.
+        :type units: dict(str -> pint.Unit) or None
+
         :param socOffsetDown: determines whether the state of charge at the end of a period p has
             to be equal to the one at the beginning of a period p+1 (socOffsetDown=-1) or if
             it can be smaller at the beginning of p+1 (socOffsetDown>=0). In the latter case,
@@ -264,6 +272,81 @@ class Storage(Component):
         :type socOffsetUp: float
 
         """
+        # Unit-aware preprocessing for storage
+        # Storage physical unit is commodity_unit * timeUnit (e.g., MWh)
+        physicalUnit = esM.unitRegistry.storage_capacity_unit(commodity)
+
+        if units:
+            supported = {
+                "capacityPerPlantUnit",
+                "bigM",
+                "capacityMin",
+                "capacityMax",
+                "capacityFix",
+                "commissioningMin",
+                "commissioningMax",
+                "commissioningFix",
+                "stockCommissioning",
+                "investPerCapacity",
+                "investIfBuilt",
+                "opexPerCapacity",
+                "opexIfBuilt",
+                # storage-specific
+                "opexPerChargeOperation",
+                "opexPerDischargeOperation",
+                "chargeRate",
+                "dischargeRate",
+                "chargeOpRateMax",
+                "chargeOpRateFix",
+                "dischargeOpRateMax",
+                "dischargeOpRateFix",
+            }
+            esM.unitRegistry.check_unit_keys(units, supported)
+
+            # charge/discharge rates are 1/time
+            rate_target = f"1 / ({esM.timeUnit})"
+            if "chargeRate" in units and chargeRate is not None:
+                chargeRate = esM.unitRegistry.convert(
+                    chargeRate, units["chargeRate"], rate_target, "chargeRate"
+                )
+            if "dischargeRate" in units and dischargeRate is not None:
+                dischargeRate = esM.unitRegistry.convert(
+                    dischargeRate, units["dischargeRate"], rate_target, "dischargeRate"
+                )
+
+            for param in (
+                "chargeOpRateMax",
+                "chargeOpRateFix",
+                "dischargeOpRateMax",
+                "dischargeOpRateFix",
+            ):
+                if param in units and locals().get(param) is not None:
+                    locals()[param] = esM.unitRegistry.convert(
+                        locals()[param], units[param], rate_target, param
+                    )
+
+            # operation cost units: cost / (commodityUnit * timeUnit)
+            op_cost_target = esM.unitRegistry.cost_per_operation_unit(
+                esM.commodityUnitsDict[commodity]
+            )
+            if "opexPerChargeOperation" in units and opexPerChargeOperation is not None:
+                opexPerChargeOperation = esM.unitRegistry.convert(
+                    opexPerChargeOperation,
+                    units["opexPerChargeOperation"],
+                    op_cost_target,
+                    "opexPerChargeOperation",
+                )
+            if (
+                "opexPerDischargeOperation" in units
+                and opexPerDischargeOperation is not None
+            ):
+                opexPerDischargeOperation = esM.unitRegistry.convert(
+                    opexPerDischargeOperation,
+                    units["opexPerDischargeOperation"],
+                    op_cost_target,
+                    "opexPerDischargeOperation",
+                )
+
         Component.__init__(
             self,
             esM,
@@ -295,6 +378,8 @@ class Storage(Component):
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
             pwlcfParameters=pwlcfParameters,
+            physicalUnit=physicalUnit,
+            units=units,
         )
 
         # Set general storage component data: chargeRate, dischargeRate, chargeEfficiency, dischargeEfficiency,

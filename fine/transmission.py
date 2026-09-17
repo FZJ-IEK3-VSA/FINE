@@ -17,6 +17,7 @@ class Transmission(Component):
         commodity,
         losses=0,
         distances=None,
+        units=None,
         hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -145,6 +146,12 @@ class Transmission(Component):
         :param pathwayBalanceLimitID: similar to balanceLimitID just as restriction over the entire pathway.
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
+
+        :param units: Optional mapping of parameter names to `pint.Unit` objects. When provided,
+            the constructor will convert matching input parameters (distances, rates, and costs)
+            to the EnergySystemModel's canonical units (for example `lengthUnit`, `costUnit`).
+            Plain floats and pandas objects remain supported and are unchanged when `units` is None.
+        :type units: dict(str -> pint.Unit) or None
         """
         self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
         self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
@@ -158,6 +165,74 @@ class Transmission(Component):
         self.commissioningFix = utils.checkCapacityOrCommissioningTransmission(
             commissioningFix
         )
+
+        # Unit-aware conversions for transmission
+        physicalUnit = esM.commodityUnitsDict[commodity]
+        if units:
+            supported = {
+                "capacityPerPlantUnit",
+                "bigM",
+                "capacityMin",
+                "capacityMax",
+                "capacityFix",
+                "commissioningMin",
+                "commissioningMax",
+                "commissioningFix",
+                "stockCommissioning",
+                "investPerCapacity",
+                "investIfBuilt",
+                "opexPerCapacity",
+                "opexIfBuilt",
+                # transmission-specific
+                "distances",
+                "operationRateMax",
+                "operationRateFix",
+                "opexPerOperation",
+            }
+            esM.unitRegistry.check_unit_keys(units, supported)
+
+            # distances -> lengthUnit
+            if "distances" in units and distances is not None:
+                distances = esM.unitRegistry.convert(
+                    distances, units["distances"], esM.lengthUnit, "distances"
+                )
+
+            # operation rate target
+            rate_target = "dimensionless" if hasCapacityVariable else physicalUnit
+            for param in ("operationRateMax", "operationRateFix"):
+                if param in units and locals().get(param) is not None:
+                    locals()[param] = esM.unitRegistry.convert(
+                        locals()[param], units[param], rate_target, param
+                    )
+
+            # operation cost
+            if "opexPerOperation" in units and opexPerOperation is not None:
+                opexPerOperation = esM.unitRegistry.convert(
+                    opexPerOperation,
+                    units["opexPerOperation"],
+                    esM.unitRegistry.cost_per_operation_unit(physicalUnit),
+                    "opexPerOperation",
+                )
+
+            # distance-dependent design costs: convert to cost/(lengthUnit * physicalUnit)
+            for param in ("investPerCapacity", "opexPerCapacity"):
+                if param in units and locals().get(param) is not None:
+                    locals()[param] = esM.unitRegistry.convert(
+                        locals()[param],
+                        units[param],
+                        esM.unitRegistry.cost_per_capacity_unit(
+                            physicalUnit, distance_dependent=True
+                        ),
+                        param,
+                    )
+            for param in ("investIfBuilt", "opexIfBuilt"):
+                if param in units and locals().get(param) is not None:
+                    locals()[param] = esM.unitRegistry.convert(
+                        locals()[param],
+                        units[param],
+                        esM.unitRegistry.cost_if_built_unit(distance_dependent=True),
+                        param,
+                    )
 
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)

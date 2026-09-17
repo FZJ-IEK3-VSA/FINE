@@ -50,6 +50,8 @@ class Component(metaclass=ABCMeta):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         pwlcfParameters=None,
+        physicalUnit=None,
+        units=None,
     ):
         """Create an instance of the Component class.
 
@@ -63,8 +65,6 @@ class Component(metaclass=ABCMeta):
         :type name: string
 
         :param hasCapacityVariable: specifies if the component should be modeled with a capacity or not. Examples:
-
-            * An electrolyzer has a capacity given in GW_electric -> hasCapacityVariable is True.
             * In the energy system, biogas can, from a model perspective, be converted into methane (and then
               used in conventional power plants which emit CO2) by getting CO2 from the environment. Thus,
               using biogas in conventional power plants is, from a balance perspective, CO2 free. This
@@ -515,6 +515,52 @@ class Component(metaclass=ABCMeta):
             }
         :type pwlcfParameters: dict
         """
+        # Persist unit metadata on the component for IO/export utilities
+        self.physicalUnit = physicalUnit
+        self.units = units
+
+        # If unit-aware inputs are provided, convert them to the ESM base units
+        if units:
+            if physicalUnit is None:
+                raise ValueError(
+                    "A physicalUnit is required when unit-aware parameters are used."
+                )
+
+            shared_values = esM.unitRegistry.convert_component_parameters(
+                values={
+                    "capacityPerPlantUnit": capacityPerPlantUnit,
+                    "bigM": bigM,
+                    "capacityMin": capacityMin,
+                    "capacityMax": capacityMax,
+                    "capacityFix": capacityFix,
+                    "commissioningMin": commissioningMin,
+                    "commissioningMax": commissioningMax,
+                    "commissioningFix": commissioningFix,
+                    "stockCommissioning": stockCommissioning,
+                    "investPerCapacity": investPerCapacity,
+                    "investIfBuilt": investIfBuilt,
+                    "opexPerCapacity": opexPerCapacity,
+                    "opexIfBuilt": opexIfBuilt,
+                },
+                units=units,
+                physical_unit=physicalUnit,
+                distance_dependent=(dimension == Dimension.TWO),
+            )
+
+            capacityPerPlantUnit = shared_values["capacityPerPlantUnit"]
+            bigM = shared_values["bigM"]
+            capacityMin = shared_values["capacityMin"]
+            capacityMax = shared_values["capacityMax"]
+            capacityFix = shared_values["capacityFix"]
+            commissioningMin = shared_values["commissioningMin"]
+            commissioningMax = shared_values["commissioningMax"]
+            commissioningFix = shared_values["commissioningFix"]
+            stockCommissioning = shared_values["stockCommissioning"]
+            investPerCapacity = shared_values["investPerCapacity"]
+            investIfBuilt = shared_values["investIfBuilt"]
+            opexPerCapacity = shared_values["opexPerCapacity"]
+            opexIfBuilt = shared_values["opexIfBuilt"]
+
         # Set general component data
         utils.isEnergySystemModelInstance(esM)
         self.name = name

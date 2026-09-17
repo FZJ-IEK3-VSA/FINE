@@ -53,6 +53,7 @@ class Source(Component):
         stockCommissioning=None,
         floorTechnicalLifetime=True,
         pwlcfParameters=None,
+        units=None,
     ):
         """Create a Source class instance.
         The Source component specific input arguments are described below. The general component
@@ -216,7 +217,77 @@ class Source(Component):
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
 
+        :param units: Optional mapping of parameter names to `pint.Unit` objects. When provided,
+            the constructor will convert the corresponding input parameters (capacity, rates, costs,
+            distances where applicable) to the EnergySystemModel's canonical units before further
+            preprocessing. Plain floats and pandas objects remain supported and are unchanged when
+            `units` is None.
+        :type units: dict(str -> pint.Unit) or None
+
         """
+        # Prepare unit-aware conversions for Source-specific parameters.
+        physicalUnit = esM.commodityUnitsDict[commodity]
+
+        if units:
+            supported = {
+                # shared component params (checked again in Component)
+                "capacityPerPlantUnit",
+                "bigM",
+                "capacityMin",
+                "capacityMax",
+                "capacityFix",
+                "commissioningMin",
+                "commissioningMax",
+                "commissioningFix",
+                "stockCommissioning",
+                "investPerCapacity",
+                "investIfBuilt",
+                "opexPerCapacity",
+                "opexIfBuilt",
+                # source-specific
+                "operationRateMin",
+                "operationRateMax",
+                "operationRateFix",
+                "opexPerOperation",
+                "commodityCost",
+                "commodityRevenue",
+                "commodityCostTimeSeries",
+                "commodityRevenueTimeSeries",
+            }
+            esM.unitRegistry.check_unit_keys(units, supported)
+
+            # Convert operation-rate parameters: dimensionless when tied to capacity
+            rate_target = "dimensionless" if hasCapacityVariable else physicalUnit
+            for param in ("operationRateMin", "operationRateMax", "operationRateFix"):
+                if param in units and locals().get(param) is not None:
+                    val = locals()[param]
+                    locals()[param] = esM.unitRegistry.convert(
+                        val, units[param], rate_target, param
+                    )
+
+            # Convert cost-per-operation and commodity cost/time-series
+            op_cost_target = esM.unitRegistry.cost_per_operation_unit(physicalUnit)
+
+            if "opexPerOperation" in units and opexPerOperation is not None:
+                opexPerOperation = esM.unitRegistry.convert(
+                    opexPerOperation,
+                    units["opexPerOperation"],
+                    op_cost_target,
+                    "opexPerOperation",
+                )
+
+            for param in ("commodityCost", "commodityRevenue"):
+                if param in units and locals().get(param) is not None:
+                    locals()[param] = esM.unitRegistry.convert(
+                        locals()[param], units[param], op_cost_target, param
+                    )
+
+            for param in ("commodityCostTimeSeries", "commodityRevenueTimeSeries"):
+                if param in units and locals().get(param) is not None:
+                    locals()[param] = esM.unitRegistry.convert(
+                        locals()[param], units[param], op_cost_target, param
+                    )
+
         Component.__init__(
             self,
             esM,
@@ -251,6 +322,8 @@ class Source(Component):
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
             pwlcfParameters=pwlcfParameters,
+            physicalUnit=physicalUnit,
+            units=units,
         )
 
         # Set general source/sink data: ID and yearly limit
@@ -572,6 +645,7 @@ class Sink(Source):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        units=None,
     ):
         """Create a Sink class instance.
 
@@ -621,6 +695,7 @@ class Sink(Source):
             pathwayBalanceLimitID=pathwayBalanceLimitID,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            units=units,
         )
 
         self.sign = -1
