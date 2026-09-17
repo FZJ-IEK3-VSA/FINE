@@ -511,6 +511,7 @@ def test_runInfeasibilityPrechecks_does_not_raise_if_only_check_is_broken():
     assert problems == []
     assert any("_brokenCheck" in str(w.message) for w in caught)
 
+
 # ---------------------------------------------------------------------------
 # Sinks with a capacity variable: operationRateFix is a relative profile,
 # not an absolute demand. The demand is only enforced up to the guaranteed
@@ -612,6 +613,7 @@ def test_capacity_sink_with_lower_bound_is_scaled_and_detected(boundKwargs):
         runInfeasibilityPrechecks(esM)
     assert "checkJointInputDemandAggregated" in str(excinfo.value)
 
+
 # ---------------------------------------------------------------------------
 # Transformation pathways: every investment period has to be checked, not
 # only the first one.
@@ -689,6 +691,7 @@ def test_feasible_pathway_is_no_false_positive():
     esM = _build_pathway_esM(laterDemand=2)
     assert runInfeasibilityPrechecks(esM, raiseError=False) == []
 
+
 # ---------------------------------------------------------------------------
 # checkBalanceLimits: a balance limit which cannot be met by the components
 # carrying its balanceLimitID.
@@ -764,9 +767,7 @@ def _build_co2_limit_esM(industryCapacityMin):
     [(0.005, False), (0.006, True)],
     ids=["minimum-emissions-100", "minimum-emissions-104"],
 )
-def test_checkBalanceLimits_example_from_explanation(
-    industryCapacityMin, isInfeasible
-):
+def test_checkBalanceLimits_example_from_explanation(industryCapacityMin, isInfeasible):
     """Minimum emissions are 80 + capacityMin * 4000.
 
     With capacityMin=0.005 they are exactly 100, which is still allowed.
