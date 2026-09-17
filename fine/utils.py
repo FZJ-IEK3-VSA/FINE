@@ -1590,9 +1590,7 @@ def checkAndSetInvestmentPeriodCostParameter(
 
 
 def processCommodityCost(esM, name, data, dimension, locationalEligibility, years):
-    """MISSING."""
-    # stock years are only considered for parameter for which the
-    # years contain investment periods and stock years
+    """Processes and sets commodity cost parameters and time series into a single dictionary of DataFrames."""
     _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
     checkInvestmentPeriodParameters(name, data, _years)
 
@@ -1605,69 +1603,84 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
             f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
         )
 
-    # set the costs
+    # Initialize parameterCost for each year
     parameterCost = {}
-    parameterCostTimeSeries = {}
     for ip in years:
         parameterCost[ip] = checkAndSetCostParameter(
             esM, name, 0, dimension, locationalEligibility
         )
-        parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
-            esM, name, None, locationalEligibility, dimension="1dim"
-        )
 
     for ip in years:
-        # map of year name (e.g. 2020) to intenral name (e.g. 0)
-        # ip=int((_ip-esM.startYear)/esM.investmentPeriodInterval)
         _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
-        if isinstance(data, int) or isinstance(data, float):
+        if isinstance(data, (int, float)):
             parameterCost[ip] = checkAndSetCostParameter(
                 esM, name, data, dimension, locationalEligibility
             )
         elif isinstance(data, pd.Series):
-            if set(data.index) == esM.locations:
+            if set(data.index) == esM.locations or (
+                dimension != "1dim" and set(data.index) == set(locationalEligibility.index)
+            ):
                 parameterCost[ip] = checkAndSetCostParameter(
                     esM, name, data, dimension, locationalEligibility
                 )
             elif set(data.index) == esM.totalTimeSteps:
-                parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
-                    esM, name, data, locationalEligibility, dimension="1dim"
+                parameterCost[ip] = checkAndSetTimeSeries(
+                    esM, name, data, locationalEligibility, dimension=dimension
                 )
         elif isinstance(data, dict):
-            if isinstance(
-                data[_ip], (int, float)
-            ):  # check if the value is an int or float
+            if data[_ip] is None:
+                parameterCost[ip] = checkAndSetTimeSeries(
+                    esM, name, None, locationalEligibility, dimension=dimension
+                )
+            elif isinstance(data[_ip], (int, float)):
                 parameterCost[ip] = checkAndSetCostParameter(
                     esM, name, data[_ip], dimension, locationalEligibility
                 )
             elif isinstance(data[_ip], pd.Series) and (
                 set(data[_ip].index) == esM.totalTimeSteps
-            ):  # check if index of series matches time steps of model
-                parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
-                    esM, name, data[_ip], locationalEligibility, dimension="1dim"
+            ):
+                parameterCost[ip] = checkAndSetTimeSeries(
+                    esM, name, data[_ip], locationalEligibility, dimension=dimension
                 )
-            elif isinstance(data[_ip], pd.Series) and (
-                set(data[_ip].index) == esM.locations
-            ):  # check if index of series matches locations of model
+            elif isinstance(data[_ip], pd.Series):
                 parameterCost[ip] = checkAndSetCostParameter(
                     esM, name, data[_ip], dimension, locationalEligibility
                 )
-            elif isinstance(
-                data[_ip], pd.DataFrame | None
-            ):  # check if the data is given as dataframe with None time steps and locations as index and columns
-                parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
-                    esM, name, data[_ip], locationalEligibility, dimension="1dim"
+            elif isinstance(data[_ip], (pd.DataFrame, type(None))):
+                parameterCost[ip] = checkAndSetTimeSeries(
+                    esM, name, data[_ip], locationalEligibility, dimension=dimension
                 )
-        elif isinstance(data, pd.DataFrame | None):
-            parameterCostTimeSeries[ip] = checkAndSetTimeSeries(
-                esM, name, data, locationalEligibility, dimension="1dim"
+        elif isinstance(data, (pd.DataFrame, type(None))):
+            parameterCost[ip] = checkAndSetTimeSeries(
+                esM, name, data, locationalEligibility, dimension=dimension
             )
-
         else:
             raise TypeError(
                 f"Parameter of {name} should be a pandas series or a dictionary."
             )
-    return parameterCost, parameterCostTimeSeries
+
+    # Convert any static Series parameters into DataFrames with MultiIndex and pass through checkAndSetTimeSeries
+    for ip in years:
+        if isinstance(parameterCost[ip], pd.Series):
+            series = parameterCost[ip]
+            # A scalar or per-location value gets broadcast across every
+            # location in the energy system model (see checkAndSetCostParameter),
+            # including locations the component is not eligible for. Mask those
+            # out before handing the data to checkAndSetTimeSeries, which
+            # otherwise rejects nonzero values at ineligible locations.
+            if locationalEligibility is not None:
+                mask = locationalEligibility.reindex(series.index).fillna(0)
+                series = series.where(mask != 0, 0.0)
+            df = pd.DataFrame(
+                [series.values] * len(esM.totalTimeSteps),
+                index=esM.totalTimeSteps,
+                columns=series.index,
+            )
+            parameterCost[ip] = checkAndSetTimeSeries(
+                esM, name, df, locationalEligibility, dimension=dimension
+            )
+
+    return parameterCost
 
 
 def checkAndSetLifetimeInvestmentPeriod(esM, name, lifetime):

@@ -588,7 +588,7 @@ def multi_node_test_esM_init(get_data_fixture):
             interestRate=0.08,
             economicLifetime=20,
             opexPerOperation=0.005,
-            commodityCostTimeSeries=offshore_cost_time_series,
+            commodityCost=offshore_cost_time_series,
         )
     )
 
