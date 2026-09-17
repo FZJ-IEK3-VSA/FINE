@@ -27,6 +27,7 @@ import pytest
 
 import fine as fn
 from fine.utils import (
+    checkBalanceLimits,  # NEU
     checkCommodityReachability,
     checkJointInputDemandAggregated,
     checkJointInputDemandPerTimeStep,
@@ -509,3 +510,350 @@ def test_runInfeasibilityPrechecks_does_not_raise_if_only_check_is_broken():
 
     assert problems == []
     assert any("_brokenCheck" in str(w.message) for w in caught)
+
+# ---------------------------------------------------------------------------
+# Sinks with a capacity variable: operationRateFix is a relative profile,
+# not an absolute demand. The demand is only enforced up to the guaranteed
+# capacity (capacityFix or capacityMin), scaled by the hours per time step.
+# ---------------------------------------------------------------------------
+
+
+def _build_capacity_sink_esM(capacityFix=None, capacityMin=None):
+    """Single-region model with a capacity-variable hydrogen sink and no supply.
+
+    No component produces hydrogen. Whether the model is infeasible
+    therefore depends only on whether the sink is forced to take a
+    positive amount of hydrogen. hoursPerTimeStep is set to 2, so that the
+    scaling of the relative profile with the hours per time step is
+    covered by the tests as well.
+    """
+    esM = fn.EnergySystemModel(
+        locations={"Region1"},
+        commodities={"hydrogen"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"hydrogen": "GW_H2"},
+        hoursPerTimeStep=2,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Flexible hydrogen demand",
+            commodity="hydrogen",
+            hasCapacityVariable=True,
+            capacityFix=capacityFix,
+            capacityMin=capacityMin,
+            # relative profile in [0, 1], not an absolute demand
+            operationRateFix=pd.DataFrame({"Region1": [0.5, 1.0]}),
+            investPerCapacity=0,
+            opexPerCapacity=0,
+            interestRate=0,
+            economicLifetime=1,
+        )
+    )
+    return esM
+
+
+def test_capacity_sink_without_lower_bound_is_no_false_positive():
+    """A capacity-variable sink without a lower capacity bound enforces nothing.
+
+    The optimizer can set the sink capacity to 0, so the model is feasible
+    even though no hydrogen is supplied. Before the fix, the profile was
+    read as an unconditional demand and all checks reported a shortage.
+    """
+    esM = _build_capacity_sink_esM()
+
+    assert checkCommodityReachability(esM) == []
+    assert checkJointInputDemandAggregated(esM) == []
+    assert checkJointInputDemandPerTimeStep(esM) == []
+    assert checkTimeStepBalance(esM) == []
+    assert runInfeasibilityPrechecks(esM, raiseError=False) == []
+
+
+@pytest.mark.parametrize(
+    "boundKwargs",
+    [{"capacityFix": 2}, {"capacityMin": 2}],
+    ids=["capacityFix", "capacityMin"],
+)
+def test_capacity_sink_with_lower_bound_is_scaled_and_detected(boundKwargs):
+    """A guaranteed sink capacity enforces a demand that must be detected.
+
+    The enforced demand is capacity * profile * hoursPerTimeStep,
+    i.e. 2 * (0.5 + 1.0) * 2 = 6 over the time horizon, and
+    2 * 0.5 * 2 = 2 and 2 * 1.0 * 2 = 4 in the single time steps.
+    Before the fix, the profile itself was used, which resulted in a
+    demand of 1.5 over the time horizon and 0.5 and 1 per time step.
+    """
+    esM = _build_capacity_sink_esM(**boundKwargs)
+
+    reachabilityProblems = checkCommodityReachability(esM)
+    assert len(reachabilityProblems) == 1
+    assert "Flexible hydrogen demand" in reachabilityProblems[0]
+
+    aggregatedProblems = checkJointInputDemandAggregated(esM)
+    assert len(aggregatedProblems) == 1
+    assert "joint demand of 6 for the commodity 'hydrogen'" in aggregatedProblems[0]
+
+    # NEU: checkTimeStepBalance muss den skalierten Bedarf je Zeitschritt melden
+    timeStepProblems = checkTimeStepBalance(esM)
+    assert any(
+        "Time step 0: the demand of 2 for the commodity 'hydrogen'" in p
+        for p in timeStepProblems
+    )
+    assert any(
+        "Time step 1: the demand of 4 for the commodity 'hydrogen'" in p
+        for p in timeStepProblems
+    )
+
+    with pytest.raises(ValueError) as excinfo:
+        runInfeasibilityPrechecks(esM)
+    assert "checkJointInputDemandAggregated" in str(excinfo.value)
+
+# ---------------------------------------------------------------------------
+# Transformation pathways: every investment period has to be checked, not
+# only the first one.
+# ---------------------------------------------------------------------------
+
+
+def _build_pathway_esM(laterDemand):
+    """Two investment periods, the demand only exceeds the supply in 2025.
+
+    The source can deliver at most 2 per time step in both periods. The
+    demand is 1 per time step in 2020 and laterDemand in 2025.
+    """
+    esM = fn.EnergySystemModel(
+        locations={"Region1"},
+        commodities={"electricity"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"electricity": "GW_el"},
+        hoursPerTimeStep=1,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Plant",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            capacityMax=2,
+            investPerCapacity=0,
+            opexPerCapacity=0,
+            interestRate=0,
+            economicLifetime=5,
+        )
+    )
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix={
+                2020: pd.DataFrame({"Region1": [1, 1]}),
+                2025: pd.DataFrame({"Region1": [laterDemand, laterDemand]}),
+            },
+        )
+    )
+    return esM
+
+
+def test_infeasibility_in_later_investment_period_is_detected():
+    """A shortage which only occurs in 2025 must be reported for 2025 only."""
+    esM = _build_pathway_esM(laterDemand=3)
+
+    aggregatedProblems = checkJointInputDemandAggregated(esM)
+    assert len(aggregatedProblems) == 1
+    assert aggregatedProblems[0].startswith("Investment period 2025:")
+    assert "joint demand of 6" in aggregatedProblems[0]
+
+    problems = runInfeasibilityPrechecks(esM, raiseError=False)
+    assert problems
+    assert all("Investment period 2025" in p for p in problems)
+    assert not any("Investment period 2020" in p for p in problems)
+    assert any(p.startswith("checkTimeStepBalance") for p in problems)
+    assert any(p.startswith("checkJointInputDemandPerTimeStep") for p in problems)
+
+
+def test_feasible_pathway_is_no_false_positive():
+    """Control case: the supply covers the demand in both periods."""
+    esM = _build_pathway_esM(laterDemand=2)
+    assert runInfeasibilityPrechecks(esM, raiseError=False) == []
+
+# ---------------------------------------------------------------------------
+# checkBalanceLimits: a balance limit which cannot be met by the components
+# carrying its balanceLimitID.
+# ---------------------------------------------------------------------------
+
+
+def _build_co2_limit_esM(industryCapacityMin):
+    """Two emitting sinks share the balanceLimitID 'CO2 limit'.
+
+    One full year with hourly resolution is used, so that the operation
+    summed over the time horizon equals the yearly value.
+
+    - Power plant: no capacity variable, fixed emissions of 80 per year
+      -> contribution [-80, -80]
+    - Industry: capacity variable with capacityMin=industryCapacityMin and
+      capacityMax=0.01, profile summing up to 4000
+      -> contribution [-0.01 * 4000, -industryCapacityMin * 4000]
+
+    The limit allows at most 100 emissions, i.e. Total=-100 with
+    lowerBound=1, since sinks contribute negatively.
+    """
+    numberOfTimeSteps = 8760
+    esM = fn.EnergySystemModel(
+        locations={"Region1"},
+        commodities={"CO2"},
+        numberOfTimeSteps=numberOfTimeSteps,
+        commodityUnitsDict={"CO2": "Mio. t CO2/h"},
+        hoursPerTimeStep=1,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+        balanceLimit=pd.DataFrame(
+            {"Total": [-100.0], "lowerBound": [1]}, index=["CO2 limit"]
+        ),
+    )
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Power plant emissions",
+            commodity="CO2",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame(
+                {"Region1": [80 / numberOfTimeSteps] * numberOfTimeSteps}
+            ),
+            balanceLimitID="CO2 limit",
+        )
+    )
+
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Industry emissions",
+            commodity="CO2",
+            hasCapacityVariable=True,
+            capacityMin=industryCapacityMin,
+            capacityMax=0.01,
+            operationRateFix=pd.DataFrame(
+                {"Region1": [4000 / numberOfTimeSteps] * numberOfTimeSteps}
+            ),
+            balanceLimitID="CO2 limit",
+            investPerCapacity=0,
+            opexPerCapacity=0,
+            interestRate=0,
+            economicLifetime=1,
+        )
+    )
+    return esM
+
+
+@pytest.mark.parametrize(
+    "industryCapacityMin, isInfeasible",
+    [(0.005, False), (0.006, True)],
+    ids=["minimum-emissions-100", "minimum-emissions-104"],
+)
+def test_checkBalanceLimits_example_from_explanation(
+    industryCapacityMin, isInfeasible
+):
+    """Minimum emissions are 80 + capacityMin * 4000.
+
+    With capacityMin=0.005 they are exactly 100, which is still allowed.
+    With capacityMin=0.006 they are 104, which exceeds the limit of 100.
+    """
+    esM = _build_co2_limit_esM(industryCapacityMin)
+    problems = checkBalanceLimits(esM)
+
+    if isInfeasible:
+        assert len(problems) == 1
+        assert "'CO2 limit'" in problems[0]
+        assert "at least -100 in the total system" in problems[0]
+        assert "can reach at most -104" in problems[0]
+    else:
+        assert problems == []
+
+
+def _build_zero_limit_esM(balanceLimit, sinkHasCapacityVariable=False):
+    """CO2 is supplied freely and emitted by a sink carrying the limit ID."""
+    esM = fn.EnergySystemModel(
+        locations={"Region1"},
+        commodities={"CO2"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"CO2": "Mio. t CO2/h"},
+        hoursPerTimeStep=1,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+        balanceLimit=balanceLimit,
+    )
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="CO2 source",
+            commodity="CO2",
+            hasCapacityVariable=False,
+            operationRateMax=pd.DataFrame({"Region1": [5, 5]}),
+        )
+    )
+
+    sinkKwargs = {}
+    if sinkHasCapacityVariable:
+        sinkKwargs = dict(
+            investPerCapacity=0,
+            opexPerCapacity=0,
+            interestRate=0,
+            economicLifetime=1,
+        )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="CO2 to environment",
+            commodity="CO2",
+            hasCapacityVariable=sinkHasCapacityVariable,
+            operationRateFix=pd.DataFrame({"Region1": [1.0, 1.0]}),
+            balanceLimitID="CO2 limit",
+            **sinkKwargs,
+        )
+    )
+    return esM
+
+
+def _net_zero_limit():
+    return pd.DataFrame({"Total": [0.0], "lowerBound": [1]}, index=["CO2 limit"])
+
+
+def test_runInfeasibilityPrechecks_raises_for_violated_balance_limit():
+    """Fixed emissions can never meet a net-zero limit.
+
+    The commodity balance itself is fine, so only checkBalanceLimits
+    must report a problem.
+    """
+    esM = _build_zero_limit_esM(_net_zero_limit())
+
+    with pytest.raises(ValueError) as excinfo:
+        runInfeasibilityPrechecks(esM)
+
+    message = str(excinfo.value)
+    assert "checkBalanceLimits" in message
+    assert "checkTimeStepBalance" not in message
+    assert "checkJointInputDemand" not in message
+
+
+def test_checkBalanceLimits_no_false_positive_for_flexible_sink():
+    """A capacity-variable sink without capacityMin can be switched off."""
+    esM = _build_zero_limit_esM(_net_zero_limit(), sinkHasCapacityVariable=True)
+
+    assert checkBalanceLimits(esM) == []
+    assert runInfeasibilityPrechecks(esM, raiseError=False) == []

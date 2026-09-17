@@ -2156,6 +2156,7 @@ class EnergySystemModel:
             warmstart,
             relevanceThreshold,
             includePerformanceSummary,
+            runInfeasibilityPrechecks,
         )
         solver, solver_info = self._runOptimization(
             logFileName,
@@ -2184,6 +2185,7 @@ class EnergySystemModel:
         warmstart,
         relevanceThreshold,
         includePerformanceSummary,
+        runInfeasibilityPrechecks,
     ):
         """Prepare the optimization run of the optimize function.
 
