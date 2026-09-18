@@ -771,8 +771,23 @@ def checkCapacityDevelopmentWithStock(
         # get future capacity by capacityFix
         futureCapacityDevelopment = pd.DataFrame(index=investmentPeriods)
         for ip in investmentPeriods:
-            for loc in capacityFix[ip].index:
-                futureCapacityDevelopment.loc[ip, loc] = capacityFix[ip][loc]
+            if capacityFix[ip] is not None:
+                for loc in capacityFix[ip].index:
+                    futureCapacityDevelopment.loc[ip, loc] = capacityFix[ip][loc]
+            else:
+                futureCapacityDevelopment.loc[ip] = None
+
+        # issue warning for possible infeasibilities when a NaN is followed by a number
+        for loc in futureCapacityDevelopment.columns:
+            for ip in investmentPeriods[1:]:
+                if (
+                    pd.isna(futureCapacityDevelopment.loc[ip - 1, loc])
+                    and not pd.isna(futureCapacityDevelopment.loc[ip, loc])
+                ):
+                    warnings.warn(
+                        f"A capacityFix value given for {loc} is preceded by a missing value."
+                        + " This may cause infeasibilities."
+                    )
 
         # create the total capacity development, if stock with past years of stock
         if stockCommissioning is None:
@@ -789,7 +804,10 @@ def checkCapacityDevelopmentWithStock(
             maxTechnicalLifetime = math.ceil(technicalLifetime.max())
         capacityDevelopment = capacityDevelopment.reindex(
             range(-maxTechnicalLifetime - 1, max(investmentPeriods) + 1)
-        ).fillna(0)
+        )
+
+        # Fill all NaN values with the preceding capacityFix. If no stock is given, 0 is filled in.
+        capacityDevelopment = capacityDevelopment.ffill().fillna(0)
 
         # check that decreasing capacity matches the commissioning
         issueLocations = []
