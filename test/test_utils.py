@@ -3,6 +3,7 @@ from fine import utils
 import fine as fn
 import numpy as np
 import pytest
+import re
 
 from fine.utils import ImplementedSolvers
 from fine.utils import checkCallableConversionFactor
@@ -272,3 +273,152 @@ def test_checkCallableConversionFactor(conversion_factor, should_raise):
             checkCallableConversionFactor(conversion_factor)
     else:
         checkCallableConversionFactor(conversion_factor)
+
+
+def test_checkCapacityDevelopmentWithStock():
+    investmentPeriods = [0, 1, 2]
+
+    technicalLifetime = pd.Series(
+        {
+            "DenmarkRegion": 2.0,
+            "GermanyRegion": 2.0,
+        }
+    )
+
+    phaseInStock = {
+        -2: pd.Series(
+            {
+                "DenmarkRegion": 0.0,
+                "GermanyRegion": 0.0,
+            }
+        ),
+        -1: pd.Series(
+            {
+                "DenmarkRegion": 2.0,
+                "GermanyRegion": 5.0,
+            }
+        ),
+    }
+
+    phaseOutStock = {
+        -2: pd.Series(
+            {
+                "DenmarkRegion": 10.0,
+                "GermanyRegion": 20.0,
+            }
+        ),
+        -1: pd.Series(
+            {
+                "DenmarkRegion": 5.0,
+                "GermanyRegion": 10.0,
+            }
+        ),
+    }
+
+    capacityFixA = {
+        0: pd.Series(
+            {
+                "DenmarkRegion": 5.0,
+                "GermanyRegion": 10.0,
+            }
+        ),
+        1: pd.Series(
+            {
+                "DenmarkRegion": None,
+                "GermanyRegion": 15.0,
+            }
+        ),
+        2: None,
+    }
+
+    capacityFixB = {
+        0: pd.Series(
+            {
+                "DenmarkRegion": 6.0,
+                "GermanyRegion": 10.0,
+            }
+        ),
+        1: pd.Series(
+            {
+                "DenmarkRegion": 3.0,
+                "GermanyRegion": 5.0,
+            }
+        ),
+        2: pd.Series(
+            {
+                "DenmarkRegion": 0.0,
+                "GermanyRegion": 0.0,
+            }
+        ),
+    }
+
+    capacityFixC = {
+        0: None,
+        1: pd.Series(
+            {
+                "DenmarkRegion": None,
+                "GermanyRegion": 4.0,
+            }
+        ),
+        2: pd.Series(
+            {
+                "DenmarkRegion": None,
+                "GermanyRegion": 5.0,
+            }
+        ),
+    }
+
+    # Phase-in with fixed capacities for nearer-term years.
+    # This example should not result in a warning or exception.
+
+    utils.checkCapacityDevelopmentWithStock(
+        investmentPeriods=investmentPeriods,
+        capacityMax={0: None, 1: None, 2: None},
+        capacityFix=capacityFixA,
+        stockCommissioning=None,
+        technicalLifetime=technicalLifetime,
+        floorTechnicalLifetime=True,
+    )
+
+    # Phase-in with fixed capacities for nearer-term years and stock.
+    # This example should not result in a warning or exception.
+
+    utils.checkCapacityDevelopmentWithStock(
+        investmentPeriods=investmentPeriods,
+        capacityMax={0: None, 1: None, 2: None},
+        capacityFix=capacityFixA,
+        stockCommissioning=phaseInStock,
+        technicalLifetime=technicalLifetime,
+        floorTechnicalLifetime=True,
+    )
+
+    # Technical lifetime: 2 IP.
+    # Denmark: -3 GW from IP1 to IP2 exceeds 1 GW commissioned in IP0.
+    # Germany: -5 GW is covered by 10 GW due for decommissioning.
+    # An error for Denmark should be raised.
+
+    expectedMessage = "Decreasing capacity fix set for regions ['DenmarkRegion'] do not match with the decommissioning with its technical lifetime."
+    with pytest.raises(ValueError, match=re.escape(expectedMessage)):
+        utils.checkCapacityDevelopmentWithStock(
+            investmentPeriods=investmentPeriods,
+            capacityMax={0: None, 1: None, 2: None},
+            capacityFix=capacityFixB,
+            stockCommissioning=phaseOutStock,
+            technicalLifetime=technicalLifetime,
+            floorTechnicalLifetime=True,
+        )
+
+    # CapacityFix is specified after a missing value for Germany,
+    # meaning that the feasibility depends on other constraints and the optimal solution.
+    # A warning should be issued.
+
+    expectedMessage = "A capacityFix value given for GermanyRegion is preceded by a missing value. This may cause infeasibilities."
+    with pytest.warns(UserWarning, match=re.escape(expectedMessage)):
+        utils.checkCapacityDevelopmentWithStock(
+            investmentPeriods=investmentPeriods,
+            capacityMax={0: None, 1: None, 2: None},
+            capacityFix=capacityFixC,
+            stockCommissioning=None,
+            technicalLifetime=technicalLifetime,
+            floorTechnicalLifetime=True,
+        )
