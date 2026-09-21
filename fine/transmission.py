@@ -17,7 +17,6 @@ class Transmission(Component):
         commodity,
         losses=0,
         distances=None,
-        units=None,
         hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -51,6 +50,7 @@ class Transmission(Component):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         pwlcfParameters=None,
+        units=None,
     ):
         r"""Create a Transmission class instance.
         The Transmission component specific input arguments are described below. The general component
@@ -153,22 +153,9 @@ class Transmission(Component):
             Plain floats and pandas objects remain supported and are unchanged when `units` is None.
         :type units: dict(str -> pint.Unit) or None
         """
-        self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
-        self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
-        self.capacityFix = utils.checkCapacityOrCommissioningTransmission(capacityFix)
-        self.commissioningMax = utils.checkCapacityOrCommissioningTransmission(
-            commissioningMax
-        )
-        self.commissioningMin = utils.checkCapacityOrCommissioningTransmission(
-            commissioningMin
-        )
-        self.commissioningFix = utils.checkCapacityOrCommissioningTransmission(
-            commissioningFix
-        )
-
         # Unit-aware conversions for transmission
         physicalUnit = esM.commodityUnitsDict[commodity]
-        if units:
+        if units is not None:
             supported = {
                 "capacityPerPlantUnit",
                 "bigM",
@@ -199,11 +186,21 @@ class Transmission(Component):
 
             # operation rate target
             rate_target = "dimensionless" if hasCapacityVariable else physicalUnit
-            for param in ("operationRateMax", "operationRateFix"):
-                if param in units and locals().get(param) is not None:
-                    locals()[param] = esM.unitRegistry.convert(
-                        locals()[param], units[param], rate_target, param
-                    )
+            if "operationRateMax" in units and operationRateMax is not None:
+                operationRateMax = esM.unitRegistry.convert(
+                    operationRateMax,
+                    units["operationRateMax"],
+                    rate_target,
+                    "operationRateMax",
+                )
+
+            if "operationRateFix" in units and operationRateFix is not None:
+                operationRateFix = esM.unitRegistry.convert(
+                    operationRateFix,
+                    units["operationRateFix"],
+                    rate_target,
+                    "operationRateFix",
+                )
 
             # operation cost
             if "opexPerOperation" in units and opexPerOperation is not None:
@@ -214,25 +211,52 @@ class Transmission(Component):
                     "opexPerOperation",
                 )
 
-            # distance-dependent design costs: convert to cost/(lengthUnit * physicalUnit)
-            for param in ("investPerCapacity", "opexPerCapacity"):
-                if param in units and locals().get(param) is not None:
-                    locals()[param] = esM.unitRegistry.convert(
-                        locals()[param],
-                        units[param],
-                        esM.unitRegistry.cost_per_capacity_unit(
-                            physicalUnit, distance_dependent=True
-                        ),
-                        param,
-                    )
-            for param in ("investIfBuilt", "opexIfBuilt"):
-                if param in units and locals().get(param) is not None:
-                    locals()[param] = esM.unitRegistry.convert(
-                        locals()[param],
-                        units[param],
-                        esM.unitRegistry.cost_if_built_unit(distance_dependent=True),
-                        param,
-                    )
+            converted = esM.unitRegistry.convert_component_parameters(
+                values={
+                    "capacityPerPlantUnit": capacityPerPlantUnit,
+                    "bigM": bigM,
+                    "capacityMin": capacityMin,
+                    "capacityMax": capacityMax,
+                    "capacityFix": capacityFix,
+                    "commissioningMin": commissioningMin,
+                    "commissioningMax": commissioningMax,
+                    "commissioningFix": commissioningFix,
+                    "stockCommissioning": stockCommissioning,
+                    "investPerCapacity": investPerCapacity,
+                    "opexPerCapacity": opexPerCapacity,
+                    "investIfBuilt": investIfBuilt,
+                    "opexIfBuilt": opexIfBuilt,
+                },
+                units=units,
+                physical_unit=physicalUnit,
+                distance_dependent=True,
+            )
+            capacityPerPlantUnit = converted["capacityPerPlantUnit"]
+            bigM = converted["bigM"]
+            capacityMin = converted["capacityMin"]
+            capacityMax = converted["capacityMax"]
+            capacityFix = converted["capacityFix"]
+            commissioningMin = converted["commissioningMin"]
+            commissioningMax = converted["commissioningMax"]
+            commissioningFix = converted["commissioningFix"]
+            stockCommissioning = converted["stockCommissioning"]
+            investPerCapacity = converted["investPerCapacity"]
+            opexPerCapacity = converted["opexPerCapacity"]
+            investIfBuilt = converted["investIfBuilt"]
+            opexIfBuilt = converted["opexIfBuilt"]
+
+        self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
+        self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
+        self.capacityFix = utils.checkCapacityOrCommissioningTransmission(capacityFix)
+        self.commissioningMax = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMax
+        )
+        self.commissioningMin = utils.checkCapacityOrCommissioningTransmission(
+            commissioningMin
+        )
+        self.commissioningFix = utils.checkCapacityOrCommissioningTransmission(
+            commissioningFix
+        )
 
         # Preprocess two-dimensional data
         self.locationalEligibility = utils.preprocess2dimData(locationalEligibility)

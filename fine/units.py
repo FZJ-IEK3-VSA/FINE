@@ -162,30 +162,28 @@ class FineUnitRegistry:
 
         ureg = self._require_pint()
 
-        # Accept pint.Unit objects or strings as source_unit descriptors.
         if self._pint is not None and not isinstance(source_unit, self._pint.Unit):
-            # allow strings too
-            if not isinstance(source_unit, str):
-                raise TypeError(
-                    f"Unit for '{parameter_name or 'parameter'}' must be a pint.Unit object or string, not a pint.Quantity or other type."
-                )
+            raise TypeError(
+                f"Unit for '{parameter_name or 'parameter'}' must be a pint.Unit object."
+            )
 
         source_expression = str(source_unit)
 
         target_expression = self._normalize_fine_unit_string(target_unit)
 
         try:
-            factor = (
-                (1 * ureg.parse_units(source_expression))
-                .to(ureg.parse_expression(target_expression))
-                .magnitude
-            )
-        except Exception:
+            target = ureg.parse_expression(target_expression)
+            source = ureg.parse_units(source_expression)
+            zero = (0 * source).to(target.units).magnitude
+            if zero != 0:
+                raise ValueError("Offset units cannot be converted by scaling.")
+            factor = (1 * source).to(target.units).magnitude / target.magnitude
+        except Exception as exc:
             name = parameter_name or "parameter"
 
             raise FineUnitError(
                 f"Unit '{source_unit}' supplied for '{name}' is not compatible with FINE base unit '{target_unit}'."
-            )
+            ) from exc
 
         return self._scale_value(value, factor)
 

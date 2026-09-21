@@ -22,7 +22,6 @@ class Conversion(Component):
         name,
         physicalUnit,
         commodityConversionFactors,
-        units=None,
         hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -64,6 +63,7 @@ class Conversion(Component):
         rampUpMax=None,
         rampDownMax=None,
         useTemporalCyclicConstraints=True,
+        units=None,
     ):
         # TODO: allow that the time series data or min/max/fixCapacity/eligibility is only specified for
         # TODO: eligible locations
@@ -282,7 +282,7 @@ class Conversion(Component):
 
         """
         # Unit-aware preprocessing
-        if units:
+        if units is not None:
             supported = {
                 "capacityPerPlantUnit",
                 "bigM",
@@ -306,12 +306,23 @@ class Conversion(Component):
             esM.unitRegistry.check_unit_keys(units, supported)
 
             rate_target = "dimensionless" if hasCapacityVariable else physicalUnit
-            for param in ("operationRateMin", "operationRateMax", "operationRateFix"):
-                if param in units and locals().get(param) is not None:
-                    val = locals()[param]
-                    locals()[param] = esM.unitRegistry.convert(
-                        val, units[param], rate_target, param
-                    )
+            if "operationRateMin" in units and operationRateMin is not None:
+                val = operationRateMin
+                operationRateMin = esM.unitRegistry.convert(
+                    val, units["operationRateMin"], rate_target, "operationRateMin"
+                )
+
+            if "operationRateMax" in units and operationRateMax is not None:
+                val = operationRateMax
+                operationRateMax = esM.unitRegistry.convert(
+                    val, units["operationRateMax"], rate_target, "operationRateMax"
+                )
+
+            if "operationRateFix" in units and operationRateFix is not None:
+                val = operationRateFix
+                operationRateFix = esM.unitRegistry.convert(
+                    val, units["operationRateFix"], rate_target, "operationRateFix"
+                )
 
             if "opexPerOperation" in units and opexPerOperation is not None:
                 opexPerOperation = esM.unitRegistry.convert(

@@ -276,7 +276,7 @@ class Storage(Component):
         # Storage physical unit is commodity_unit * timeUnit (e.g., MWh)
         physicalUnit = esM.unitRegistry.storage_capacity_unit(commodity)
 
-        if units:
+        if units is not None:
             supported = {
                 "capacityPerPlantUnit",
                 "bigM",
@@ -314,16 +314,42 @@ class Storage(Component):
                     dischargeRate, units["dischargeRate"], rate_target, "dischargeRate"
                 )
 
-            for param in (
-                "chargeOpRateMax",
-                "chargeOpRateFix",
-                "dischargeOpRateMax",
-                "dischargeOpRateFix",
-            ):
-                if param in units and locals().get(param) is not None:
-                    locals()[param] = esM.unitRegistry.convert(
-                        locals()[param], units[param], rate_target, param
-                    )
+            rate_target = (
+                f"1 / ({esM.timeUnit})"
+                if hasCapacityVariable
+                else esM.commodityUnitsDict[commodity]
+            )
+            if "chargeOpRateMax" in units and chargeOpRateMax is not None:
+                chargeOpRateMax = esM.unitRegistry.convert(
+                    chargeOpRateMax,
+                    units["chargeOpRateMax"],
+                    rate_target,
+                    "chargeOpRateMax",
+                )
+
+            if "chargeOpRateFix" in units and chargeOpRateFix is not None:
+                chargeOpRateFix = esM.unitRegistry.convert(
+                    chargeOpRateFix,
+                    units["chargeOpRateFix"],
+                    rate_target,
+                    "chargeOpRateFix",
+                )
+
+            if "dischargeOpRateMax" in units and dischargeOpRateMax is not None:
+                dischargeOpRateMax = esM.unitRegistry.convert(
+                    dischargeOpRateMax,
+                    units["dischargeOpRateMax"],
+                    rate_target,
+                    "dischargeOpRateMax",
+                )
+
+            if "dischargeOpRateFix" in units and dischargeOpRateFix is not None:
+                dischargeOpRateFix = esM.unitRegistry.convert(
+                    dischargeOpRateFix,
+                    units["dischargeOpRateFix"],
+                    rate_target,
+                    "dischargeOpRateFix",
+                )
 
             # operation cost units: cost / (commodityUnit * timeUnit)
             op_cost_target = esM.unitRegistry.cost_per_operation_unit(

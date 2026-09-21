@@ -228,7 +228,7 @@ class Source(Component):
         # Prepare unit-aware conversions for Source-specific parameters.
         physicalUnit = esM.commodityUnitsDict[commodity]
 
-        if units:
+        if units is not None:
             supported = {
                 # shared component params (checked again in Component)
                 "capacityPerPlantUnit",
@@ -258,12 +258,23 @@ class Source(Component):
 
             # Convert operation-rate parameters: dimensionless when tied to capacity
             rate_target = "dimensionless" if hasCapacityVariable else physicalUnit
-            for param in ("operationRateMin", "operationRateMax", "operationRateFix"):
-                if param in units and locals().get(param) is not None:
-                    val = locals()[param]
-                    locals()[param] = esM.unitRegistry.convert(
-                        val, units[param], rate_target, param
-                    )
+            if "operationRateMin" in units and operationRateMin is not None:
+                val = operationRateMin
+                operationRateMin = esM.unitRegistry.convert(
+                    val, units["operationRateMin"], rate_target, "operationRateMin"
+                )
+
+            if "operationRateMax" in units and operationRateMax is not None:
+                val = operationRateMax
+                operationRateMax = esM.unitRegistry.convert(
+                    val, units["operationRateMax"], rate_target, "operationRateMax"
+                )
+
+            if "operationRateFix" in units and operationRateFix is not None:
+                val = operationRateFix
+                operationRateFix = esM.unitRegistry.convert(
+                    val, units["operationRateFix"], rate_target, "operationRateFix"
+                )
 
             # Convert cost-per-operation and commodity cost/time-series
             op_cost_target = esM.unitRegistry.cost_per_operation_unit(physicalUnit)
@@ -276,17 +287,43 @@ class Source(Component):
                     "opexPerOperation",
                 )
 
-            for param in ("commodityCost", "commodityRevenue"):
-                if param in units and locals().get(param) is not None:
-                    locals()[param] = esM.unitRegistry.convert(
-                        locals()[param], units[param], op_cost_target, param
-                    )
+            if "commodityCost" in units and commodityCost is not None:
+                commodityCost = esM.unitRegistry.convert(
+                    commodityCost,
+                    units["commodityCost"],
+                    op_cost_target,
+                    "commodityCost",
+                )
 
-            for param in ("commodityCostTimeSeries", "commodityRevenueTimeSeries"):
-                if param in units and locals().get(param) is not None:
-                    locals()[param] = esM.unitRegistry.convert(
-                        locals()[param], units[param], op_cost_target, param
-                    )
+            if "commodityRevenue" in units and commodityRevenue is not None:
+                commodityRevenue = esM.unitRegistry.convert(
+                    commodityRevenue,
+                    units["commodityRevenue"],
+                    op_cost_target,
+                    "commodityRevenue",
+                )
+
+            if (
+                "commodityCostTimeSeries" in units
+                and commodityCostTimeSeries is not None
+            ):
+                commodityCostTimeSeries = esM.unitRegistry.convert(
+                    commodityCostTimeSeries,
+                    units["commodityCostTimeSeries"],
+                    op_cost_target,
+                    "commodityCostTimeSeries",
+                )
+
+            if (
+                "commodityRevenueTimeSeries" in units
+                and commodityRevenueTimeSeries is not None
+            ):
+                commodityRevenueTimeSeries = esM.unitRegistry.convert(
+                    commodityRevenueTimeSeries,
+                    units["commodityRevenueTimeSeries"],
+                    op_cost_target,
+                    "commodityRevenueTimeSeries",
+                )
 
         Component.__init__(
             self,

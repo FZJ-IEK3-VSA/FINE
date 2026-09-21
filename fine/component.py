@@ -515,9 +515,9 @@ class Component(metaclass=ABCMeta):
             }
         :type pwlcfParameters: dict
         """
-        # Persist unit metadata on the component for IO/export utilities
+        # Stored values are canonical; exports must not convert them a second time.
         self.physicalUnit = physicalUnit
-        self.units = units
+        self.units = None
 
         # If unit-aware inputs are provided, convert them to the ESM base units
         if units:
