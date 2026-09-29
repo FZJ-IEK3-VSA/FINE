@@ -34,6 +34,7 @@ class Component(metaclass=ABCMeta):
         commissioningMin=None,
         commissioningMax=None,
         commissioningFix=None,
+        globalCommissioningMax=None,
         isBuiltFix=None,
         investPerCapacity=0,
         investIfBuilt=0,
@@ -748,6 +749,21 @@ class Component(metaclass=ABCMeta):
 
         esM.commodities.update(self.scrapCommodities.keys())
         esM.commodityUnitsDict.update(self.scrapCommodities)
+
+        self.globalCommissioningMax = globalCommissioningMax
+
+        if globalCommissioningMax is not None:
+            self.processedGlobalCommissioningMax = (
+                utils.checkAndSetInvestmentPeriodParamters(
+                    "globalCommissioningMax",
+                    globalCommissioningMax,
+                    esM,
+                )
+            )
+        else:
+            self.processedGlobalCommissioningMax = {
+                ip: None for ip in esM.investmentPeriods
+            }
 
     def addToEnergySystemModel(self, esM):
         """Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -3142,6 +3158,46 @@ class ComponentModel(metaclass=ABCMeta):
             rhs += decommisVar[loc, compName, ip] * intensity * recovery
 
         return rhs
+
+    def globalCommissioningMax(self, pyM, esM):
+        """Limit total commissioning of a component across all locations."""
+        compDict = self.componentsDict
+        abbrvName = self.abbrvName
+
+        commisVar = getattr(pyM, "commis_" + abbrvName)
+        commisVarSet = getattr(pyM, "designCommisVarSet_" + abbrvName)
+
+        def globalCommissioningMaxRule(pyM, compName, ip):
+            comp = compDict[compName]
+            limit = comp.processedGlobalCommissioningMax[ip]
+
+            if limit is None:
+                return pyomo.Constraint.Skip
+
+            return (
+                sum(
+                    commisVar[loc, compName, ip]
+                    for loc in comp.processedLocationalEligibility.index
+                    if (loc, compName, ip) in commisVarSet
+                )
+                <= limit
+            )
+
+        constraint_index = [
+            (compName, ip)
+            for compName, comp in compDict.items()
+            for ip in esM.investmentPeriods
+            if comp.processedGlobalCommissioningMax[ip] is not None
+        ]
+
+        setattr(
+            pyM,
+            "ConstrGlobalCommissioningMax_" + abbrvName,
+            pyomo.Constraint(
+                constraint_index,
+                rule=globalCommissioningMaxRule,
+            ),
+        )
 
     def getEconomicsDesign(
         self,
