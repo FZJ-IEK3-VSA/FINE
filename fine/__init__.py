@@ -20,6 +20,7 @@ from .expansionModules.optimizeTSAmultiStage import (
     fixBinaryVariables,
     optimizeTSAmultiStage,
 )
+from .expansionModules.rollingHorizon import rollingHorizonOptimization
 from .expansionModules.transformationPath import optimizeSimpleMyopic
 from .utils import ImplementedSolvers
 
@@ -59,6 +60,7 @@ __all__ = [
     "plotPieChart",
     "plotTransmission",
     "plotPieChart",
+    "rollingHorizonOptimization",
     "subclasses",
     "utils",
     "xarrayIO",

@@ -3,6 +3,7 @@ from fine import utils
 from fine.enums import Dimension
 import pandas as pd
 import datetime
+import numbers
 import time
 import warnings
 from functools import wraps
@@ -58,6 +59,7 @@ def writeOptimizationOutputToExcel(
     outputFileName="scenarioOutput",
     optSumOutputLevel=2,
     optValOutputLevel=1,
+    investmentPeriod=None,
 ):
     """Write optimization output to an Excel file.
 
@@ -83,9 +85,43 @@ def writeOptimizationOutputToExcel(
 
         |br| * the default value is 1
     :type optValOutputLevel: int (0,1) or dict
+
+    :param investmentPeriod: option to define an investment period for the export. If no investment period is set
+        all investment periods of the esM will be exported. The exported year is always appended to
+        outputFileName, so that repeated calls for different years of the same esM do not overwrite each other
+        even if the esM holds a single investment period only.
+        |br| * the default value is None
+    :type investmentPeriod: int or None
     """
-    for ip in esM.investmentPeriodNames:
-        if len(esM.investmentPeriodNames) > 1:
+    if investmentPeriod is None:
+        investmentPeriodNamesExport = esM.investmentPeriodNames
+    else:
+        # numbers.Integral, not int: a year read off a pandas index is a numpy integer,
+        # which is not an int but is just as valid a year here. bool is an int and is not.
+        if isinstance(investmentPeriod, bool) or not isinstance(
+            investmentPeriod, numbers.Integral
+        ):
+            raise ValueError(
+                "investmentPeriod must be type int and specify a single year, which shall be exported."
+            )
+        investmentPeriod = int(investmentPeriod)
+        if investmentPeriod not in esM.investmentPeriodNames:
+            raise ValueError(
+                f"investmentPeriod {investmentPeriod} is not an investment period of the "
+                f"energy system model, which spans {esM.investmentPeriodNames}."
+            )
+        investmentPeriodNamesExport = [investmentPeriod]
+
+    # The year is part of the file name whenever more than one year exists or a single one was
+    # explicitly requested. Without the latter, a caller exporting the years of several single
+    # year models one by one - as the rolling horizon module does for a window of one investment
+    # period - would write all of them to the same file.
+    appendYearToFileName = (
+        len(esM.investmentPeriodNames) > 1 or investmentPeriod is not None
+    )
+
+    for ip in investmentPeriodNamesExport:
+        if appendYearToFileName:
             _outputFileName = outputFileName + f"_{ip}"
         else:
             _outputFileName = outputFileName
