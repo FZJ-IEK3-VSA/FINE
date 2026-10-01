@@ -1588,7 +1588,7 @@ def checkAndSetInvestmentPeriodCostParameter(
 
 
 def processCommodityCost(esM, name, data, dimension, locationalEligibility, years):
-    """Processes and sets commodity cost parameters and time series into a single dictionary of DataFrames."""
+    """MISSING."""
     _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
     checkInvestmentPeriodParameters(name, data, _years)
 
