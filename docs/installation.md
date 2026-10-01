@@ -127,3 +127,51 @@ A full Gurobi installation comes with the Conda Forge installation, while a redu
 
 The conda-forge installation of Fine comes with the [HiGHS](https://highs.dev/) and [GLPK](https://www.gnu.org/software/glpk/) solvers preinstalled, which can be used without any further steps. If you installed it successfully using PyPI, you will need to search for binaries compatible with your operating system, or compile the solver yourself. This can be a complex task. If you don't feel ready for that, please consider switching to the Conda installation.
 
+
+### Default solver and explicit solver selection
+
+If no solver is passed to `optimize()`, ETHOS.FINE uses `fine.ImplementedSolvers.STANDARD_SOLVER`. It is set automatically when `fine` is imported:
+
+- GUROBI, if it is installed with a full (non-size-limited) licence,
+- HiGHS otherwise.
+
+To use a specific solver instead, set the environment variable `FINE_SOLVER` to `gurobi`, `highs` or `glpk` before importing `fine`. Upper and lower case are both accepted:
+
+=== "Linux / macOS"
+
+    ```bash
+    export FINE_SOLVER=highs
+    ```
+
+=== "Windows (PowerShell)"
+
+    ```powershell
+    $env:FINE_SOLVER = "highs"
+    ```
+
+=== "Windows (cmd)"
+
+    ```bat
+    set FINE_SOLVER=highs
+    ```
+
+Alternatively, select the solver in Python after importing `fine`:
+
+```python
+import fine as fn
+
+fn.ImplementedSolvers.set_standard_solver("glpk")
+```
+
+Unlike the automatic detection, an explicitly selected solver is never replaced by another one. If the solver name is not supported, importing `fine` (or calling `set_standard_solver()`) raises a `ValueError`. If the solver is not installed, or GUROBI has no full licence, it raises a `RuntimeError`. Unset `FINE_SOLVER` (or set it to an empty value) to go back to automatic detection.
+
+While `FINE_SOLVER` is set, `optimize()` does not fall back to another solver either: it uses `STANDARD_SOLVER` (or the solver passed via its `solver` argument), and raises a `RuntimeError` if that solver is not available. Without `FINE_SOLVER`, `optimize()` keeps its default behaviour and falls back to an available solver.
+
+You can check which solvers can be used in your environment with:
+
+```python
+import fine as fn
+
+for solver in fn.ImplementedSolvers.supported_solvers():
+    print(solver, fn.ImplementedSolvers.is_available(solver))
+```

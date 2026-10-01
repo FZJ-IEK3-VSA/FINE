@@ -26,6 +26,8 @@ import pytest
 from fine.utils import ImplementedSolvers
 
 
+# Deliberately compares the results of all solvers, independent of the selected one
+@pytest.mark.multi_solver
 @pytest.mark.parametrize(
     "solver",
     [
