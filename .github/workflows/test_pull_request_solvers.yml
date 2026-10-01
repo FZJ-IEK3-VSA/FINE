@@ -33,7 +33,7 @@ jobs:
             label: Gurobi
           - solver: highs
             label: HiGHS
-          - solver: glpk
+          - solver: glpkk
             label: GLPK
     env:
       FINE_SOLVER: ${{ matrix.solver }}
