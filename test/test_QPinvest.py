@@ -5,9 +5,8 @@ import pytest
 from fine.utils import ImplementedSolvers
 
 
-@pytest.mark.skipif(
-    not ImplementedSolvers._gurobi_available(), reason="Gurobi not available"
-)
+# Quadratic objective: not supported by FINE's HiGHS interface and by GLPK
+@pytest.mark.requires_solver(ImplementedSolvers.GUROBI.value)
 @pytest.mark.parametrize("capacityMin", [0, 5])
 def test_QPinvest(capacityMin):
     capacityMin_variation = 5
