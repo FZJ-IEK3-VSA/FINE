@@ -12,12 +12,11 @@ The examples are sorted by their complexity and should provide a good overview o
 | [02 EnergyLand](02_EnergyLand/02_Energyland.ipynb) | A single region energy system is modeled and optimized. Compared to the previous examples, this example includes a lot more technologies. |
 | [03 Multi-regional Energy System](03_Multi-regional_Energy_System_Workflow/03_Multi-regional_Energy_System_Workflow.ipynb) | An energy supply system, consisting of eight regions, is modeled and optimized. Shows how to model multi-regional energy systems. |
 | [03b Performance Summary](03_Multi-regional_Energy_System_Workflow/03b_Performance_Summary_Example.ipynb) | Shows the optional performance summary for the multi-regional example. |
-| [04 Model Run from Excel](04_Model_Run_from_Excel/04_Model_Run_from_Excel.ipynb) | ETHOS.FINE can also be run from Excel. This example shows how to read and run a model using Excel files. |
-| [05 District Optimization](05_District_Optimization/05_Urban_District_Optimization_Workflow.ipynb) | A small district is modeled and optimized. This example also includes binary decision variables. |
-| [06 Water Supply System](06_Water_Supply_System/06_Water Supply System.ipynb) | The application cases of ETHOS.FINE are not limited. This example shows how to model a water supply system. |
-| [07 NetCDF Model Instance](07_NetCDF_to_save_and_set_up_model_instance/07_NetCDF_to_save_and_set_up_model_instance.ipynb) | Shows how to save input and optimized results to netCDF files for reproducibility. |
-| [08a Spatial Aggregation](08_Spatial_and_technology_aggregation/08a_Spatial_aggregation_of_energy_system_model.ipynb) | Shows how to reduce model complexity by aggregating regions (spatial aggregation). |
-| [08b Technology Aggregation](08_Spatial_and_technology_aggregation/08b_Technology_aggregation.ipynb) | Shows how to reduce model complexity by aggregating technologies. |
-| [09 Stochastic Optimization](09_Stochastic_Optimization/09_Stochastic Optimization.ipynb) | A stochastic optimization is performed with different input parameter sets for a more robust solution. |
-| [10 Perfect Foresight](10_PerfectForesight/10_perfectForesight_example.ipynb) | A transformation pathway is modeled and optimized with several investment periods. |
-| [11 Partload](11_Partload/11_Partload_Example.ipynb) | A hydrogen system is modeled and optimized considering partload behavior of an electrolyzer. |
+| [04 District Optimization](04_District_Optimization/04_Urban_District_Optimization_Workflow.ipynb) | A small district is modeled and optimized. This example also includes binary decision variables. |
+| [05 Water Supply System](05_Water_Supply_System/05_Water Supply System.ipynb) | The application cases of ETHOS.FINE are not limited. This example shows how to model a water supply system. |
+| [06 NetCDF Model Instance](06_NetCDF_to_save_and_set_up_model_instance/06_NetCDF_to_save_and_set_up_model_instance.ipynb) | Shows how to save input and optimized results to netCDF files for reproducibility. |
+| [07a Spatial Aggregation](07_Spatial_and_technology_aggregation/07a_Spatial_aggregation_of_energy_system_model.ipynb) | Shows how to reduce model complexity by aggregating regions (spatial aggregation). |
+| [07b Technology Aggregation](07_Spatial_and_technology_aggregation/07b_Technology_aggregation.ipynb) | Shows how to reduce model complexity by aggregating technologies. |
+| [08 Stochastic Optimization](08_Stochastic_Optimization/08_Stochastic Optimization.ipynb) | A stochastic optimization is performed with different input parameter sets for a more robust solution. |
+| [09 Perfect Foresight](09_PerfectForesight/09_perfectForesight_example.ipynb) | A transformation pathway is modeled and optimized with several investment periods. |
+| [10 Partload](10_Partload/10_Partload_Example.ipynb) | A hydrogen system is modeled and optimized considering partload behavior of an electrolyzer. |

@@ -106,8 +106,10 @@ def rasterize_xr_ds(
     if isinstance(gridded_RE_ds, str):
         try:
             gridded_RE_ds = xr.open_dataset(gridded_RE_ds)
-        except Exception:
-            raise FileNotFoundError("The gridded_RE_ds path specified is not valid")
+        except (FileNotFoundError, OSError) as exc:
+            raise FileNotFoundError(
+                "The gridded_RE_ds path specified is not valid"
+            ) from exc
 
     elif not isinstance(gridded_RE_ds, xr.Dataset):
         raise TypeError(

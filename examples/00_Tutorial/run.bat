@@ -5,7 +5,7 @@ echo[
 
 if not defined file set file=scenarioInput.xlsx 
 
-set /p env=Enter the name of your conda enviroment or hit [Enter] when your regular Python version should be used:
+set /p env=Enter the name of your conda environment or hit [Enter] when your regular Python version should be used:
 
 echo[
 

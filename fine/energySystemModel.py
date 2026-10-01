@@ -1,26 +1,42 @@
 import inspect
+from dataclasses import replace
 from pathlib import Path
 import time
 import warnings
 import importlib.util
 import os
+from typing import Any
 
 import gurobi_logtools as glt
 import pandas as pd
 import psutil
 import pyomo.environ as pyomo
+from pyomo.common.errors import ApplicationError
 from pyomo import opt
-from tsam.timeseriesaggregation import TimeSeriesAggregation
+from pyomo.contrib.appsi.base import LegacySolverInterface
+from pyomo.contrib.appsi.solvers import Highs
+import tsam
+from tsam import ClusterConfig, ExtremeConfig, SegmentConfig
 
 from fine import utils
 from fine.utils import ImplementedSolvers
 from fine.aggregations.spatialAggregation import manager as spagat
+
+# Deprecation shim, removed together with the ETHOS.TSAM 3.x keywords.
+from fine.aggregations.temporalAggregation.deprecatedKeywords import (
+    translateDeprecatedKeywords,
+)
 from fine.component import Component, ComponentModel
 from fine.IOManagement import xarrayIO as xrIO
 
-warnings.filterwarnings("ignore", category=FutureWarning)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("always", category=UserWarning)
+#: The clustering :meth:`EnergySystemModel.aggregateTemporally` uses unless told
+#: otherwise. It is the clustering the removed ETHOS.TSAM 3.x signature defaulted
+#: to, so that the default aggregation keeps producing the results it used to.
+DEFAULT_CLUSTER = ClusterConfig(method="hierarchical", representation="distribution")
+
+#: The segmentation :meth:`EnergySystemModel.aggregateTemporally` uses unless told
+#: otherwise. Pass None to switch segmentation off.
+DEFAULT_SEGMENTS = SegmentConfig(n_segments=12, representation="distribution")
 
 
 class EnergySystemModel:
@@ -85,6 +101,7 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
+        pooledCommodities=None,
     ):
         r"""Create an EnergySystemModel class instance.
 
@@ -141,7 +158,7 @@ class EnergySystemModel:
             The goal of the stochastic optimization is to find a more robust energy system by considering different
             requirements to find a single energy system design (e.g. various weather years or demand forecasts). These requirements
             are represented in different investment periods of the model. In contrast to the classical perfect foresight
-            optimization the investment periods do not represent steps of a tranformation pathway but possible boundary
+            optimization the investment periods do not represent steps of a transformation pathway but possible boundary
             conditions for the energy system, which need to be considered for the system design and operation
             |br| * the default value is False
         :type mode: bool
@@ -281,6 +298,33 @@ class EnergySystemModel:
             |br| * the default value is False
         :type: annuityPerpetuity: bool
 
+        :param pooledCommodities: Defines commodities for which the commodity balance is enforced
+            over a group of locations, called a trading pool, instead of individually at
+            each location. This allows trade inside regions in the trading pool without adding a transmission cmponent. The expected format is
+            ``{commodity: {pool_name: [location_1, location_2, ...]}}``.
+
+            Multiple pools can be defined for the same commodity trading should happen between a set of regions inside a pool. Each pool is balanced
+            independently. For example::
+
+                pooledCommodities = {
+                    "hydrogen_trade": {
+                        "DE_hydrogen_pool_1": ["location_1", "location_2", ...]],
+                        "DE_hydrogen_pool_2": ["location_3", "location_4", ...]],
+                    }
+                }
+
+            For a pooled commodity, the sum of all commodity balance contributions across
+            all locations in the same pool must be zero at each time step. Individual
+            locations within the pool may therefore have non-zero net contributions, as
+            long as the pool as a whole is balanced.
+
+            Each location may belong to at most one pool per commodity. Transmission
+            components for pooled commodities are not allowed.
+
+            |br| * the default value is None
+        :type pooledCommodities: dict or None
+
+
         """
         # Check correctness of inputs
         utils.checkEnergySystemModelInput(
@@ -347,14 +391,16 @@ class EnergySystemModel:
         # The isTimeSeriesDataClustered parameter is used to check data consistency.
         # It is set to True if the class' cluster function is called. It is set to False if a new component is added.
         # If the cluster function is called, the typicalPeriods parameter is set from None to
-        # [0, ..., numberOfTypicalPeriods-1] and, if specified, the resulting TimeSeriesAggregation instance is stored
-        # in the tsaInstance parameter (default None).
+        # [0, ..., numberOfTypicalPeriods-1] and, if specified, the resulting tsam.AggregationResult is
+        # stored in the tsaInstance parameter (default None).
         # The time unit refers to time measure referred throughout the model. Currently, it has to be an hour 'h'.
         self.isTimeSeriesDataClustered, self.typicalPeriods, self.tsaInstance = (
             False,
             None,
             None,
         )
+        # Wall clock time the last aggregateTemporally call took, None until it is called.
+        self.tsaBuildTime = None
         self.timeUnit = "h"
 
         ################################################################################################################
@@ -389,6 +435,36 @@ class EnergySystemModel:
         self.commodities = commodities
         self.commodityUnitsDict = commodityUnitsDict
 
+        # pooledCommodities defines commodities whose balance is enforced over a group of locations
+        # rather than per individual location. Format: {commodity: {pool_name: [locations]}}
+        self.pooledCommodities = (
+            pooledCommodities if isinstance(pooledCommodities, dict) else {}
+        )
+        # check if pooled commodities are part of the model
+        for commod, pools in self.pooledCommodities.items():
+            if commod not in self.commodities:
+                raise ValueError(
+                    f"Pooled commodity '{commod}' is not in the commodities set."
+                )
+            # check if locations  listed in the pool are part of the model - if not list all unkown locations
+            for pool_name, locs in pools.items():
+                unknown = set(locs) - self.locations
+                if unknown:
+                    raise ValueError(
+                        f"Pool '{pool_name}' for commodity '{commod}' contains unknown"
+                        f" locations: {unknown}"
+                    )
+            # check that no region appears in more than one pool for the same commodity
+            seen_locs: dict = {}
+            for pool_name, locs in pools.items():
+                for loc in locs:
+                    if loc in seen_locs:
+                        raise ValueError(
+                            f"Location '{loc}' for commodity '{commod}' appears in both"
+                            f" pool '{seen_locs[loc]}' and pool '{pool_name}'."
+                        )
+                    seen_locs[loc] = pool_name
+
         # The balanceLimit can be used to limit certain balanceLimitIDs defined in the components.
         self.balanceLimit = balanceLimit
         self.pathwayBalanceLimit = pathwayBalanceLimit
@@ -411,6 +487,7 @@ class EnergySystemModel:
         # The costUnit parameter (string) is the parameter in which all cost input parameter have to be specified.
         self.componentNames = {}
         self.componentModelingDict = {}
+        self.sharedPotentialDict = {}
         self.costUnit = costUnit
 
         ################################################################################################################
@@ -472,6 +549,16 @@ class EnergySystemModel:
             raise TypeError(
                 "The added component has to inherit from the FINE class ComponentModel."
             )
+        # Transmission components are incompatible with pooled commodities. For each commodity only trade via transmission commponent OR pooled trade is alloud
+        if (
+            hasattr(component, "commodity")
+            and component.commodity in self.pooledCommodities
+            and component.__class__.__name__ == "Transmission"
+        ):
+            raise ValueError(
+                f"Commodity '{component.commodity}' is pooled. "
+                "Transmission components are not allowed for pooled commodities."
+            )
         component.addToEnergySystemModel(self)
 
     def removeComponent(self, componentName, track=False):
@@ -497,6 +584,18 @@ class EnergySystemModel:
                 + str(self.componentNames.keys())
             )
         modelingClass = self.componentNames[componentName]
+
+        # Remove component from sharedPotentialDict if present
+        keys_to_delete = [
+            key
+            for key, comps in self.sharedPotentialDict.items()
+            if componentName in comps
+        ]
+        for key in keys_to_delete:
+            self.sharedPotentialDict[key].remove(componentName)
+            if not self.sharedPotentialDict[key]:
+                del self.sharedPotentialDict[key]
+
         removedComp = dict()
         # If track: Return a dictionary including the name of the removed component and the component instance
         if track:
@@ -629,7 +728,7 @@ class EnergySystemModel:
         :rtype: depends on the specified attribute
         """
         # if there is only data for one investment period, the function
-        # directely returns the value instead of {0:value}. This allows old
+        # directly returns the value instead of {0:value}. This allows old
         # models to run without modification
         attr = getattr(self.getComponent(componentName), attributeName)
         if isinstance(attr, dict) and list(attr.keys()) == [0]:
@@ -719,7 +818,7 @@ class EnergySystemModel:
             |br| * the default value is 'geometry'
         :type geom_col_name: string
 
-        :param geom_id_col_name: The colum in `shapefile` consisting geom IDs
+        :param geom_id_col_name: The column in `shapefile` consisting geom IDs
             |br| * the default value is 'index'
         :type geom_id_col_name: string
 
@@ -769,9 +868,9 @@ class EnergySystemModel:
 
                 - 'kmedoids_contiguity':
                     kmedoids clustering with added contiguity constraint.
-                    Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+                    Refer to :mod:`fine.aggregations.spatialAggregation.kMedoidsContiguity` for more info
                 - 'hierarchical':
-                    sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
+                    sklearn's agglomerative clustering with complete linkage, with a connectivity matrix to ensure contiguity.
                     Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
 
             |br| * the default value is 'kmedoids_contiguity'
@@ -780,7 +879,7 @@ class EnergySystemModel:
         :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
             The optimization solver to be chosen.
             |br| * the default value is 'gurobi'
-        :type solver: string, Options: 'gurobi', 'glpk'
+        :type solver: string, Options: 'gurobi', 'highs', 'glpk'
 
         :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable.
 
@@ -856,27 +955,40 @@ class EnergySystemModel:
         # STEP 3. Obtain aggregated esM
         return xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
+    @translateDeprecatedKeywords
     def aggregateTemporally(
         self,
-        numberOfTypicalPeriods=40,
-        numberOfTimeStepsPerPeriod=24,
-        segmentation=True,
-        numberOfSegmentsPerPeriod=12,
-        clusterMethod="hierarchical",
-        representationMethod="durationRepresentation",
-        sortValues=False,
-        storeTSAinstance=False,
-        rescaleClusterPeriods=False,
-        **kwargs,
-    ):
+        n_clusters: int = 40,
+        period_duration: int | float | str | None = None,
+        cluster: ClusterConfig = DEFAULT_CLUSTER,
+        segments: SegmentConfig | None = DEFAULT_SEGMENTS,
+        extremes: ExtremeConfig | None = None,
+        preserve_column_means: bool = False,
+        storeTSAinstance: bool = False,
+        **kwargs: Any,
+    ) -> None:
         """Temporally cluster the time series data of all components considered in the EnergySystemModel instance and then
         stores the clustered data in the respective components. For this, the time series data is broken down
         into an ordered sequence of periods (e.g. 365 days) and to each period a typical period (e.g. 7 typical
         days with 24 hours) is assigned. Moreover, the time steps within the periods can further be clustered to bigger
         time steps with an irregular duration using the segmentation option.
-        For the clustering itself, the tsam package is used (cf. https://github.com/FZJ-IEK3-VSA/tsam). Additional
-        keyword arguments for the TimeSeriesAggregation instance can be added (facilitated by kwargs). As an example: it
-        might be useful to add extreme periods to the clustered typical periods.
+        For the clustering itself, the tsam package is used (cf. https://github.com/FZJ-IEK3-VSA/tsam).
+
+        The parameters below are those of :func:`tsam.aggregate` and its configuration objects
+        :class:`tsam.ClusterConfig`, :class:`tsam.SegmentConfig` and :class:`tsam.ExtremeConfig`. Its remaining
+        arguments (``rescale_exclude_columns``, ``round_decimals``, ``numerical_tolerance``) can be added
+        through kwargs and are forwarded unchanged. The time series itself and the weights of its columns are
+        derived from the components of this model, so ``weights`` and ``temporal_resolution`` are not accepted.
+
+        .. deprecated:: 2.8.0
+            The ETHOS.TSAM 3.x keywords (``numberOfTypicalPeriods``, ``numberOfTimeStepsPerPeriod``,
+            ``segmentation``, ``numberOfSegmentsPerPeriod``, ``clusterMethod``, ``representationMethod``,
+            ``sortValues``, ``rescaleClusterPeriods``, ``addPeakMax``, ``extremePeriodMethod``, ...) are still
+            accepted through kwargs. They are converted to the parameters below by
+            :mod:`fine.aggregations.temporalAggregation.deprecatedKeywords`, which warns and will be removed in
+            a future release. The two interfaces describe the same aggregation in incompatible terms and
+            therefore cannot be combined: mixing them raises a TypeError naming the replacement for every
+            deprecated keyword.
 
         .. note::
             The segmentation option can be freely combined with all subclasses. However, an irregular time step length
@@ -885,94 +997,105 @@ class EnergySystemModel:
 
         **Default arguments:**
 
-        :param numberOfTypicalPeriods: states the number of typical periods into which the time series data
-            should be clustered. The number of time steps per period must be an integer multiple of the total
-            number of considered time steps in the energy system.
+        :param n_clusters: states the number of typical periods into which the time series data should be
+            clustered.
+            |br| * the default value is 40
+        :type n_clusters: strictly positive integer
+
+        :param period_duration: states the length of one period, either as a number of hours or as a pandas
+            Timedelta string such as '24h' or '1d'. It has to be an integer multiple of the length of one time
+            step of the energy system, and the resulting number of time steps per period has to be an integer
+            divisor of the total number of time steps.
+            |br| * the default value is None, i.e. the length of 24 time steps
+        :type period_duration: strictly positive integer, float, string or None
+
+        :param cluster: states how the periods are clustered and how a cluster is represented.
 
             .. note::
-                Please refer to the tsam package documentation of the parameter noTypicalPeriods for more
-                information.
+                Please refer to the tsam package documentation of ClusterConfig for more information.
 
-            |br| * the default value is 7
-        :type numberOfTypicalPeriods: strictly positive integer
+            |br| * the default value is hierarchical clustering with a distribution representation
+        :type cluster: tsam.ClusterConfig
 
-        :param numberOfTimeStepsPerPeriod: states the number of time steps per period
-            |br| * the default value is 24
-        :type numberOfTimeStepsPerPeriod: strictly positive integer
+        :param segments: states whether and how the typical periods are further segmented to fewer time steps.
+            Pass None to switch segmentation off.
 
-        :param segmentation: states whether the typical periods should be further segmented to fewer time steps
+            .. note::
+                Please refer to the tsam package documentation of SegmentConfig for more information.
+
+            |br| * the default value is 12 segments per period
+        :type segments: tsam.SegmentConfig or None
+
+        :param extremes: states which extreme periods are preserved next to the typical periods, e.g. the
+            period holding the peak demand.
+
+            .. note::
+                Please refer to the tsam package documentation of ExtremeConfig for more information.
+
+            |br| * the default value is None, i.e. no extreme periods are added
+        :type extremes: tsam.ExtremeConfig or None
+
+        :param preserve_column_means: states if the cluster periods shall get rescaled such that their weighted
+            mean value fits the mean value of the original time series.
             |br| * the default value is False
-        :type segmentation: boolean
+        :type preserve_column_means: boolean
 
-        :param numberOfSegmentsPerPeriod: states the number of segments per period
-            |br| * the default value is 24
-        :type numberOfSegmentsPerPeriod:  strictly positive integer
-
-        :param clusterMethod: states the method which is used in the tsam package for clustering the time series
-            data. Options are for example 'averaging', 'k_means', 'exact k_medoid' or 'hierarchical'.
-
-            .. note::
-                Please refer to the tsam package documentation of the parameter clusterMethod for more information.
-
-            |br| * the default value is 'hierarchical'
-        :type clusterMethod: string
-
-        :param representationMethod: Chosen representation. If specified, the clusters are represented in the chosen
-            way. Otherwise, each clusterMethod has its own commonly used default representation method.
-
-            .. note::
-                Please refer to the tsam package documentation of the parameter representationMethod for more information.
-
-            |br| * the default Value is "durationRepresentation"
-        :type representationMethod: string
-
-        :param rescaleClusterPeriods: states if the cluster periods shall get rescaled such that their
-            weighted mean value fits the mean value of the original time series
-
-            .. note::
-                Please refer to the tsam package documentation of the parameter rescaleClusterPeriods for more information.
-
-            |br| * the default value is False
-        :type rescaleClusterPeriods: boolean
-
-        :param sortValues: states if the algorithm in the tsam package should use
-
-            (a) the sorted duration curves (-> True) or
-            (b) the original profiles (-> False)
-
-            of the time series data within a period for clustering.
-
-            .. note::
-                Please refer to the tsam package documentation of the parameter sortValues for more information.
-
-            |br| * the default value is True
-        :type sortValues: boolean
-
-        :param storeTSAinstance: states if the TimeSeriesAggregation instance created during clustering should be
-            stored in the EnergySystemModel instance.
+        :param storeTSAinstance: states if the :class:`tsam.AggregationResult` created during clustering
+            should be stored in the EnergySystemModel instance (as `esM.tsaInstance`). It is the ETHOS.TSAM
+            result itself, so its own attributes apply: ``cluster_representatives``,
+            ``cluster_assignments``, ``period_index``, ``n_clusters``, ``n_segments``, ``accuracy`` and
+            ``clustering``. The time the aggregation took is stored as `esM.tsaBuildTime` either way.
             |br| * the default value is False
         :type storeTSAinstance: boolean
+
+        :param kwargs: further arguments of :func:`tsam.aggregate`.
+
+        Examples:
+            Cluster into 7 typical days of 24 hourly time steps, without segmentation::
+
+                esM.aggregateTemporally(n_clusters=7, period_duration=24, segments=None)
+
+            Cluster with k-means, segment each period into 6 segments and preserve the peak demand::
+
+                esM.aggregateTemporally(
+                    n_clusters=7,
+                    cluster=fn.ClusterConfig(method="kmeans", representation="mean"),
+                    segments=fn.SegmentConfig(n_segments=6),
+                    extremes=fn.ExtremeConfig(max_value=["Industry site_operationRateFix_IndustryLocation"]),
+                )
+
         """
+        # The number of time steps per period shapes the temporal structure of the model itself, so the period
+        # length is expressed in time steps here rather than left to ETHOS.TSAM.
+        numberOfTimeStepsPerPeriod = (
+            24
+            if period_duration is None
+            else round(
+                utils.parsePeriodDurationHours(period_duration) / self.hoursPerTimeStep
+            )
+        )
+        segmentation = segments is not None
+
         # Check input arguments which have to fit the temporal representation of the energy system
         utils.checkClusteringInput(
-            numberOfTypicalPeriods, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps)
+            n_clusters, numberOfTimeStepsPerPeriod, len(self.totalTimeSteps)
         )
-        if segmentation:
-            if numberOfSegmentsPerPeriod > numberOfTimeStepsPerPeriod:
-                if self.verboseLogLevel < 2:
-                    warnings.warn(
-                        "The chosen number of segments per period exceeds the number of time steps per"
-                        "period. The number of segments per period is set to the number of time steps per "
-                        "period."
-                    )
-                numberOfSegmentsPerPeriod = numberOfTimeStepsPerPeriod
+        if segmentation and segments.n_segments > numberOfTimeStepsPerPeriod:
+            if self.verboseLogLevel < 2:
+                warnings.warn(
+                    "The chosen number of segments per period exceeds the number of time steps per"
+                    "period. The number of segments per period is set to the number of time steps per "
+                    "period."
+                )
+            segments = replace(segments, n_segments=numberOfTimeStepsPerPeriod)
+        numberOfSegmentsPerPeriod = segments.n_segments if segmentation else 0
         hoursPerPeriod = int(numberOfTimeStepsPerPeriod * self.hoursPerTimeStep)
 
         timeStart = time.time()
         if segmentation:
             utils.output(
                 "\nClustering time series data with "
-                + str(numberOfTypicalPeriods)
+                + str(n_clusters)
                 + " typical periods and "
                 + str(numberOfTimeStepsPerPeriod)
                 + " time steps per period \nfurther clustered to "
@@ -984,7 +1107,7 @@ class EnergySystemModel:
         else:
             utils.output(
                 "\nClustering time series data with "
-                + str(numberOfTypicalPeriods)
+                + str(n_clusters)
                 + " typical periods and "
                 + str(numberOfTimeStepsPerPeriod)
                 + " time steps per period...",
@@ -1008,78 +1131,38 @@ class EnergySystemModel:
 
         # clustering of the time series data per investment period individually
         for ip in self.investmentPeriods:
-            timeSeriesData, weightDict = [], {}
-            for mdlName, mdl in self.componentModelingDict.items():
-                for compName, comp in mdl.componentsDict.items():
-                    (
-                        compTimeSeriesData,
-                        compWeightDict,
-                    ) = comp.getDataForTimeSeriesAggregation(ip)
-                    if compTimeSeriesData is not None:
-                        (
-                            timeSeriesData.append(compTimeSeriesData),
-                            weightDict.update(compWeightDict),
-                        )
-            timeSeriesData = pd.concat(timeSeriesData, axis=1)
-            # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
-            timeSeriesData.index = pd.date_range(
-                "2050-01-01 00:30:00",
-                periods=len(self.totalTimeSteps),
-                freq=(str(self.hoursPerTimeStep) + "h"),
-                tz="Europe/Berlin",
+            timeSeriesData, weightDict, zero_data_cols = (
+                self.createTimeSeriesDataForAggregation(ip)
             )
 
-            # Cluster data with tsam package (the reindex call is here for reproducibility of TimeSeriesAggregation
-            # call) depending on whether segmentation is activated or not
-            timeSeriesData = timeSeriesData.reindex(
-                sorted(timeSeriesData.columns), axis=1
+            aggregationResult = tsam.aggregate(
+                timeSeriesData,
+                n_clusters=n_clusters,
+                period_duration=hoursPerPeriod,
+                temporal_resolution=self.hoursPerTimeStep,
+                cluster=cluster,
+                segments=segments,
+                extremes=extremes,
+                weights=weightDict,
+                preserve_column_means=preserve_column_means,
+                **kwargs,
             )
-            # find data with only zeros
-            zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
-            # drop columns with only zeros
-            timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
-            weightDict = {
-                k: v for k, v in weightDict.items() if k not in zero_data_cols
-            }
+            typicalPeriods = aggregationResult.cluster_representatives
+
             if segmentation:
-                clusterClass = TimeSeriesAggregation(
-                    timeSeries=timeSeriesData,
-                    noTypicalPeriods=numberOfTypicalPeriods,
-                    segmentation=segmentation,
-                    noSegments=numberOfSegmentsPerPeriod,
-                    hoursPerPeriod=hoursPerPeriod,
-                    clusterMethod=clusterMethod,
-                    sortValues=sortValues,
-                    weightDict=weightDict,
-                    rescaleClusterPeriods=rescaleClusterPeriods,
-                    representationMethod=representationMethod,
-                    **kwargs,
+                # The typical periods are indexed by typical period number, segment number per
+                # typical period and the length of that segment. Split the length off, so that
+                # the data carries the same two index levels as without segmentation.
+                data = typicalPeriods.reset_index(level=2, drop=True)
+                timeStepsPerSegment = pd.Series(
+                    typicalPeriods.index.get_level_values("Segment Duration"),
+                    index=data.index,
                 )
-                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-                # second index as segment number per typical period.
-                data = pd.DataFrame.from_dict(
-                    clusterClass.clusterPeriodDict
-                ).reset_index(level=2, drop=True)
-                # Get the length of each segment in each typical period with the first index as typical period number and
-                # the second index as segment number per typical period.
-                timeStepsPerSegment = pd.DataFrame.from_dict(
-                    clusterClass.segmentDurationDict
-                )["Segment Duration"]
             else:
-                clusterClass = TimeSeriesAggregation(
-                    timeSeries=timeSeriesData,
-                    noTypicalPeriods=numberOfTypicalPeriods,
-                    hoursPerPeriod=hoursPerPeriod,
-                    clusterMethod=clusterMethod,
-                    sortValues=sortValues,
-                    weightDict=weightDict,
-                    rescaleClusterPeriods=rescaleClusterPeriods,
-                    representationMethod=representationMethod,
-                    **kwargs,
-                )
-                # Convert the clustered data to a pandas DataFrame with the first index as typical period number and the
-                # second index as time step number per typical period.
-                data = pd.DataFrame.from_dict(clusterClass.clusterPeriodDict)
+                # The typical periods are indexed by typical period number and time step number
+                # per typical period. Copied because the zero columns are added back below, which
+                # must not reach the result stored as esM.tsaInstance.
+                data = typicalPeriods.copy()
 
             # add zeros data back to data
             data[zero_data_cols] = 0.0
@@ -1091,8 +1174,8 @@ class EnergySystemModel:
 
             # Store time series aggregation parameters in class instance
             if storeTSAinstance:
-                self.tsaInstance = clusterClass
-            self.typicalPeriods = clusterClass.clusterPeriodIdx
+                self.tsaInstance = aggregationResult
+            self.typicalPeriods = aggregationResult.period_index
             self.timeStepsPerPeriod = list(range(numberOfTimeStepsPerPeriod))
             self.segmentation = segmentation
             if segmentation:
@@ -1114,7 +1197,7 @@ class EnergySystemModel:
                 segmentStartTime[segmentStartTime.index.get_level_values(1) == 0] = 0
                 self.segmentStartTime[ip] = segmentStartTime  # ip-dependent
 
-            self.periodsOrder[ip] = clusterClass.clusterOrder
+            self.periodsOrder[ip] = aggregationResult.cluster_assignments
             self.periodOccurrences[ip] = [
                 (self.periodsOrder[ip] == tp).sum() for tp in self.typicalPeriods
             ]
@@ -1134,12 +1217,55 @@ class EnergySystemModel:
         # Set cluster flag to true (used to ensure consistently clustered time series data)
         self.isTimeSeriesDataClustered = True
         timeEnd = time.time()
-        if storeTSAinstance:
-            clusterClass.tsaBuildTime = timeEnd - timeStart
-            self.tsaInstance = clusterClass
+        # The time the aggregation took as a whole, i.e. including the preparation of the time
+        # series. ETHOS.TSAM reports its own share of it as result.clustering_duration.
+        self.tsaBuildTime = timeEnd - timeStart
         utils.output(
             "\t\t(%.4f" % (timeEnd - timeStart) + " sec)\n", self.verboseLogLevel, 0
         )
+
+    def createTimeSeriesDataForAggregation(
+        self,
+        ip,
+    ) -> tuple[pd.DataFrame, dict, pd.Index]:
+        """Create and return the time series data, weights, and zero-data columns for aggregation.
+
+        Returns:
+            tuple[pd.DataFrame, dict, pd.Index]: Time series data, weight dictionary,
+            and columns containing only zero values.
+
+        """
+        timeSeriesData, weightDict = [], {}
+        for mdlName, mdl in self.componentModelingDict.items():
+            for compName, comp in mdl.componentsDict.items():
+                (
+                    compTimeSeriesData,
+                    compWeightDict,
+                ) = comp.getDataForTimeSeriesAggregation(ip)
+                if compTimeSeriesData is not None:
+                    (
+                        timeSeriesData.append(compTimeSeriesData),
+                        weightDict.update(compWeightDict),
+                    )
+        timeSeriesData = pd.concat(timeSeriesData, axis=1)
+        # Note: Sets index for the time series data. The index is of no further relevance in the energy system model.
+        timeSeriesData.index = pd.date_range(
+            "2050-01-01 00:30:00",
+            periods=len(self.totalTimeSteps),
+            freq=(str(self.hoursPerTimeStep) + "h"),
+            tz="Europe/Berlin",
+        )
+
+        # Sort the columns so that the aggregation is reproducible: the column order otherwise
+        # follows the order the components were added in, which ETHOS.TSAM's clustering sees.
+        timeSeriesData = timeSeriesData.reindex(sorted(timeSeriesData.columns), axis=1)
+        # find data with only zeros
+        zero_data_cols = timeSeriesData.columns[(timeSeriesData == 0).all()]
+        # drop columns with only zeros
+        timeSeriesData = timeSeriesData.drop(columns=zero_data_cols)
+        weightDict = {k: v for k, v in weightDict.items() if k not in zero_data_cols}
+
+        return timeSeriesData, weightDict, zero_data_cols
 
     def declareTimeSets(self, pyM, timeSeriesAggregation, segmentation):
         """Set and initialize basic time parameters and sets.
@@ -1389,7 +1515,7 @@ class EnergySystemModel:
                                 componentsOfBalanceLimit[balanceLimitID],
                             )
 
-            setattr(pyM, "yearlyBalanceLimitDict", yearlyBalanceLimitDict)
+            pyM.yearlyBalanceLimitDict = yearlyBalanceLimitDict
 
             def yearlyBalanceLimitConstraint(pyM, ID, loc, ip, lowerBound, value):
                 # yearly restriction
@@ -1458,10 +1584,10 @@ class EnergySystemModel:
                         componentsOfBalanceLimit[balanceLimitID],
                     )
 
-            setattr(pyM, "pathwayBalanceLimitDict", pathwayBalanceLimitDict)
+            pyM.pathwayBalanceLimitDict = pathwayBalanceLimitDict
 
             def pathwayBalanceLimitConstraint(pyM, ID, loc, lowerBound, value):
-                # pathway restricition
+                # pathway restriction
                 balanceSum = sum(
                     mdl.getBalanceLimitContribution(
                         esM=self,
@@ -1509,22 +1635,6 @@ class EnergySystemModel:
             "Declaring shared potential constraint...", self.verboseLogLevel, 0
         )
 
-        # Create shared potential dictionary (maps a shared potential ID and a location to components who share the
-        # potential)
-        potentialDict = {}
-        for ip in self.investmentPeriods:
-            for mdl in self.componentModelingDict.values():
-                for compName, comp in mdl.componentsDict.items():
-                    if comp.sharedPotentialID is not None:
-                        [
-                            potentialDict.setdefault(
-                                (comp.sharedPotentialID, loc, ip), []
-                            ).append(compName)
-                            for loc in comp.processedLocationalEligibility.index
-                            if comp.processedCapacityMax[ip][loc] != 0
-                        ]
-        pyM.sharedPotentialDict = potentialDict
-
         # Define and initialize constraints for each instance and location where components have to share an available
         # potential. Sum up the relative contributions to the shared potential and ensure that the total share is
         # <= 100%. For this, get the contributions to the shared potential for the corresponding ID and
@@ -1539,7 +1649,7 @@ class EnergySystemModel:
             )
 
         pyM.ConstraintSharedPotentials = pyomo.Constraint(
-            pyM.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
+            self.sharedPotentialDict.keys(), rule=sharedPotentialConstraint
         )
 
     def declareComponentLinkedQuantityConstraints(self, pyM):
@@ -1619,14 +1729,18 @@ class EnergySystemModel:
         """
         utils.output("Declaring commodity balances...", self.verboseLogLevel, 0)
 
+        pooled_commodities = set(self.pooledCommodities.keys())
+
         # Declare and initialize a set that states for which location and commodity the commodity balance constraints
         # are non-trivial (i.e. not 0 == 0; trivial constraints raise errors in pyomo).
+        # Pooled commodities are excluded here — they get their own constraint below.
         def initLocationCommoditySet(pyM):
             return (
                 (loc, commod)
                 for loc in self.locations
                 for commod in self.commodities
-                if any(
+                if commod not in pooled_commodities
+                and any(
                     [
                         mdl.hasOpVariablesForLocationCommodity(self, loc, commod)
                         for mdl in self.componentModelingDict.values()
@@ -1652,6 +1766,39 @@ class EnergySystemModel:
 
         pyM.commodityBalanceConstraint = pyomo.Constraint(
             pyM.locationCommoditySet, pyM.timeSet, rule=commodityBalanceConstraint
+        )
+
+        # Declare pool-level balance constraints for pooled commodities.
+        # For each (pool_name, commodity) pair the sum of contributions across all pool
+        # locations must equal zero at every time step.
+        def initPoolCommoditySet(pyM):
+            return (
+                (pool_name, commod)
+                for commod, pools in self.pooledCommodities.items()
+                for pool_name, locs in pools.items()
+                # include only pools with valid operation variable
+                if any(
+                    mdl.hasOpVariablesForLocationCommodity(self, loc, commod)
+                    for loc in locs
+                    for mdl in self.componentModelingDict.values()
+                )
+            )
+
+        pyM.poolCommoditySet = pyomo.Set(dimen=2, initialize=initPoolCommoditySet)
+
+        def poolCommodityBalanceConstraint(pyM, pool_name, commod, ip, p, t):
+            pool_locs = self.pooledCommodities[commod][pool_name]
+            return (
+                sum(
+                    mdl.getCommodityBalanceContribution(pyM, commod, loc, ip, p, t)
+                    for loc in pool_locs
+                    for mdl in self.componentModelingDict.values()
+                )
+                == 0
+            )
+
+        pyM.poolCommodityBalanceConstraint = pyomo.Constraint(
+            pyM.poolCommoditySet, pyM.timeSet, rule=poolCommodityBalanceConstraint
         )
 
     def declareObjective(self, pyM):
@@ -1975,6 +2122,61 @@ class EnergySystemModel:
         Last edited: November 16, 2023
         |br| @author: FINE Developer Team (FZJ IEK-3)
         """
+        timeStart, process, rss_by_psutil_start = self._prepareOptimization(
+            declaresOptimizationProblem,
+            relaxIsBuiltBinary,
+            timeSeriesAggregation,
+            logFileName,
+            threads,
+            solver,
+            timeLimit,
+            optimizationSpecs,
+            warmstart,
+            relevanceThreshold,
+            includePerformanceSummary,
+        )
+        solver, solver_info = self._runOptimization(
+            logFileName,
+            threads,
+            solver,
+            timeLimit,
+            optimizationSpecs,
+            warmstart,
+            timeStart,
+        )
+        self._runPostprocessing(solver_info, timeStart)
+        self._buildPerformanceSummary(
+            logFileName, solver, includePerformanceSummary, process, rss_by_psutil_start
+        )
+
+    def _prepareOptimization(
+        self,
+        declaresOptimizationProblem,
+        relaxIsBuiltBinary,
+        timeSeriesAggregation,
+        logFileName,
+        threads,
+        solver,
+        timeLimit,
+        optimizationSpecs,
+        warmstart,
+        relevanceThreshold,
+        includePerformanceSummary,
+    ):
+        """Prepare the optimization run of the optimize function.
+
+        The pyomo ConcreteModel instance is declared (if requested), the optimize inputs are
+        checked and the keyword arguments are stored in the solverSpecs of the
+        EnergySystemModel instance. If a performance summary is requested, the RAM usage
+        before the optimization is recorded as well. The arguments correspond to the ones of
+        the optimize function.
+
+        :return: starting time of the optimization, the psutil process handle and the RAM
+            usage before the optimization (the latter two are None if no performance summary
+            is requested).
+        :rtype: tuple
+        """
+        process, rss_by_psutil_start = None, None
         if not timeSeriesAggregation:
             self.segmentation = False
 
@@ -2038,17 +2240,38 @@ class EnergySystemModel:
             timeSeriesAggregation,
         )
 
+        return timeStart, process, rss_by_psutil_start
+
+    def _runOptimization(
+        self,
+        logFileName,
+        threads,
+        solver,
+        timeLimit,
+        optimizationSpecs,
+        warmstart,
+        timeStart,
+    ):
+        """Solve the declared optimization problem with the specified solver.
+
+        The solve time is stored in the solverSpecs of the EnergySystemModel instance. The arguments correspond
+        to the ones of the optimize function; timeStart is the starting time returned by the
+        _prepareOptimization function.
+
+        :return: the solver which was actually used and the results object returned by it.
+        :rtype: tuple
+        """
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
         solverList = [
             ImplementedSolvers.STANDARD_SOLVER.value,
-            ImplementedSolvers.GLPK.value,
+            ImplementedSolvers.HIGHS.value,
         ]
 
         if solver != "None":
             try:
                 opt.SolverFactory(solver).available()
-            except Exception:
+            except (ApplicationError, ValueError, OSError):
                 solver = "None"
 
         if solver == "None":
@@ -2064,7 +2287,7 @@ class EnergySystemModel:
                                 self.verboseLogLevel,
                                 0,
                             )
-                    except Exception:
+                    except (ApplicationError, ValueError, OSError):
                         pass
 
         if solver == "None":
@@ -2096,7 +2319,24 @@ class EnergySystemModel:
 
             else:
                 optimizer = opt.SolverFactory(solver, solver_io="python")
+        elif solver == ImplementedSolvers.HIGHS.value:
+            # Handle cases with no duals without exceptions in highs
+            class LegacyHighs(LegacySolverInterface, Highs):
+                def get_duals(self, cons_to_load=None):
+                    if self._sol is None or not self._sol.dual_valid:
+                        return {}
+                    return super().get_duals(cons_to_load)
 
+            optimizer = LegacyHighs()
+            if optimizationSpecs is not None:
+                solver_options = opt.OptSolver._options_string_to_dict(
+                    optimizationSpecs
+                )
+
+                for k, v in solver_options.items():
+                    optimizer.highs_options[k] = v
+            if timeLimit is not None:
+                optimizer.highs_options["time_limit"] = timeLimit
         else:
             optimizer = opt.SolverFactory(solver)
 
@@ -2147,6 +2387,21 @@ class EnergySystemModel:
             0,
         )
 
+        return solver, solver_info
+
+    def _runPostprocessing(self, solver_info, timeStart):
+        """Process the optimization output of the component modeling classes.
+
+        The solver status and the termination condition are evaluated first; output is only
+        generated if they are acceptable. The objective value and the runtime of the optimize
+        function call are stored in the EnergySystemModel instance.
+
+        :param solver_info: results object returned by the _runOptimization function
+        :type solver_info: pyomo results object
+
+        :param timeStart: starting time returned by the _prepareOptimization function
+        :type timeStart: float
+        """
         ################################################################################################################
         #                                      Post-process optimization output                                        #
         ################################################################################################################
@@ -2188,6 +2443,12 @@ class EnergySystemModel:
                 self.verboseLogLevel,
                 0,
             )
+        elif termCondition == opt.TerminationCondition.other:
+            utils.output(
+                "No solution was found (TerminationCondition: other). No output is generated.",
+                self.verboseLogLevel,
+                0,
+            )
         else:
             # If the solver status is not okay (hence either has a warning, an error, was aborted or has an unknown
             # status), show a warning message.
@@ -2208,50 +2469,23 @@ class EnergySystemModel:
                 # if _capacityVariablesOptimum is not a dict, convert to dict
                 # (if single year system is optimized several times)
 
-                mdl.setOptimalValues(self, self.pyM)
+                # Result pipeline: read the solved variables, derive the economics from
+                # them and assemble the summary as a view of both. The phases are driven
+                # from here rather than hidden behind a single overridable method, so that
+                # a modeling class only overrides the phase it actually changes.
+                mdl.extractRawResults(self, self.pyM)
+                mdl.deriveEconomics(self, self.pyM)
+                mdl.buildOptimizationSummary(self)
+                # Rename the internal _*VariablesOptimum/_optSummary attributes to their
+                # public names. This is driven from here, once per modeling class, so that
+                # it cannot be forgotten by a modeling class.
+                mdl._convertOptimalValueNames(self)
                 outputString = (
                     ("for {:" + w + "}").format(key + " ...")
                     + "(%.4f" % (time.time() - __t)
                     + "sec)"
                 )
                 utils.output(outputString, self.verboseLogLevel, 0)
-
-                # convert optimal values from internal name to external name
-                # e.g. from _capacityVariablesOptimum to capacityVariablesOptimum
-                # For perfectForesight the data stays the same, for a single year optimization
-                # the data is converted from a dict with a single entry to a dataframe
-                # By this, old models will not fail.
-                def convertOptimalValues(esM, mdl, key):
-                    if key in mdl.__dict__.keys():
-                        if esM.numberOfInvestmentPeriods == 1:
-                            setattr(
-                                mdl,
-                                key.replace("_", ""),
-                                getattr(mdl, key)[esM.investmentPeriodNames[0]],
-                            )
-                        else:
-                            setattr(mdl, key.replace("_", ""), getattr(mdl, key))
-                    else:
-                        pass
-
-                optimalValueParameters = [
-                    "_optSummary",
-                    "_stateOfChargeOperationVSariablesOptimum",
-                    "_chargeOperationVariablesOptimum",
-                    "_dischargeOperationVariablesOptimum",
-                    "_phaseAngleVariablesOptimum",
-                    "_operationVariablesOptimum",
-                    "_discretizationPointVariablesOptimum",
-                    "_discretizationSegmentConVariablesOptimum",
-                    "_discretizationSegmentBinVariablesOptimum",
-                    "_capacityVariablesOptimum",
-                    "_isBuiltVariablesOptimum",
-                    "_commissioningVariablesOptimum",
-                    "_decommissioningVariablesOptimum",
-                ]
-
-                for optParam in optimalValueParameters:
-                    convertOptimalValues(self, mdl, optParam)
 
             if hasattr(self, "pwlcfModel"):
                 self.pwlcfModel.setOptimalValues(self, self.pyM)
@@ -2268,6 +2502,34 @@ class EnergySystemModel:
             self.solverSpecs["buildtime"] + time.time() - timeStart
         )
 
+    def _buildPerformanceSummary(
+        self,
+        logFileName,
+        solver,
+        includePerformanceSummary,
+        process,
+        rss_by_psutil_start,
+    ):
+        """Build the performance summary of the optimize function call and store it as
+        attribute ('self.performanceSummary') in the EnergySystemModel instance.
+
+        Nothing is done if includePerformanceSummary is False.
+
+        :param logFileName: logFileName of the optimize function call
+        :type logFileName: string
+
+        :param solver: the solver which was used, as returned by the _runOptimization function
+        :type solver: string
+
+        :param includePerformanceSummary: states if a performance summary should be built
+        :type includePerformanceSummary: boolean
+
+        :param process: psutil process handle returned by the _prepareOptimization function
+        :type process: psutil.Process or None
+
+        :param rss_by_psutil_start: RAM usage before the optimization in GB
+        :type rss_by_psutil_start: float or None
+        """
         if includePerformanceSummary:
             rss_by_psutil_end = process.memory_info().rss / (
                 1024 * 1024 * 1024
@@ -2292,17 +2554,19 @@ class EnergySystemModel:
 
             # TSA Values
             if self.isTimeSeriesDataClustered and (self.tsaInstance is not None):
-                tsaBuildTime = self.tsaInstance.tsaBuildTime
+                tsaBuildTime = self.tsaBuildTime
+                clusterConfig = self.tsaInstance.clustering.cluster_config
 
                 tsa_parameters_dict = {
-                    "clusterMethod": self.tsaInstance.clusterMethod,
-                    "noTypicalPeriods": self.tsaInstance.noTypicalPeriods,
-                    "hoursPerPeriod": self.tsaInstance.hoursPerPeriod,
-                    "segmentation": self.tsaInstance.segmentation,
-                    "noSegments": self.tsaInstance.noSegments,
-                    "tsaSolver": self.tsaInstance.solver,
-                    "timeStepsPerPeriod": self.tsaInstance.timeStepsPerPeriod,
-                    "tsaBuildTime": self.tsaInstance.tsaBuildTime,
+                    "clusterMethod": clusterConfig.method,
+                    "noTypicalPeriods": self.tsaInstance.n_clusters,
+                    "hoursPerPeriod": self.tsaInstance.n_timesteps_per_period
+                    * self.hoursPerTimeStep,
+                    "segmentation": self.tsaInstance.n_segments is not None,
+                    "noSegments": self.tsaInstance.n_segments,
+                    "tsaSolver": clusterConfig.solver,
+                    "timeStepsPerPeriod": self.tsaInstance.n_timesteps_per_period,
+                    "tsaBuildTime": tsaBuildTime,
                 }
             else:
                 tsa_parameters_dict = {}

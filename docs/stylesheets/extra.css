@@ -1,16 +1,40 @@
-/* FINE brand colors based on FZ Jülich / ETHOS palette */
-[data-md-color-scheme="default"] {
-    --md-primary-fg-color: #003865;
-    --md-primary-fg-color--light: #1a5490;
-    --md-primary-fg-color--dark: #002244;
-    --md-accent-fg-color: #e87722;
+/* ==========================================================================
+   ETHOS.FINE — Forschungszentrum Jülich Brand Theme
+   ========================================================================== */
+
+/* -- FZJ Brand Colors ----------------------------------------------------
+   Shared across the ETHOS docs sites (GeoKit, GLAES, TSAM, FINE); keep this
+   block identical in each repo's extra.css. */
+:root {
+    --md-primary-fg-color: #023d6b;
+    --md-primary-fg-color--light: #0a5a9e;
+    --md-primary-fg-color--dark: #012845;
+    --md-primary-bg-color: #ffffff;
+    --md-primary-bg-color--light: #ffffffb3;
+    --md-accent-fg-color: #21918c;
+    --md-accent-fg-color--transparent: #21918c1a;
+    --md-accent-bg-color: #ffffff;
+    --md-accent-bg-color--light: #ffffffb3;
+    --md-typeset-a-color: #35b0ab;
+}
+
+.md-typeset a {
+    color: #35b0ab;
+}
+
+.md-typeset a:hover {
+    color: #21918c;
 }
 
 [data-md-color-scheme="slate"] {
-    --md-primary-fg-color: #1a5490;
-    --md-primary-fg-color--light: #2d6fb5;
-    --md-primary-fg-color--dark: #003865;
-    --md-accent-fg-color: #e87722;
+    --md-primary-fg-color: #023d6b;
+    --md-primary-fg-color--light: #0a5a9e;
+    --md-primary-fg-color--dark: #012845;
+    --md-primary-bg-color: #ffffff;
+    --md-primary-bg-color--light: #ffffffb3;
+    --md-accent-fg-color: #35b0ab;
+    --md-accent-fg-color--transparent: #35b0ab1a;
+    --md-typeset-a-color: #35b0ab;
 }
 
 /* Improve table styling */
@@ -42,8 +66,98 @@
     max-height: none !important;
 }
 
-/* README logo in dark mode: invert the dark-blue logo to white so it
-   remains legible on the dark page background */
-[data-md-color-scheme="slate"] .md-content img[alt="ETHOS.FINE logo"] {
+/* -- Home page logo row ---------------------------------------------------
+   The home page is generated from README.md by
+   docs/scripts/gen_index_from_readme.py, which sizes its logos with the HTML
+   `width` attribute because that is what GitHub honours. Material's
+   ".md-typeset img" rule (specificity 0,1,1) sets `height: auto`, so these
+   rules re-assert a size at specificity 0,2,0. Keep in sync with LOGO_BLOCKS
+   in the generator script.
+
+   Widths are in PERCENT, not pixels. It makes the pair fill the content column
+   instead of leaving a ragged gap at the right; and because every ETHOS docs
+   site uses the same Material grid and sidebars, a given percentage is the same
+   rendered width on all of them, which is what keeps the ICE-2 header the same
+   size across FINE, GeoKit, GLAES and TSAM. Keep `.hero-logo--jsa` at 65.8% in
+   each repo's extra.css.
+
+   `height: auto` resolves each logo's height from its own aspect ratio (the
+   FINE mark is 336x154, 2.18:1; the ICE-2 header 568.23x81.38, 6.98:1). The
+   FINE mark is a squarer lockup, so it is deliberately NOT matched to the
+   ICE-2 banner's height — at 28% it runs taller, as it did before this change.
+   Together they take 93.8% of the row, leaving room for the separator.
+
+   Dark mode is handled by swapping to fine_logo_v19_dark.svg via the
+   "#only-light"/"#only-dark" fragments, which replaced a CSS
+   `filter: brightness(0) invert(1)` on the light logo — the repo ships a
+   purpose-made dark variant, so inverting the light one is unnecessary. */
+.md-typeset .hero-logo--fine {
+    width: 28%;
+    height: auto;
+}
+
+.md-typeset .hero-logo--jsa {
+    width: 65.8%;
+    height: auto;
+}
+
+/* Acknowledgement logo at the foot of the page — sits alone, so a fixed width
+   (matching the README's width="200") rather than a share of the row. */
+.md-typeset .hero-logo--helmholtz {
+    width: 200px;
+    height: auto;
+}
+
+/* -- Institutional footer -------------------------------------------------
+   Shared across the ETHOS docs sites; keep identical in each repo. */
+.footer-institutional {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.5rem 0;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.footer-institutional__logos {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-shrink: 0;
+}
+
+/* Material's ".md-typeset img" rule (specificity 0,1,1) forces height:auto on
+   images inside the footer meta. We scope under ".md-footer" (specificity
+   0,2,0) so our sizing wins — otherwise the Helmholtz SVG, which has only a
+   viewBox and no intrinsic width/height, is forced to height:auto, collapses
+   to 0, and disappears. Height-based sizing keeps the two logos aligned and
+   symmetric. The footer is always dark, so the JSA logo is inverted to white. */
+.md-footer .footer-logo--jsa {
+    height: 60px;
+    width: auto;
     filter: brightness(0) invert(1);
+}
+
+.md-footer .footer-logo--helmholtz {
+    height: 33px;
+    width: auto;
+}
+
+.footer-institutional__text {
+    font-size: 0.7rem;
+    line-height: 1.6;
+}
+
+.footer-institutional__text p {
+    margin: 0.2rem 0;
+}
+
+.footer-institutional__text a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.4);
+}
+
+.footer-institutional__text a:hover {
+    text-decoration-color: inherit;
 }

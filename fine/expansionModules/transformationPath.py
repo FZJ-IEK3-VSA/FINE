@@ -2,8 +2,18 @@ from fine import utils
 from fine.IOManagement import standardIO
 import pandas as pd
 import copy
+import logging
+from tsam import ClusterConfig
+
+# Deprecation shim, removed together with the ETHOS.TSAM 3.x keywords.
+from fine.aggregations.temporalAggregation.deprecatedKeywords import (
+    translateDeprecatedClusterMethod,
+)
+
+logger = logging.getLogger(__name__)
 
 
+@translateDeprecatedClusterMethod
 def optimizeSimpleMyopic(
     esM,
     startYear,
@@ -70,10 +80,14 @@ def optimizeSimpleMyopic(
     :type numberOfTimeStepsPerPeriod: strictly positive integer
 
     :param clusterMethod: states the method which is used in the tsam package for clustering the time series
-        data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
+        data. Options are 'averaging', 'kmeans', 'kmedoids', 'kmaxoids', 'hierarchical' and 'contiguous'.
 
         .. note::
-            Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+            Please refer to the tsam package documentation of the parameter method of the ClusterConfig for more information.
+
+        .. deprecated:: 2.8.0
+            The ETHOS.TSAM 3.x values ('k_means', 'k_medoids', 'k_maxoids' and 'adjacent_periods')
+            are still accepted. They are converted to the names above and warn.
 
         |br| * the default value is 'hierarchical'
     :type clusterMethod: string
@@ -112,8 +126,10 @@ def optimizeSimpleMyopic(
     )
     utils.checkSinkCompCO2toEnvironment(esM, CO2ReductionTargets)
     utils.checkCO2ReductionTargets(CO2ReductionTargets, nbOfSteps)
-    print("Number of optimization runs: ", nbOfSteps + 1)
-    print("Number of years represented by one optimization: ", nbOfRepresentedYears)
+    logger.info("Number of optimization runs: %s", nbOfSteps + 1)
+    logger.info(
+        "Number of years represented by one optimization: %s", nbOfRepresentedYears
+    )
     mileStoneYear = startYear
     if trackESMs:
         myopicResults = dict()
@@ -126,14 +142,15 @@ def optimizeSimpleMyopic(
         # Optimization
         if timeSeriesAggregation:
             esM.aggregateTemporally(
-                numberOfTypicalPeriods=numberOfTypicalPeriods,
-                numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
-                segmentation=False,
-                clusterMethod=clusterMethod,
-                solver=solver,
-                sortValues=True,
-                rescaleClusterPeriods=True,
-                representationMethod=None,
+                n_clusters=numberOfTypicalPeriods,
+                period_duration=numberOfTimeStepsPerPeriod * esM.hoursPerTimeStep,
+                cluster=ClusterConfig(
+                    method=clusterMethod,
+                    use_duration_curves=True,
+                    solver=solver,
+                ),
+                segments=None,
+                preserve_column_means=True,
             )
 
         esM.optimize(
@@ -203,11 +220,11 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                         - nbOfRepresentedYears
                     )
                     # If lifetime is shorter than number of represented years, skip component
-                    if any(getattr(stockComp, "lifetime") <= 0):
+                    if any(stockComp.lifetime <= 0):
                         continue
 
                     # If capacities are installed, set the values as capacityFix.
-                    if getattr(stockComp, "capacityFix") is None:
+                    if stockComp.capacityFix is None:
                         if isinstance(compValues.loc[comp], pd.DataFrame):
                             stockComp.processedCapacityFix = {}
                             stockComp.processedCapacityFix[0] = (
@@ -230,10 +247,7 @@ def getStock(esM, mileStoneYear, nbOfRepresentedYears):
                     ].lifetime -= nbOfRepresentedYears
                     # If lifetime is exceeded, remove component from the energySystemModel instance
                     if any(
-                        getattr(
-                            esM.componentModelingDict[mdl].componentsDict[comp],
-                            "lifetime",
-                        )
+                        esM.componentModelingDict[mdl].componentsDict[comp].lifetime
                         <= 0
                     ):
                         esM.removeComponent(comp)

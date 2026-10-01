@@ -126,7 +126,7 @@ def test_minimumPartLoad():
     restricted component should not run under 4 GW.
     """
     # read in original results
-    results = [4.0, 4.0, 0.0, 0.0, 4.0]
+    results = [5.0, 5.0, 0.0, 0.0, 4.0]
 
     # 2. Create an energy system model instance
     locations = {"example_region"}
@@ -170,7 +170,7 @@ def test_minimumPartLoad():
             hasCapacityVariable=True,
             investPerCapacity=0.65,
             opexPerCapacity=0.021,
-            opexPerOperation=0.01 / 8760,
+            opexPerOperation=0.03 / 8760,
             interestRate=0.08,
             economicLifetime=33,
         )
