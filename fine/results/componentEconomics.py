@@ -649,7 +649,7 @@ class ComponentEconomicsMixin:
         :type fncType: string
 
         :param factorName: String of the time-dependent parameter that have to be multiplied within the equation.
-            (e.g. 'commodityCostTimeSeries' to multiply the operation variable with the costs for each operation).
+            (e.g. 'processedCommodityCost' to multiply the operation variable with the costs for each operation).
         :type factorNames: string
 
         :param varName: String of the variable that has to be multiplied within the equation (e.g. 'op' for operation variable).
