@@ -347,7 +347,7 @@ def test_checkCapacityDevelopmentWithStock():
         2: pd.Series(
             {
                 "DenmarkRegion": 0.0,
-                "GermanyRegion": 0.0,
+                "GermanyRegion": 5.0,
             }
         ),
     }
@@ -394,7 +394,6 @@ def test_checkCapacityDevelopmentWithStock():
 
     # Technical lifetime: 2 IP.
     # Denmark: -3 GW from IP1 to IP2 exceeds 1 GW commissioned in IP0.
-    # Germany: -5 GW is covered by 10 GW due for decommissioning.
     # An error for Denmark should be raised.
 
     expectedMessage = "Decreasing capacity fix set for regions ['DenmarkRegion'] do not match with the decommissioning with its technical lifetime."
@@ -412,7 +411,7 @@ def test_checkCapacityDevelopmentWithStock():
     # meaning that the feasibility depends on other constraints and the optimal solution.
     # A warning should be issued.
 
-    expectedMessage = "A capacityFix value given for GermanyRegion is preceded by a missing value. This may cause infeasibilities."
+    expectedMessage = "A capacityFix value given for GermanyRegion is preceded by a missing value. This may cause infeasibilities if your optimization is myopic."
     with pytest.warns(UserWarning, match=re.escape(expectedMessage)):
         utils.checkCapacityDevelopmentWithStock(
             investmentPeriods=investmentPeriods,
