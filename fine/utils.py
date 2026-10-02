@@ -716,14 +716,10 @@ def checkCapacityDevelopmentWithStock(
 
     def roundTechnicalLifetime(lifetime):
         if floorTechnicalLifetime:
-            roundedLifetime = math.floor(lifetime)
-        else:
-            roundedLifetime = math.ceil(lifetime)
-        return roundedLifetime
+            return math.floor(lifetime)
+        return math.ceil(lifetime)
 
-    if stockCommissioning is None:
-        pass
-    else:
+    if stockCommissioning is not None:
         # if there is a stock, consider it for the capacity development
         # create a dataframe with columns for location, index for the years and
         # stock capacities as values
@@ -733,8 +729,8 @@ def checkCapacityDevelopmentWithStock(
         stockCommissioningDf = pd.DataFrame(
             0.0, index=years, columns=locations
         ).sort_index()
-        for ip, stockCommis in stockCommissioning.items():
-            for loc in stockCommis.index:
+        for ip, commissionedStock in stockCommissioning.items():
+            for loc in commissionedStock.index:
                 _techLifetime = roundTechnicalLifetime(technicalLifetime[loc])
                 yearRange = list(range(ip, ip + _techLifetime))
                 yearRange = [x for x in yearRange if x <= max(investmentPeriods)]
@@ -743,22 +739,18 @@ def checkCapacityDevelopmentWithStock(
                 # e.g. 4.19+2.19=6.380000000000001
                 # therefore a rounding is applied, as otherwise the following
                 # errors can be wrongly raised
-                if stockCommis[loc] - round(stockCommis[loc], 10) != 0:
+                if commissionedStock[loc] - round(commissionedStock[loc], 10) != 0:
                     warnings.warn(
-                        f"A stock commissioning of {stockCommis[loc]} was "
+                        f"A stock commissioning of {commissionedStock[loc]} was "
                         + f"passed for location {loc} in year {ip}. "
                         + "It will be rounded to 10 digits to "
                         + "check if the installed stock capacity does "
                         + "not exceed capacityMax and capacityFix"
                     )
-                stockCapacity.loc[yearRange, loc] += stockCommis[loc]
-                stockCapacity.loc[yearRange, loc] = round(
-                    stockCapacity.loc[yearRange, loc], 10
-                )
-                stockCommissioningDf.loc[ip, loc] = stockCommis[loc]
-                stockCommissioningDf.loc[ip, loc] = round(
-                    stockCommissioningDf.loc[ip, loc], 10
-                )
+
+                roundedCapacity = round(commissionedStock[loc], 10)
+                stockCapacity.loc[yearRange, loc] += roundedCapacity
+                stockCommissioningDf.loc[ip, loc] = roundedCapacity
 
         # check that the capacity max is not lower as the resulting
         # stock capacity
@@ -778,94 +770,97 @@ def checkCapacityDevelopmentWithStock(
                             + "commissioning and the technical lifetime) and "
                             + "capacityFix"
                         )
-    if capacityFix is not None:
-        if all(x is None for x in capacityFix.values()):
-            return
 
-        # get future capacity by capacityFix and initialize capacity commissioning
-        futureCapacityDevelopment = pd.DataFrame(index=investmentPeriods)
-        for ip in investmentPeriods:
-            if capacityFix[ip] is not None:
-                for loc in capacityFix[ip].index:
-                    futureCapacityDevelopment.loc[ip, loc] = capacityFix[ip][loc]
-            else:
-                futureCapacityDevelopment.loc[ip] = None
+    if capacityFix is None:
+        return
 
-        maxTechnicalLifetime = roundTechnicalLifetime(technicalLifetime.max())
-        capacityCommissioning = pd.DataFrame(
-            index=investmentPeriods, columns=futureCapacityDevelopment.columns
-        )
+    if all(x is None for x in capacityFix.values()):
+        return
 
-        # issue warning for possible infeasibilities when a NaN is followed by a number
-        for loc in futureCapacityDevelopment.columns:
-            for ip in investmentPeriods[1:]:
-                if pd.isna(futureCapacityDevelopment.loc[ip - 1, loc]) and not pd.isna(
-                    futureCapacityDevelopment.loc[ip, loc]
-                ):
-                    warnings.warn(
-                        f"A capacityFix value given for {loc} is preceded by a missing value."
-                        + " This may cause infeasibilities if your optimization is myopic."
-                    )
-        # create the total capacity development and commissions, if stock with past years of stock
-
-        if stockCommissioning is None:
-            capacityDevelopment = futureCapacityDevelopment
+    # get future capacity by capacityFix and initialize capacity commissioning
+    futureCapacityDevelopment = pd.DataFrame(index=investmentPeriods, dtype=float)
+    for ip in investmentPeriods:
+        if capacityFix[ip] is not None:
+            for loc in capacityFix[ip].index:
+                futureCapacityDevelopment.loc[ip, loc] = capacityFix[ip][loc]
         else:
-            pastYears = [x for x in stockCapacity.index if x < 0]
-            capacityDevelopment = pd.concat(
-                [stockCapacity.loc[pastYears], futureCapacityDevelopment]
-            )
-            capacityCommissioning = pd.concat(
-                [
-                    stockCommissioningDf.loc[pastYears].fillna(0),
-                    capacityCommissioning.fillna(0),
-                ]
-            )
+            futureCapacityDevelopment.loc[ip] = None
 
-        capacityDevelopment = capacityDevelopment.reindex(
-            range(-maxTechnicalLifetime - 1, max(investmentPeriods) + 1)
+    maxTechnicalLifetime = roundTechnicalLifetime(technicalLifetime.max())
+    capacityCommissioning = pd.DataFrame(
+        index=investmentPeriods,
+        columns=futureCapacityDevelopment.columns,
+        dtype=float,
+    )
+
+    # issue warning for possible infeasibilities when a NaN is followed by a number
+    for loc in futureCapacityDevelopment.columns:
+        for ip in investmentPeriods[1:]:
+            if pd.isna(futureCapacityDevelopment.loc[ip - 1, loc]) and not pd.isna(
+                futureCapacityDevelopment.loc[ip, loc]
+            ):
+                warnings.warn(
+                    f"A capacityFix value given for {loc} is preceded by a missing value."
+                    + " This may cause infeasibilities if your optimization is myopic."
+                )
+    # add historical stock if given
+
+    if stockCommissioning is None:
+        capacityDevelopment = futureCapacityDevelopment
+    else:
+        pastYears = [x for x in stockCapacity.index if x < 0]
+        capacityDevelopment = pd.concat(
+            [stockCapacity.loc[pastYears], futureCapacityDevelopment]
+        )
+        capacityCommissioning = pd.concat(
+            [
+                stockCommissioningDf.loc[pastYears].fillna(0),
+                capacityCommissioning.fillna(0),
+            ]
         )
 
-        capacityCommissioning = capacityCommissioning.reindex(
-            range(-maxTechnicalLifetime - 1, max(investmentPeriods) + 1)
-        ).fillna(0)
+    capacityDevelopment = capacityDevelopment.reindex(
+        range(-maxTechnicalLifetime - 1, max(investmentPeriods) + 1)
+    )
 
-        # Fill all NaN values with the preceding capacityFix. If no stock is given, 0 is filled in.
-        capacityDevelopment = capacityDevelopment.ffill().fillna(0)
+    capacityCommissioning = capacityCommissioning.reindex(
+        range(-maxTechnicalLifetime - 1, max(investmentPeriods) + 1)
+    ).fillna(0)
 
-        issueLocations = []
+    # fill all NaN values with the preceding capacityFix. If no stock is given, 0 is filled in.
+    capacityDevelopment = capacityDevelopment.ffill().fillna(0)
 
-        for loc in capacityDevelopment.columns:
-            roundedTechnicalLifetime = roundTechnicalLifetime(technicalLifetime[loc])
+    issueLocations = set()
 
-            # a technical lifetime of 1 ip or below will not cause issues
-            # as all capacity will be decommissioned after 1 ip
-            if roundedTechnicalLifetime <= 1:
-                continue
+    for loc in capacityDevelopment.columns:
+        roundedTechnicalLifetime = roundTechnicalLifetime(technicalLifetime[loc])
 
-            for ip in investmentPeriods:
-                # calculate newly commissioned capacity for each ip
-                capacityCommissioning.loc[ip, loc] = (
-                    -capacityDevelopment.loc[
-                        ip - 1, loc
-                    ]  # aggregated capacity in last ip
-                    + capacityCommissioning.loc[
-                        ip - roundedTechnicalLifetime, loc
-                    ]  # decommissions
-                    + capacityDevelopment.loc[ip, loc]  # capacityFix to be achieved
-                )
+        # a technical lifetime of 1 ip or below will not cause issues
+        # as all capacity will be decommissioned after 1 ip
+        if roundedTechnicalLifetime <= 1:
+            continue
 
-                if capacityCommissioning.loc[ip, loc] < 0:
-                    issueLocations.append(loc)
-
-        issueLocations = list(set(issueLocations))
-
-        if len(issueLocations) > 0:
-            raise ValueError(
-                f"Decreasing capacity fix set for regions {issueLocations} do"
-                + " not match with the decommissioning with its "
-                + "technical lifetime."
+        for ip in investmentPeriods:
+            # calculate newly commissioned capacity for each ip
+            capacityCommissioning.loc[ip, loc] = (
+                -capacityDevelopment.loc[ip - 1, loc]  # aggregated capacity in last ip
+                + capacityCommissioning.loc[
+                    ip - roundedTechnicalLifetime, loc
+                ]  # decommissions
+                + capacityDevelopment.loc[ip, loc]  # capacityFix to be achieved
             )
+
+            if capacityCommissioning.loc[ip, loc] < 0:
+                issueLocations.add(loc)
+
+    issueLocations = list(issueLocations)
+
+    if issueLocations:
+        raise ValueError(
+            f"Decreasing capacity fix set for regions {issueLocations} do"
+            + " not match with the decommissioning with its "
+            + "technical lifetime."
+        )
 
 
 def checkAndSetAnnuityPerpetuity(annuityPerpetuity, numberOfInvestmentPeriods):
