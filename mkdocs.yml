@@ -70,6 +70,10 @@ plugins:
           execute: false
           include_source: true
           allow_errors: true
+          # Notebook cells tagged "hide-output" (e.g. long solver logs) show their code but no output
+          remove_tag_config:
+              remove_all_outputs_tags:
+                  - hide-output
 
     - mkdocstrings:
           default_handler: python
@@ -181,8 +185,8 @@ nav:
           - "10 Partload": examples/10_Partload/10_Partload_Example.ipynb
 
     - Modular Examples:
-          - Overview: examples/index.md
-          - "Basic ESM": examples/Examples/_1_initialize_ESM.ipynb
+          - Overview: examples/Examples/index.md
+          - "Basic Tutorial": examples/Examples/_00_introduction/_2_basic_tutorial.ipynb
 
     - Integrated Software: integrated_software.md
     - Further Reading: further_reading.md

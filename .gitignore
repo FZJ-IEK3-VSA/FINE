@@ -15,9 +15,13 @@ __pycache__/
 build/
 .venv/
 site/
+.cache/
 
 # auto-copied example notebooks (generated during mkdocs build)
 docs/examples/[0-9]*/
+docs/examples/data/
+docs/examples/Examples/*
+!docs/examples/Examples/index.md
 
 # environment / secrets
 .env
