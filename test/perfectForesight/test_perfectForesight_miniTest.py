@@ -390,6 +390,23 @@ def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
     )
 
 
+@pytest.mark.parametrize("perfectForesight_test_esM", [True], indirect=True)
+def test_perfectForesight_annuityPerpetuity_zeroInterestRate(
+    perfectForesight_test_esM,
+):
+    with pytest.raises(ValueError, match="An interest rate of 0 cannot be set"):
+        perfectForesight_test_esM.add(
+            fn.Source(
+                esM=perfectForesight_test_esM,
+                name="PV_zeroInterest",
+                commodity="electricity",
+                hasCapacityVariable=True,
+                investPerCapacity=1e3,
+                interestRate=0,
+            )
+        )
+
+
 @pytest.mark.parametrize("annuityPerpetuity", [True, False])
 def test_perfectForesight_npv_with_stock(perfectForesight_test_esM, annuityPerpetuity):
     PvOperationRateMax = pd.DataFrame(
