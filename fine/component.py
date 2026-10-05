@@ -516,7 +516,8 @@ class Component(metaclass=ABCMeta):
         :type pwlcfParameters: dict
         """
         # Set general component data
-        utils.isEnergySystemModelInstance(esM)
+        if not isinstance(esM, fine.EnergySystemModel):
+            raise TypeError("The input is not an EnergySystemModel instance.")
         self.name = name
         self.dimension = dimension
         self.modelingClass = ComponentModel
@@ -551,9 +552,8 @@ class Component(metaclass=ABCMeta):
         self.economicLifetime = utils.checkAndSetCostParameter(
             esM, name, economicLifetime, dimension, locationalEligibility
         )
-        technicalLifetime = utils.checkTechnicalLifetime(
-            esM, technicalLifetime, economicLifetime
-        )
+        if technicalLifetime is None:
+            technicalLifetime = economicLifetime
         self.technicalLifetime = utils.checkAndSetCostParameter(
             esM, name, technicalLifetime, dimension, locationalEligibility
         )
@@ -563,12 +563,9 @@ class Component(metaclass=ABCMeta):
         self.floorTechnicalLifetime = utils.checkFlooringParameter(
             floorTechnicalLifetime, self.technicalLifetime, esM.investmentPeriodInterval
         )
-        self.ipTechnicalLifetime = utils.checkAndSetLifetimeInvestmentPeriod(
-            esM, name, self.technicalLifetime
-        )
-        self.ipEconomicLifetime = utils.checkAndSetLifetimeInvestmentPeriod(
-            esM, name, self.economicLifetime
-        )
+        # lifetimes in number of investment periods
+        self.ipTechnicalLifetime = self.technicalLifetime / esM.investmentPeriodInterval
+        self.ipEconomicLifetime = self.economicLifetime / esM.investmentPeriodInterval
 
         self.stockYears, self.processedStockYears = utils.checkStockYears(
             stockCommissioning,
@@ -629,7 +626,7 @@ class Component(metaclass=ABCMeta):
             self.processedStockYears + esM.investmentPeriods,
         )
         # interest rate
-        self.interestRate = utils.checkAndSetCostParameter(
+        self.interestRate = utils.checkAndSetInterestRate(
             esM, name, interestRate, dimension, locationalEligibility
         )
 
@@ -692,9 +689,10 @@ class Component(metaclass=ABCMeta):
             self.processedCapacityMax,
             self.processedCapacityMin,
         )
-        self.QPcostDev = utils.getQPcostDev(
-            self.processedStockYears + esM.investmentPeriods, self.processedQPcostScale
-        )
+        self.QPcostDev = {
+            ip: 1 - self.processedQPcostScale[ip]
+            for ip in self.processedStockYears + esM.investmentPeriods
+        }
 
         # stock commissioning
         self.stockCommissioning = stockCommissioning

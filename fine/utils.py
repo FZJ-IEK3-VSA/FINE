@@ -5,7 +5,6 @@ import warnings
 import numpy as np
 import pandas as pd
 
-import fine as fn
 from fine.enums import Dimension, VarType
 
 
@@ -74,12 +73,6 @@ def isSetOfStrings(setOfStrings):
         raise TypeError("The input argument has to be a set")
     if not any([isinstance(currentString, str) for currentString in setOfStrings]):
         raise TypeError("The list entries in the input argument must be strings")
-
-
-def isEnergySystemModelInstance(esM):
-    """Check if input is an EnergySystemModel instance."""
-    if not isinstance(esM, fn.EnergySystemModel):
-        raise TypeError("The input is not an EnergySystemModel instance.")
 
 
 def checkEnergySystemModelInput(
@@ -398,14 +391,6 @@ def getQPbound(investmentPeriods, QPcostScale, capacityMax, capacityMin):
                     if not minS.loc[x] and not maxS.loc[x]:
                         QPbound[ip].loc[x] = capacityMax[ip].loc[x]
     return QPbound
-
-
-def getQPcostDev(investmentPeriods, QPcostScale):
-    """MISSING."""
-    QPcostDev = {}
-    for ip in investmentPeriods:
-        QPcostDev[ip] = 1 - QPcostScale[ip]
-    return QPcostDev
 
 
 def checkLocationSpecficDesignInputParams(comp, esM):
@@ -850,18 +835,16 @@ def checkAndSetAnnuityPerpetuity(annuityPerpetuity, numberOfInvestmentPeriods):
 
 
 def checkAndSetInterestRate(esM, name, interestRate, dimension, elig):
-    """Set up interest rate per investment period."""
-    # set up interest rate per investment period
+    """Set up interest rate per location."""
+    # set up interest rate per location (constant for all investment periods)
     processedInterestRate = checkAndSetCostParameter(
         esM, name, interestRate, dimension, elig
     )
     # if annuity perpetuity is used, the interest rate cannot be 0
-    if esM.annuityPerpetuity:
-        for ip in esM.investmentPeriods:
-            if (processedInterestRate[ip] == 0).any():
-                raise ValueError(
-                    "An interest rate of 0 cannot be set if also using annuityPerpetuity"
-                )
+    if esM.annuityPerpetuity and (processedInterestRate == 0).any():
+        raise ValueError(
+            "An interest rate of 0 cannot be set if also using annuityPerpetuity"
+        )
     return processedInterestRate
 
 
@@ -1326,13 +1309,6 @@ def checkDesignVariableModelingParameters(
             )
 
 
-def checkTechnicalLifetime(esM, technicalLifetime, economicLifetime):
-    """Set technical lifetime to economical lifetime if not explicitly given."""
-    if technicalLifetime is None:
-        technicalLifetime = economicLifetime
-    return technicalLifetime
-
-
 def checkEconomicAndTechnicalLifetime(economicLifetime, technicalLifetime):
     """Ensure that economic lifetime is smaller than technical lifetime."""
     if (economicLifetime.sort_index() > technicalLifetime.sort_index()).any():
@@ -1435,19 +1411,6 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     return _data
 
 
-def setPartLoadMin(esM, partLoadMin):
-    """Set minimum part load."""
-    partLoadMin_ip = {}
-    for _ip in esM.investmentPeriodNames:
-        # map name of investment period (e.g. 2020) to index (e.g. 0)
-        ip = esM.investmentPeriodNames.index(_ip)
-        if isinstance(partLoadMin, float) or partLoadMin is None:
-            partLoadMin_ip[ip] = partLoadMin
-        elif isinstance(partLoadMin, dict):
-            partLoadMin_ip[ip] = partLoadMin[_ip]
-    return partLoadMin_ip
-
-
 def checkAndSetPartLoadMin(
     esM,
     name,
@@ -1494,9 +1457,11 @@ def checkAndSetPartLoadMin(
                 + " if partLoadMin is not None."
             )
 
+    # set part load min per investment period (also checks the years of a dict)
+    partLoadMin_ip = checkAndSetInvestmentPeriodParameters(name, partLoadMin, esM)
+
     # check the raw partloadmin
     if partLoadMin is not None:
-        checkInvestmentPeriodParameters(name, partLoadMin, esM.investmentPeriodNames)
         if isinstance(partLoadMin, dict):
             for ip in esM.investmentPeriodNames:
                 if partLoadMin[ip] is not None:
@@ -1509,9 +1474,6 @@ def checkAndSetPartLoadMin(
                 "Wrong datatype for partLoadMin. "
                 + "Either a dict, int or float is accepted."
             )
-
-    # set part load min per investment period
-    partLoadMin_ip = setPartLoadMin(esM, partLoadMin)
 
     if not any(value for value in partLoadMin_ip.values()):
         partLoadMin_ip = None
@@ -1585,11 +1547,6 @@ def checkAndSetInvestmentPeriodCostParameter(
                 f"Parameter of {name} should be a pandas series or a dictionary."
             )
     return parameter
-
-
-def checkAndSetLifetimeInvestmentPeriod(esM, name, lifetime):
-    """Calculate lifetime in investement periods."""
-    return lifetime / esM.investmentPeriodInterval
 
 
 def checkAndSetTimeSeriesConversionFactors(
@@ -2098,16 +2055,6 @@ def formatOptimizationOutput(
     )
 
 
-def setOptimalComponentVariables(optVal, varType, compDict):
-    """MISSING."""
-    if optVal is not None:
-        for compName, comp in compDict.items():
-            if compName in optVal.index:
-                setattr(comp, varType, optVal.loc[compName])
-            else:
-                setattr(comp, varType, None)
-
-
 def process2dimCapacityData(esM, name, data, years):
     """MISSING."""
     data = preprocess2dimInvestmentPeriodData(esM, name, data, years)
@@ -2204,13 +2151,6 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
     if isinstance(data, dict):
         return {ip: preprocessDataPerIp(data[ip]) for ip in data.keys()}
     return preprocessDataPerIp(data)
-
-
-def map2dimData(data, mapC):
-    """Missing."""
-    if data is not None and isinstance(data, pd.DataFrame):
-        return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
-    return data
 
 
 def output(output, verbose, val):

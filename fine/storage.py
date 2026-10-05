@@ -1910,12 +1910,12 @@ class StorageModel(ComponentModel):
         """Extract the storage specific raw solved operation variables.
 
         Adds ``chargeOperation``, ``dischargeOperation`` and ``stateOfChargeOperation`` to
-        ``rawResults`` and populates the corresponding ``self._*VariablesOptimum`` attributes
-        (and the component-level ``_stateOfChargeVariablesOptimum``). The state of charge is
-        reconstructed for both the non-TSA and the TSA/segmentation cases.
+        ``rawResults`` and populates the corresponding ``self._*VariablesOptimum`` attributes.
+        The state of charge is reconstructed for both the non-TSA and the TSA/segmentation
+        cases.
         """
         super()._extractSubclassRawResults(esM, pyM, rawResults)
-        compDict, abbrvName = self.componentsDict, self.abbrvName
+        abbrvName = self.abbrvName
         chargeOp = getattr(pyM, "chargeOp_" + abbrvName)
         dischargeOp = getattr(pyM, "dischargeOp_" + abbrvName)
         SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
@@ -2024,9 +2024,6 @@ class StorageModel(ComponentModel):
                 else:
                     optVal = None
             self._stateOfChargeOperationVariablesOptimum[ipName] = optVal
-            utils.setOptimalComponentVariables(
-                optVal, "_stateOfChargeVariablesOptimum", compDict
-            )
             rawResults[ipName]["stateOfChargeOperation"] = optVal
 
     def _deriveSubclassEconomics(self, esM, pyM, rawResults):
