@@ -30,7 +30,7 @@ classifiers = [
 ]
 keywords = ["energy assessment", "energy system", "optimization"]
 dependencies = [
-    "geopandas>=1.0.0,<=1.1.4",
+    "geopandas>=1.0.0,<=1.2.0",
     "openpyxl<=3.1.5",
     "matplotlib<=3.11.2",
     "xlrd>=1.2.0,<=2.0.2",
@@ -39,11 +39,11 @@ dependencies = [
     "pandas>=2.2.0,<3.0.0",
     "scipy>=1.7.2,<=1.17.1",
     "scikit-learn>=1.3.0,<=1.9.0",
-    "xarray>=2023.4.1,<=2026.7.0,!=2024.10.0,!=2024.11.0,!=2025.1,!=2025.3,!=2025.9",
+    "xarray>=2023.4.1,<=2026.9.0,!=2024.10.0,!=2024.11.0,!=2025.1,!=2025.3,!=2025.9",
     "rasterio>=1.3.7,<=1.5.1,!=1.3.0.post1",
     "netcdf4>1.5.8,<=1.7.4",
     "tsam>=4.1.0,<=4.1.1",
-    "networkx>=3.2,<=3.6.1",
+    "networkx>=3.2,<=3.7",
     "pwlf>=2.5.0,<=2.6.0",
     "psutil>=5.8.0,<=7.2.2",
     "gurobi-logtools>=3.2.0,<=4.0.1",
