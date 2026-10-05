@@ -99,10 +99,13 @@ def aggregate_time_series_spatially(
     }
     aggregated_coords["space"] = space_coords
 
-    coord_list = [value for value in aggregated_coords.values()]
-    dim_list = [key for key in aggregated_coords.keys()]
+    # Use the input array's actual positional dim order (not dict iteration
+    # order of .coords, which xarray does not guarantee to match .dims) so the
+    # output DataArray's values are not silently transposed.
+    dim_list = list(xr_data_array_in.dims)
+    coord_list = [aggregated_coords[dim] for dim in dim_list]
 
-    data_out_dummy = np.empty(tuple(len(coord) for coord in aggregated_coords.values()))
+    data_out_dummy = np.empty(tuple(len(coord) for coord in coord_list))
     data_out_dummy[:] = np.nan
 
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
@@ -188,10 +191,13 @@ def aggregate_values_spatially(
 
     aggregated_coords["space"] = space_coords
 
-    coord_list = [value for value in aggregated_coords.values()]
-    dim_list = [key for key in aggregated_coords.keys()]
+    # Use the input array's actual positional dim order (not dict iteration
+    # order of .coords, which xarray does not guarantee to match .dims) so the
+    # output DataArray's values are not silently transposed.
+    dim_list = list(xr_data_array_in.dims)
+    coord_list = [aggregated_coords[dim] for dim in dim_list]
 
-    data_out_dummy = np.zeros(tuple(len(coord) for coord in aggregated_coords.values()))
+    data_out_dummy = np.zeros(tuple(len(coord) for coord in coord_list))
 
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
@@ -257,10 +263,13 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
     aggregated_coords["space"] = space_coords
     aggregated_coords["space_2"] = space_coords
 
-    coord_list = [value for value in aggregated_coords.values()]
-    dim_list = [key for key in aggregated_coords.keys()]
+    # Use the input array's actual positional dim order (not dict iteration
+    # order of .coords, which xarray does not guarantee to match .dims) so the
+    # output DataArray's values are not silently transposed.
+    dim_list = list(xr_data_array_in.dims)
+    coord_list = [aggregated_coords[dim] for dim in dim_list]
 
-    data_out_dummy = np.zeros(tuple(len(coord) for coord in aggregated_coords.values()))
+    data_out_dummy = np.zeros(tuple(len(coord) for coord in coord_list))
 
     xr_data_array_out = xr.DataArray(data_out_dummy, coords=coord_list, dims=dim_list)
 
