@@ -379,8 +379,8 @@ def test_perfectForesight_binary():
     )
 
 
+@pytest.mark.parametrize("perfectForesight_test_esM", [True], indirect=True)
 def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
-    perfectForesight_test_esM.annuityPerpetuity = True
     perfectForesight_test_esM.optimize(
         timeSeriesAggregation=False,
         solver=ImplementedSolvers.STANDARD_SOLVER.value,

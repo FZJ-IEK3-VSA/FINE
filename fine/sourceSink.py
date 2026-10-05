@@ -254,7 +254,7 @@ class Source(Component):
         )
 
         # Set general source/sink data: ID and yearly limit
-        utils.isEnergySystemModelInstance(esM), utils.checkCommodities(esM, {commodity})
+        utils.checkCommodities(esM, {commodity})
         self.commodity, self.commodityUnit = (
             commodity,
             esM.commodityUnitsDict[commodity],
