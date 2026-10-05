@@ -202,6 +202,37 @@ ruff check --config=pyproject.toml
 ruff format --diff --config=pyproject.toml
 ```
 
+### Running the tests
+
+Run the test suite from the repository root with
+
+```bash
+pytest -n auto
+```
+
+By default, the tests use the automatically detected standard solver (GUROBI if a full licence is available, otherwise HiGHS). To run the complete suite with a specific solver, without fallback to another solver, use the `--solver` option (or set the environment variable `FINE_SOLVER`):
+
+```bash
+pytest -n auto --solver gurobi
+pytest -n auto --solver highs
+pytest -n auto --solver glpk
+```
+
+The solver in use is shown in the header of the test output (`FINE solver: ...`). If the selected solver is not available, pytest stops with an error. If a test solves a model with a different solver than the selected one, it fails. Therefore, use `ImplementedSolvers.STANDARD_SOLVER.value` in tests instead of a fixed solver. Two markers cover the exceptions:
+
+- `@pytest.mark.requires_solver("gurobi")`: the test only runs if the given solver is selected, and is skipped otherwise. Use it only if the test cannot run with the other solvers.
+- `@pytest.mark.multi_solver`: the test deliberately uses solvers other than the selected one, for example to compare their results.
+
+Current solver-specific tests:
+
+| Test | Marker | Reason |
+|------|--------|--------|
+| `test/test_QPinvest.py` | `requires_solver("gurobi")` | Quadratic objective, which neither the HiGHS interface of ETHOS.FINE nor GLPK supports |
+| `test/test_performanceSummary.py` | `requires_solver("gurobi")` | The performance summary is parsed from the GUROBI log file |
+| `test/test_miniSystem.py` | `multi_solver` | Compares the results of GUROBI, HiGHS and GLPK |
+
+For pull requests to `develop`, the workflow [Test all solvers](https://github.com/FZJ-IEK3-VSA/FINE/blob/develop/.github/workflows/test_pull_request_solvers.yml) runs the complete suite separately with each solver, in the jobs `Tests (Gurobi)`, `Tests (HiGHS)` and `Tests (GLPK)`.
+
 ## License
 
 MIT License

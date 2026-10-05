@@ -498,8 +498,9 @@ class EnergySystemModel:
         # the pyM parameter stores a Concrete Pyomo Model instance which contains parameters, sets, variables,
         # constraints and objective required for the optimization set up and solving.
         # The solverSpecs parameter is a dictionary (string: param) which stores different parameters that are used
-        # for solving the optimization problem. The parameters are: solver (string, solver which is used to solve
-        # the optimization problem), optimizationSpecs (string, representing **kwargs for the solver), hasTSA (boolean,
+        # for solving the optimization problem. The parameters are: solver (string, solver which is specified in the
+        # optimize function), usedSolver (string, solver which was actually used to solve the optimization problem,
+        # after a possible fallback), optimizationSpecs (string, representing **kwargs for the solver), hasTSA (boolean,
         # indicating if time series aggregation is used for the optimization), buildtime (positive float, time needed
         # to declare the optimization problem in seconds), solvetime (positive float, time needed to solve the
         # optimization problem in seconds), runtime (positive float, runtime of the optimization run in seconds),
@@ -513,6 +514,7 @@ class EnergySystemModel:
         self.pyM = None
         self.solverSpecs = {
             "solver": "",
+            "usedSolver": "",
             "optimizationSpecs": "",
             "hasTSA": False,
             "buildtime": 0,
@@ -2086,8 +2088,11 @@ class EnergySystemModel:
         :type threads: positive integer
 
         :param solver: specifies which solver should solve the optimization problem (which of course has to be
-            installed on the machine on which the model is run).
-            |br| * the default value is 'gurobi'
+            installed on the machine on which the model is run). If not specified, ImplementedSolvers.STANDARD_SOLVER
+            is used. If the solver cannot be found, ImplementedSolvers.STANDARD_SOLVER and then HiGHS are used as
+            fallback, unless a solver is selected via the environment variable FINE_SOLVER: then an unavailable
+            solver raises a RuntimeError.
+            |br| * the default value is 'None'
         :type solver: string
 
         :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
@@ -2144,6 +2149,7 @@ class EnergySystemModel:
             warmstart,
             timeStart,
         )
+        self.solverSpecs["usedSolver"] = solver
         self._runPostprocessing(solver_info, timeStart)
         self._buildPerformanceSummary(
             logFileName, solver, includePerformanceSummary, process, rss_by_psutil_start
@@ -2261,6 +2267,26 @@ class EnergySystemModel:
         :return: the solver which was actually used and the results object returned by it.
         :rtype: tuple
         """
+        # If a solver is selected via the FINE_SOLVER environment variable (e.g. in CI), no fallback
+        # to another solver is allowed: if no solver is specified, STANDARD_SOLVER is used, and an
+        # unavailable solver raises an error.
+        environmentSolver = ImplementedSolvers.solver_from_environment()
+        if environmentSolver:
+            if solver == "None":
+                solver = ImplementedSolvers.STANDARD_SOLVER.value
+            try:
+                solverAvailable = opt.SolverFactory(solver).available(
+                    exception_flag=False
+                )
+            except (ApplicationError, ValueError, OSError):
+                solverAvailable = False
+            if not solverAvailable:
+                raise RuntimeError(
+                    f"Solver '{solver}' is not available. No other solver is used as fallback, "
+                    f"because the environment variable {ImplementedSolvers.SOLVER_ENV_VARIABLE} "
+                    f"is set to '{environmentSolver}'."
+                )
+
         # Check which solvers are available and choose default solver if no solver is specified explicitely
         # Order of possible solvers in solverList defines the priority of chosen default solver.
         solverList = [

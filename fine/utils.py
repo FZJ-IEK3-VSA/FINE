@@ -1,5 +1,6 @@
 import logging
 import math
+import os
 import warnings
 
 import numpy as np
@@ -3105,7 +3106,34 @@ class ImplementedSolvers:
     GLPK = _Solver("glpk")
     GUROBI = _Solver("gurobi")
     HIGHS = _Solver("highs")
-    STANDARD_SOLVER = _Solver("gurobi")  # Use Gurobi if available, otherwise use highs
+    # Set by set_standard_solver(): the solver given explicitly or via the
+    # FINE_SOLVER environment variable, otherwise Gurobi if available, otherwise HiGHS
+    STANDARD_SOLVER = _Solver("gurobi")
+
+    # Environment variable to select the standard solver explicitly (e.g. in CI)
+    SOLVER_ENV_VARIABLE = "FINE_SOLVER"
+
+    @classmethod
+    def supported_solvers(cls):
+        """Return the names of all solvers that can be selected explicitly.
+
+        :return: names of the supported solvers
+        :rtype: tuple of str
+        """
+        return (cls.GUROBI.value, cls.HIGHS.value, cls.GLPK.value)
+
+    @classmethod
+    def solver_from_environment(cls):
+        """Return the solver selected via the FINE_SOLVER environment variable.
+
+        The value is read at call time, stripped and lower-cased, but not
+        validated (see set_standard_solver()).
+
+        :return: name of the selected solver, or an empty string if
+            FINE_SOLVER is not set
+        :rtype: str
+        """
+        return os.environ.get(cls.SOLVER_ENV_VARIABLE, "").strip().lower()
 
     @staticmethod
     def _gurobi_available():
@@ -3143,9 +3171,78 @@ class ImplementedSolvers:
                 env.close()
 
     @classmethod
-    def set_standard_solver(cls):
-        """Detect available solver and set STANDARD_SOLVER accordingly."""
-        if cls._gurobi_available():
+    def is_available(cls, solver):
+        """Check if a supported solver is installed and usable.
+
+        For Gurobi, a full (non-size-limited) license is required, see
+        _gurobi_available().
+
+        :param solver: name of the solver, one of supported_solvers()
+        :type solver: str
+
+        :return: True if the solver can be used, False otherwise
+        :rtype: bool
+        """
+        if solver == cls.GUROBI.value:
+            return cls._gurobi_available()
+        if solver == cls.HIGHS.value:
+            from pyomo.contrib.appsi.solvers import Highs  # noqa: PLC0415
+
+            return bool(Highs().available())
+        if solver == cls.GLPK.value:
+            # pyomo.environ registers the solver plugins, including GLPK
+            import pyomo.environ as pyomo  # noqa: PLC0415
+
+            return bool(pyomo.SolverFactory(solver).available(exception_flag=False))
+        raise ValueError(
+            f"Unsupported solver '{solver}'. "
+            f"Supported solvers are: {', '.join(cls.supported_solvers())}."
+        )
+
+    @classmethod
+    def set_standard_solver(cls, solver=None):
+        """Set STANDARD_SOLVER, either explicitly or by automatic detection.
+
+        If a solver is given, either as argument or via the FINE_SOLVER
+        environment variable, it is used as STANDARD_SOLVER without any
+        fallback: an unsupported or unavailable solver raises an error. The
+        argument takes precedence over the environment variable.
+
+        Otherwise, Gurobi is used if it is available with a full license, and
+        HiGHS if not.
+
+        :param solver: name of the solver, one of supported_solvers()
+            |br| * the default value is None
+        :type solver: str or None
+
+        :raises ValueError: if the selected solver is not supported
+        :raises RuntimeError: if the selected solver is not available
+        """
+        if solver is None:
+            solver = cls.solver_from_environment()
+            source = f"the environment variable {cls.SOLVER_ENV_VARIABLE}"
+        else:
+            solver = solver.strip().lower()
+            source = "the solver argument"
+
+        if solver:
+            if solver not in cls.supported_solvers():
+                raise ValueError(
+                    f"Unsupported solver '{solver}' selected via {source}. "
+                    f"Supported solvers are: {', '.join(cls.supported_solvers())}."
+                )
+            if not cls.is_available(solver):
+                raise RuntimeError(
+                    f"Solver '{solver}' was selected via {source}, but it is "
+                    "not available. Check its installation"
+                    + (
+                        " and that a full (non-size-limited) license is active."
+                        if solver == cls.GUROBI.value
+                        else "."
+                    )
+                )
+            cls.STANDARD_SOLVER.value = solver
+        elif cls._gurobi_available():
             cls.STANDARD_SOLVER.value = cls.GUROBI.value
         else:
             cls.STANDARD_SOLVER.value = cls.HIGHS.value

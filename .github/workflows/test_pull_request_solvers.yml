@@ -1,0 +1,82 @@
+name: Test all solvers
+
+# Runs the complete test suite separately with every supported solver, without
+# automatic solver detection or fallback (see issue #821). Each job selects its
+# solver with `pytest --solver`; tests that cannot run with a solver are marked
+# with `requires_solver` (see "Running the tests" in the README).
+#
+# The setup steps mirror FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1,
+# which cannot pass additional pytest arguments.
+
+on:
+  pull_request:
+    branches: ["develop"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  test-solver:
+    name: Tests (${{ matrix.label }})
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - solver: gurobi
+            label: Gurobi
+          - solver: highs
+            label: HiGHS
+          - solver: glpk
+            label: GLPK
+    env:
+      FINE_SOLVER: ${{ matrix.solver }}
+      ZENODO_API_KEY: ${{ secrets.ZENODO_API_KEY }}
+      ZENODO_USER_AGENT_STRING: ${{ secrets.ZENODO_USER_AGENT_STRING }}
+      # The Gurobi licence is only provided to the Gurobi job
+      WLSACCESSID: ${{ matrix.solver == 'gurobi' && secrets.WLSACCESSID || '' }}
+      WLSSECRET: ${{ matrix.solver == 'gurobi' && secrets.WLSSECRET || '' }}
+      LICENSEID: ${{ matrix.solver == 'gurobi' && secrets.LICENSEID || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: 25.11.0-1
+          channels: conda-forge
+          activate-environment: "test_env"
+          conda-remove-defaults: "true"
+          auto-activate-base: false
+
+      - name: Setup environment
+        run: |
+          mamba env create --name test_env --file=requirements_dev.yml -c gurobi
+          mamba run --name test_env pip install -e . --no-deps
+          mamba list --name test_env
+
+      - name: Write Gurobi WLS license file
+        if: ${{ matrix.solver == 'gurobi' }}
+        run: |
+          if (-not ($env:WLSACCESSID -and $env:WLSSECRET -and $env:LICENSEID)) {
+            throw "Gurobi WLS credentials (WLSACCESSID, WLSSECRET, LICENSEID) are missing"
+          }
+          $content = "WLSACCESSID=$env:WLSACCESSID`nWLSSECRET=$env:WLSSECRET`nLICENSEID=$env:LICENSEID`n"
+          [IO.File]::WriteAllText((Join-Path $HOME "gurobi.lic"), $content)
+          echo "Gurobi WLS license file written to $HOME/gurobi.lic"
+
+      - name: Verify solver ${{ matrix.label }}
+        run: |
+          mamba run --name test_env python -c "import fine; print('Selected solver:', fine.ImplementedSolvers.STANDARD_SOLVER.value)"
+          if ($LASTEXITCODE -ne 0) { throw "Solver ${{ matrix.solver }} is not available" }
+
+      - name: Run tests with ${{ matrix.label }}
+        run: |
+          mamba run --name test_env pytest --solver ${{ matrix.solver }} -n 3 -vv -rs
+          if ($LASTEXITCODE -ne 0) { throw "Tests failed with solver ${{ matrix.solver }}" }
