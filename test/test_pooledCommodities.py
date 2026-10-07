@@ -65,6 +65,7 @@ def test_pooledCommodityBalanceConstraint():
     esM.optimize(
         timeSeriesAggregation=False,
         solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        runInfeasibilityPrechecks=False,
     )
 
     sourceSinkModel = esM.componentModelingDict["SourceSinkModel"]
