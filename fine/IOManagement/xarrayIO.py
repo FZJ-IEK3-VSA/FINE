@@ -109,7 +109,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df = optSum.loc[(component, variable)]
                         df = df.iloc[-1]
                         df.name = variable
-                        df.index.rename("location", inplace=True)
+                        df.index = df.index.rename("location")
                         df = pd.to_numeric(df)
                         xr_da = df.to_xarray()
                         # add variable [e.g. 'TAC'] and units to attributes of xarray
@@ -142,7 +142,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df = df.stack(future_stack=True).dropna()
                         # df.name = (name, component, variables
                         df.name = variable
-                        df.index.rename(["locationIn", "locationOut"], inplace=True)
+                        df.index = df.index.rename(["locationIn", "locationOut"])
                         df = pd.to_numeric(df)
                         xr_da = df.to_xarray()
 
@@ -197,7 +197,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             .dropna()
                         )
                         df.name = rename_optimum_variables.get(variable, variable)
-                        df.index.rename(["time", "location"], inplace=True)
+                        df.index = df.index.rename(["time", "location"])
                         xr_da = df.to_xarray()
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da],
@@ -217,10 +217,9 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                             .stack(future_stack=True)
                             .dropna()
                         )
-
                         df.name = rename_optimum_variables.get(variable, variable)
-                        df.index.rename(
-                            ["locationIn", "locationOut", "time"], inplace=True
+                        df.index = df.index.rename(
+                            ["locationIn", "locationOut", "time"]
                         )
                         df.index = df.index.reorder_levels([2, 0, 1])
                         xr_da = df.to_xarray()
@@ -240,7 +239,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         ):
                             df = dfTI.loc[(variable, component)].T
                             df.name = variable
-                            df.index.rename("location", inplace=True)
+                            df.index = df.index.rename("location")
                             xr_da = df.to_xarray()
                             xr_dss[ip][name][component] = xr.merge(
                                 [xr_dss[ip][name][component], xr_da], join="outer"
@@ -260,7 +259,7 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                                 .dropna()
                             )
                             df.name = variable
-                            df.index.rename(["locationIn", "locationOut"], inplace=True)
+                            df.index = df.index.rename(["locationIn", "locationOut"])
                             xr_da = df.to_xarray()
                             xr_dss[ip][name][component] = xr.merge(
                                 [xr_dss[ip][name][component], xr_da], join="outer"
@@ -575,14 +574,13 @@ def convertDatasetsToEnergySystemModel(datasets):
                             ]
                             idx = pd.MultiIndex.from_tuples(tuple(iterables2))
                             _optSum_df.index = idx
-                            _optSum_df.index.set_names(
+                            _optSum_df.index = _optSum_df.index.set_names(
                                 names=[
                                     "Component",
                                     "Property",
                                     "Unit",
                                     "locationIn",
                                 ],
-                                inplace=True,
                             )
                             _optSum_df = _optSum_df.droplevel(0, axis=1)
                             if isinstance(_optSum_df, pd.Series):

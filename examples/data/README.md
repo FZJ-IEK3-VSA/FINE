@@ -4,7 +4,7 @@ Several examples use the same input data. The data is stored here one time.
 
 | Folder | Used by |
 | --- | --- |
-| `multiRegion` | 03 Multi-regional Energy System Workflow, 07 Spatial and technology aggregation |
+| `multiRegion` | 03 Multi-regional Energy System Workflow, 07 Spatial and technology aggregation, 11 Multi-regional Trade |
 | `oneNode` | 01 1node Energy System Workflow, 09 PerfectForesight, 10 Partload |
 
 The loader functions are in [`../exampleData.py`](../exampleData.py). Each

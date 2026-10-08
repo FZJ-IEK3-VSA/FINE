@@ -516,7 +516,8 @@ class Component(metaclass=ABCMeta):
         :type pwlcfParameters: dict
         """
         # Set general component data
-        utils.isEnergySystemModelInstance(esM)
+        if not isinstance(esM, fine.EnergySystemModel):
+            raise TypeError("The input is not an EnergySystemModel instance.")
         self.name = name
         self.dimension = dimension
         self.modelingClass = ComponentModel
@@ -551,9 +552,8 @@ class Component(metaclass=ABCMeta):
         self.economicLifetime = utils.checkAndSetCostParameter(
             esM, name, economicLifetime, dimension, locationalEligibility
         )
-        technicalLifetime = utils.checkTechnicalLifetime(
-            esM, technicalLifetime, economicLifetime
-        )
+        if technicalLifetime is None:
+            technicalLifetime = economicLifetime
         self.technicalLifetime = utils.checkAndSetCostParameter(
             esM, name, technicalLifetime, dimension, locationalEligibility
         )
@@ -563,12 +563,9 @@ class Component(metaclass=ABCMeta):
         self.floorTechnicalLifetime = utils.checkFlooringParameter(
             floorTechnicalLifetime, self.technicalLifetime, esM.investmentPeriodInterval
         )
-        self.ipTechnicalLifetime = utils.checkAndSetLifetimeInvestmentPeriod(
-            esM, name, self.technicalLifetime
-        )
-        self.ipEconomicLifetime = utils.checkAndSetLifetimeInvestmentPeriod(
-            esM, name, self.economicLifetime
-        )
+        # lifetimes in number of investment periods
+        self.ipTechnicalLifetime = self.technicalLifetime / esM.investmentPeriodInterval
+        self.ipEconomicLifetime = self.economicLifetime / esM.investmentPeriodInterval
 
         self.stockYears, self.processedStockYears = utils.checkStockYears(
             stockCommissioning,
@@ -629,7 +626,7 @@ class Component(metaclass=ABCMeta):
             self.processedStockYears + esM.investmentPeriods,
         )
         # interest rate
-        self.interestRate = utils.checkAndSetCostParameter(
+        self.interestRate = utils.checkAndSetInterestRate(
             esM, name, interestRate, dimension, locationalEligibility
         )
 
@@ -692,9 +689,10 @@ class Component(metaclass=ABCMeta):
             self.processedCapacityMax,
             self.processedCapacityMin,
         )
-        self.QPcostDev = utils.getQPcostDev(
-            self.processedStockYears + esM.investmentPeriods, self.processedQPcostScale
-        )
+        self.QPcostDev = {
+            ip: 1 - self.processedQPcostScale[ip]
+            for ip in self.processedStockYears + esM.investmentPeriods
+        }
 
         # stock commissioning
         self.stockCommissioning = stockCommissioning
@@ -799,9 +797,8 @@ class Component(metaclass=ABCMeta):
         if data_ is not None:
             data_ = data_.copy()
             uniqueIdentifiers = [self.name + rateName + loc for loc in data_.columns]
-            data_.rename(
+            data_ = data_.rename(
                 columns={loc: self.name + rateName + loc for loc in data_.columns},
-                inplace=True,
             )
             (
                 weightDict.update({id: rateWeight for id in uniqueIdentifiers}),
@@ -836,20 +833,18 @@ class Component(metaclass=ABCMeta):
                     self.name + rateName + loc for loc in rate[ip].columns
                 ]
                 data_ = data[uniqueIdentifiers].copy(deep=True)
-                data_.rename(
+                data_ = data_.rename(
                     columns={
                         self.name + rateName + loc: loc for loc in rate[ip].columns
-                    },
-                    inplace=True,
+                    }
                 )
             else:
                 return None
         elif isinstance(rate, pd.DataFrame):
             uniqueIdentifiers = [self.name + rateName + loc for loc in rate.columns]
             data_ = data[uniqueIdentifiers].copy(deep=True)
-            data_.rename(
-                columns={self.name + rateName + loc: loc for loc in rate.columns},
-                inplace=True,
+            data_ = data_.rename(
+                columns={self.name + rateName + loc: loc for loc in rate.columns}
             )
         else:
             raise ValueError(f"Wrong type for rate of '{self.name}': {type(rate)}")

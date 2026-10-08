@@ -5,7 +5,7 @@ fewer regions while minimizing information loss.
 import logging
 import numpy as np
 import sklearn.cluster as skc
-from tsam.utils.k_medoids_contiguity import k_medoids_contiguity
+from fine.aggregations.spatialAggregation.kMedoidsContiguity import k_medoids_contiguity
 from fine.aggregations.spatialAggregation import groupingUtils as gprUtils
 from fine.IOManagement.standardIO import timer
 
@@ -215,7 +215,7 @@ def perform_parameter_based_grouping(
 
             * 'kmedoids_contiguity':\n
                 kmedoids clustering with added contiguity constraint\n
-                Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+                Refer to :mod:`fine.aggregations.spatialAggregation.kMedoidsContiguity` for more info
             * 'hierarchical': \n
                 sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity\n
                 Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
