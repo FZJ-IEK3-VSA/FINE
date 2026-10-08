@@ -187,8 +187,8 @@ class ScenarioTree:
 
         Sets ``mpisppyNodeName`` (the translation), ``mpisppyNodeNames`` (all translated
         names, leaves included, in the depth-first order mpi-sppy assumes) and
-        ``scenarioNames`` (the leaf names in that same depth-first order, which is the
-        order in which mpi-sppy assigns scenarios to leaves).
+        ``scenarioNames`` (the leaf names in left-to-right tree order, i.e. grouped by branch
+        and ordered like their mpi-sppy indices, which is the order in which mpi-sppy assigns scenarios to leaves).
         """
         self.mpisppyNodeName = {}
         self.mpisppyNodeNames = []
@@ -620,8 +620,35 @@ def _componentParameterSnapshot(component):
     }
 
 
+def _sortedByLabels(data):
+    """Return a pandas object with its index (and columns) sorted, if they can be sorted.
+
+    FINE looks up its parameters by label only, so the order of the rows carries no
+    meaning, and FINE does not keep it stable: a parameter given as a scalar is expanded
+    in the iteration order of ``esM.locations`` (a set), whereas a parameter given as a
+    Series is sorted. Rebuilding a component through ``updateComponent`` therefore
+    reorders such parameters without changing them.
+
+    :param data: the pandas object to sort
+    :type data: pandas Series or DataFrame
+
+    :return: the sorted copy, or the object unchanged if its labels cannot be ordered
+    :rtype: pandas Series or DataFrame
+    """
+    try:
+        data = data.sort_index()
+        if isinstance(data, pd.DataFrame):
+            data = data.sort_index(axis=1)
+    except TypeError:
+        pass
+    return data
+
+
 def _valuesEqual(left, right):  # noqa: PLR0911
     """Compare two parameter values, handling pandas objects and None.
+
+    Pandas objects are compared independently of the order of their labels, see
+    :func:`_sortedByLabels`.
 
     :return: True if the two values are considered equal
     :rtype: bool
@@ -633,7 +660,7 @@ def _valuesEqual(left, right):  # noqa: PLR0911
     ):
         if type(left) is not type(right):
             return False
-        return left.equals(right)
+        return _sortedByLabels(left).equals(_sortedByLabels(right))
     if isinstance(left, dict) and isinstance(right, dict):
         if set(left) != set(right):
             return False
@@ -705,12 +732,7 @@ def buildScenarioEnergySystemModel(
     """Create the energy system model of a single scenario.
 
     The base model is copied, the scenario's uncertain parameter values are substituted,
-    and only afterwards is the pyomo model declared. Substituting values before declaring
-    is the only correct order: FINE does not use ``pyomo.Param`` anywhere, it writes the
-    parameter values directly into the constraint and objective expressions while
-    declaring, so a model that has already been declared can no longer be re-parameterized.
-    Building in this order also means every scenario passes through FINE's regular input
-    checks.
+    and only afterwards is the pyomo model declared.
 
     :param baseModel: the deterministic energy system model to derive the scenario from
     :type baseModel: EnergySystemModel instance
@@ -935,9 +957,11 @@ def _attachScenarioTree(
 ):
     """Attach the mpi-sppy scenario tree information to a scenario's pyomo model.
 
-    One :class:`mpisppy.scenario_tree.ScenarioNode` is created for every non-leaf node on
-    the scenario's path. mpi-sppy does not use explicit leaf nodes; the decisions of the
-    last stage stay private to the scenario.
+    One :class:mpisppy.scenario_tree.ScenarioNode is created for every non-leaf node on
+    the scenario's path. A leaf belongs to a single scenario, so the investment decisions
+    of the last stage need no non-anticipativity constraint, and mpi-sppy accordingly
+    expects no ScenarioNode for the leaves. The leaf names still appear in all_nodenames,
+    from which mpi-sppy reconstructs the shape of the tree.
 
     The per-node cost expression is set to zero. mpi-sppy uses it for stage-cost
     bookkeeping and bound reporting only -- what it actually optimizes is each scenario's
