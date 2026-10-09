@@ -4,6 +4,8 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import linprog
+from scipy.sparse import csr_matrix
 
 import fine as fn
 from fine.enums import Dimension, VarType
@@ -777,7 +779,7 @@ def checkCapacityDevelopmentWithStock(
     if all(x is None for x in capacityFix.values()):
         return
 
-    # get future capacity by capacityFix and initialize capacity commissioning
+    # get future capacity by capacityFix
     futureCapacityDevelopment = pd.DataFrame(index=investmentPeriods, dtype=float)
     for ip in investmentPeriods:
         if capacityFix[ip] is not None:
@@ -785,13 +787,6 @@ def checkCapacityDevelopmentWithStock(
                 futureCapacityDevelopment.loc[ip, loc] = capacityFix[ip][loc]
         else:
             futureCapacityDevelopment.loc[ip] = None
-
-    maxTechnicalLifetime = roundTechnicalLifetime(technicalLifetime.max())
-    capacityCommissioning = pd.DataFrame(
-        index=investmentPeriods,
-        columns=futureCapacityDevelopment.columns,
-        dtype=float,
-    )
 
     # issue warning for possible infeasibilities when a NaN is followed by a number
     for loc in futureCapacityDevelopment.columns:
@@ -803,59 +798,61 @@ def checkCapacityDevelopmentWithStock(
                     f"A capacityFix value given for {loc} is preceded by a missing value."
                     + " This may cause infeasibilities if your optimization is myopic."
                 )
-    # add historical stock if given
+    # check that a non-negative capacity commissioning per ip exists which meets
+    # all given capacityFix values, while ips without capacityFix allow any
+    # commissioning. This is solved as a linear feasibility problem, as an earlier
+    # commissioning can be required to be decommissioned in time
+    nIp = len(investmentPeriods)
 
-    if stockCommissioning is None:
-        capacityDevelopment = futureCapacityDevelopment
-    else:
-        pastYears = [x for x in stockCapacity.index if x < 0]
-        capacityDevelopment = pd.concat(
-            [stockCapacity.loc[pastYears], futureCapacityDevelopment]
+    def isFeasible(locations):
+        rows, cols, rhs = [], [], []
+        for j, loc in enumerate(locations):
+            roundedTechnicalLifetime = roundTechnicalLifetime(technicalLifetime[loc])
+            for t in investmentPeriods:
+                if pd.isna(futureCapacityDevelopment.loc[t, loc]):
+                    continue
+                # capacity commissioned in (t - lifetime, t] is still active in t
+                activeIps = [
+                    i
+                    for i, ip in enumerate(investmentPeriods)
+                    if t - roundedTechnicalLifetime < ip <= t
+                ]
+                rows += [len(rhs)] * len(activeIps)
+                cols += [j * nIp + i for i in activeIps]
+                activeStock = 0
+                if stockCommissioning is not None and loc in stockCommissioningDf:
+                    activeStock = stockCommissioningDf.loc[
+                        [
+                            y
+                            for y in stockCommissioningDf.index
+                            if t - roundedTechnicalLifetime < y < 0
+                        ],
+                        loc,
+                    ].sum()
+                rhs.append(futureCapacityDevelopment.loc[t, loc] - activeStock)
+        if not rhs:
+            return True
+        A = csr_matrix(
+            (np.ones(len(rows)), (rows, cols)), shape=(len(rhs), nIp * len(locations))
         )
-        capacityCommissioning = pd.concat(
-            [
-                stockCommissioningDf.loc[pastYears].fillna(0),
-                capacityCommissioning.fillna(0),
-            ]
+        result = linprog(
+            np.zeros(A.shape[1]), A_eq=A, b_eq=rhs, bounds=(0, None), method="highs"
         )
+        # status 2: the problem is infeasible
+        return result.status != 2
 
-    capacityDevelopment = capacityDevelopment.reindex(
-        range(-maxTechnicalLifetime - 1, max(investmentPeriods) + 1)
-    )
+    # a technical lifetime of 1 ip or below will not cause issues
+    # as all capacity will be decommissioned after 1 ip
+    locations = [
+        loc
+        for loc in futureCapacityDevelopment.columns
+        if roundTechnicalLifetime(technicalLifetime[loc]) > 1
+    ]
 
-    capacityCommissioning = capacityCommissioning.reindex(
-        range(-maxTechnicalLifetime - 1, max(investmentPeriods) + 1)
-    ).fillna(0)
-
-    # fill all NaN values with the preceding capacityFix. If no stock is given, 0 is filled in.
-    capacityDevelopment = capacityDevelopment.ffill().fillna(0)
-
-    issueLocations = set()
-
-    for loc in capacityDevelopment.columns:
-        roundedTechnicalLifetime = roundTechnicalLifetime(technicalLifetime[loc])
-
-        # a technical lifetime of 1 ip or below will not cause issues
-        # as all capacity will be decommissioned after 1 ip
-        if roundedTechnicalLifetime <= 1:
-            continue
-
-        for ip in investmentPeriods:
-            # calculate newly commissioned capacity for each ip
-            capacityCommissioning.loc[ip, loc] = (
-                -capacityDevelopment.loc[ip - 1, loc]  # aggregated capacity in last ip
-                + capacityCommissioning.loc[
-                    ip - roundedTechnicalLifetime, loc
-                ]  # decommissions
-                + capacityDevelopment.loc[ip, loc]  # capacityFix to be achieved
-            )
-
-            if capacityCommissioning.loc[ip, loc] < 0:
-                issueLocations.add(loc)
-
-    issueLocations = list(issueLocations)
-
-    if issueLocations:
+    # solve one problem for all locations and only identify the issue locations
+    # individually if it is infeasible
+    if locations and not isFeasible(locations):
+        issueLocations = [loc for loc in locations if not isFeasible([loc])]
         raise ValueError(
             f"Decreasing capacity fix set for regions {issueLocations} do"
             + " not match with the decommissioning with its "
