@@ -355,7 +355,7 @@ def test_checkCapacityDevelopmentWithStock_precedingMissingValue():
         )
 
 
-def capacityFixEsM(capacityFix, stochasticModel=False):
+def sourceEsM(stochasticModel=False, **sourceKwargs):
     esM = fn.EnergySystemModel(
         locations={"R"},
         commodities={"el"},
@@ -377,7 +377,7 @@ def capacityFixEsM(capacityFix, stochasticModel=False):
             commodity="el",
             hasCapacityVariable=True,
             technicalLifetime=10,
-            capacityFix=capacityFix,
+            **sourceKwargs,
         )
     )
     return esM
@@ -385,7 +385,7 @@ def capacityFixEsM(capacityFix, stochasticModel=False):
 
 def test_capacityFixWithMissingInvestmentPeriods():
     # issue 839: capacityFix given as dict with None for some investment periods
-    esM = capacityFixEsM({2023: 0.0, 2028: None, 2033: None})
+    esM = sourceEsM(capacityFix={2023: 0.0, 2028: None, 2033: None})
     esM.optimize(
         solver=ImplementedSolvers.STANDARD_SOLVER.value, timeSeriesAggregation=False
     )
@@ -397,5 +397,17 @@ def test_capacityFixDecreasingInStochasticModel():
     # capacityFix does not conflict with the technical lifetime
     capacityFix = {2023: 10.0, 2028: 0.0, 2033: None}
     with pytest.raises(ValueError, match="Decreasing capacity fix"):
-        capacityFixEsM(capacityFix)
-    capacityFixEsM(capacityFix, stochasticModel=True)
+        sourceEsM(capacityFix=capacityFix)
+    sourceEsM(capacityFix=capacityFix, stochasticModel=True)
+
+
+def test_stockExceedsCapacityMaxInStochasticModel():
+    # the stock of the first investment period applies to all scenarios of
+    # stochastic models, while it is decommissioned until 2028 otherwise
+    kwargs = dict(
+        capacityMax={2023: 10.0, 2028: 5.0, 2033: None},
+        stockCommissioning={2018: 10.0},
+    )
+    sourceEsM(**kwargs)
+    with pytest.raises(ValueError, match="Mismatch between stock capacity"):
+        sourceEsM(stochasticModel=True, **kwargs)

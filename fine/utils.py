@@ -713,6 +713,7 @@ def checkCapacityDevelopmentWithStock(
     stockCommissioning,
     technicalLifetime,
     floorTechnicalLifetime,
+    stochasticModel=False,
 ):
     """MISSING."""
 
@@ -758,25 +759,29 @@ def checkCapacityDevelopmentWithStock(
                 stockCommissioningDf.loc[ip, loc] = roundedCapacity
 
         # check that the capacity max is not lower as the resulting
-        # stock capacity
+        # stock capacity. In stochastic models the stock of the first
+        # investment period applies to all scenarios
         for loc in stockCapacity.columns:
             for year in investmentPeriods:
+                stockYear = 0 if stochasticModel else year
                 if capacityMax[year] is not None:
-                    if stockCapacity.loc[year, loc] > capacityMax[year][loc]:
+                    if stockCapacity.loc[stockYear, loc] > capacityMax[year][loc]:
                         raise ValueError(
                             "Mismatch between stock capacity (by its "
                             + "commissioning and the technical lifetime) and "
                             + "capacityMax"
                         )
                 if capacityFix[year] is not None:
-                    if stockCapacity.loc[year, loc] > capacityFix[year][loc]:
+                    if stockCapacity.loc[stockYear, loc] > capacityFix[year][loc]:
                         raise ValueError(
                             "Mismatch between stock capacity (by its "
                             + "commissioning and the technical lifetime) and "
                             + "capacityFix"
                         )
 
-    if capacityFix is None:
+    # stochastic models have no capacity development, as the investment periods
+    # are scenarios
+    if stochasticModel or capacityFix is None:
         return
 
     if all(x is None for x in capacityFix.values()):

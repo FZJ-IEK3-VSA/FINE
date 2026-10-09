@@ -705,17 +705,16 @@ class Component(metaclass=ABCMeta):
             self, esM, dimension
         )
 
-        # check the capacity development with stock for mismatches. Stochastic
-        # models have no capacity development, as the investment periods are scenarios
-        if not esM.stochasticModel:
-            utils.checkCapacityDevelopmentWithStock(
-                esM.investmentPeriods,
-                self.processedCapacityMax,
-                self.processedCapacityFix,
-                self.processedStockCommissioning,
-                self.ipTechnicalLifetime,
-                self.floorTechnicalLifetime,
-            )
+        # check the capacity development with stock for mismatches
+        utils.checkCapacityDevelopmentWithStock(
+            esM.investmentPeriods,
+            self.processedCapacityMax,
+            self.processedCapacityFix,
+            self.processedStockCommissioning,
+            self.ipTechnicalLifetime,
+            self.floorTechnicalLifetime,
+            esM.stochasticModel,
+        )
 
         self.pwlcfParameters = pwlcfParameters
         self.pwlcf = None
