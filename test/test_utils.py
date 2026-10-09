@@ -330,6 +330,7 @@ def capacityDevelopmentKwargs(capacityFix, stock=None, lifetime=2.0, floor=True)
         ({0: 10, 1: 0, 2: None}, None, 2, True, ["R"]),
         # floating point errors must not cause an infeasibility
         ({0: 4.88, 1: 8.87, 2: 6.24, 3: 2.25}, None, 2, True, []),
+        ({0: 6.38, 1: 6.38}, {-3: 0, -2: 2.19, -1: 4.19}, 3, True, []),
         # a lifetime of 1.5 ip is floored to 1 or ceiled to 2
         ({0: 10, 1: 0}, None, 1.5, True, []),
         ({0: 10, 1: 0}, None, 1.5, False, ["R"]),

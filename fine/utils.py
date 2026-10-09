@@ -752,6 +752,9 @@ def checkCapacityDevelopmentWithStock(
 
                 roundedCapacity = round(commissionedStock[loc], 10)
                 stockCapacity.loc[yearRange, loc] += roundedCapacity
+                stockCapacity.loc[yearRange, loc] = round(
+                    stockCapacity.loc[yearRange, loc], 10
+                )
                 stockCommissioningDf.loc[ip, loc] = roundedCapacity
 
         # check that the capacity max is not lower as the resulting
