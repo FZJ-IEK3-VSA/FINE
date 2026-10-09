@@ -711,6 +711,7 @@ class Component(metaclass=ABCMeta):
             self.processedStockCommissioning,
             self.ipTechnicalLifetime,
             self.floorTechnicalLifetime,
+            esM.stochasticModel,
         )
 
         self.pwlcfParameters = pwlcfParameters
