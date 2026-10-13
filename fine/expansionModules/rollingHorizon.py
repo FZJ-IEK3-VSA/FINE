@@ -37,6 +37,9 @@ _STOCK_COMMISSIONING_DIGITS = 10
 #: them and strip the years the previous windows commissioned in. test_rolling_horizon.py
 #: checks the list against that runtime signal on a component that does have stock, so that a
 #: parameter added to component.py's list is noticed here.
+#:
+#: leadTime is not a cost, but it is validated against the same years, so a per-year leadTime
+#: dict must keep its stock years too (stock itself is never shifted by the lead time).
 _STOCK_YEAR_PARAMETERS = frozenset(
     {
         "investPerCapacity",
@@ -44,6 +47,7 @@ _STOCK_YEAR_PARAMETERS = frozenset(
         "opexPerCapacity",
         "opexIfBuilt",
         "QPcostScale",
+        "leadTime",
     }
 )
 

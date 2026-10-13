@@ -32,6 +32,7 @@ class ComponentEconomicsMixin:
         QPdivisorNames=None,
         getOptValue=False,
         getOptValueCostType=CostType.TAC,
+        shiftByLeadTime=False,
     ):
         """Set design dependent cost equations for the individual components. The equations will be set
         for all components of a modeling class and all locations.
@@ -73,6 +74,16 @@ class ComponentEconomicsMixin:
         :param getOptValueCostType: the cost type can either be TAC (total anualized costs) or NPV (net present value)
             |br| * the default value is None.
         :type getOptValueCostType: string
+
+        :param shiftByLeadTime: if True, the interval apportionment (which investment periods the cost
+            is booked into) starts at the commissioning year's physical availability
+            (commisYear + roundedIpLeadTime), instead of at the commissioning (decision) year itself. The
+            commissioning-year identity used for bookkeeping/retrieval and the annuity/factor lookups
+            themselves are unaffected -- only the range of investment periods that get charged shifts.
+            Used for the OPEX calls (fixed O&M only starts once the asset is physically available); CAPEX
+            calls leave this False (CAPEX is booked starting at the decision period, decision #2).
+            |br| * the default value is False.
+        :type shiftByLeadTime: boolean
         """
         if QPfactorNames is None:
             QPfactorNames = []
@@ -155,15 +166,27 @@ class ComponentEconomicsMixin:
         # contributions depending on the commissioning year (index) and the
         # investment period (columns)
         for loc, compName, commisYear in var:
-            ipEconomicLifetime = getattr(
-                esM.getComponent(compName), "ipEconomicLifetime"
-            )[loc]
+            # lead-time-widened CAPEX distribution (decision #4) sources the
+            # economic-lifetime term from the lead-time-widened,
+            # commissioning-investment-period-varying attribute instead of the
+            # location-only one; mirrors the same dispatch
+            # utils.getParametersForUnevenLifetimes uses internally.
+            if lifetimeAttr == "ipLeadTimeEconomicLifetime":
+                ipEconomicLifetime = getattr(
+                    esM.getComponent(compName), "ipLeadTimeEconomicLifetime"
+                )[commisYear][loc]
+            else:
+                ipEconomicLifetime = getattr(
+                    esM.getComponent(compName), "ipEconomicLifetime"
+                )[loc]
             ipTechnicalLifetime = getattr(
                 esM.getComponent(compName), "ipTechnicalLifetime"
             )[loc]
 
             (fullCostIntervals, costInLastEconInterval, costInLastTechInterval) = (
-                utils.getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM)
+                utils.getParametersForUnevenLifetimes(
+                    compName, loc, lifetimeAttr, esM, ip=commisYear
+                )
             )
 
             # calculation of the annuity
@@ -181,9 +204,24 @@ class ComponentEconomicsMixin:
                 getOptValue,
             )
 
+            # OPEX (decision #3) is shifted, not widened: fixed O&M only starts
+            # once the asset is physically available, i.e. at the commissioning
+            # year's lead-time-shifted availability period, not at the decision
+            # year itself -- unlike CAPEX (decision #2), which is booked starting
+            # at the decision period. The commissioning-year identity used for
+            # bookkeeping (the dict keys' first element, read back via
+            # componentYears) and the annuity above are intentionally left
+            # unshifted; only the range of investment periods charged shifts.
+            shiftedCommisYear = (
+                commisYear
+                + esM.getComponent(compName).roundedIpLeadTime[commisYear][loc]
+                if shiftByLeadTime
+                else commisYear
+            )
+
             # write costs into dataframe
             # a) costs for complete intervals
-            for i in range(commisYear, commisYear + fullCostIntervals):
+            for i in range(shiftedCommisYear, shiftedCommisYear + fullCostIntervals):
                 costContribution[(loc, compName)][(commisYear, i)] = (
                     annuity
                     * utils.annuityPresentValueFactor(
@@ -201,7 +239,7 @@ class ComponentEconomicsMixin:
                     ipEconomicLifetime % 1
                 ) * esM.investmentPeriodInterval
                 costContribution[(loc, compName)][
-                    (commisYear, commisYear + fullCostIntervals)
+                    (commisYear, shiftedCommisYear + fullCostIntervals)
                 ] = annuity * utils.annuityPresentValueFactor(
                     esM, compName, loc, partlyCostInLastEconomicInterval
                 )
@@ -213,18 +251,18 @@ class ComponentEconomicsMixin:
                 partlyCostInLastTechnicalInterval = (
                     1 - (ipTechnicalLifetime % 1)
                 ) * esM.investmentPeriodInterval
-                if commisYear + math.ceil(ipTechnicalLifetime) - 1 in [
+                if shiftedCommisYear + math.ceil(ipTechnicalLifetime) - 1 in [
                     k[1] for k in costContribution[(loc, compName)].keys()
                 ]:
                     costContribution[(loc, compName)][
                         (
                             commisYear,
-                            commisYear + math.ceil(ipTechnicalLifetime) - 1,
+                            shiftedCommisYear + math.ceil(ipTechnicalLifetime) - 1,
                         )
                     ] = costContribution[(loc, compName)][
                         (
                             commisYear,
-                            commisYear + math.ceil(ipTechnicalLifetime) - 1,
+                            shiftedCommisYear + math.ceil(ipTechnicalLifetime) - 1,
                         )
                     ] + annuity * (
                         utils.annuityPresentValueFactor(

@@ -27,14 +27,19 @@ from fine.results import frames, summary
 # :meth:`~fine.results.componentEconomics.ComponentEconomicsMixin.getEconomicsDesign`.
 # The two "IfBuilt" contributions read the binary commissioning variable and have no
 # quadratic part.
+# CAPEX uses the same lead-time-widened attributes as getObjectiveFunctionContribution's
+# capexCap/capexDec calls; OPEX uses shiftByLeadTime=True, matching opexCap/opexDec. At
+# leadTime=0 this is a no-op (CCFLeadTime==CCF, ipLeadTimeEconomicLifetime==
+# ipEconomicLifetime, shiftedCommisYear==commisYear), so components that never set
+# leadTime see no change in the summary.
 DESIGN_COST_ARGUMENTS = {
     "capexCap": {
         "factorNames": ["processedInvestPerCapacity", "QPcostDev"],
         "QPfactorNames": ["processedQPcostScale", "processedInvestPerCapacity"],
-        "lifetimeAttr": "ipEconomicLifetime",
+        "lifetimeAttr": "ipLeadTimeEconomicLifetime",
         "varName": "commis",
-        "divisorName": "CCF",
-        "QPdivisorNames": ["QPbound", "CCF"],
+        "divisorName": "CCFLeadTime",
+        "QPdivisorNames": ["QPbound", "CCFLeadTime"],
     },
     "opexCap": {
         "factorNames": ["processedOpexPerCapacity", "QPcostDev"],
@@ -42,17 +47,19 @@ DESIGN_COST_ARGUMENTS = {
         "lifetimeAttr": "ipTechnicalLifetime",
         "varName": "commis",
         "QPdivisorNames": ["QPbound"],
+        "shiftByLeadTime": True,
     },
     "capexIfBuilt": {
         "factorNames": ["processedInvestIfBuilt"],
-        "lifetimeAttr": "ipEconomicLifetime",
+        "lifetimeAttr": "ipLeadTimeEconomicLifetime",
         "varName": "commisBin",
-        "divisorName": "CCF",
+        "divisorName": "CCFLeadTime",
     },
     "opexIfBuilt": {
         "factorNames": ["processedOpexIfBuilt"],
         "lifetimeAttr": "ipTechnicalLifetime",
         "varName": "commisBin",
+        "shiftByLeadTime": True,
     },
 }
 
