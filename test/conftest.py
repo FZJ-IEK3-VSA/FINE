@@ -1342,10 +1342,13 @@ def balanceLimitConstraint_test_esM():
     return esM, losses, distances, balanceLimit
 
 
-@pytest.fixture(scope="function")
-def perfectForesight_test_esM(request):
-    # annuityPerpetuity can be set via indirect parametrization, default False
-    annuityPerpetuity = getattr(request, "param", False)
+def build_perfectForesight_test_esM(annuityPerpetuity=False):
+    """Build the transformation pathway test model.
+
+    Exposed next to the fixture so that tests which need it in a broader fixture scope
+    (e.g. test_rolling_horizon.py, which solves it once per module) can build it without
+    going through the function-scoped fixture.
+    """
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},
@@ -1449,3 +1452,10 @@ def perfectForesight_test_esM(request):
     )
 
     return esM
+
+
+@pytest.fixture(scope="function")
+def perfectForesight_test_esM(request):
+    # annuityPerpetuity can be set via indirect parametrization, default False
+    annuityPerpetuity = getattr(request, "param", False)
+    return build_perfectForesight_test_esM(annuityPerpetuity=annuityPerpetuity)

@@ -405,10 +405,12 @@ def test_an_unknown_cluster_method_is_left_to_tsam():
         assert clusterMethodOf(None, clusterMethod="notAMethod") == "notAMethod"
 
 
-@pytest.mark.parametrize(
-    "function", [fn.optimizeTSAmultiStage, fn.optimizeSimpleMyopic]
-)
+@pytest.mark.parametrize("function", [fn.optimizeTSAmultiStage])
 def test_the_expansion_modules_translate_their_clusterMethod(function):
-    """They pass clusterMethod straight to ClusterConfig, so it has to be converted."""
+    """They pass clusterMethod straight to ClusterConfig, so it has to be converted.
+
+    optimizeSimpleMyopic used to be translated as well, but has been removed in favour
+    of rollingHorizonOptimization and only raises now, so it aggregates nothing.
+    """
     assert getattr(function, "__wrapped__", None) is not None
     assert "clusterMethod" in inspect.signature(function).parameters

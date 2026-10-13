@@ -101,6 +101,7 @@ class EnergySystemModel:
         balanceLimit=None,
         pathwayBalanceLimit=None,
         annuityPerpetuity=False,
+        rollingHorizonStartYear=None,
         pooledCommodities=None,
     ):
         r"""Create an EnergySystemModel class instance.
@@ -298,6 +299,16 @@ class EnergySystemModel:
             |br| * the default value is False
         :type: annuityPerpetuity: bool
 
+        :param rollingHorizonStartYear: first year of the overall transformation pathway, if this model is one
+            window of a rolling horizon run (see
+            :func:`fine.expansionModules.rollingHorizon.rollingHorizonOptimization`, which sets it on every
+            window it builds). While startYear is the first year of the window itself, this is the first year
+            of the pathway the window belongs to, which the optimization summary needs to discount the window's
+            NPVcontribution back onto a start year shared by every window: it reports that value in the
+            additional row NPVcontributionRH. It must not be later than startYear. If it is None, no such row
+            is reported and the model is a stand-alone one.
+            |br| * the default value is None
+        :type rollingHorizonStartYear: int or None
         :param pooledCommodities: Defines commodities for which the commodity balance is enforced
             over a group of locations, called a trading pool, instead of individually at
             each location. This allows trade inside regions in the trading pool without adding a transmission cmponent. The expected format is
@@ -339,6 +350,7 @@ class EnergySystemModel:
             stochasticModel,
             costUnit,
             lengthUnit,
+            rollingHorizonStartYear,
         )
 
         ################################################################################################################
@@ -414,6 +426,8 @@ class EnergySystemModel:
         self.annuityPerpetuity = utils.checkAndSetAnnuityPerpetuity(
             annuityPerpetuity, numberOfInvestmentPeriods
         )
+        self.rollingHorizonStartYear = rollingHorizonStartYear
+
         # set up the modelling years by the start year, interval and number of investment periods
         finalyear = startYear + numberOfInvestmentPeriods * investmentPeriodInterval
         # clear names, e.g.  [2020, 2025,...]

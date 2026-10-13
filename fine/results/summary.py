@@ -78,6 +78,15 @@ def buildOptimizationSummary(
         "isBuilt": "[-]",
         **economicSummaryUnits(esM.costUnit),
     }
+    # A rolling-horizon run re-discounts NPVcontribution back to the true overall start
+    # year: esM.startYear is only the current window's start year, so
+    # esM.rollingHorizonStartYear (set once, on the first window) is needed to express the
+    # additional discounting distance. getattr, not esM.rollingHorizonStartYear directly:
+    # this module is exercised on hand-built esM doubles (see the module docstring) that
+    # need not carry every EnergySystemModel attribute.
+    rollingHorizonStartYear = getattr(esM, "rollingHorizonStartYear", None)
+    if rollingHorizonStartYear is not None:
+        summaryUnits["NPVcontributionRH"] = "[" + esM.costUnit + "]"
     # Design rows are written explicitly below (from the 1-dim frames, with their own
     # conditionals); the remaining rows are the economic frames derived by deriveEconomics.
     designProps = ("capacity", "commissioning", "decommissioning", "isBuilt")
@@ -209,6 +218,29 @@ def buildOptimizationSummary(
                     frame.columns,
                 ] = frame.values
 
+        # Discount NPVcontribution back to the true overall start year for a rolling
+        # horizon run (see the summaryUnits note above for why esM.startYear alone is not
+        # enough). Written before the NaN -> 0 normalization below so that its uncovered
+        # cells are normalized together with the row it is derived from.
+        # The shift is a plain (1 + interestRate) ** -(years) factor: the (1 + interestRate)
+        # convention factor of utils.discountFactor is already contained in
+        # NPVcontribution and cancels when it is only re-based onto another start year.
+        # ``reindex``, not a per-column lookup: a 2-dim component's interestRate is indexed
+        # by its own eligible connections (utils.checkAndSetCostParameter), while the
+        # summary spans every location pair, so a lookup would raise a KeyError on the
+        # pairs the component does not connect (including every self-pair).
+        if rollingHorizonStartYear is not None:
+            rhExponent = esM.startYear - rollingHorizonStartYear
+            costUnitStr = "[" + esM.costUnit + "]"
+            for compName in compDict:
+                interestRate = compDict[compName].interestRate.reindex(
+                    optSummary_ip.columns
+                )
+                optSummary_ip.loc[(compName, "NPVcontributionRH", costUnitStr)] = (
+                    optSummary_ip.loc[(compName, "NPVcontribution", costUnitStr)]
+                    / (1 + interestRate) ** rhExponent
+                )
+
         # The former inline implementation wrote the TAC and NPVcontribution rows as a
         # groupby sum over this summary frame (the base class for TAC, the four component
         # classes for NPVcontribution). That groupby also turned the all-NaN cells of the
@@ -221,7 +253,7 @@ def buildOptimizationSummary(
         # ``where`` rather than ``fillna``, so the object dtype of the summary survives
         # (fillna would downcast it and warn).
         foldedRows = optSummary_ip.index.get_level_values("Property").isin(
-            ("TAC", "NPVcontribution")
+            ("TAC", "NPVcontribution", "NPVcontributionRH")
         )
         folded = optSummary_ip.loc[foldedRows]
         optSummary_ip.loc[foldedRows] = folded.where(folded.notna(), 0)
