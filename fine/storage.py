@@ -58,6 +58,7 @@ class Storage(Component):
         economicLifetime=10,
         technicalLifetime=None,
         floorTechnicalLifetime=True,
+        leadTime=0,
         socOffsetDown=-1,
         socOffsetUp=-1,
         stockCommissioning=None,
@@ -263,6 +264,19 @@ class Storage(Component):
             |br| * the default value is -1
         :type socOffsetUp: float
 
+        :param leadTime: time between the investment/commissioning decision and the physical
+            availability of the capacity. If set to 0, capacity is available immediately as in the
+            original FINE formulation. Given in years and converted internally using the
+            investmentPeriodInterval. See the Component class for the full parameter description.
+            |br| * the default value is 0
+        :type leadTime:
+
+            * None or
+            * a non-negative number or a Pandas Series with non-negative values. The indices of the
+              series have to equal the in the energy system model specified locations or
+            * a dictionary with years as keys (past years which had stock commissioning and investment
+              periods which will be optimized) and one of the two options above as values.
+
         """
         Component.__init__(
             self,
@@ -294,6 +308,7 @@ class Storage(Component):
             technicalLifetime=technicalLifetime,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            leadTime=leadTime,
             pwlcfParameters=pwlcfParameters,
         )
 

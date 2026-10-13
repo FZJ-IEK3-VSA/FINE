@@ -56,6 +56,7 @@ class Conversion(Component):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        leadTime=0,
         commissioningDependentCcf=False,
         emissionFactors=None,
         flowShares=None,
@@ -273,6 +274,19 @@ class Conversion(Component):
             |br| * the default value is True
         :type useTemporalCyclicConstraints: boolean
 
+        :param leadTime: time between the investment/commissioning decision and the physical
+            availability of the capacity. If set to 0, capacity is available immediately as in the
+            original FINE formulation. Given in years and converted internally using the
+            investmentPeriodInterval. See the Component class for the full parameter description.
+            |br| * the default value is 0
+        :type leadTime:
+
+            * None or
+            * a non-negative number or a Pandas Series with non-negative values. The indices of the
+              series have to equal the in the energy system model specified locations or
+            * a dictionary with years as keys (past years which had stock commissioning and investment
+              periods which will be optimized) and one of the two options above as values.
+
         """
         Component.__init__(
             self,
@@ -307,6 +321,7 @@ class Conversion(Component):
             yearlyFullLoadHoursMin=yearlyFullLoadHoursMin,
             yearlyFullLoadHoursMax=yearlyFullLoadHoursMax,
             stockCommissioning=stockCommissioning,
+            leadTime=leadTime,
             pwlcfParameters=pwlcfParameters,
         )
 

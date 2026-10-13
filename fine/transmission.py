@@ -46,6 +46,7 @@ class Transmission(Component):
         economicLifetime=10,
         technicalLifetime=None,
         floorTechnicalLifetime=True,
+        leadTime=0,
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
@@ -145,6 +146,20 @@ class Transmission(Component):
         :param pathwayBalanceLimitID: similar to balanceLimitID just as restriction over the entire pathway.
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
+
+        :param leadTime: time between the investment/commissioning decision and the physical
+            availability of the capacity. If set to 0, capacity is available immediately as in the
+            original FINE formulation. Given in years and converted internally using the
+            investmentPeriodInterval. See the Component class for the full parameter description.
+            |br| * the default value is 0
+        :type leadTime:
+
+            * None or
+            * a non-negative number or a Pandas Series with non-negative values. The indices of the
+              series have to equal the connections between the in the energy system model specified
+              locations, in the format of 'loc1' + '_' + 'loc2' or
+            * a dictionary with years as keys (past years which had stock commissioning and investment
+              periods which will be optimized) and one of the two options above as values.
         """
         self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
         self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
@@ -299,6 +314,7 @@ class Transmission(Component):
             economicLifetime=self.economicLifetime,
             technicalLifetime=self.technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            leadTime=leadTime,
             stockCommissioning=self.stockCommissioning,
             pwlcfParameters=pwlcfParameters,
         )

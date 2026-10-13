@@ -1368,6 +1368,13 @@ def checkFlooringParameter(floorTechnicalLifetime, technicalLifetime, interval):
     return floorTechnicalLifetime
 
 
+def checkLeadTime(leadTime):
+    """Set lead time to 0 if not explicitly given."""
+    if leadTime is None:
+        leadTime = 0
+    return leadTime
+
+
 def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     """MISSING."""
     if isinstance(data, pd.Series) and data.isnull().any():
@@ -3056,10 +3063,26 @@ def checkAndSetFlowShares(comp, esM):
     return processedFlowShares
 
 
-def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM):
-    """Get parameters for uneven lifetimes."""
+def getParametersForUnevenLifetimes(compName, loc, lifetimeAttr, esM, ip=None):
+    """Get parameters for uneven lifetimes.
+
+    :param ip: investment period whose lead-time-widened economic lifetime
+        should be used. Required only when ``lifetimeAttr`` is
+        ``"ipLeadTimeEconomicLifetime"`` (the CAPEX window widened by lead
+        time, decision #4), since ``ipLeadTimeEconomicLifetime`` varies by
+        investment period while ``ipEconomicLifetime`` does not. Ignored
+        otherwise.
+    :type ip: int or None
+    """
     comp = esM.getComponent(compName)
-    ipEconomicLifetime = comp.ipEconomicLifetime[loc]
+    if lifetimeAttr == "ipLeadTimeEconomicLifetime":
+        if ip is None:
+            raise ValueError(
+                "ip must be given when lifetimeAttr is 'ipLeadTimeEconomicLifetime'."
+            )
+        ipEconomicLifetime = comp.ipLeadTimeEconomicLifetime[ip][loc]
+    else:
+        ipEconomicLifetime = comp.ipEconomicLifetime[loc]
     ipTechnicalLifetime = comp.ipTechnicalLifetime[loc]
 
     # A) Fix operational costs for design variables.

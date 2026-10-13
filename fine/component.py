@@ -49,6 +49,7 @@ class Component(metaclass=ABCMeta):
         yearlyFullLoadHoursMax=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        leadTime=0,
         pwlcfParameters=None,
     ):
         """Create an instance of the Component class.
@@ -220,6 +221,11 @@ class Component(metaclass=ABCMeta):
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
             If binary decision variables are declared, commissioningMin is only used
             if the component is built.
+            Note: this binds the investment/commissioning *decision* (the commis variable) at the
+            specified investment period, not the investment period in which the capacity becomes
+            physically available. If leadTime > 0 for the component, the capacity becomes available
+            roundedIpLeadTime investment periods later than the investment period specified here.
+            yearlyFullLoadHoursMin/Max (below), by contrast, bind the available capacity directly.
             |br| * the default value is None
         :type commissioningMin:
 
@@ -237,6 +243,9 @@ class Component(metaclass=ABCMeta):
             investment period. The type of this parameter depends on the dimension of the component:
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
+            Note: like commissioningMin (above), this binds the investment/commissioning *decision*,
+            not the investment period of physical availability -- see commissioningMin's note for
+            the leadTime interaction.
             |br| * the default value is None
         :type commissioningMax:
 
@@ -254,6 +263,9 @@ class Component(metaclass=ABCMeta):
             investment period. The type of this parameter depends on the dimension of the component:
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
+            Note: like commissioningMin (above), this fixes the investment/commissioning *decision*,
+            not the investment period of physical availability -- see commissioningMin's note for
+            the leadTime interaction.
             |br| * the default value is None
         :type commissioningFix:
             * None or
@@ -449,6 +461,9 @@ class Component(metaclass=ABCMeta):
               to equal the in the energy system model specified locations.
 
         :param yearlyFullLoadHoursMin: if specified, indicates the minimum yearly full load hours.
+            Note: this binds the *available* capacity (the cap variable), which already reflects any
+            leadTime-based delay in physical availability -- unlike commissioningMin/Max/Fix (above),
+            no separate leadTime interaction applies here.
             |br| * the default value is None
         :type yearlyFullLoadHoursMin:
 
@@ -460,6 +475,8 @@ class Component(metaclass=ABCMeta):
             * Dict with years as keys and one of the two options above as values.
 
         :param yearlyFullLoadHoursMax: if specified, indicates the maximum yearly full load hours.
+            Note: like yearlyFullLoadHoursMin (above), this binds the *available* capacity, already
+            reflecting any leadTime-based delay.
             |br| * the default value is None
         :type yearlyFullLoadHoursMax:
 
@@ -495,6 +512,22 @@ class Component(metaclass=ABCMeta):
         :param floorTechnicalLifetime: if a technical lifetime is not a multiple of the interval, this
             parameters decides if the technical lifetime is floored to the interval or ceiled to the next interval,
             by default True. The costs will then be applied to the corrected interval.
+
+        :param leadTime: time between the investment/commissioning decision and the physical availability
+            of the capacity. If set to 0, capacity is available immediately as in the original FINE
+            formulation. The value is given in years and is later converted to investment-period units
+            using the investmentPeriodInterval.
+            |br| * the default value is 0
+        :type leadTime:
+
+            * None or
+            * a non-negative number or a Pandas Series with non-negative values. The indices of the
+              series have to equal the in the energy system model specified locations (dimension=1dim)
+              or connections between these locations in the format of 'loc1' + '_' + 'loc2'
+              (dimension=2dim) or
+            * a dictionary with years as keys (past years which had stock commissioning and investment
+              periods which will be optimized) and one of the two options above as values.
+              e.g. {2020: 1, 2025: 0.5}
 
         :param pwlcfParameters: parameters used for piecewise linear cost function module. Can be used to approximate non-linear cost functions for endogenous technology learning (etl) or economies of scale (eos).
                 Enables a standardized endogenous technological learning approach with a fixed learning rate. In that case, the learning is conducted in each investment period and connected throughout.
@@ -573,6 +606,37 @@ class Component(metaclass=ABCMeta):
             esM.investmentPeriodInterval,
             self.ipTechnicalLifetime,
         )
+        # lead time: delay between investment decision and physical availability
+        self.leadTime = utils.checkLeadTime(leadTime)
+        self.processedLeadTime = utils.checkAndSetInvestmentPeriodCostParameter(
+            esM,
+            name,
+            self.leadTime,
+            dimension,
+            locationalEligibility,
+            self.processedStockYears + esM.investmentPeriods,
+        )
+        # lead time in number of investment periods
+        self.ipLeadTime = {
+            ip: self.processedLeadTime[ip] / esM.investmentPeriodInterval
+            for ip in self.processedLeadTime
+        }
+        self.roundedIpLeadTime = {
+            ip: self.ipLeadTime[ip].apply(math.ceil) for ip in self.ipLeadTime
+        }
+        # Whether leadTime genuinely differs across investment periods, as opposed to
+        # merely being *represented* as a per-investment-period dict (e.g. after a
+        # dict/xarray export round-trip with useProcessedValues=True, which always
+        # re-serializes the processed, investment-period-indexed form regardless of
+        # what shape the original input had). Checked on the rounded values actually
+        # used by the capacity-availability constraints, not the raw input type, so a
+        # uniform (e.g. all-zero) per-ip dict round-tripped from a scalar/Series input
+        # is correctly treated as non-varying.
+        _roundedLeadTimeSeries = list(self.roundedIpLeadTime.values())
+        self.leadTimeVariesByInvestmentPeriod = any(
+            not series.equals(_roundedLeadTimeSeries[0])
+            for series in _roundedLeadTimeSeries[1:]
+        )
         # invest per capacity
         self.investPerCapacity = investPerCapacity
         self.processedInvestPerCapacity = (
@@ -635,6 +699,28 @@ class Component(metaclass=ABCMeta):
             self.economicLifetime,
             self.processedStockYears + esM.investmentPeriods,
         )
+
+        # Lead-time-widened capital charge factor and interval-apportionment
+        # primitives (decision #4: CAPEX total-cost conservation via a widened
+        # CCF). Not yet wired into the objective function (Step 7) -- purely
+        # additive building blocks here. ipLeadTime varies by investment
+        # period while ipEconomicLifetime does not, so both the widened
+        # ip-unit duration and the widened years-duration fed into the CCF
+        # are computed per investment period.
+        self.ipLeadTimeEconomicLifetime = {
+            ip: self.ipLeadTime[ip] + self.ipEconomicLifetime
+            for ip in self.ipLeadTime
+        }
+        self.CCFLeadTime = {}
+        for ip in self.processedLeadTime:
+            leadTimeEconomicLifetimeYears = (
+                self.processedLeadTime[ip] + self.economicLifetime
+            )
+            self.CCFLeadTime.update(
+                utils.getCapitalChargeFactor(
+                    self.interestRate, leadTimeEconomicLifetimeYears, [ip]
+                )
+            )
 
         # Set location-specific design parameters
         self.locationalEligibility = locationalEligibility
@@ -715,12 +801,88 @@ class Component(metaclass=ABCMeta):
         )
 
         self.pwlcfParameters = pwlcfParameters
+
+        # lead time is not yet supported in combination with stochastic models or with
+        # the piecewise linear cost function module (endogenous technological learning /
+        # economies of scale) - fail loudly instead of silently ignoring leadTime there.
+        # Checked on the processed (investment-period-indexed, per-location) leadTime so
+        # that an all-zero Series or dict (no actual delay) does not falsely trigger the
+        # guard, unlike a naive truthiness check on the raw leadTime input would.
+        leadTimeIsNonzero = any(
+            (series != 0).any() for series in self.processedLeadTime.values()
+        )
+        if esM.stochasticModel and leadTimeIsNonzero:
+            raise NotImplementedError(
+                "leadTime is only implemented for perfect foresight/pathway models."
+            )
+        if (
+            pwlcfParameters
+            and not all(param is None for param in pwlcfParameters.values())
+            and leadTimeIsNonzero
+        ):
+            raise NotImplementedError(
+                "leadTime is not yet implemented in combination with pwlcfParameters "
+                "(endogenous technological learning / economies of scale)."
+            )
+
         self.pwlcf = None
         if pwlcfParameters and not all(
             param is None for param in pwlcfParameters.values()
         ):
             pwlcfModule = fine.expansionModules.piecewiseLinearCostFunction.PiecewiseLinearCostFunctionModule
             self.pwlcf = pwlcfModule(self, esM, **pwlcfParameters)
+
+    def _getLeadTimeAvailabilityMap(self, esM, loc):
+        """Build (and cache) the forward map {decisionIp: availabilityIp} for this
+        component at the given location, i.e. for every investment period in which a
+        capacity-addition decision can be made, the investment period in which that
+        capacity becomes physically available (decisionIp + roundedIpLeadTime).
+
+        Only meaningful (and only ever called) when leadTimeVariesByInvestmentPeriod is
+        True - for a constant leadTime, the shift is the same for every decision period
+        and does not need this map. Validated for injectivity: if leadTime decreases
+        across investment periods such that two different decision periods would become
+        available in the same investment period, this raises a clear error instead of
+        silently dropping one of them (as the old, buggy reverse-search WIP did).
+
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+
+        :param loc: location for which the map is built (leadTime, like other
+            location-indexed parameters, can vary independently by location).
+        :type loc: string
+
+        :returns: mapping of decision investment period to availability investment
+            period, covering exactly esM.investmentPeriods (stock/historical years are
+            deliberately excluded - stock is already physically available and is never
+            shifted by leadTime, see capacityDecommissioning's stock branch).
+        :rtype: dict
+        """
+        if not hasattr(self, "_leadTimeAvailabilityMapCache"):
+            self._leadTimeAvailabilityMapCache = {}
+        if loc in self._leadTimeAvailabilityMapCache:
+            return self._leadTimeAvailabilityMapCache[loc]
+
+        forwardMap = {}
+        decisionIpByAvailabilityIp = {}
+        for decisionIp in esM.investmentPeriods:
+            availabilityIp = decisionIp + self.roundedIpLeadTime[decisionIp][loc]
+            if availabilityIp in decisionIpByAvailabilityIp:
+                raise ValueError(
+                    f"leadTime collision for component '{self.name}' at location "
+                    f"'{loc}': investment periods "
+                    f"{decisionIpByAvailabilityIp[availabilityIp]} and {decisionIp} "
+                    f"would both become available in investment period "
+                    f"{availabilityIp}. Investment-period-varying leadTime must map "
+                    "each decision period to a distinct availability period (a "
+                    "decreasing leadTime sequence across investment periods can "
+                    "cause this)."
+                )
+            decisionIpByAvailabilityIp[availabilityIp] = decisionIp
+            forwardMap[decisionIp] = availabilityIp
+
+        self._leadTimeAvailabilityMapCache[loc] = forwardMap
+        return forwardMap
 
     def addToEnergySystemModel(self, esM):
         """Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -2023,10 +2185,28 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
             decommisVar = getattr(pyM, "decommis_" + abbrvName)
 
             def capacityDevelopmentPerfectForesight(pyM, loc, compName, ip):
+                comp = self.componentsDict[compName]
+                if comp.leadTimeVariesByInvestmentPeriod:
+                    availabilityMap = comp._getLeadTimeAvailabilityMap(esM, loc)
+                    comm_ip = next(
+                        (
+                            decisionIp
+                            for decisionIp, availIp in availabilityMap.items()
+                            if availIp == ip + 1
+                        ),
+                        None,
+                    )
+                else:
+                    lead = comp.roundedIpLeadTime[ip + 1][loc]
+                    comm_ip = ip + 1 - lead
+                if comm_ip is not None and comm_ip in esM.investmentPeriods:
+                    availableCommis = commisVar[loc, compName, comm_ip]
+                else:
+                    availableCommis = 0
                 return (
                     capVar[loc, compName, ip + 1]
                     == capVar[loc, compName, ip]
-                    + commisVar[loc, compName, ip + 1]
+                    + availableCommis
                     - decommisVar[loc, compName, ip + 1]
                 )
 
@@ -2085,11 +2265,29 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
         else:
 
             def initialYear(pyM, loc, compName):
-                stock_cap = self.componentsDict[compName].stockCapacityStartYear[loc]
+                comp = self.componentsDict[compName]
+                stock_cap = comp.stockCapacityStartYear[loc]
+                if comp.leadTimeVariesByInvestmentPeriod:
+                    availabilityMap = comp._getLeadTimeAvailabilityMap(esM, loc)
+                    comm_ip = next(
+                        (
+                            decisionIp
+                            for decisionIp, availIp in availabilityMap.items()
+                            if availIp == 0
+                        ),
+                        None,
+                    )
+                else:
+                    lead = comp.roundedIpLeadTime[0][loc]
+                    comm_ip = 0 - lead
+                if comm_ip is not None and comm_ip in esM.investmentPeriods:
+                    availableCommis = commisVar[loc, compName, comm_ip]
+                else:
+                    availableCommis = 0
                 return (
                     capVar[loc, compName, 0]
                     == stock_cap
-                    + commisVar[loc, compName, 0]
+                    + availableCommis
                     - decommisVar[loc, compName, 0]
                 )
 
@@ -2146,23 +2344,48 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
         decommisConstrSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
         def capacityDecommissioning(pyM, loc, compName, ip):
-            tech_lifetime = self.componentsDict[compName].ipTechnicalLifetime[loc]
+            comp = self.componentsDict[compName]
+            tech_lifetime = comp.ipTechnicalLifetime[loc]
 
-            # commissioning date is depending whether technical lifetime ceiled or floored to next interval
-            # if technical lifetime is already a multiple of the interval, nothing happens
-            if self.componentsDict[compName].floorTechnicalLifetime:
-                comm_date = ip - math.floor(tech_lifetime)
+            # technical lifetime is rounded according to floorTechnicalLifetime
+            if comp.floorTechnicalLifetime:
+                lifetime = math.floor(tech_lifetime)
             else:
-                comm_date = ip - math.ceil(tech_lifetime)
-            # if the commissioning date is within the investment periods, the
-            # decommissioning and commissioning variables are linked
-            if comm_date in esM.investmentPeriods:
+                lifetime = math.ceil(tech_lifetime)
+
+            # For optimized future investments:
+            # decommissioning happens after lead time + technical lifetime, i.e.
+            # lifetime periods after the decision's own availability period. With a
+            # leadTime that varies by decision period, the decision period isn't a
+            # fixed offset from ip anymore, so look it up via the availability map
+            # instead of subtracting a single lead value.
+            if comp.leadTimeVariesByInvestmentPeriod:
+                availabilityMap = comp._getLeadTimeAvailabilityMap(esM, loc)
+                future_comm_date = next(
+                    (
+                        decisionIp
+                        for decisionIp, availIp in availabilityMap.items()
+                        if availIp == ip - lifetime
+                    ),
+                    None,
+                )
+            else:
+                lead = comp.roundedIpLeadTime[ip][loc]
+                future_comm_date = ip - lead - lifetime
+
+            if (
+                future_comm_date is not None
+                and future_comm_date in esM.investmentPeriods
+            ):
                 return (
                     decommisVar[loc, compName, ip]
-                    == commisVar[loc, compName, comm_date]
+                    == commisVar[loc, compName, future_comm_date]
                 )
-            # else the decommissioning is depending on the stockcommissioning
-            # or set to 0
+
+            # For historical stock:
+            # stock is already available, so do NOT shift by lead time
+            stock_comm_date = ip - lifetime
+
             procStockCommissioning = self.componentsDict[
                 compName
             ].processedStockCommissioning
@@ -2170,7 +2393,7 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
                 return (
                     decommisVar[loc, compName, ip]
                     == self.componentsDict[compName].processedStockCommissioning[
-                        comm_date
+                        stock_comm_date
                     ][loc]
                 )
             return decommisVar[loc, compName, ip] == 0
@@ -2989,18 +3212,18 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
             QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commis",
-            divisorName="CCF",
-            QPdivisorNames=["QPbound", "CCF"],
+            divisorName="CCFLeadTime",
+            QPdivisorNames=["QPbound", "CCFLeadTime"],
         )
         capexDec = self.getEconomicsDesign(
             pyM,
             esM,
             factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commisBin",
-            divisorName="CCF",
+            divisorName="CCFLeadTime",
         )
         opexCap = self.getEconomicsDesign(
             pyM,
@@ -3010,6 +3233,7 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
             lifetimeAttr="ipTechnicalLifetime",
             varName="commis",
             QPdivisorNames=["QPbound"],
+            shiftByLeadTime=True,
         )
         opexDec = self.getEconomicsDesign(
             pyM,
@@ -3017,6 +3241,7 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
             factorNames=["processedOpexIfBuilt"],
             lifetimeAttr="ipTechnicalLifetime",
             varName="commisBin",
+            shiftByLeadTime=True,
         )
 
         return capexCap + capexDec + opexCap + opexDec
