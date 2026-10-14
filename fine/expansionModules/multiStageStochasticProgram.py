@@ -126,8 +126,13 @@ class ScenarioTree:
           of a node must sum to 1.
         * ``values``: optional, ``{componentName: {parameterName: value}}`` giving the
           realization of the uncertain parameters at this node. The value is either a
-          single value, which is used for every investment period of this node's stage,
-          or a dict keyed by investment period name for finer control.
+          single value (scalar, Series or DataFrame), which is used for every investment
+          period of this node's stage, or a dict keyed by investment period name for
+          finer control, which must hold exactly the investment periods of this node's
+          stage. Stock years are not part of the tree: parameters that FINE also holds
+          for the stock years of a component keep the base model's values there, since
+          those years lie before the first investment period and are the same in every
+          scenario.
 
     :type nodes: dict
     """
@@ -542,6 +547,14 @@ def _validateTreeValues(esM, tree, stageInvestmentPeriods):
                         f"{sorted(allowedParameters)}."
                     )
                 uncertainParameters.add((compName, parameterName))
+                _validateNodeValueKeys(
+                    esM,
+                    component,
+                    nodeName,
+                    parameterName,
+                    parameters[parameterName],
+                    stageInvestmentPeriods[tree.stageOfNode[nodeName] - 1],
+                )
 
     # Completeness: every uncertain parameter must be set at every node, so that each
     # scenario ends up with a value for every investment period.
@@ -554,6 +567,136 @@ def _validateTreeValues(esM, tree, stageInvestmentPeriods):
                     f"'{nodeName}' does not provide a value for it. Every node must "
                     "provide a value for every uncertain parameter, so that each scenario "
                     "has a value for every investment period."
+                )
+
+
+def _stockYearNames(esM, component):
+    """Return the stock years of a component as FINE expects them in parameter dicts.
+
+    These are the years of ``processedStockYears``, i.e. without stock that is already
+    decommissioned at the start of the model, which FINE drops.
+
+    :param esM: energy system model
+    :type esM: EnergySystemModel instance
+
+    :param component: the component to inspect
+    :type component: Component instance
+
+    :return: the stock years as calendar years
+    :rtype: list of int
+    """
+    return [
+        int(esM.startYear + ip * esM.investmentPeriodInterval)
+        for ip in component.processedStockYears
+    ]
+
+
+def _isKeyedByStockYears(component, parameterName):
+    """Return whether FINE holds a parameter for the stock years of a component, too.
+
+    Determined from the component itself, like :func:`_perInvestmentPeriodParameters`:
+    this is the case exactly when the component has stock and the normalized
+    counterpart of the parameter is also keyed by its stock years (the cost parameters
+    and ``leadTime``, as capacity commissioned before the first investment period keeps
+    being paid for within the time horizon).
+
+    :param component: the component to inspect
+    :type component: Component instance
+
+    :param parameterName: name of the constructor argument
+    :type parameterName: string
+
+    :return: True if the parameter is held for the stock years
+    :rtype: bool
+    """
+    if not component.processedStockYears:
+        return False
+    capitalized = parameterName[:1].upper() + parameterName[1:]
+    for prefix in _PER_INVESTMENT_PERIOD_PREFIXES:
+        value = getattr(component, f"{prefix}{capitalized}", None)
+        if isinstance(value, dict):
+            return set(value) >= set(component.processedStockYears)
+    return False
+
+
+def _validateNodeValueKeys(
+    esM, component, nodeName, parameterName, value, stagePeriods
+):
+    """Check that a node value given as a dict holds only the periods of the node's stage.
+
+    Entries for the node's own periods are required by :func:`_assembleScenarioValues`.
+    Any other key would be ignored silently, so it is rejected here: a period of another
+    stage belongs to the node of that stage, a stock year is taken from the base model
+    (see :func:`_addStockYearValues`), and anything else is most likely a typo.
+
+    :param esM: energy system model
+    :type esM: EnergySystemModel instance
+
+    :param component: the component the value belongs to
+    :type component: Component instance
+
+    :param nodeName: name of the node giving the value
+    :type nodeName: string
+
+    :param parameterName: name of the parameter
+    :type parameterName: string
+
+    :param value: the value given by the node
+    :type value: any
+
+    :param stagePeriods: investment periods of the node's stage
+    :type stagePeriods: list of int
+    """
+    if not isinstance(value, dict):
+        return
+    stagePeriodNames = [esM.investmentPeriodNames[ip] for ip in stagePeriods]
+    extraKeys = [key for key in value if key not in stagePeriodNames]
+    if not extraKeys:
+        return
+    stockYears = [key for key in extraKeys if key in _stockYearNames(esM, component)]
+    if stockYears:
+        raise ValueError(
+            f"Node '{nodeName}' provides '{parameterName}' of component "
+            f"'{component.name}' for the stock years {stockYears}. Stock years are not "
+            "part of the scenario tree: they lie before the first investment period, so "
+            "every scenario keeps the value of the base model for them. Remove these "
+            "entries, or change the value in the base model."
+        )
+    raise ValueError(
+        f"Node '{nodeName}' provides '{parameterName}' of component "
+        f"'{component.name}' for {extraKeys}, which are not investment periods of this "
+        f"node's stage. A node provides values for its own stage only, i.e. for "
+        f"{stagePeriodNames}."
+    )
+
+
+def _addStockYearValues(esM, scenarioValues):
+    """Add the stock years to the assembled values of the parameters that need them.
+
+    FINE holds some per-investment-period parameters for the stock years of a component
+    as well (see :func:`_isKeyedByStockYears`) and then requires a dict for them to cover
+    the stock years, too. The scenario tree only covers the investment periods, and the
+    stock years are history, identical in every scenario, so they are filled in from the
+    base model's own value. That value is the raw constructor input: a dict gives its
+    entry for the year, anything else applies to every stock year. Modifies
+    ``scenarioValues`` in place.
+
+    :param esM: the scenario's energy system model, before its scenario values are applied
+    :type esM: EnergySystemModel instance
+
+    :param scenarioValues: ``{componentName: {parameterName: {investmentPeriodName: value}}}``
+    :type scenarioValues: dict
+    """
+    for compName, parameters in scenarioValues.items():
+        component = esM.getComponent(compName)
+        stockYearNames = _stockYearNames(esM, component)
+        for parameterName, values in parameters.items():
+            if not _isKeyedByStockYears(component, parameterName):
+                continue
+            baseValue = getattr(component, parameterName)
+            for year in stockYearNames:
+                values[year] = (
+                    baseValue[year] if isinstance(baseValue, dict) else baseValue
                 )
 
 
@@ -775,6 +918,7 @@ def buildScenarioEnergySystemModel(
     scenarioValues = _assembleScenarioValues(
         scenarioModel, tree, leafName, stageInvestmentPeriods
     )
+    _addStockYearValues(scenarioModel, scenarioValues)
     _applyScenarioValues(scenarioModel, scenarioValues)
 
     if timeSeriesAggregation:

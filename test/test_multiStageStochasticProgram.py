@@ -282,6 +282,32 @@ def test_rejects_stage_mapping_that_does_not_cover_all_periods():
         )
 
 
+@pytest.mark.parametrize(
+    "node, key, message",
+    [
+        ("today", 2010, "stock years"),
+        ("growth", 2035, "not investment periods of this node's stage"),
+        ("growth", 2026, "not investment periods of this node's stage"),
+    ],
+    ids=["stockYear", "periodOfAnotherStage", "typo"],
+)
+def test_rejects_node_values_for_periods_outside_the_stage(node, key, message):
+    """A key the node does not own would otherwise be ignored silently."""
+    spec = _treeSpecWithUncertainWindInvest()
+    stagePeriods = {"today": [2020], "growth": [2025, 2030]}[node]
+    spec[node]["values"]["Wind"]["investPerCapacity"] = {
+        **{year: 1.0 for year in stagePeriods},
+        key: 1.0,
+    }
+    with pytest.raises(ValueError, match=message):
+        mssp.optimizeMultiStageStochastic(
+            _baseModelWithStock(),
+            spec,
+            stageInvestmentPeriods=STAGE_INVESTMENT_PERIODS,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
+
+
 def test_scenario_model_receives_the_values_along_its_path():
     """Each scenario sees the values of every node on its path, per investment period."""
     tree = mssp.ScenarioTree(_treeSpec())
@@ -315,6 +341,138 @@ def test_base_model_is_not_modified():
     )
 
 
+# ---------------------------------------------------------------------- stock years
+
+STOCK_YEAR = 2010
+STOCK_IP = -2  # (2010 - 2020) / 5
+
+
+def _baseModelWithStock(**windUpdates):
+    """Build the base model with wind and grid capacity commissioned before 2020."""
+    esM = _buildBaseModel()
+    esM.updateComponent(
+        "Wind",
+        {
+            "stockCommissioning": {STOCK_YEAR: pd.Series({"north": 5.0, "south": 0.0})},
+            **windUpdates,
+        },
+    )
+    esM.updateComponent(
+        "Grid",
+        {
+            "stockCommissioning": {
+                STOCK_YEAR: pd.Series({"north_south": 1.0, "south_north": 1.0})
+            }
+        },
+    )
+    return esM
+
+
+def _treeSpecWithUncertain(compName, parameterName, nodeValues):
+    spec = _treeSpec()
+    for nodeName, value in nodeValues.items():
+        spec[nodeName]["values"][compName] = {parameterName: value}
+    return spec
+
+
+def _treeSpecWithUncertainWindInvest():
+    return _treeSpecWithUncertain(
+        "Wind",
+        "investPerCapacity",
+        {
+            "today": 1.20,
+            "growth": 1.10,
+            "stagnation": 1.15,
+            "growth_gasCrisis": 0.90,
+            "growth_cheapGas": 1.00,
+            "stagnation_gasCrisis": 1.05,
+            "stagnation_cheapGas": 1.10,
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "baseInvest, expectedStockInvest",
+    [(1.20, 1.20), ({2010: 2.0, 2020: 1.2, 2025: 1.2, 2030: 1.2, 2035: 1.2}, 2.0)],
+    ids=["scalarBaseValue", "dictBaseValue"],
+)
+def test_stock_years_keep_the_base_model_value(baseInvest, expectedStockInvest):
+    """The tree covers the investment periods; the stock years come from the base model."""
+    baseModel = _baseModelWithStock(investPerCapacity=baseInvest)
+    esM = mssp.buildScenarioEnergySystemModel(
+        baseModel,
+        mssp.ScenarioTree(_treeSpecWithUncertainWindInvest()),
+        "growth_gasCrisis",
+        STAGE_INVESTMENT_PERIODS,
+    )
+    invest = esM.getComponent("Wind").processedInvestPerCapacity
+    assert (invest[STOCK_IP] == expectedStockInvest).all()
+    expected = {0: 1.20, 1: 1.10, 2: 1.10, 3: 0.90}
+    for ip, value in expected.items():
+        assert (invest[ip] == value).all(), ip
+
+
+def test_uncertain_lead_time_with_stock():
+    spec = _treeSpecWithUncertain(
+        "Wind",
+        "leadTime",
+        {
+            "today": 0,
+            "growth": 5,
+            "stagnation": 5,
+            "growth_gasCrisis": 5,
+            "growth_cheapGas": 10,
+            "stagnation_gasCrisis": 5,
+            "stagnation_cheapGas": 5,
+        },
+    )
+    esM = mssp.buildScenarioEnergySystemModel(
+        _baseModelWithStock(leadTime=0),
+        mssp.ScenarioTree(spec),
+        "growth_cheapGas",
+        STAGE_INVESTMENT_PERIODS,
+    )
+    roundedIpLeadTime = esM.getComponent("Wind").roundedIpLeadTime
+    expected = {STOCK_IP: 0, 0: 0, 1: 1, 2: 1, 3: 2}
+    for ip, value in expected.items():
+        assert (roundedIpLeadTime[ip] == value).all(), ip
+
+
+def test_uncertain_two_dimensional_parameter_with_stock():
+    spec = _treeSpecWithUncertain(
+        "Grid",
+        "investPerCapacity",
+        {name: 0.001 if "growth" in name else 0.002 for name in _treeSpec()},
+    )
+    baseModel = _baseModelWithStock()
+    esM = mssp.buildScenarioEnergySystemModel(
+        baseModel,
+        mssp.ScenarioTree(spec),
+        "stagnation_cheapGas",
+        STAGE_INVESTMENT_PERIODS,
+    )
+    # FINE scales a transmission's investPerCapacity by distance, so compare against the
+    # base model (0.001 everywhere) rather than against the raw values.
+    baseInvest = baseModel.getComponent("Grid").processedInvestPerCapacity
+    invest = esM.getComponent("Grid").processedInvestPerCapacity
+    pd.testing.assert_series_equal(invest[STOCK_IP], baseInvest[STOCK_IP])
+    pd.testing.assert_series_equal(invest[3], 2 * baseInvest[3])
+
+
+def test_ef_solves_with_stock_and_uncertain_cost():
+    results = mssp.optimizeMultiStageStochastic(
+        _baseModelWithStock(),
+        _treeSpecWithUncertainWindInvest(),
+        stageInvestmentPeriods=STAGE_INVESTMENT_PERIODS,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
+    expected = sum(
+        results.tree.probabilityOf(name) * esM.objectiveValue
+        for name, esM in results.scenarioModels.items()
+    )
+    assert results.objectiveValue == pytest.approx(expected, rel=1e-9)
+
+
 # ------------------------------------------------------------------ extensive form
 
 
@@ -334,9 +492,7 @@ def test_ef_enforces_non_anticipativity(efResults):
     keys = next(iter(commis.values())).keys()
 
     def values(scenarios, ips):
-        return [
-            {k: v for k, v in commis[s].items() if k[3] in ips} for s in scenarios
-        ]
+        return [{k: v for k, v in commis[s].items() if k[3] in ips} for s in scenarios]
 
     # Stage 1 (2020) is shared by all scenarios.
     stage1 = values(efResults.tree.scenarioNames, STAGE_INVESTMENT_PERIODS[0])
@@ -373,9 +529,7 @@ def test_ef_regression_values(efResults):
 def test_ef_scenario_results_are_processed(efResults):
     esM = efResults.scenarioModels["growth_gasCrisis"]
     summary = esM.getOptimizationSummary("SourceSinkModel", ip=2035, outputLevel=0)
-    assert ("Wind", "capacity") in {
-        (comp, prop) for comp, prop, *_ in summary.index
-    }
+    assert ("Wind", "capacity") in {(comp, prop) for comp, prop, *_ in summary.index}
 
 
 # ---------------------------------------------------------------- progressive hedging
@@ -389,9 +543,7 @@ def test_ph_agrees_with_ef(efResults):
         "ph",
         mpisppyOptions={"PHIterLimit": 200, "defaultPHrho": 0.01, "convthresh": 1e-6},
     )
-    assert phResults.objectiveValue == pytest.approx(
-        efResults.objectiveValue, rel=1e-4
-    )
+    assert phResults.objectiveValue == pytest.approx(efResults.objectiveValue, rel=1e-4)
 
 
 # ---------------------------------------------------------- time series aggregation
