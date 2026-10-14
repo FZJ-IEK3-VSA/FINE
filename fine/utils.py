@@ -708,13 +708,27 @@ def checkCapacityDevelopmentWithStock(
     technicalLifetime,
     floorTechnicalLifetime,
     stochasticModel=False,
+    stockLeadTime=None,
 ):
-    """MISSING."""
+    """Check that the stock and the capacityMax/capacityFix values can be met together.
+
+    :param stockLeadTime: lead time of the stock years in investment periods, as
+        ``{stockIp: pd.Series}`` (the component's roundedIpLeadTime). Stock becomes
+        available after its lead time and is decommissioned a technical lifetime later.
+        Stock years missing from it have no lead time.
+        |br| * the default value is None (no lead time for any stock year)
+    :type stockLeadTime: dict or None
+    """
 
     def roundTechnicalLifetime(lifetime):
         if floorTechnicalLifetime:
             return math.floor(lifetime)
         return math.ceil(lifetime)
+
+    def availabilityIp(stockIp, loc):
+        if stockLeadTime is None or stockIp not in stockLeadTime:
+            return stockIp
+        return stockIp + int(stockLeadTime[stockIp].get(loc, 0))
 
     if stockCommissioning is not None:
         # if there is a stock, consider it for the capacity development
@@ -729,7 +743,8 @@ def checkCapacityDevelopmentWithStock(
         for ip, commissionedStock in stockCommissioning.items():
             for loc in commissionedStock.index:
                 _techLifetime = roundTechnicalLifetime(technicalLifetime[loc])
-                yearRange = list(range(ip, ip + _techLifetime))
+                availableFrom = availabilityIp(ip, loc)
+                yearRange = list(range(availableFrom, availableFrom + _techLifetime))
                 yearRange = [x for x in yearRange if x <= max(investmentPeriods)]
 
                 # for floating numbers a normal sum can lead to floating point issues,
@@ -827,7 +842,10 @@ def checkCapacityDevelopmentWithStock(
                         [
                             y
                             for y in stockCommissioningDf.index
-                            if t - roundedTechnicalLifetime < y < 0
+                            if y < 0
+                            and t - roundedTechnicalLifetime
+                            < availabilityIp(y, loc)
+                            <= t
                         ],
                         loc,
                     ].sum()
@@ -2286,10 +2304,46 @@ def checkAndSetTimeHorizon(
     return nbOfSteps, nbOfRepresentedYears
 
 
+def roundedStockLeadTime(component, stockIp, loc):
+    """Return the lead time of stock commissioned in a stock year, in investment periods.
+
+    Stock commissioned in stockIp becomes available in stockIp plus this value. Stock years
+    have a lead time only if leadTime was given per year (see Component), otherwise 0.
+
+    :param component: the component holding the stock
+    :type component: Component instance
+
+    :param stockIp: the stock year, as a (negative) investment period index
+    :type stockIp: int
+
+    :param loc: location (1-dim) or connection (2-dim)
+    :type loc: string
+
+    :return: the lead time, rounded up to whole investment periods
+    :rtype: int
+    """
+    leadTimes = component.roundedIpLeadTime.get(stockIp)
+    if leadTimes is None:
+        return 0
+    return int(leadTimes.get(loc, 0))
+
+
 def checkStockYears(
-    stockCommissioning, startYear, investmentPeriodInterval, ipTechnicalLifetime
+    stockCommissioning,
+    startYear,
+    investmentPeriodInterval,
+    ipTechnicalLifetime,
+    leadTime=0,
 ):
-    """Missing."""
+    """Check the years of the stock commissioning and convert them to investment periods.
+
+    Stock that is decommissioned before the start year is dropped. Stock is decommissioned
+    a technical lifetime after it became available, i.e. after its lead time, which a
+    stock year only has if leadTime is given per year (see Component).
+
+    :return: the stock years as given, and those still alive as investment period indices
+    :rtype: tuple of two lists of int
+    """
     if stockCommissioning is None:
         return [], []
     if not isinstance(stockCommissioning, dict):
@@ -2307,13 +2361,23 @@ def checkStockYears(
                 + "but can only be initialized for "
                 + "years which are a multiple of the investment period length."
             )
+
+    def roundedLeadTimeOf(year):
+        # leadTime is not validated yet at this point; invalid values are reported by
+        # its own check, so they count as no lead time here
+        if not isinstance(leadTime, dict) or year not in leadTime:
+            return 0
+        maxLeadTime = pd.Series(leadTime[year], dtype=float).max()
+        if not np.isfinite(maxLeadTime) or maxLeadTime <= 0:
+            return 0
+        return math.ceil(maxLeadTime / investmentPeriodInterval)
+
     stockYears = [x for x in stockCommissioning.keys()]
     processedStockYears = [
         int((x - startYear) / investmentPeriodInterval)
         for x in stockCommissioning.keys()
-    ]
-    processedStockYears = [
-        x for x in processedStockYears if x >= -ipTechnicalLifetime.max()
+        if int((x - startYear) / investmentPeriodInterval) + roundedLeadTimeOf(x)
+        >= -ipTechnicalLifetime.max()
     ]
 
     return stockYears, processedStockYears
@@ -2381,11 +2445,25 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 + "pd.Series with location as index and stock as value."
             )
 
+    def availabilityYear(year, loc):
+        # stock still under construction becomes available after its lead time
+        stockIp = int((year - esM.startYear) / esM.investmentPeriodInterval)
+        return (
+            year
+            + roundedStockLeadTime(component, stockIp, loc)
+            * esM.investmentPeriodInterval
+        )
+
     # check if capacityFix and capacityMax is kept per region
     for loc in regions:
         installed_sum = 0
         for year in stockCommissioning.keys():
-            if year < esM.startYear - component.technicalLifetime[loc]:
+            # only stock that is available in the start year and not yet decommissioned
+            if not (
+                esM.startYear - component.technicalLifetime[loc]
+                < availabilityYear(year, loc)
+                <= esM.startYear
+            ):
                 pass
             else:
                 # for floating numbers a normal sum can lead to floating point issues,
@@ -2405,15 +2483,6 @@ def checkAndSetStock(component, esM, stockCommissioning):
                     )
                 installed_sum += round(stockCommissioning[year][loc], 10)
                 installed_sum = round(installed_sum, 10)
-        # reduce the installed_sum by the decommissioning, which will occur in
-        # the first year
-        if (
-            esM.startYear - component.technicalLifetime[loc]
-            in stockCommissioning.keys()
-        ):
-            installed_sum -= stockCommissioning[
-                esM.startYear - component.technicalLifetime[loc]
-            ][loc]
         if component.processedCapacityMax[0] is not None:
             if installed_sum > component.processedCapacityMax[0][loc]:
                 raise ValueError(
@@ -2434,7 +2503,8 @@ def checkAndSetStock(component, esM, stockCommissioning):
         yearsWithStockOlderThanTechLifetime = [
             x
             for x in stock_df.index
-            if x < esM.startYear - component.technicalLifetime[loc]
+            if availabilityYear(x, loc)
+            < esM.startYear - component.technicalLifetime[loc]
         ]
         stockOlderThanTechnicalLifetime = stock_df.loc[
             yearsWithStockOlderThanTechLifetime, loc
@@ -2454,12 +2524,14 @@ def checkAndSetStock(component, esM, stockCommissioning):
         int((x - esM.startYear) / esM.investmentPeriodInterval) for x in stock_df.index
     ]
 
-    # fill missing year for timeframe of entire technical lifetime
+    # fill missing year for timeframe of entire technical lifetime, and further back for
+    # stock that is older but still alive because it became available after a lead time
     if component.floorTechnicalLifetime:
         maxTechnicalLifetime = math.floor(component.ipTechnicalLifetime.max())
     else:
         maxTechnicalLifetime = math.ceil(component.ipTechnicalLifetime.max())
-    allStockYears = [x for x in range(-1, -maxTechnicalLifetime - 1, -1)]
+    oldestStockYear = min([-maxTechnicalLifetime] + component.processedStockYears)
+    allStockYears = [x for x in range(-1, oldestStockYear - 1, -1)]
     stock_df = stock_df.reindex(allStockYears).fillna(0)
     return stock_df.T.to_dict(orient="series")
 
@@ -2478,6 +2550,9 @@ def setStockCapacityStartYear(component, esM, dimension):
     if component.processedStockCommissioning is None:
         return pd.Series(index=regions, data=0)
 
+    # The stock that is available in the first investment period, including the stock
+    # that is decommissioned there (see the decommissioning constraint). Stock still under
+    # construction becomes available after its lead time, in its investment period.
     stockCapacityStartYear = pd.Series()
     for loc in regions:
         _stock_location = 0
@@ -2485,8 +2560,10 @@ def setStockCapacityStartYear(component, esM, dimension):
             ipTechLifetime = math.floor(component.ipTechnicalLifetime[loc])
         else:
             ipTechLifetime = math.ceil(component.ipTechnicalLifetime[loc])
-        for year in range(-1, -ipTechLifetime - 1, -1):
-            _stock_location += component.processedStockCommissioning[year].loc[loc]
+        for year, stock in component.processedStockCommissioning.items():
+            availabilityIp = year + roundedStockLeadTime(component, year, loc)
+            if -ipTechLifetime <= availabilityIp <= 0:
+                _stock_location += stock.loc[loc]
         stockCapacityStartYear[loc] = _stock_location
     return stockCapacityStartYear
 

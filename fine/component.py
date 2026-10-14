@@ -498,7 +498,13 @@ class Component(metaclass=ABCMeta):
               {-4:pandas.series(index=["loc1","loc2"],data=[4,3]).
               -2: pandas.series(index=["loc1","loc2"],data=[1,2])}
 
-            Warning: Commissioning years older than the technical lifetime from startYear will be ignored.
+            Capacity that is still under construction at startYear (e.g. projects in a brownfield
+            model) is given with the year of its investment decision and a leadTime dict that
+            states the lead time for that year (see leadTime). It then becomes available after
+            its lead time and is decommissioned a technical lifetime later.
+
+            Warning: Stock that is decommissioned before startYear, i.e. whose availability lies
+            more than the technical lifetime before startYear, will be ignored.
             |br| * the default value is None
         :type stockCommissioning:
 
@@ -517,6 +523,13 @@ class Component(metaclass=ABCMeta):
             of the capacity. If set to 0, capacity is available immediately as in the original FINE
             formulation. The value is given in years and is later converted to investment-period units
             using the investmentPeriodInterval.
+
+            A scalar or Series applies to the investment periods only; the stock years then have a
+            lead time of 0, so that existing stock is available from its own year. A dictionary
+            states the lead time of every year explicitly, including the stock years, which is how
+            stock that is still under construction at startYear is modeled: its stockCommissioning
+            year is the year of the investment decision, and it becomes available after the lead
+            time given for that year. Stock costs are booked like those of optimized capacity.
             |br| * the default value is 0
         :type leadTime:
 
@@ -600,14 +613,15 @@ class Component(metaclass=ABCMeta):
         self.ipTechnicalLifetime = self.technicalLifetime / esM.investmentPeriodInterval
         self.ipEconomicLifetime = self.economicLifetime / esM.investmentPeriodInterval
 
+        # lead time: delay between investment decision and physical availability
+        self.leadTime = utils.checkLeadTime(leadTime)
         self.stockYears, self.processedStockYears = utils.checkStockYears(
             stockCommissioning,
             esM.startYear,
             esM.investmentPeriodInterval,
             self.ipTechnicalLifetime,
+            self.leadTime,
         )
-        # lead time: delay between investment decision and physical availability
-        self.leadTime = utils.checkLeadTime(leadTime)
         self.processedLeadTime = utils.checkAndSetInvestmentPeriodCostParameter(
             esM,
             name,
@@ -616,6 +630,13 @@ class Component(metaclass=ABCMeta):
             locationalEligibility,
             self.processedStockYears + esM.investmentPeriods,
         )
+        # A scalar or Series leadTime describes the decisions taken in the investment
+        # periods. Stock years keep a lead time of 0, so that existing stock stays
+        # available from its own year; stock that is still under construction at the
+        # start is given by a leadTime dict, which states the stock years explicitly.
+        if not isinstance(self.leadTime, dict):
+            for ip in self.processedStockYears:
+                self.processedLeadTime[ip] = self.processedLeadTime[ip] * 0
         # lead time in number of investment periods
         self.ipLeadTime = {
             ip: self.processedLeadTime[ip] / esM.investmentPeriodInterval
@@ -632,7 +653,11 @@ class Component(metaclass=ABCMeta):
         # used by the capacity-availability constraints, not the raw input type, so a
         # uniform (e.g. all-zero) per-ip dict round-tripped from a scalar/Series input
         # is correctly treated as non-varying.
-        _roundedLeadTimeSeries = list(self.roundedIpLeadTime.values())
+        # Only the investment periods matter here: stock is fixed data and is added at
+        # its availability period directly, without the decision-period lookup.
+        _roundedLeadTimeSeries = [
+            self.roundedIpLeadTime[ip] for ip in esM.investmentPeriods
+        ]
         self.leadTimeVariesByInvestmentPeriod = any(
             not series.equals(_roundedLeadTimeSeries[0])
             for series in _roundedLeadTimeSeries[1:]
@@ -798,6 +823,7 @@ class Component(metaclass=ABCMeta):
             self.ipTechnicalLifetime,
             self.floorTechnicalLifetime,
             esM.stochasticModel,
+            stockLeadTime=self.roundedIpLeadTime,
         )
 
         self.pwlcfParameters = pwlcfParameters
@@ -853,9 +879,10 @@ class Component(metaclass=ABCMeta):
         :type loc: string
 
         :returns: mapping of decision investment period to availability investment
-            period, covering exactly esM.investmentPeriods (stock/historical years are
-            deliberately excluded - stock is already physically available and is never
-            shifted by leadTime, see capacityDecommissioning's stock branch).
+            period, covering exactly esM.investmentPeriods. Stock years are excluded:
+            stock is fixed data, so it is added at its availability period directly
+            (see _stockArrivingIn and _stockDecommissionedIn), and stock arriving in the
+            same period as a decision is no collision.
         :rtype: dict
         """
         if not hasattr(self, "_leadTimeAvailabilityMapCache"):
@@ -883,6 +910,51 @@ class Component(metaclass=ABCMeta):
 
         self._leadTimeAvailabilityMapCache[loc] = forwardMap
         return forwardMap
+
+    def _stockArrivingIn(self, ip, loc):
+        """Return the stock capacity that becomes available in investment period ip.
+
+        Stock commissioned in a stock year becomes available after the lead time of that
+        year (0 unless leadTime is given per year), so stock that is still under
+        construction at the start of the model arrives during the time horizon. Stock
+        available in the first investment period is part of stockCapacityStartYear.
+
+        :param ip: investment period
+        :type ip: int
+
+        :param loc: location (1-dim) or connection (2-dim)
+        :type loc: string
+
+        :return: the arriving capacity
+        :rtype: float
+        """
+        if self.processedStockCommissioning is None:
+            return 0
+        return sum(
+            stock[loc]
+            for stockIp, stock in self.processedStockCommissioning.items()
+            if stockIp + utils.roundedStockLeadTime(self, stockIp, loc) == ip
+        )
+
+    def _stockDecommissionedIn(self, ip, loc, lifetime):
+        """Return the stock capacity that is decommissioned in investment period ip.
+
+        Stock is decommissioned a technical lifetime after it became available, i.e.
+        after the lead time of its stock year.
+
+        :param ip: investment period
+        :type ip: int
+
+        :param loc: location (1-dim) or connection (2-dim)
+        :type loc: string
+
+        :param lifetime: technical lifetime at loc, rounded to investment periods
+        :type lifetime: int
+
+        :return: the decommissioned capacity
+        :rtype: float
+        """
+        return self._stockArrivingIn(ip - lifetime, loc)
 
     def addToEnergySystemModel(self, esM):
         """Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -2203,10 +2275,12 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
                     availableCommis = commisVar[loc, compName, comm_ip]
                 else:
                     availableCommis = 0
+                # stock still under construction at the start arrives after its lead time
                 return (
                     capVar[loc, compName, ip + 1]
                     == capVar[loc, compName, ip]
                     + availableCommis
+                    + comp._stockArrivingIn(ip + 1, loc)
                     - decommisVar[loc, compName, ip + 1]
                 )
 
@@ -2377,26 +2451,19 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
                 future_comm_date is not None
                 and future_comm_date in esM.investmentPeriods
             ):
-                return (
-                    decommisVar[loc, compName, ip]
-                    == commisVar[loc, compName, future_comm_date]
-                )
+                decommissionedCommis = commisVar[loc, compName, future_comm_date]
+            else:
+                decommissionedCommis = 0
 
-            # For historical stock:
-            # stock is already available, so do NOT shift by lead time
-            stock_comm_date = ip - lifetime
-
-            procStockCommissioning = self.componentsDict[
-                compName
-            ].processedStockCommissioning
-            if procStockCommissioning is not None:
-                return (
-                    decommisVar[loc, compName, ip]
-                    == self.componentsDict[compName].processedStockCommissioning[
-                        stock_comm_date
-                    ][loc]
-                )
-            return decommisVar[loc, compName, ip] == 0
+            # For stock: decommissioning happens a technical lifetime after the stock
+            # became available, i.e. after the lead time of its stock year. Stock under
+            # construction can retire in the same period as an optimized investment, so
+            # both are added up.
+            decommissionedStock = comp._stockDecommissionedIn(ip, loc, lifetime)
+            return (
+                decommisVar[loc, compName, ip]
+                == decommissionedCommis + decommissionedStock
+            )
 
         setattr(
             pyM,
