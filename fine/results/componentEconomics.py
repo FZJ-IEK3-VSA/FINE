@@ -406,7 +406,14 @@ class ComponentEconomicsMixin:
             roundedTechnicalLifetime = math.ceil(
                 self.componentsDict[compName].ipTechnicalLifetime[loc]
             )
-        if ip < -roundedTechnicalLifetime:
+        # stock still under construction counts from its availability, after its lead time
+        if ip < 0:
+            availabilityIp = ip + utils.roundedStockLeadTime(
+                self.componentsDict[compName], ip, loc
+            )
+        else:
+            availabilityIp = ip
+        if availabilityIp < -roundedTechnicalLifetime:
             return 0
         # years where component could have commissioning as it is within the technical
         # lifetime, but does not have commissioning

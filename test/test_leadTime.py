@@ -541,23 +541,52 @@ def test_leadtime_at_start_of_horizon_excludes_not_yet_available_commis():
     _assert_expected(results, "cap", {0: 0, 1: 10})
 
 
-def test_leadtime_does_not_shift_stock_decommissioning():
-    # Deliberate carve-out (design decision, capacityDecommissioning): historical stock
-    # is already physically available, so its decommissioning date must NOT be shifted
-    # by leadTime, unlike optimized/future commissioning.
+def test_scalar_leadtime_does_not_shift_stock():
+    # A scalar or Series leadTime describes the decisions within the model only; stock
+    # years keep a lead time of 0, so historical stock stays available from its own year
+    # and is decommissioned a technical lifetime later. Stock under construction needs a
+    # leadTime dict (see the stock section below).
     #
-    # Only 2 investment periods are used here (rather than enough to also exercise a
-    # third, irrelevant period) because building the constraint for additional periods
-    # hits a separate, pre-existing FINE bug unrelated to lead time: capacityDecommissioning's
-    # stock fallback branch (fine/component.py, "For historical stock" comment) indexes
-    # processedStockCommissioning[stock_comm_date][loc] without checking membership first,
-    # and checkAndSetStock's pre-filled stock-year range is sized for the *unshifted*
-    # baseline lookup pattern (ip - lifetime for ip >= 0) - it does not anticipate the
-    # additional periods a leadTime-shifted primary-branch miss can route into the stock
-    # fallback. This is a pre-existing gap in unmodified baseline code (reproducible with
-    # leadTime=0 too, given a wide enough gap between the technical lifetime and the
-    # available stock years) that Step 4 doesn't fix, since it's unrelated to lead time
-    # and out of this step's scope - flagged in CLAUDE.md as a discovered risk instead.
+    # Four investment periods: ip=2 used to raise a KeyError, because the lead-time
+    # shifted decision lookup missed and the stock fallback indexed
+    # processedStockCommissioning[ip - lifetime] = [0], which is no stock year.
+    esM = _build_and_optimize_stock_model(
+        lead_time=5,  # 1 IP, for the decisions only
+        stock={2015: _loc_series(10)},  # stock at ip=-1
+        demand_by_ip={0: 10},
+    )
+    results = _read_design_variables(esM)
+    # stock at ip=-1 + technicalLifetime (2 IPs) = decommissions at ip=1
+    _assert_expected(results, "cap", {0: 10, 1: 0, 2: 0, 3: 0})
+    _assert_expected(results, "decommis", {0: 0, 1: 10, 2: 0, 3: 0})
+    assert esM.getComponent("src").roundedIpLeadTime[-1][_LEADTIME_MODEL_LOCATION] == 0
+
+
+# --- Stock under construction: stock years with a lead time ---
+# Stock commissioned (decided) in a stock year becomes available after the lead time of
+# that year, given by a leadTime dict, and is decommissioned a technical lifetime later.
+
+
+def _stock_lead_time(stock_leads, ip_lead=0, n_ips=4, interval=5):
+    """Return a leadTime dict: stock_leads for the stock years, ip_lead otherwise."""
+    leadTime = {_ip_year(ip, interval): ip_lead for ip in range(n_ips)}
+    leadTime.update(stock_leads)
+    return leadTime
+
+
+def _build_and_optimize_stock_model(
+    *,
+    lead_time,
+    stock,
+    n_ips=4,
+    interval=5,
+    technical_lifetime=10,  # 2 IPs
+    demand_by_ip=None,
+    commissioning_by_ip=None,
+    capacity_fix_by_ip=None,
+    capacity_max=None,
+    optimize=True,
+):
     esM = fn.EnergySystemModel(
         locations={_LEADTIME_MODEL_LOCATION},
         commodities={"electricity"},
@@ -565,25 +594,39 @@ def test_leadtime_does_not_shift_stock_decommissioning():
         numberOfTimeSteps=1,
         hoursPerTimeStep=1,
         startYear=2020,
-        numberOfInvestmentPeriods=2,
-        investmentPeriodInterval=5,
+        numberOfInvestmentPeriods=n_ips,
+        investmentPeriodInterval=interval,
         costUnit="Euro",
         lengthUnit="km",
         verboseLogLevel=0,
     )
+    sourceKwargs = {}
+    if capacity_fix_by_ip is not None:
+        sourceKwargs["capacityFix"] = {
+            _ip_year(ip, interval): _loc_series(value)
+            for ip, value in capacity_fix_by_ip.items()
+        }
+    else:
+        sourceKwargs["commissioningFix"] = _ip_loc_series(
+            commissioning_by_ip or {}, n_ips, interval
+        )
+    if capacity_max is not None:
+        sourceKwargs["capacityMax"] = capacity_max
     esM.add(
         fn.Source(
             esM=esM,
             name="src",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=_ip_time_series({0: 1, 1: 1}, 2, 5),
-            commissioningFix=_ip_loc_series({0: 0, 1: 0}, 2, 5),
+            operationRateMax=_ip_time_series(
+                {ip: 1 for ip in range(n_ips)}, n_ips, interval
+            ),
             investPerCapacity=1,
             economicLifetime=5,
-            technicalLifetime=10,  # 2 IP lifetime
-            leadTime=5,  # 1 IP - must NOT affect stock decommissioning timing
-            stockCommissioning={2015: _loc_series(10)},  # stock at ip=-1
+            technicalLifetime=technical_lifetime,
+            leadTime=lead_time,
+            stockCommissioning=stock,
+            **sourceKwargs,
         )
     )
     esM.add(
@@ -592,17 +635,207 @@ def test_leadtime_does_not_shift_stock_decommissioning():
             name="sink",
             commodity="electricity",
             hasCapacityVariable=False,
-            operationRateFix=_ip_time_series({0: 10, 1: 0}, 2, 5),
+            operationRateFix=_ip_time_series(demand_by_ip or {}, n_ips, interval),
+        )
+    )
+    if optimize:
+        esM.optimize(
+            timeSeriesAggregation=False,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
+    return esM
+
+
+def test_stock_with_zero_lead_time_dict_matches_historical_stock():
+    """A leadTime dict with 0 for the stock year is the historical-stock case."""
+    results = {}
+    for leadTime in (0, _stock_lead_time({2015: 0})):
+        esM = _build_and_optimize_stock_model(
+            lead_time=leadTime, stock={2015: _loc_series(10)}, demand_by_ip={0: 10}
+        )
+        results[str(leadTime)] = (_read_design_variables(esM), esM.pyM.Obj())
+    (scalar, scalarObj), (perYear, perYearObj) = results.values()
+    assert scalar == perYear
+    assert scalarObj == pytest.approx(perYearObj)
+
+
+def test_stock_under_construction_arrives_after_its_lead_time():
+    # decided 2015 (ip=-1), lead time 10 years (2 IPs) -> available at ip=1,
+    # technical lifetime 2 IPs -> decommissioned at ip=3
+    esM = _build_and_optimize_stock_model(
+        lead_time=_stock_lead_time({2015: 10}), stock={2015: _loc_series(10)}
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "cap", {0: 0, 1: 10, 2: 10, 3: 0})
+    _assert_expected(results, "decommis", {0: 0, 1: 0, 2: 0, 3: 10})
+    assert esM.getComponent("src").stockCapacityStartYear[
+        _LEADTIME_MODEL_LOCATION
+    ] == pytest.approx(0)
+
+
+def test_stock_under_construction_arriving_in_the_first_period():
+    # decided 2015 (ip=-1), lead time 1 IP -> available at ip=0, decommissioned at ip=2
+    esM = _build_and_optimize_stock_model(
+        lead_time=_stock_lead_time({2015: 5}), stock={2015: _loc_series(10)}
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "cap", {0: 10, 1: 10, 2: 0, 3: 0})
+    _assert_expected(results, "decommis", {0: 0, 1: 0, 2: 10, 3: 0})
+
+
+def test_stock_under_construction_arriving_after_the_horizon_is_still_paid_for():
+    # lead time 30 years (6 IPs): available at ip=5, after the last period ip=3
+    esM = _build_and_optimize_stock_model(
+        lead_time=_stock_lead_time({2015: 30}), stock={2015: _loc_series(10)}
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "cap", {0: 0, 1: 0, 2: 0, 3: 0})
+    _assert_expected(results, "decommis", {0: 0, 1: 0, 2: 0, 3: 0})
+    # the widened CAPEX window of the stock (lead time + economic lifetime) reaches into
+    # the horizon, so its cost is booked although the capacity never arrives
+    assert esM.pyM.Obj() > 0
+
+
+def test_old_stock_still_alive_because_of_its_lead_time_is_kept():
+    # decided 2005 (ip=-3), i.e. older than the technical lifetime of 2 IPs, but with a
+    # lead time of 2 IPs it became available at ip=-1 and is decommissioned at ip=1
+    esM = _build_and_optimize_stock_model(
+        lead_time=_stock_lead_time({2005: 10}), stock={2005: _loc_series(10)}
+    )
+    component = esM.getComponent("src")
+    assert component.processedStockYears == [-3]
+    results = _read_design_variables(esM)
+    _assert_expected(results, "cap", {0: 10, 1: 0, 2: 0, 3: 0})
+    _assert_expected(results, "decommis", {0: 0, 1: 10, 2: 0, 3: 0})
+
+
+def test_stock_lead_time_per_location():
+    esM = fn.EnergySystemModel(
+        locations={"loc1", "loc2"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "MW_el"},
+        numberOfTimeSteps=1,
+        hoursPerTimeStep=1,
+        startYear=2020,
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=5,
+        costUnit="Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+    zero = pd.Series({"loc1": 0, "loc2": 0})
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateMax=pd.DataFrame(
+                [[1, 1]], index=[0], columns=["loc1", "loc2"]
+            ),
+            commissioningFix={2020: zero, 2025: zero, 2030: zero},
+            investPerCapacity=1,
+            economicLifetime=5,
+            technicalLifetime=20,
+            # loc1: built, available from 2015; loc2: under construction until 2025
+            leadTime={
+                2015: pd.Series({"loc1": 0, "loc2": 10}),
+                2020: 0,
+                2025: 0,
+                2030: 0,
+            },
+            stockCommissioning={2015: pd.Series({"loc1": 10, "loc2": 10})},
         )
     )
     esM.optimize(
         timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
     )
+    _assert_expected(
+        _read_design_variables(esM, location="loc1"), "cap", {0: 10, 1: 10, 2: 10}
+    )
+    _assert_expected(
+        _read_design_variables(esM, location="loc2"), "cap", {0: 0, 1: 10, 2: 10}
+    )
+
+
+def test_stock_and_optimized_capacity_decommissioned_in_the_same_period():
+    # stock decided 2015 with lead 1 IP: available ip=0, decommissioned ip=2;
+    # 5 commissioned at ip=0 without lead time: also decommissioned at ip=2
+    esM = _build_and_optimize_stock_model(
+        lead_time=_stock_lead_time({2015: 5}),
+        stock={2015: _loc_series(10)},
+        commissioning_by_ip={0: 5},
+    )
     results = _read_design_variables(esM)
-    # stock at ip=-1 + technicalLifetime (2 IPs) = decommissions at ip=1, unshifted by
-    # leadTime. If leadTime incorrectly applied to stock, this would instead show 0
-    # here (shifted out to ip=2, beyond this 2-period model).
-    _assert_expected(results, "decommis", {0: 0, 1: 10})
+    _assert_expected(results, "cap", {0: 15, 1: 15, 2: 0, 3: 0})
+    _assert_expected(results, "decommis", {0: 0, 1: 0, 2: 15, 3: 0})
+
+
+def test_capacity_fix_counts_stock_from_its_availability():
+    # stock available at ip=1 and decommissioned at ip=3 exactly meets this capacityFix;
+    # counted from its stock year, it would exceed capacityFix=0 at ip=0
+    esM = _build_and_optimize_stock_model(
+        lead_time=_stock_lead_time({2015: 10}),
+        stock={2015: _loc_series(10)},
+        capacity_fix_by_ip={0: 0, 1: 10, 2: 10, 3: 0},
+    )
+    _assert_expected(_read_design_variables(esM), "cap", {0: 0, 1: 10, 2: 10, 3: 0})
+
+
+def test_capacity_max_counts_stock_from_its_availability():
+    capacityMax = {
+        2020: _loc_series(0),
+        2025: _loc_series(10),
+        2030: _loc_series(10),
+        2035: _loc_series(0),
+    }
+    _build_and_optimize_stock_model(
+        lead_time=_stock_lead_time({2015: 10}),
+        stock={2015: _loc_series(10)},
+        capacity_max=capacityMax,
+        optimize=False,
+    )
+    # the same stock arriving at ip=1 exceeds a capacityMax of 5 there
+    capacityMax[2025] = _loc_series(5)
+    with pytest.raises(ValueError, match="Mismatch between stock capacity"):
+        _build_and_optimize_stock_model(
+            lead_time=_stock_lead_time({2015: 10}),
+            stock={2015: _loc_series(10)},
+            capacity_max=capacityMax,
+            optimize=False,
+        )
+
+
+@pytest.mark.parametrize(
+    "stockLeads",
+    [{2015: 10}, {2015: 5}, {2015: 30}, {2005: 10}],
+    ids=["arrivesInHorizon", "arrivesFirstPeriod", "arrivesAfterHorizon", "oldStock"],
+)
+def test_stock_under_construction_npv_contribution_sum_equals_objective(stockLeads):
+    stockYear = next(iter(stockLeads))
+    esM = _build_and_optimize_stock_model(
+        lead_time=_stock_lead_time(stockLeads),
+        stock={stockYear: _loc_series(10)},
+        commissioning_by_ip={1: 3},
+    )
+    npvSum = 0.0
+    for year in esM.investmentPeriodNames:
+        summary = esM.getOptimizationSummary("SourceSinkModel", ip=year, outputLevel=0)
+        values = summary.xs(("src", "NPVcontribution"), level=("Component", "Property"))
+        npvSum += values[_LEADTIME_MODEL_LOCATION].fillna(0).sum()
+    assert npvSum == pytest.approx(esM.pyM.Obj(), rel=1e-9)
+
+
+def test_stock_lead_time_survives_dict_export_import_round_trip():
+    esM = _build_and_optimize_stock_model(
+        lead_time=_stock_lead_time({2015: 10}), stock={2015: _loc_series(10)}
+    )
+    esmDict, compDict = fn.dictIO.exportToDict(esM)
+    rebuilt = fn.dictIO.importFromDict(esmDict, compDict)
+    rebuilt.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+    assert _read_design_variables(rebuilt) == _read_design_variables(esM)
 
 
 def test_investment_period_varying_leadtime_no_longer_raises_not_implemented():

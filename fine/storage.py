@@ -268,6 +268,8 @@ class Storage(Component):
             availability of the capacity. If set to 0, capacity is available immediately as in the
             original FINE formulation. Given in years and converted internally using the
             investmentPeriodInterval. See the Component class for the full parameter description.
+            A scalar or Series applies to the investment periods only. Stock that is still under
+            construction at startYear is given by a dictionary entry for its stockCommissioning year.
             |br| * the default value is 0
         :type leadTime:
 
