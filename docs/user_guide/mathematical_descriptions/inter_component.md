@@ -31,6 +31,33 @@ $$
 
 The definition of $C_{\text{c,g,l,}\theta}$ is given in the component model extensions.
 
+### Pooled Commodities
+
+For some commodities, trade between locations should be possible without an explicit transmission
+component, e.g. to represent a market where commodities are freely tradable between a
+group of locations. A commodity $\text{g}$ can be declared as pooled commodity, that is, 
+
+$$
+g \in \mathcal{G}^{\text{pool}} \subseteq \mathcal{G}.
+$$
+
+For each pooled commodity $\text{g}\in\mathcal{G}^\text{pool}$, a set of pools $\mathcal{P}_\text{g}$ is defined, and each pool $\text{p}\in\mathcal{P}_\text{g}$ is associated with a set of locations
+$\mathcal{L}_\text{p}\subseteq\mathcal{L}$ at which trading among each other is allowed. A location may belong to at most one pool for a given commodity.
+
+For pooled commodities, the balance is, other than above, not enforced individually for every location
+$\text{l}\in\mathcal{L}_\text{p}$ but jointly for all locations within a pool. The commodity balance
+equation therefore becomes, for all $\text{p}\in\mathcal{P}_\text{g}$, all $\text{g}\in\mathcal{G}^\text{pool}$
+and all $\theta\in\Theta$,
+
+$$
+\begin{aligned}
+    &\sum\limits_{\text{l}~\in~\mathcal{L}_\text{p}}~\sum\limits_{\text{c}~\in~\mathcal{C}_\text{g,l}}
+    &&C_{\text{c,g,l,}\theta} ~=~ 0~.
+\end{aligned}
+$$
+
+This equation states that individual locations may have nonzero net contributions, but the sum of all contributions across the pool must be zero. Since trade within a pool is already implicitly represented by the pooled balance, transmission components are not permitted for a commodity that has been declared as a pooled commodity.
+
 ## Shared Potential Constraints
 
 As already explained in the *Basic* component model, two or more components can share a potential in an

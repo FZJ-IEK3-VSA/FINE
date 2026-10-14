@@ -4,10 +4,10 @@
         "config:recommended"
     ],
     "schedule": [
-        "after 10pm on tuesday",
-        "before 6am on wednesday"
+        "* * 1 * *"
     ],
     "rangeStrategy": "widen",
+    "recreateWhen": "always",
     "vulnerabilityAlerts": {
         "enabled": false
     },

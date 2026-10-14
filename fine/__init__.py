@@ -13,6 +13,7 @@ from .IOManagement.standardIO import (
     plotLocations,
     plotOperation,
     plotOperationColorMap,
+    plotPieChart,
     plotTransmission,
 )
 from .expansionModules.optimizeTSAmultiStage import (
@@ -22,17 +23,26 @@ from .expansionModules.optimizeTSAmultiStage import (
 from .expansionModules.transformationPath import optimizeSimpleMyopic
 from .utils import ImplementedSolvers
 
+# Re-exported so that the ETHOS.TSAM 4.x aggregation can be configured without a
+# separate tsam import, e.g. esM.aggregateTemporally(cluster=fn.ClusterConfig(...)).
+from tsam import ClusterConfig, Distribution, ExtremeConfig, MinMaxMean, SegmentConfig
+
 xrIO = xarrayIO
 
 __all__ = [
+    "ClusterConfig",
     "Component",
     "ComponentModel",
     "Conversion",
     "ConversionDynamic",
     "ConversionPartLoad",
+    "Distribution",
     "EnergySystemModel",
+    "ExtremeConfig",
     "ImplementedSolvers",
     "LinearOptimalPowerFlow",
+    "MinMaxMean",
+    "SegmentConfig",
     "Sink",
     "Source",
     "Storage",
@@ -46,7 +56,9 @@ __all__ = [
     "plotLocations",
     "plotOperation",
     "plotOperationColorMap",
+    "plotPieChart",
     "plotTransmission",
+    "plotPieChart",
     "subclasses",
     "utils",
     "xarrayIO",

@@ -119,7 +119,7 @@ def perform_spatial_aggregation(
 
             * 'kmedoids_contiguity':
                 kmedoids clustering with added contiguity constraint.
-                Refer to TSAM docs for more info: https://github.com/FZJ-IEK3-VSA/tsam/blob/master/tsam/utils/k_medoids_contiguity.py
+                Refer to :mod:`fine.aggregations.spatialAggregation.kMedoidsContiguity` for more info
             * 'hierarchical':
                 sklearn's agglomerative clustering with complete linkage, with a connetivity matrix to ensure contiguity.
                 Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html

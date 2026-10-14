@@ -1,72 +1,20 @@
-import pandas as pd
+"""Data loader of the perfect foresight example.
+
+The input data is shared between several examples. It is stored one time in
+``examples/data/oneNode``. See ``examples/exampleData.py``.
+"""
+
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parents[1]))
+
+from exampleData import ONE_NODE_DATA_PATH, getOneNodeData  # noqa: E402
+
+#: Path to the input data of this example.
+INPUT_DATA_PATH = ONE_NODE_DATA_PATH
 
 
 def getData(engine="openpyxl"):
     """Get example data for the perfect foresight example."""
-    current_directory = Path(__file__).parent.absolute()
-    inputDataPath = Path(current_directory) / "InputData"
-    data = {}
-
-    # Onshore data
-    capacityMax = pd.read_excel(
-        Path(inputDataPath) / "SpatialData" / "Wind" / "maxCapacityOnshore_GW_el.xlsx",
-        index_col=0,
-        engine=engine,
-    ).squeeze("columns")
-    operationRateMax = pd.read_excel(
-        Path(inputDataPath)
-        / "SpatialData"
-        / "Wind"
-        / "maxOperationRateOnshore_el.xlsx",
-        engine=engine,
-    )
-
-    data.update({"Wind (onshore), capacityMax": capacityMax.loc["cluster_0"]})
-    data.update(
-        {"Wind (onshore), operationRateMax": operationRateMax.loc[:, "cluster_0"]}
-    )
-
-    # Hydrogen salt cavern data
-    capacityMax = (
-        pd.read_excel(
-            Path(inputDataPath)
-            / "SpatialData"
-            / "GeologicalStorage"
-            / "existingSaltCavernsCapacity_GWh_methane.xlsx",
-            index_col=0,
-            engine=engine,
-        ).squeeze("columns")
-        * 3
-        / 10
-    )
-
-    data.update({"Salt caverns (hydrogen), capacityMax": capacityMax.loc["cluster_0"]})
-
-    # Electricity demand data
-    operationRateFix = pd.read_excel(
-        Path(inputDataPath)
-        / "SpatialData"
-        / "Demands"
-        / "electricityDemand_GWh_el.xlsx",
-        engine=engine,
-    )
-
-    data.update(
-        {"Electricity demand, operationRateFix": operationRateFix.loc[:, "cluster_0"]}
-    )
-
-    # Hydrogen demand data
-    operationRateFix = pd.read_excel(
-        Path(inputDataPath)
-        / "SpatialData"
-        / "Demands"
-        / "hydrogenDemand_GWh_hydrogen.xlsx",
-        engine=engine,
-    )
-
-    data.update(
-        {"Hydrogen demand, operationRateFix": operationRateFix.loc[:, "cluster_0"]}
-    )
-
-    return data
+    return getOneNodeData(engine=engine)

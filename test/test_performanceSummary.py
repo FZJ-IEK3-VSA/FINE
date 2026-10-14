@@ -1,6 +1,11 @@
+import pytest
+
 from fine.utils import ImplementedSolvers
 
 
+@pytest.mark.skipif(
+    not ImplementedSolvers._gurobi_available(), reason="Gurobi not available"
+)
 def test_performanceSummary(minimal_test_esM):
     logFileName = "run.log"
 
