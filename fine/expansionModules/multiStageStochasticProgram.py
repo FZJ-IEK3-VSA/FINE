@@ -678,8 +678,17 @@ def _addStockYearValues(esM, scenarioValues):
     the stock years, too. The scenario tree only covers the investment periods, and the
     stock years are history, identical in every scenario, so they are filled in from the
     base model's own value. That value is the raw constructor input: a dict gives its
-    entry for the year, anything else applies to every stock year. Modifies
-    ``scenarioValues`` in place.
+    entry for the year, anything else applies to every stock year, as FINE applies it.
+
+    ``leadTime`` is the exception: FINE applies a scalar or Series lead time to the
+    investment periods only and gives the stock years 0, while it takes the entries of a
+    dict literally. The scenario always passes a dict, so copying a raw scalar would make
+    existing stock wait for that lead time in every scenario. Its stock years therefore
+    get the base model's processed value, i.e. the lead time the base model actually
+    uses for them. (The processed values of the cost parameters cannot be handed back
+    the same way: for a Transmission they are scaled by distance.)
+
+    Modifies ``scenarioValues`` in place.
 
     :param esM: the scenario's energy system model, before its scenario values are applied
     :type esM: EnergySystemModel instance
@@ -692,6 +701,10 @@ def _addStockYearValues(esM, scenarioValues):
         stockYearNames = _stockYearNames(esM, component)
         for parameterName, values in parameters.items():
             if not _isKeyedByStockYears(component, parameterName):
+                continue
+            if parameterName == "leadTime":
+                for stockIp, year in zip(component.processedStockYears, stockYearNames):
+                    values[year] = component.processedLeadTime[stockIp]
                 continue
             baseValue = getattr(component, parameterName)
             for year in stockYearNames:

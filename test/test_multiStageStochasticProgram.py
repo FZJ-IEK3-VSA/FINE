@@ -412,7 +412,21 @@ def test_stock_years_keep_the_base_model_value(baseInvest, expectedStockInvest):
         assert (invest[ip] == value).all(), ip
 
 
-def test_uncertain_lead_time_with_stock():
+@pytest.mark.parametrize(
+    "baseLeadTime, expectedStockLeadTime",
+    [
+        (0, 0),
+        # FINE gives the stock years of a scalar leadTime 0; the scenario passes a dict,
+        # which must not turn the scalar into a lead time of the existing stock
+        (10, 0),
+        # stock under construction: a dict states the stock year's lead time explicitly
+        ({STOCK_YEAR: 5, 2020: 0, 2025: 0, 2030: 0, 2035: 0}, 1),
+    ],
+    ids=["zero", "scalar", "dictWithStockLeadTime"],
+)
+def test_uncertain_lead_time_with_stock(baseLeadTime, expectedStockLeadTime):
+    """Stock years keep the lead time the base model uses for them."""
+    baseModel = _baseModelWithStock(leadTime=baseLeadTime)
     spec = _treeSpecWithUncertain(
         "Wind",
         "leadTime",
@@ -427,15 +441,19 @@ def test_uncertain_lead_time_with_stock():
         },
     )
     esM = mssp.buildScenarioEnergySystemModel(
-        _baseModelWithStock(leadTime=0),
+        baseModel,
         mssp.ScenarioTree(spec),
         "growth_cheapGas",
         STAGE_INVESTMENT_PERIODS,
     )
     roundedIpLeadTime = esM.getComponent("Wind").roundedIpLeadTime
-    expected = {STOCK_IP: 0, 0: 0, 1: 1, 2: 1, 3: 2}
+    expected = {STOCK_IP: expectedStockLeadTime, 0: 0, 1: 1, 2: 1, 3: 2}
     for ip, value in expected.items():
         assert (roundedIpLeadTime[ip] == value).all(), ip
+    pd.testing.assert_series_equal(
+        esM.getComponent("Wind").stockCapacityStartYear.sort_index(),
+        baseModel.getComponent("Wind").stockCapacityStartYear.sort_index(),
+    )
 
 
 def test_uncertain_two_dimensional_parameter_with_stock():

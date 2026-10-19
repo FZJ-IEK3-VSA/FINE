@@ -1,5 +1,6 @@
 import copy
 import inspect
+import math
 import warnings
 from pathlib import Path
 
@@ -294,6 +295,71 @@ def _previousCommissioning(previousEsm, comp, previousYear):
     ).fillna(0)
 
 
+def _expandLeadTimeForPassedOnStock(compEntry, comp, esM):
+    """Give a scalar or Series leadTime per year, so that it reaches the passed-on stock.
+
+    The capacity a window commissions arrives in the following windows as stock, keyed by
+    its commissioning year. FINE applies a scalar or Series leadTime to the investment
+    periods only and gives every stock year a lead time of 0, which is right for stock
+    that already exists, but would make a passed-on decision available in the next window
+    before its lead time is over. Written out per year, the investment periods of the
+    pathway keep their lead time when they become stock years of a later window, while the
+    pathway's own stock years keep 0. A leadTime that already is a dict states every year
+    explicitly, and one that is 0 everywhere needs no lead time for any year; both are
+    left unchanged. Mutates compEntry in place.
+
+    :param compEntry: the component's own entry of the component dict, i.e.
+        compDict[classname][comp] as exported by dictIO.exportToDict.
+    :type compEntry: dict
+
+    :param comp: name of the component.
+    :type comp: string
+
+    :param esM: the original energy system model of the whole pathway.
+    :type esM: EnergySystemModel instance
+    """
+    leadTime = compEntry.get("leadTime")
+    if leadTime is None or isinstance(leadTime, dict):
+        return
+    if not pd.Series(leadTime, dtype=float).ne(0).any():
+        return
+    pathwayStockYears = [
+        esM.startYear + ip * esM.investmentPeriodInterval
+        for ip in esM.getComponent(comp).processedStockYears
+    ]
+    compEntry["leadTime"] = {
+        **{year: 0 for year in pathwayStockYears},
+        **{year: leadTime for year in esM.investmentPeriodNames},
+    }
+
+
+def _roundedStockLeadTimeInYears(leadTime, year, interval):
+    """Return the lead time a window gives the stock of a year, rounded up to full
+    investment periods and in years.
+
+    Mirrors utils.checkStockYears, which decides which stock years a window keeps: only a
+    leadTime dict gives stock years a lead time, its largest value over all locations.
+
+    :param leadTime: the component's leadTime as passed to the window.
+    :type leadTime: number, pd.Series or dict
+
+    :param year: the stock year.
+    :type year: int
+
+    :param interval: number of years between two investment periods.
+    :type interval: strictly positive int
+
+    :return: the lead time of the stock year in years.
+    :rtype: int
+    """
+    if not isinstance(leadTime, dict) or year not in leadTime:
+        return 0
+    maxLeadTime = pd.Series(leadTime[year], dtype=float).max()
+    if not maxLeadTime > 0:
+        return 0
+    return math.ceil(maxLeadTime / interval) * interval
+
+
 def _updateStockCommissioningForInterval(
     compEntry,
     classname,
@@ -370,13 +436,17 @@ def _updateStockCommissioningForInterval(
         # delete "too" old stock, as it will make problems with setup of parameters
         # otherwise. Independent of whether this interval added any commissioning: an
         # entry that has outlived its technical lifetime must not survive just because
-        # nothing new was built in the previous interval.
+        # nothing new was built in the previous interval. Stock is decommissioned a
+        # technical lifetime after it became available, i.e. after the lead time of its
+        # year; this is the rule utils.checkStockYears applies when the window is built.
         if compEntry["stockCommissioning"] is not None:
             technicalLifetime = compEntry["technicalLifetime"]
             outdatedStockYears = [
                 x
                 for x in compEntry["stockCommissioning"].keys()
-                if x < rollingHorizonYears[0] - technicalLifetime.max()
+                if x
+                + _roundedStockLeadTimeInYears(compEntry.get("leadTime"), x, interval)
+                < rollingHorizonYears[0] - technicalLifetime.max()
             ]
             for outdatedStockYear in outdatedStockYears:
                 compEntry["stockCommissioning"].pop(outdatedStockYear)
@@ -549,6 +619,7 @@ def _buildIntervalComponentDict(
                 if parameter_name not in constructorArguments
             ]:
                 compEntry.pop(parameter_name)
+            _expandLeadTimeForPassedOnStock(compEntry, comp, esM)
             _updateStockCommissioningForInterval(
                 compEntry,
                 classname,

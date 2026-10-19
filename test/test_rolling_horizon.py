@@ -23,6 +23,7 @@ from fine.expansionModules.rollingHorizon import (
     _cachedGroupExists,
     _cachedIntervalChainMismatches,
     _cachedIntervalConfigMismatches,
+    _expandLeadTimeForPassedOnStock,
     _filterComponentParametersForInterval,
     _stockCommissioningDiffers,
     rollingHorizonOptimization,
@@ -636,6 +637,98 @@ def test_outdated_stock_is_dropped_without_new_commissioning():
     )
     # 2015 has outlived its technical lifetime of 9 years by the window starting in 2025
     assert 2015 not in (results[2025].getComponent("Src").stockCommissioning or {})
+
+
+def leadTimePathwayEsM(leadTime, technicalLifetime=20, **sourceKwargs):
+    """Build a pathway whose source commissions 1 in 2020 and nothing later."""
+    return simplePathwayEsM(
+        4,
+        demand=0.0,
+        sourceKwargs={
+            "economicLifetime": technicalLifetime,
+            "technicalLifetime": technicalLifetime,
+            "leadTime": leadTime,
+            "commissioningFix": {
+                year: pd.Series({"PerfectLand": 1.0 if year == 2020 else 0.0})
+                for year in [2020, 2025, 2030, 2035]
+            },
+            **sourceKwargs,
+        },
+    )
+
+
+def srcCapacity(results, windowStart, year):
+    capacity = summaryValue(
+        results[windowStart], "SourceSinkModel", "Src", "capacity", year
+    )
+    return capacity.fillna(0)["PerfectLand"]
+
+
+@pytest.mark.parametrize(
+    "leadTime",
+    [
+        10,
+        pd.Series({"PerfectLand": 10}),
+        {year: 10 for year in [2020, 2025, 2030, 2035]},
+    ],
+    ids=["scalar", "series", "dict"],
+)
+def test_a_passed_on_decision_keeps_its_lead_time(leadTime):
+    """The capacity decided in 2020 with a lead time of 10 years arrives in 2030. The next
+    window receives it as stock of 2020, which FINE would make available right away if
+    the stock year had no lead time, as a scalar or Series leadTime gives stock years.
+    """
+    results = rollingHorizonOptimization(
+        esM=leadTimePathwayEsM(leadTime),
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert srcCapacity(results, 2025, 2025) == pytest.approx(0)
+    assert srcCapacity(results, 2025, 2030) == pytest.approx(1)
+
+
+def test_existing_stock_is_not_delayed_by_a_scalar_lead_time():
+    """Only the decisions of the pathway are given their lead time; stock the pathway
+    starts with keeps the lead time of 0 that FINE gives it.
+    """
+    results = rollingHorizonOptimization(
+        esM=leadTimePathwayEsM(
+            10,
+            stockCommissioning={2015: pd.Series({"PerfectLand": 2.0})},
+            commissioningFix={
+                year: pd.Series({"PerfectLand": 0.0})
+                for year in [2020, 2025, 2030, 2035]
+            },
+        ),
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    for windowStart in results:
+        assert srcCapacity(results, windowStart, windowStart) == pytest.approx(2)
+
+
+def test_stock_still_in_operation_because_of_its_lead_time_is_kept():
+    """Decided in 2020 with a lead time of 10 years and a technical lifetime of 5, the
+    capacity operates in 2030 only. Pruned by its stock year alone, it would already be
+    gone from the window starting in 2030.
+    """
+    results = rollingHorizonOptimization(
+        esM=leadTimePathwayEsM(10, technicalLifetime=5),
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert 2020 in stockOf(results, 2030, "Src")
+    assert srcCapacity(results, 2030, 2030) == pytest.approx(1)
+    assert srcCapacity(results, 2030, 2035) == pytest.approx(0)
+
+
+def test_a_lead_time_of_zero_is_passed_on_unchanged():
+    """Without a lead time the windows are built exactly as before lead times existed."""
+    esM = simplePathwayEsM(3)
+    _, compDict = fn.dictIO.exportToDict(esM)
+    compEntry = copy.deepcopy(compDict["Source"]["Src"])
+    _expandLeadTimeForPassedOnStock(compEntry, "Src", esM)
+    assert compEntry["leadTime"] == 0
 
 
 def test_a_run_does_not_warn_about_the_precision_of_its_own_results():
