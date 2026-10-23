@@ -273,12 +273,23 @@ def test_rejects_parameter_not_held_per_investment_period():
         )
 
 
-def test_rejects_stage_mapping_that_does_not_cover_all_periods():
-    with pytest.raises(ValueError, match="exactly once"):
+@pytest.mark.parametrize(
+    "stageInvestmentPeriods, message",
+    [
+        ([[0], [1], [3]], "exactly once"),
+        # the default of one stage per investment period needs four stages
+        (None, "3 stages but the energy system model has 4 investment periods"),
+    ],
+    ids=["gap", "defaultMapping"],
+)
+def test_rejects_stage_mapping_that_does_not_cover_all_periods(
+    stageInvestmentPeriods, message
+):
+    with pytest.raises(ValueError, match=message):
         mssp.optimizeMultiStageStochastic(
             _buildBaseModel(),
             _treeSpec(),
-            stageInvestmentPeriods=[[0], [1], [3]],
+            stageInvestmentPeriods=stageInvestmentPeriods,
             solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
 
@@ -545,6 +556,22 @@ def test_ef_regression_values(efResults):
         assert decisions[key] == pytest.approx(value, rel=1e-4, abs=1e-6), key
 
 
+def test_an_infeasible_scenario_is_reported():
+    """The 2020 gas turbines are still there in 2035, where one leaf allows none."""
+    spec = _treeSpec()
+    for name, node in spec.items():
+        node["values"]["GasTurbine"] = {
+            "capacityMax": 0.0 if name == "growth_gasCrisis" else 1000.0
+        }
+    with pytest.raises(RuntimeError, match="solvable on its own"):
+        mssp.optimizeMultiStageStochastic(
+            _buildBaseModel(),
+            spec,
+            stageInvestmentPeriods=STAGE_INVESTMENT_PERIODS,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
+
+
 def _solveWithTwoPeriodFirstStage():
     """Two stages, 2020 and 2025 | 2030 and 2035, with is-built binaries on GasTurbine."""
     baseModel = _buildBaseModel()
@@ -704,3 +731,46 @@ def test_fidelity_guard_ignores_label_order_but_not_values():
         _timeSeries({"south": [1, 2, 3, 4], "north": [5, 6, 7, 8]}),
         _timeSeries({"north": [5, 6, 7, 8], "south": [1, 2, 3, 4]}),
     )
+
+
+def test_fidelity_guard_reports_a_parameter_lost_by_updateComponent(monkeypatch):
+    """As if a constructor argument were not stored on the component under its name."""
+    update = fn.EnergySystemModel.updateComponent
+
+    def lossyUpdate(esM, componentName, updateAttrs):
+        update(esM, componentName, updateAttrs)
+        esM.getComponent(componentName).interestRate = 0.0
+
+    monkeypatch.setattr(fn.EnergySystemModel, "updateComponent", lossyUpdate)
+    with pytest.raises(
+        RuntimeError, match=r"changed the parameters \['interestRate'\]"
+    ):
+        mssp.buildScenarioEnergySystemModel(
+            _buildBaseModel(),
+            mssp.ScenarioTree(_treeSpec()),
+            "growth_gasCrisis",
+            STAGE_INVESTMENT_PERIODS,
+        )
+
+
+def test_scenarios_with_different_design_variables_are_refused():
+    """The last line of defense for mpi-sppy's positional matching of the variables."""
+    tree = mssp.ScenarioTree(_treeSpec())
+    northOnly = _buildBaseModel()
+    northOnly.updateComponent(
+        "GasTurbine", {"locationalEligibility": pd.Series({"north": 1, "south": 0})}
+    )
+    scenarioModels = {
+        name: mssp.buildScenarioEnergySystemModel(
+            baseModel, tree, name, STAGE_INVESTMENT_PERIODS
+        )
+        for name, baseModel in [
+            ("growth_gasCrisis", _buildBaseModel()),
+            ("growth_cheapGas", northOnly),
+        ]
+    }
+    mssp._verifyStructuralConsistency(
+        {"growth_gasCrisis": scenarioModels["growth_gasCrisis"]}
+    )
+    with pytest.raises(ValueError, match="do not describe the same system"):
+        mssp._verifyStructuralConsistency(scenarioModels)
