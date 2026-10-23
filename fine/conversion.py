@@ -280,6 +280,8 @@ class Conversion(Component):
             investmentPeriodInterval. See the Component class for the full parameter description.
             A scalar or Series applies to the investment periods only. Stock that is still under
             construction at startYear is given by a dictionary entry for its stockCommissioning year.
+            A nonzero lead time cannot be combined with commissioning year dependent commodity
+            conversion factors yet.
             |br| * the default value is 0
         :type leadTime:
 
@@ -421,6 +423,15 @@ class Conversion(Component):
         (self.isIpDepending, self.isCommisDepending, self.flexibleConversion) = (
             utils.checkConversionFactorProperties(self, esM, commissioningDependentCcf)
         )
+        # the (commissioning year, investment period) pairs of a vintage start at its
+        # decision, not at its availability after the lead time
+        if self.isCommisDepending and any(
+            (series != 0).any() for series in self.processedLeadTime.values()
+        ):
+            raise NotImplementedError(
+                "leadTime is not yet implemented in combination with commissioning year "
+                "dependent commodity conversion factors."
+            )
         (
             self.fullCommodityConversionFactors,
             self.processedCommodityConversionFactors,

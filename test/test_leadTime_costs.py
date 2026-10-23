@@ -660,3 +660,72 @@ def test_optimization_summary_reproduces_notebook_example_costs_scenario_fix():
     capex = _summary_capex_by_ip(esM)
     assert capex[0] > 0
     assert capex[1] == pytest.approx(capex[0])
+
+
+# ---------------------------------------------------------------------------
+# Storage and Transmission override getObjectiveFunctionContribution, so the
+# widened CAPEX and shifted OPEX have to reach their objectives separately.
+# ---------------------------------------------------------------------------
+
+
+def _solve_two_node_model(componentClass, leadTime):
+    """One component with commissioningFix in 2020 at both nodes (both directions)."""
+    years = [_ip_year(ip, _INTERVAL) for ip in range(3)]
+    esM = fn.EnergySystemModel(
+        locations={"a", "b"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "MW_el"},
+        numberOfTimeSteps=1,
+        hoursPerTimeStep=1,
+        startYear=2020,
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=_INTERVAL,
+        costUnit="Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+    index = ["a_b", "b_a"] if componentClass is fn.Transmission else ["a", "b"]
+    esM.add(
+        componentClass(
+            esM=esM,
+            name="comp",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            commissioningFix={
+                year: pd.Series(_CAPACITY if year == 2020 else 0.0, index=index)
+                for year in years
+            },
+            investPerCapacity=_INVEST_PER_CAPACITY,
+            opexPerCapacity=5,
+            interestRate=_INTEREST_RATE,
+            economicLifetime=_ECON_LIFETIME,
+            technicalLifetime=_TECH_LIFETIME,
+            leadTime=leadTime,
+        )
+    )
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
+    return esM
+
+
+@pytest.mark.parametrize("componentClass", [fn.Storage, fn.Transmission])
+def test_leadtime_reaches_the_objective_of_storage_and_transmission(componentClass):
+    """The lead time changes the objective by the same factor as for a Source.
+
+    The optimization summary books what the objective does.
+    """
+    source = {lt: _solve_two_node_model(fn.Source, lt).pyM.Obj() for lt in (0, 5)}
+    objective = {}
+    for lt in (0, 5):
+        esM = _solve_two_node_model(componentClass, lt)
+        objective[lt] = esM.pyM.Obj()
+        npvSum = sum(
+            esM.getOptimizationSummary(mdl, ip=ip, outputLevel=0)
+            .xs("NPVcontribution", level="Property")
+            .sum()
+            .sum()
+            for ip in esM.investmentPeriodNames
+            for mdl in esM.componentModelingDict
+        )
+        assert npvSum == pytest.approx(objective[lt])
+    assert objective[5] / objective[0] == pytest.approx(source[5] / source[0])
+    assert source[5] < source[0]
