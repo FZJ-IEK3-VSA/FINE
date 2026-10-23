@@ -1283,36 +1283,107 @@ class StochasticOptimizationResults:
     :param objectiveValue: the optimal value of the stochastic program, i.e. the expected
         net present value over all scenarios
     :type objectiveValue: float or None
+
+    :param stageInvestmentPeriods: the validated stage to investment period mapping the
+        program was solved with
+    :type stageInvestmentPeriods: list of lists of int
+
+    :param includeIsBuiltBinaryVariables: whether the binary is-built decisions were
+        non-anticipative as well
+        |br| * the default value is True
+    :type includeIsBuiltBinaryVariables: boolean
     """
 
-    def __init__(self, tree, solverObject, scenarioModels, objectiveValue):
+    def __init__(
+        self,
+        tree,
+        solverObject,
+        scenarioModels,
+        objectiveValue,
+        stageInvestmentPeriods,
+        includeIsBuiltBinaryVariables=True,
+    ):
         self.tree = tree
         self.solverObject = solverObject
         self.scenarioModels = scenarioModels
         self.objectiveValue = objectiveValue
+        self.stageInvestmentPeriods = stageInvestmentPeriods
+        self.includeIsBuiltBinaryVariables = includeIsBuiltBinaryVariables
 
-    def firstStageDecisions(self):
-        """Return the first-stage commissioning decisions, which are equal in all scenarios.
+    def firstStageDecisions(self, isBuiltDecisions=False, tolerance=1e-5):
+        """Return the decisions of the first stage, which are equal in all scenarios.
+
+        Covers every investment period of the first stage. The values are read from the
+        first scenario held by this process. Non-anticipativity makes them equal in all
+        scenarios, but only up to the solver's tolerances, and for progressive hedging
+        only once it has converged; a warning is issued if the scenarios held by this
+        process differ by more than ``tolerance``.
+
+        **Default arguments:**
+
+        :param isBuiltDecisions: return the binary is-built decisions (``commisBin_``) of
+            components with ``hasIsBuiltBinaryVariable=True`` instead of the commissioned
+            capacities (``commis_``). Only available if the program was solved with
+            ``includeIsBuiltBinaryVariables=True``.
+            |br| * the default value is False
+        :type isBuiltDecisions: boolean
+
+        :param tolerance: largest difference between the scenarios that is accepted
+            without a warning, absolute, and relative to the value for values above 1
+            |br| * the default value is 1e-5
+        :type tolerance: positive float
 
         :return: mapping of ``(modelingClass, componentName, location, investmentPeriod)``
-            to the commissioned capacity
+            to the commissioned capacity, or to the is-built decision
         :rtype: dict
         """
+        if isBuiltDecisions and not self.includeIsBuiltBinaryVariables:
+            raise ValueError(
+                "The is-built decisions were not non-anticipative in this program "
+                "(includeIsBuiltBinaryVariables=False), so they can differ between the "
+                "scenarios and have no first-stage value."
+            )
         if not self.scenarioModels:
             return {}
-        esM = next(iter(self.scenarioModels.values()))
-        decisions = {}
-        for modelingClassName in sorted(esM.componentModelingDict):
-            mdl = esM.componentModelingDict[modelingClassName]
-            variable = getattr(esM.pyM, "commis_" + mdl.abbrvName, None)
-            if variable is None:
-                continue
-            for key in sorted(variable):
-                loc, compName, ip = key
-                if ip == esM.investmentPeriods[0]:
-                    decisions[(modelingClassName, compName, loc, ip)] = variable[
-                        key
-                    ].value
+        prefix = "commisBin_" if isBuiltDecisions else "commis_"
+        firstStagePeriods = set(self.stageInvestmentPeriods[0])
+
+        def decisionsOf(esM):
+            decisions = {}
+            for modelingClassName in sorted(esM.componentModelingDict):
+                mdl = esM.componentModelingDict[modelingClassName]
+                variable = getattr(esM.pyM, prefix + mdl.abbrvName, None)
+                if variable is None:
+                    continue
+                for key in sorted(variable):
+                    loc, compName, ip = key
+                    if ip in firstStagePeriods:
+                        decisions[(modelingClassName, compName, loc, ip)] = variable[
+                            key
+                        ].value
+            return decisions
+
+        scenarioNames = list(self.scenarioModels)
+        decisions = decisionsOf(self.scenarioModels[scenarioNames[0]])
+        for scenarioName in scenarioNames[1:]:
+            other = decisionsOf(self.scenarioModels[scenarioName])
+            deviations = {}
+            for key, value in decisions.items():
+                if value is None or other[key] is None:
+                    continue
+                deviation = abs(other[key] - value)
+                if deviation > tolerance * max(1.0, abs(value)):
+                    deviations[key] = deviation
+            if deviations:
+                worst = max(deviations, key=deviations.get)
+                warnings.warn(
+                    f"The first-stage decisions of scenarios '{scenarioNames[0]}' and "
+                    f"'{scenarioName}' differ in {len(deviations)} variables, by up to "
+                    f"{deviations[worst]:.3g} for {worst}. The values of "
+                    f"'{scenarioNames[0]}' are returned. With progressive hedging this "
+                    "means it has not converged."
+                )
+                break
         return decisions
 
 
@@ -1539,5 +1610,10 @@ def optimizeMultiStageStochastic(
         scenarioModels[scenarioName] = scenarioEsM
 
     return StochasticOptimizationResults(
-        tree, solverObject, scenarioModels, objectiveValue
+        tree,
+        solverObject,
+        scenarioModels,
+        objectiveValue,
+        stageInvestmentPeriods,
+        includeIsBuiltBinaryVariables=includeIsBuiltBinaryVariables,
     )
