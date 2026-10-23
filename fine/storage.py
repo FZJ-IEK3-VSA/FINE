@@ -726,7 +726,8 @@ class StorageModel(ComponentModel):
         )
 
         # Set of (loc, compName, commis, ip) for the commissioning-dependent charge operation
-        # mode-1 constraint. Only includes (commis, ip) pairs where the vintage is still active.
+        # mode-1 constraint. Only includes (commis, ip) pairs where the vintage is still active,
+        # i.e. a technical lifetime from its availability (decision period plus lead time) on.
         def initChargeOpCommisConstrSet(pyM):
             return (
                 (loc, compName, commis, ip)
@@ -736,8 +737,8 @@ class StorageModel(ComponentModel):
                 if comp.processedLocationalEligibility[loc] == 1
                 for commis in comp.processedStockYears + esM.investmentPeriods
                 for ip in esM.investmentPeriods
-                if commis <= ip
-                and ip - commis
+                if 0
+                <= ip - commis - utils.roundedStockLeadTime(comp, commis, loc)
                 < (
                     math.floor(comp.ipTechnicalLifetime[loc])
                     if comp.floorTechnicalLifetime
@@ -1853,17 +1854,17 @@ class StorageModel(ComponentModel):
             pyM,
             esM,
             ["processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commis",
-            divisorName="CCF",
+            divisorName="CCFLeadTime",
         )
         capexDec = self.getEconomicsDesign(
             pyM,
             esM,
             ["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commisBin",
-            divisorName="CCF",
+            divisorName="CCFLeadTime",
         )
         opexCap = self.getEconomicsDesign(
             pyM,
@@ -1871,6 +1872,7 @@ class StorageModel(ComponentModel):
             ["processedOpexPerCapacity"],
             lifetimeAttr="ipTechnicalLifetime",
             varName="commis",
+            shiftByLeadTime=True,
         )
         opexDec = self.getEconomicsDesign(
             pyM,
@@ -1878,6 +1880,7 @@ class StorageModel(ComponentModel):
             ["processedOpexIfBuilt"],
             lifetimeAttr="ipTechnicalLifetime",
             varName="commisBin",
+            shiftByLeadTime=True,
         )
         opexOp1 = self.getEconomicsOperation(
             pyM,

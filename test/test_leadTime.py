@@ -275,6 +275,43 @@ def test_no_pwlcf_parameters_with_nonzero_leadtime_does_not_raise(leadtime_test_
     _add_source(leadtime_test_esM, "x", leadTime=2)
 
 
+@pytest.mark.parametrize("leadTime", [0, 2])
+def test_commissioning_dependent_conversion_with_nonzero_leadtime_raises(leadTime):
+    esM = fn.EnergySystemModel(
+        locations={"loc1"},
+        commodities={"electricity", "gas"},
+        commodityUnitsDict={"electricity": "GW_el", "gas": "GW_CH4"},
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        verboseLogLevel=2,
+    )
+    years = esM.investmentPeriodNames
+    conversion = dict(
+        esM=esM,
+        name="turbine",
+        physicalUnit="GW_el",
+        # the efficiency improves with the commissioning year
+        commodityConversionFactors={
+            (commis, year): {
+                "electricity": 1,
+                "gas": -1 / (0.5 + 0.01 * (commis - 2020)),
+            }
+            for commis in years
+            for year in years
+            if commis <= year < commis + 10
+        },
+        hasCapacityVariable=True,
+        technicalLifetime=10,
+        leadTime=leadTime,
+    )
+    if leadTime == 0:
+        assert fn.Conversion(**conversion).isCommisDepending
+    else:
+        with pytest.raises(NotImplementedError, match="commissioning year dependent"):
+            fn.Conversion(**conversion)
+
+
 # ---------------------------------------------------------------------------
 # Capacity-availability shift (Step 4): scalar/regional leadTime wired into
 # capacityDevelopmentPerfectForesight / initialYear / capacityDecommissioning.
@@ -1213,3 +1250,72 @@ def test_leadtime_yearlyfullloadhoursmin_binds_available_capacity():
     op_ip1 = pyomo.value(opVar[_LEADTIME_MODEL_LOCATION, "src", 1, 0, 0])
     assert op_ip0 == pytest.approx(0)
     assert op_ip1 == pytest.approx(1)
+
+
+def test_leadtime_shifts_the_vintages_of_a_storage_with_cyclic_lifetime():
+    """A storage decided in 2020 with a lead time of one period operates in 2025 only.
+    Its vintage has to be active there, or it could not charge at all in 2025, and the
+    model, which needs the storage to move the generation of the first time step to the
+    second, would be infeasible.
+    """
+    esM = fn.EnergySystemModel(
+        locations={_LEADTIME_MODEL_LOCATION},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "MW_el"},
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=1,
+        startYear=2020,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=5,
+        costUnit="Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+
+    def profile(values2025):
+        return {
+            2020: pd.DataFrame({_LEADTIME_MODEL_LOCATION: [0.0, 0.0]}),
+            2025: pd.DataFrame({_LEADTIME_MODEL_LOCATION: values2025}),
+        }
+
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="src",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=profile([1.0, 0.0]),
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="sink",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=profile([0.0, 1.0]),
+        )
+    )
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="store",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            commissioningFix=_ip_loc_series({0: 10, 1: 0}, 2, 5),
+            cyclicLifetime=1e6,
+            opexPerChargeOperation=1e-3,
+            investPerCapacity=1,
+            economicLifetime=5,
+            technicalLifetime=5,
+            leadTime=5,
+        )
+    )
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+    chargeOpCommis = esM.pyM.chargeOpCommis_stor
+    assert pyomo.value(
+        chargeOpCommis[_LEADTIME_MODEL_LOCATION, "store", 0, 1, 0, 0]
+    ) == pytest.approx(1.0)
+    assert not any(ip == 0 for _, _, _, ip in esM.pyM.chargeOpCommisConstrSet1_stor)

@@ -931,18 +931,18 @@ class TransmissionModel(ComponentModel):
             esM,
             factorNames=["processedInvestPerCapacity", "QPcostDev"],
             QPfactorNames=["processedQPcostScale", "processedInvestPerCapacity"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commis",
-            divisorName="CCF",
-            QPdivisorNames=["QPbound", "CCF"],
+            divisorName="CCFLeadTime",
+            QPdivisorNames=["QPbound", "CCFLeadTime"],
         )
         capexDec = self.getEconomicsDesign(
             pyM,
             esM,
             factorNames=["processedInvestIfBuilt"],
-            lifetimeAttr="ipEconomicLifetime",
+            lifetimeAttr="ipLeadTimeEconomicLifetime",
             varName="commisBin",
-            divisorName="CCF",
+            divisorName="CCFLeadTime",
         )
         opexCap = self.getEconomicsDesign(
             pyM,
@@ -952,6 +952,7 @@ class TransmissionModel(ComponentModel):
             lifetimeAttr="ipTechnicalLifetime",
             varName="commis",
             QPdivisorNames=["QPbound"],
+            shiftByLeadTime=True,
         )
         opexDec = self.getEconomicsDesign(
             pyM,
@@ -959,6 +960,7 @@ class TransmissionModel(ComponentModel):
             factorNames=["processedOpexIfBuilt"],
             lifetimeAttr="ipTechnicalLifetime",
             varName="commisBin",
+            shiftByLeadTime=True,
         )
 
         return opexOp + capexCap + capexDec + opexCap + opexDec
