@@ -1151,23 +1151,6 @@ def checkAndSetInvestmentPeriodTimeSeries(
     return parameter
 
 
-def checkAndSetInvestmentPeriodCostTimeSeries(
-    esM, name, data, locationalEligibility, dimension=Dimension.ONE
-):
-    """MISSING."""
-    if (
-        isinstance(data, dict)
-        and any(x is None for x in data.values())
-        and not all(x is None for x in data.values())
-    ):
-        raise TypeError(
-            f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
-        )
-    return checkAndSetInvestmentPeriodTimeSeries(
-        esM, name, data, locationalEligibility, dimension
-    )
-
-
 def checkAndSetTimeSeries(
     esM, name, operationTimeSeries, locationalEligibility, dimension=Dimension.ONE
 ):
@@ -1578,6 +1561,64 @@ def checkAndSetInvestmentPeriodCostParameter(
                 f"Parameter of {name} should be a pandas series or a dictionary."
             )
     return parameter
+
+
+def processCommodityCost(esM, name, data, locationalEligibility):
+    """Check a commodity cost or revenue parameter and convert it to a time series
+    (DataFrame) per investment period. Zero or None results in None.
+    """
+    checkInvestmentPeriodParameters(name, data, esM.investmentPeriodNames)
+
+    if (
+        isinstance(data, dict)
+        and any(x is None for x in data.values())
+        and not all(x is None for x in data.values())
+    ):
+        raise TypeError(
+            f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
+        )
+
+    # a zero cost is treated as no cost, so that no zero time series is built
+    if isinstance(data, (int, float)) and data == 0:
+        data = None
+
+    parameterCost = {}
+    for ip, _ip in zip(esM.investmentPeriods, esM.investmentPeriodNames):
+        value = data[_ip] if isinstance(data, dict) else data
+        if isinstance(value, (int, float)) or (
+            isinstance(value, pd.Series) and set(value.index) != set(esM.totalTimeSteps)
+        ):
+            parameterCost[ip] = checkAndSetCostParameter(
+                esM, name, value, Dimension.ONE, locationalEligibility
+            )
+        elif isinstance(value, (pd.Series, pd.DataFrame, type(None))):
+            parameterCost[ip] = checkAndSetTimeSeries(
+                esM, name, value, locationalEligibility
+            )
+        else:
+            raise TypeError(f"Parameter of {name} has an unsupported type.")
+
+    # Convert any static Series parameters into DataFrames with MultiIndex and pass through checkAndSetTimeSeries
+    for ip in esM.investmentPeriods:
+        if isinstance(parameterCost[ip], pd.Series):
+            series = parameterCost[ip]
+            # A scalar or per-location value gets broadcast across every
+            # location in the energy system model (see checkAndSetCostParameter),
+            # including locations the component is not eligible for. Mask those
+            # out before handing the data to checkAndSetTimeSeries, which
+            # otherwise rejects nonzero values at ineligible locations.
+            if locationalEligibility is not None:
+                mask = locationalEligibility.reindex(series.index).fillna(0)
+                series = series.where(mask != 0, 0.0)
+            df = pd.DataFrame(
+                [series.values] * len(esM.totalTimeSteps),
+                index=esM.totalTimeSteps,
+                columns=series.index,
+            )
+            parameterCost[ip] = checkAndSetTimeSeries(
+                esM, name, df, locationalEligibility
+            )
+    return parameterCost
 
 
 def checkAndSetTimeSeriesConversionFactors(
