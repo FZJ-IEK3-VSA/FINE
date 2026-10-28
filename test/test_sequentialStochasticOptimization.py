@@ -305,6 +305,7 @@ def test_the_deterministic_last_window_covers_the_remaining_years(
     assert last.objectiveValue == pytest.approx(
         last.results.scenarioModels[last.tree.scenarioNames[0]].pyM.Obj()
     )
+    assert last.convergence == {"converged": True, "stopReason": "deterministic"}
 
 
 def test_aggregation_without_reduction_matches_full_resolution():
@@ -583,3 +584,49 @@ def test_no_warning_about_disagreeing_scenarios(extendRun):
         warnings.simplefilter("error")
         for window in results.windows:
             window.results.firstStageDecisions()
+
+
+# ------------------------------------------------------------------ convergence
+
+# One progressive hedging iteration leaves the scenarios of a window apart, if they want
+# different first-stage wind: with the default capacityMax, both build the maximum and
+# agree from the start, so wind is uncapped here.
+_PH_ONE_ITERATION = {
+    **MSSP_SETTINGS,
+    "method": "ph",
+    "mpisppyOptions": {"PHIterLimit": 1, "defaultPHrho": 0.01},
+}
+
+
+def _uncappedWindEsM():
+    return pathwayEsM(
+        windKwargs={"capacityMax": pd.Series({"north": 1000.0, "south": 1000.0})}
+    )
+
+
+def test_every_window_records_its_convergence(extendRun):
+    results, _ = extendRun
+    assert all(
+        window.convergence == {"converged": True, "stopReason": "extensiveForm"}
+        for window in results.windows
+    )
+
+
+def test_a_window_whose_progressive_hedging_has_not_converged_stops_the_run():
+    with pytest.raises(
+        sso.mssp.ProgressiveHedgingNotConvergedError, match="Window 2020-2023: "
+    ):
+        _run(_uncappedWindEsM(), lastYear=2021, msspSettings=_PH_ONE_ITERATION)
+
+
+def test_a_window_that_has_not_converged_is_recorded_on_request():
+    with pytest.warns(UserWarning, match="did not converge"):
+        results = _run(
+            _uncappedWindEsM(),
+            lastYear=2021,
+            msspSettings={**_PH_ONE_ITERATION, "onNonConvergence": "warn"},
+            keepWindowResults=False,
+        )
+    convergence = results.windows[0].convergence
+    assert convergence["converged"] is False
+    assert convergence["stopReason"] == "iterationLimit"

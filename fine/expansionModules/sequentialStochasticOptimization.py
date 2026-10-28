@@ -87,6 +87,13 @@ class WindowResult:
         solved model, and its first stage covers the whole window. None if the run was made
         with ``keepWindowResults=False``.
     :type results: StochasticOptimizationResults instance or None
+
+    :param convergence: how the window's solve ended, as ``convergence`` of
+        :class:`StochasticOptimizationResults` (for progressive hedging whether it converged,
+        why it stopped, after how many iterations, and the largest deviation from the
+        scenarios' average). Kept with ``keepWindowResults=False`` as well. For a
+        deterministic window ``{"converged": True, "stopReason": "deterministic"}``.
+    :type convergence: dict or None
     """
 
     startYear: int
@@ -98,6 +105,7 @@ class WindowResult:
     objectiveValue: float
     implementedCommissioning: dict
     results: object = None
+    convergence: dict = None
 
 
 class SequentialStochasticResults:
@@ -411,6 +419,7 @@ def _solveDeterministicWindow(
         includeIsBuiltBinaryVariables=msspSettings.get(
             "includeIsBuiltBinaryVariables", True
         ),
+        convergence={"converged": True, "stopReason": "deterministic"},
     )
 
 
@@ -652,9 +661,13 @@ def sequentialStochasticOptimization(
 
     :param msspSettings: keyword arguments passed to optimizeMultiStageStochastic for every
         window (method, solver, solverOptions, mpisppyOptions, includeIsBuiltBinaryVariables,
-        timeSeriesAggregation, temporalAggregationSpecs). The solver and the time series
-        aggregation settings are also used for the deterministic window. baseModel, tree,
-        stageInvestmentPeriods and processResults are set by this function.
+        timeSeriesAggregation, temporalAggregationSpecs, onNonConvergence,
+        nonanticipativityTolerance). The solver and the time series aggregation settings are
+        also used for the deterministic window. baseModel, tree, stageInvestmentPeriods and
+        processResults are set by this function. With progressive hedging and the default
+        onNonConvergence='raise', a window whose progressive hedging has not converged stops
+        the run with an error naming the window, since its first-stage decisions, which would
+        be implemented, are not the same in all scenarios.
         |br| * the default value is None
     :type msspSettings: dict or None
 
@@ -771,13 +784,18 @@ def sequentialStochasticOptimization(
                 windowEsM, tree, windowStages, msspSettings, optimizeSettings
             )
         else:
-            results = mssp.optimizeMultiStageStochastic(
-                windowEsM,
-                tree,
-                stageInvestmentPeriods=windowStages,
-                processResults=True,
-                **msspSettings,
-            )
+            try:
+                results = mssp.optimizeMultiStageStochastic(
+                    windowEsM,
+                    tree,
+                    stageInvestmentPeriods=windowStages,
+                    processResults=True,
+                    **msspSettings,
+                )
+            except mssp.ProgressiveHedgingNotConvergedError as exc:
+                raise mssp.ProgressiveHedgingNotConvergedError(
+                    f"Window {windowYears[0]}-{windowYears[-1]}: {exc}"
+                ) from exc
 
         implementedYears = windowYears[: plan.implemented]
         implementedCommissioning = {
@@ -798,6 +816,7 @@ def sequentialStochasticOptimization(
                 objectiveValue=results.objectiveValue,
                 implementedCommissioning=implementedCommissioning,
                 results=results,
+                convergence=results.convergence,
             )
         )
         # equal in all scenarios, so any of them carries the first-stage decisions
