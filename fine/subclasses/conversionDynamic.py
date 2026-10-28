@@ -115,7 +115,6 @@ class ConversionDynamicModel(ConversionModel):
         self.abbrvName = ComponentAbbreviation.CONVERSION_DYNAMIC
         self.dimension = Dimension.ONE
         self._operationVariablesOptimum = {}
-        self._maintenanceActiveVariablesOptimum = {}
 
     def declareMinimumDowntimeRequiredSet(self, esM, pyM):
         """Declare location-component-IP tuples subject to required downtime.
@@ -206,7 +205,7 @@ class ConversionDynamicModel(ConversionModel):
         maintenanceSet = getattr(pyM, setName)
         startSet = []
         for loc, compName, ip in maintenanceSet:
-            duration = int(
+            duration = round(
                 self.componentsDict[compName].processedMaintenanceTime[ip][loc]
                 / esM.hoursPerTimeStep
             )
@@ -636,9 +635,9 @@ class ConversionDynamicModel(ConversionModel):
             ][loc]
             return (
                 pyomo.quicksum(
-                    maintenanceStart[index]
-                    for index in maintenanceStartSet
-                    if index[:3] == (loc, compName, ip)
+                    maintenanceStart[loc, compName, ip, p, t]
+                    for p, t in pyM.intraYearTimeSet
+                    if (loc, compName, ip, p, t) in maintenanceStartSet
                 )
                 == occurrences * maintenanceInstalled[loc, compName, ip]
             )
@@ -650,7 +649,7 @@ class ConversionDynamicModel(ConversionModel):
             )
 
         def activateMinimumDuration(pyM, loc, compName, ip, p, start):
-            duration = int(
+            duration = round(
                 self.componentsDict[compName].processedMaintenanceTime[ip][loc]
                 / esM.hoursPerTimeStep
             )
@@ -743,6 +742,7 @@ class ConversionDynamicModel(ConversionModel):
         if not hasattr(pyM, variableName):
             return
         maintenanceActive = getattr(pyM, variableName)
+        self._maintenanceActiveVariablesOptimum = {}
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
             optVal = utils.formatOptimizationOutput(
@@ -772,26 +772,6 @@ class ConversionDynamicModel(ConversionModel):
             )
         ]
 
-    def _convertOptimalValueNames(self, esM):
-        """Publish maintenance results after the standard result conversion.
-
-        :param esM: EnergySystemModel defining whether results are unwrapped for a
-            single investment period or retained as a dictionary.
-        :type esM: EnergySystemModel
-        """
-        super()._convertOptimalValueNames(esM)
-        if not self._maintenanceActiveVariablesOptimum:
-            return
-        if esM.numberOfInvestmentPeriods == 1:
-            ipName = esM.investmentPeriodNames[0]
-            self.maintenanceActiveVariablesOptimum = (
-                self._maintenanceActiveVariablesOptimum[ipName]
-            )
-        else:
-            self.maintenanceActiveVariablesOptimum = (
-                self._maintenanceActiveVariablesOptimum
-            )
-
     def getOptimalValues(self, name="all", ip=0):
         """Return standard optima and the scheduled-maintenance status.
 
@@ -805,19 +785,16 @@ class ConversionDynamicModel(ConversionModel):
         :rtype: dict
         """
         maintenanceName = "maintenanceActiveVariablesOptimum"
+        maintenanceResults = getattr(self, "_" + maintenanceName, {})
+        if name not in ("all", maintenanceName) or ip not in maintenanceResults:
+            return super().getOptimalValues(name, ip=ip)
+        maintenance = {
+            "values": maintenanceResults[ip],
+            "timeDependent": True,
+            "dimension": Dimension.ONE,
+        }
         if name == maintenanceName:
-            return {
-                "values": self._maintenanceActiveVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": Dimension.ONE,
-            }
+            return maintenance
         values = super().getOptimalValues(name, ip=ip)
-        if name not in ("all", maintenanceName):
-            return values
-        if ip in self._maintenanceActiveVariablesOptimum:
-            values[maintenanceName] = {
-                "values": self._maintenanceActiveVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": Dimension.ONE,
-            }
+        values[maintenanceName] = maintenance
         return values

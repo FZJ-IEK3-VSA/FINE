@@ -276,7 +276,9 @@ def test_no_scheduled_maintenance_without_installed_capacity():
     esM.updateComponent(
         "Methane heater",
         {
-            "capacityFix": 0,
+            "capacityFix": None,
+            "capacityMax": 100,
+            "investPerCapacity": 1e6,  # expensive enough that no capacity is built
             "maintenanceTime": 2,
             "maintenanceOccurrences": 2,
             "bigM": 1000,
@@ -285,7 +287,9 @@ def test_no_scheduled_maintenance_without_installed_capacity():
 
     esM.optimize()
 
-    assert not hasattr(esM.pyM, "maintenanceStart_conv_dyn")
+    pyM = esM.pyM
+    assert pyM.maintenanceInstalled_conv_dyn["region1", "Methane heater", 0].value < 0.5
+    assert all(var.value < 0.5 for var in pyM.maintenanceStart_conv_dyn.values())
 
 
 @pytest.mark.parametrize(
@@ -375,6 +379,49 @@ def test_scheduled_maintenance_by_location_and_investment_period():
     assert component.processedMaintenanceTime[1]["region2"] == 2
     assert component.processedMaintenanceOccurrences[0]["region2"] == 2
     assert component.processedMaintenanceOccurrences[1]["region1"] == 2
+
+    esM.add(component)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Heating Grid",
+            commodity="heat",
+            hasCapacityVariable=False,
+            commodityCost=1,
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Methane purchase",
+            commodity="methane",
+            hasCapacityVariable=False,
+            commodityCost=0.05,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Heat demand",
+            commodity="heat",
+            operationRateFix=pd.DataFrame(
+                ENERGY_FLOW, index=range(10), columns=list(locations)
+            ),
+            hasCapacityVariable=False,
+        )
+    )
+    esM.optimize()
+
+    maintenance_active = esM.componentModelingDict[
+        "ConversionDynamicModel"
+    ].maintenanceActiveVariablesOptimum
+    for ipName, loc, expected in [
+        (2020, "region1", 2 * 1),
+        (2020, "region2", 3 * 2),
+        (2025, "region1", 3 * 2),
+        (2025, "region2", 2 * 1),
+    ]:
+        assert maintenance_active[ipName].loc["Methane heater", loc].sum() == expected
 
 
 def test_scheduled_maintenance_rejects_time_series_aggregation():
