@@ -3274,17 +3274,16 @@ class ImplementedSolvers:
         :raises RuntimeError: if the selected solver is not available
         """
         solver = cls.solver_from_environment()
-        source = f"the environment variable {cls.SOLVER_ENV_VARIABLE}"
 
         if solver:
             if solver not in cls.supported_solvers():
                 raise ValueError(
-                    f"Unsupported solver '{solver}' selected via {source}. "
+                    f"Unsupported solver '{solver}' selected via {cls.SOLVER_ENV_VARIABLE}. "
                     f"Supported solvers are: {', '.join(cls.supported_solvers())}."
                 )
             if not cls.is_available(solver):
                 raise RuntimeError(
-                    f"Solver '{solver}' was selected via {source}, but it is "
+                    f"Solver '{solver}' was selected via {cls.SOLVER_ENV_VARIABLE}, but it is "
                     "not available. Check its installation"
                     + (
                         " and that a full (non-size-limited) license is active."

@@ -6,7 +6,7 @@ name: Test all solvers
 # with `requires_solver` (see "Running the tests" in the README).
 #
 # The setup steps mirror FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1,
-# which cannot pass additional pytest arguments.
+# which cannot set FINE_SOLVER per job or fail on a missing Gurobi licence.
 
 on:
   push:

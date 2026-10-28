@@ -2087,8 +2087,7 @@ class EnergySystemModel:
 
         :param solver: specifies which solver should solve the optimization problem (which of course has to be
             installed on the machine on which the model is run). If not specified, ImplementedSolvers.STANDARD_SOLVER
-            is used. If the solver cannot be found, ImplementedSolvers.STANDARD_SOLVER and then HiGHS are used as
-            fallback.
+            is used.
             |br| * the default value is 'None'
         :type solver: string
 

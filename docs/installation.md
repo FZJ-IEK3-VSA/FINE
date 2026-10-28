@@ -127,7 +127,6 @@ A full Gurobi installation comes with the Conda Forge installation, while a redu
 
 The conda-forge installation of Fine comes with the [HiGHS](https://highs.dev/) and [GLPK](https://www.gnu.org/software/glpk/) solvers preinstalled, which can be used without any further steps. If you installed it successfully using PyPI, you will need to search for binaries compatible with your operating system, or compile the solver yourself. This can be a complex task. If you don't feel ready for that, please consider switching to the Conda installation.
 
-
 ### Default solver and explicit solver selection
 
 If no solver is passed to `optimize()`, ETHOS.FINE uses `fine.ImplementedSolvers.STANDARD_SOLVER`, which is detected when `fine` is imported: GUROBI if it is installed with a full (non-size-limited) licence, HiGHS otherwise. To select a specific solver instead, set the environment variable `FINE_SOLVER` to `gurobi`, `highs` or `glpk` before importing `fine`, e.g. `export FINE_SOLVER=highs`. If the selected solver is not supported or not available, importing `fine` raises an error.
