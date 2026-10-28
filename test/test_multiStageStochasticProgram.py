@@ -346,9 +346,7 @@ def test_ef_enforces_non_anticipativity(efResults):
     keys = next(iter(commis.values())).keys()
 
     def values(scenarios, ips):
-        return [
-            {k: v for k, v in commis[s].items() if k[3] in ips} for s in scenarios
-        ]
+        return [{k: v for k, v in commis[s].items() if k[3] in ips} for s in scenarios]
 
     # Stage 1 (2020) is shared by all scenarios.
     stage1 = values(efResults.tree.scenarioNames, STAGE_INVESTMENT_PERIODS[0])
@@ -485,9 +483,7 @@ def test_first_stage_is_built_decisions_require_non_anticipative_binaries():
 def test_ef_scenario_results_are_processed(efResults):
     esM = efResults.scenarioModels["growth_gasCrisis"]
     summary = esM.getOptimizationSummary("SourceSinkModel", ip=2035, outputLevel=0)
-    assert ("Wind", "capacity") in {
-        (comp, prop) for comp, prop, *_ in summary.index
-    }
+    assert ("Wind", "capacity") in {(comp, prop) for comp, prop, *_ in summary.index}
 
 
 def test_ef_counts_as_converged(efResults):
@@ -506,9 +502,7 @@ def test_ph_agrees_with_ef(efResults):
         "ph",
         mpisppyOptions={"PHIterLimit": 200, "defaultPHrho": 0.01, "convthresh": 1e-6},
     )
-    assert phResults.objectiveValue == pytest.approx(
-        efResults.objectiveValue, rel=1e-4
-    )
+    assert phResults.objectiveValue == pytest.approx(efResults.objectiveValue, rel=1e-4)
     convergence = phResults.convergence
     assert phResults.converged
     assert convergence["stopReason"] == "threshold"
@@ -521,7 +515,9 @@ _ONE_ITERATION = {"PHIterLimit": 1, "defaultPHrho": 0.01}
 
 
 def test_ph_that_has_not_converged_raises():
-    with pytest.raises(mssp.ProgressiveHedgingNotConvergedError, match="iteration limit"):
+    with pytest.raises(
+        mssp.ProgressiveHedgingNotConvergedError, match="iteration limit"
+    ):
         _solve("ph", mpisppyOptions=_ONE_ITERATION)
 
 
