@@ -277,13 +277,16 @@ class Source(Component):
         # DataFrame, or a dict of any of these per investment period)
         # Check if legacy key exists in kwargs
         if "commodityCostTimeSeries" in kwargs:
+            if not (isinstance(commodityCost, (int, float)) and commodityCost == 0):
+                raise TypeError(
+                    "'commodityCostTimeSeries' cannot be combined with 'commodityCost'."
+                )
             warnings.warn(
                 "'commodityCostTimeSeries' is deprecated; use 'commodityCost' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            if commodityCost is None:
-                commodityCost = kwargs.pop("commodityCostTimeSeries")
+            commodityCost = kwargs.pop("commodityCostTimeSeries")
 
         self.commodityCost = commodityCost
         self.commodityCost = utils.sortTimeSeriesColumns(commodityCost)
@@ -302,13 +305,18 @@ class Source(Component):
         # DataFrame, or a dict of any of these per investment period)
         # Check if legacy key exists in kwargs
         if "commodityRevenueTimeSeries" in kwargs:
+            if not (
+                isinstance(commodityRevenue, (int, float)) and commodityRevenue == 0
+            ):
+                raise TypeError(
+                    "'commodityRevenueTimeSeries' cannot be combined with 'commodityRevenue'."
+                )
             warnings.warn(
                 "'commodityRevenueTimeSeries' is deprecated; use 'commodityRevenue' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            if commodityRevenue is None:
-                commodityRevenue = kwargs.pop("commodityRevenueTimeSeries")
+            commodityRevenue = kwargs.pop("commodityRevenueTimeSeries")
 
         self.commodityRevenue = commodityRevenue
         self.commodityRevenue = utils.sortTimeSeriesColumns(commodityRevenue)
