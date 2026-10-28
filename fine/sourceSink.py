@@ -140,8 +140,7 @@ class Source(Component):
             * a dictionary with investment periods as keys and one of the two options above as values.
 
 
-        :param commodityCost: can be added as a single cost value or as a time series.
-            1. As the cost value of one operation´s unit of the component.
+        :param commodityCost: describes the cost value of one operation´s unit of the component.
             The cost which is directly proportional to the operation of the component
             is obtained by multiplying the commodityCost parameter with the (time step specific, if
             given as a time series) operation of the component. commodityCost can be given as a
@@ -157,10 +156,7 @@ class Source(Component):
               certain cost.
             * A spot-market commodity price that varies by time step can be given as a time series.
 
-            2. As commodity cost rates for each location and each time step, if required also for each investment period, by a positive float.
-            The values are given as specific values relative to the commodityUnit for each time step.
-
-            |br| * the default value is 0 for single cost values and None for time series.
+            |br| * the default value is 0
         :type commodityCost:
 
             * positive (>=0) float
@@ -171,8 +167,7 @@ class Source(Component):
             * a dictionary with investment periods as keys and one of the options above as values.
 
 
-        :param commodityRevenue: can be added as a single cost value or as a time series.
-            1. As the revenue of one operation´s unit of the component.
+        :param commodityRevenue: describes the revenue of one operation´s unit of the component.
             The revenue which is directly proportional to the operation of the component
             is obtained by multiplying the commodityRevenue parameter with the (time step specific, if
             given as a time series) operation of the component. commodityRevenue can be given as a
@@ -183,14 +178,11 @@ class Source(Component):
             The cost unit in which the parameter is given has to match the one specified in the energy
             system model (e.g. Euro, Dollar, 1e6 Euro).
 
-            2. As commodity revenue rate for each location and each time step, if required also for each investment period, by a positive float.
-            The values are given as specific values relative to the comodityUnit for each time step.
-
         Example:
             * Modeling a PV electricity feed-in tariff for a household
             * A time-varying feed-in tariff can be given as a time series.
 
-            |br| * the default value is 0 for single cost values and None for time series.
+            |br| * the default value is 0
         :type commodityRevenue:
 
             * positive (>=0) float
@@ -296,7 +288,6 @@ class Source(Component):
             )
             commodityCost = kwargs.pop("commodityCostTimeSeries")
 
-        self.commodityCost = commodityCost
         self.commodityCost = utils.sortTimeSeriesColumns(commodityCost)
         self.fullCommodityCost = utils.processCommodityCost(
             esM,
@@ -326,7 +317,6 @@ class Source(Component):
             )
             commodityRevenue = kwargs.pop("commodityRevenueTimeSeries")
 
-        self.commodityRevenue = commodityRevenue
         self.commodityRevenue = utils.sortTimeSeriesColumns(commodityRevenue)
         self.fullCommodityRevenue = utils.processCommodityCost(
             esM,

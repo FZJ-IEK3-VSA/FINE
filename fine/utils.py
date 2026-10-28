@@ -1151,23 +1151,6 @@ def checkAndSetInvestmentPeriodTimeSeries(
     return parameter
 
 
-def checkAndSetInvestmentPeriodCostTimeSeries(
-    esM, name, data, locationalEligibility, dimension=Dimension.ONE
-):
-    """MISSING."""
-    if (
-        isinstance(data, dict)
-        and any(x is None for x in data.values())
-        and not all(x is None for x in data.values())
-    ):
-        raise TypeError(
-            f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
-        )
-    return checkAndSetInvestmentPeriodTimeSeries(
-        esM, name, data, locationalEligibility, dimension
-    )
-
-
 def checkAndSetTimeSeries(
     esM, name, operationTimeSeries, locationalEligibility, dimension=Dimension.ONE
 ):
@@ -1581,7 +1564,9 @@ def checkAndSetInvestmentPeriodCostParameter(
 
 
 def processCommodityCost(esM, name, data, dimension, locationalEligibility, years):
-    """MISSING."""
+    """Check a commodity cost or revenue parameter and convert it to a time series
+    (DataFrame) per investment period. Zero or None results in None.
+    """
     _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
     checkInvestmentPeriodParameters(name, data, _years)
 
@@ -1598,13 +1583,7 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
     if isinstance(data, (int, float)) and data == 0:
         data = None
 
-    # Initialize parameterCost for each year
     parameterCost = {}
-    for ip in years:
-        parameterCost[ip] = checkAndSetCostParameter(
-            esM, name, 0, dimension, locationalEligibility
-        )
-
     for ip in years:
         _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
         if isinstance(data, (int, float)):
@@ -1642,6 +1621,10 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
             elif isinstance(data[_ip], (pd.DataFrame, type(None))):
                 parameterCost[ip] = checkAndSetTimeSeries(
                     esM, name, data[_ip], locationalEligibility, dimension=dimension
+                )
+            else:
+                raise TypeError(
+                    f"Parameter of {name} has an unsupported type for investment period {_ip}."
                 )
         elif isinstance(data, (pd.DataFrame, type(None))):
             parameterCost[ip] = checkAndSetTimeSeries(
