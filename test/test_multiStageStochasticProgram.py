@@ -691,7 +691,9 @@ _ONE_ITERATION = {"PHIterLimit": 1, "defaultPHrho": 0.01}
 
 
 def test_ph_that_has_not_converged_raises():
-    with pytest.raises(mssp.ProgressiveHedgingNotConvergedError, match="iteration limit"):
+    with pytest.raises(
+        mssp.ProgressiveHedgingNotConvergedError, match="iteration limit"
+    ):
         _solve("ph", mpisppyOptions=_ONE_ITERATION)
 
 
