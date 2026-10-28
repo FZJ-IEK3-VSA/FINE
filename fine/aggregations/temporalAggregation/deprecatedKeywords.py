@@ -45,7 +45,14 @@ import inspect
 import warnings
 
 
-from tsam import ClusterConfig, Distribution, ExtremeConfig, MinMaxMean, SegmentConfig
+from tsam import (
+    ClusterConfig,
+    Distribution,
+    ExtremeConfig,
+    KMedoids,
+    MinMaxMean,
+    SegmentConfig,
+)
 
 #: Deprecated ``clusterMethod`` values mapped to their ETHOS.TSAM 4.x names.
 CLUSTER_METHOD_MAP = {
@@ -317,6 +324,12 @@ def convertCluster(deprecatedKwargs):
         if deprecatedName == "clusterMethod":
             value = CLUSTER_METHOD_MAP.get(value, value)
         configKwargs[newName] = value
+
+    # ClusterConfig(solver=...) is deprecated since tsam 4.1 and only honoured
+    # for k-medoids, where the solver belongs to the method object.
+    solver = configKwargs.pop("solver", None)
+    if solver is not None and configKwargs.get("method") == "kmedoids":
+        configKwargs["method"] = KMedoids(solver=solver)
 
     representation = convertRepresentation(
         **{name: given.get(name) for name in _REPRESENTATION_KEYWORDS}

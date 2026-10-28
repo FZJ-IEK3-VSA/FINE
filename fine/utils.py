@@ -5,8 +5,9 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import linprog
+from scipy.sparse import csr_matrix
 
-import fine as fn
 from fine.enums import Dimension, VarType
 
 
@@ -75,12 +76,6 @@ def isSetOfStrings(setOfStrings):
         raise TypeError("The input argument has to be a set")
     if not any([isinstance(currentString, str) for currentString in setOfStrings]):
         raise TypeError("The list entries in the input argument must be strings")
-
-
-def isEnergySystemModelInstance(esM):
-    """Check if input is an EnergySystemModel instance."""
-    if not isinstance(esM, fn.EnergySystemModel):
-        raise TypeError("The input is not an EnergySystemModel instance.")
 
 
 def checkEnergySystemModelInput(
@@ -401,14 +396,6 @@ def getQPbound(investmentPeriods, QPcostScale, capacityMax, capacityMin):
     return QPbound
 
 
-def getQPcostDev(investmentPeriods, QPcostScale):
-    """MISSING."""
-    QPcostDev = {}
-    for ip in investmentPeriods:
-        QPcostDev[ip] = 1 - QPcostScale[ip]
-    return QPcostDev
-
-
 def checkLocationSpecficDesignInputParams(comp, esM):
     """MISSING."""
     if len(esM.locations) == 1:
@@ -712,23 +699,28 @@ def checkCapacityDevelopmentWithStock(
     stockCommissioning,
     technicalLifetime,
     floorTechnicalLifetime,
+    stochasticModel=False,
 ):
     """MISSING."""
-    if stockCommissioning is None:
-        pass
-    else:
+
+    def roundTechnicalLifetime(lifetime):
+        if floorTechnicalLifetime:
+            return math.floor(lifetime)
+        return math.ceil(lifetime)
+
+    if stockCommissioning is not None:
         # if there is a stock, consider it for the capacity development
         # create a dataframe with columns for location, index for the years and
         # stock capacities as values
         locations = stockCommissioning[-1].index
         years = [x for x in stockCommissioning.keys()] + investmentPeriods
         stockCapacity = pd.DataFrame(0.0, index=years, columns=locations).sort_index()
-        for ip, stockCommis in stockCommissioning.items():
-            for loc in stockCommis.index:
-                if floorTechnicalLifetime:
-                    _techLifetime = math.floor(technicalLifetime[loc])
-                else:
-                    _techLifetime = math.ceil(technicalLifetime[loc])
+        stockCommissioningDf = pd.DataFrame(
+            0.0, index=years, columns=locations
+        ).sort_index()
+        for ip, commissionedStock in stockCommissioning.items():
+            for loc in commissionedStock.index:
+                _techLifetime = roundTechnicalLifetime(technicalLifetime[loc])
                 yearRange = list(range(ip, ip + _techLifetime))
                 yearRange = [x for x in yearRange if x <= max(investmentPeriods)]
 
@@ -736,106 +728,130 @@ def checkCapacityDevelopmentWithStock(
                 # e.g. 4.19+2.19=6.380000000000001
                 # therefore a rounding is applied, as otherwise the following
                 # errors can be wrongly raised
-                if stockCommis[loc] - round(stockCommis[loc], 10) != 0:
+                if commissionedStock[loc] - round(commissionedStock[loc], 10) != 0:
                     warnings.warn(
-                        f"A stock commissioning of {stockCommis[loc]} was "
+                        f"A stock commissioning of {commissionedStock[loc]} was "
                         + f"passed for location {loc} in year {ip}. "
                         + "It will be rounded to 10 digits to "
                         + "check if the installed stock capacity does "
                         + "not exceed capacityMax and capacityFix"
                     )
-                stockCapacity.loc[yearRange, loc] += stockCommis[loc]
+
+                roundedCapacity = round(commissionedStock[loc], 10)
+                stockCapacity.loc[yearRange, loc] += roundedCapacity
                 stockCapacity.loc[yearRange, loc] = round(
                     stockCapacity.loc[yearRange, loc], 10
                 )
+                stockCommissioningDf.loc[ip, loc] = roundedCapacity
+
         # check that the capacity max is not lower as the resulting
-        # stock capacity
+        # stock capacity. In stochastic models the stock of the first
+        # investment period applies to all scenarios
         for loc in stockCapacity.columns:
             for year in investmentPeriods:
+                stockYear = 0 if stochasticModel else year
                 if capacityMax[year] is not None:
-                    if stockCapacity.loc[year, loc] > capacityMax[year][loc]:
+                    if stockCapacity.loc[stockYear, loc] > capacityMax[year][loc]:
                         raise ValueError(
                             "Mismatch between stock capacity (by its "
                             + "commissioning and the technical lifetime) and "
                             + "capacityMax"
                         )
                 if capacityFix[year] is not None:
-                    if stockCapacity.loc[year, loc] > capacityFix[year][loc]:
+                    if stockCapacity.loc[stockYear, loc] > capacityFix[year][loc]:
                         raise ValueError(
                             "Mismatch between stock capacity (by its "
                             + "commissioning and the technical lifetime) and "
                             + "capacityFix"
                         )
-    if capacityFix is not None:
-        if all(x is None for x in capacityFix.values()):
-            return
-        # get future capacity by capacityFix
-        futureCapacityDevelopment = pd.DataFrame(index=investmentPeriods)
-        for ip in investmentPeriods:
+
+    # stochastic models have no capacity development, as the investment periods
+    # are scenarios
+    if stochasticModel or capacityFix is None:
+        return
+
+    if all(x is None for x in capacityFix.values()):
+        return
+
+    # get future capacity by capacityFix
+    futureCapacityDevelopment = pd.DataFrame(index=investmentPeriods, dtype=float)
+    for ip in investmentPeriods:
+        if capacityFix[ip] is not None:
             for loc in capacityFix[ip].index:
                 futureCapacityDevelopment.loc[ip, loc] = capacityFix[ip][loc]
-
-        # create the total capacity development, if stock with past years of stock
-        if stockCommissioning is None:
-            capacityDevelopment = futureCapacityDevelopment
         else:
-            pastYears = [x for x in stockCapacity.index if x < 0]
-            capacityDevelopment = pd.concat(
-                [stockCapacity.loc[pastYears], futureCapacityDevelopment]
-            )
+            futureCapacityDevelopment.loc[ip] = None
 
-        if floorTechnicalLifetime:
-            maxTechnicalLifetime = math.floor(technicalLifetime.max())
-        else:
-            maxTechnicalLifetime = math.ceil(technicalLifetime.max())
-        capacityDevelopment = capacityDevelopment.reindex(
-            range(-maxTechnicalLifetime - 1, max(investmentPeriods) + 1)
-        ).fillna(0)
+    # issue warning for possible infeasibilities when a NaN is followed by a number
+    for loc in futureCapacityDevelopment.columns:
+        for ip in investmentPeriods[1:]:
+            if pd.isna(futureCapacityDevelopment.loc[ip - 1, loc]) and not pd.isna(
+                futureCapacityDevelopment.loc[ip, loc]
+            ):
+                warnings.warn(
+                    f"A capacityFix value given for {loc} is preceded by a missing value."
+                    + " This may cause infeasibilities if your optimization is myopic."
+                )
+    # check that a non-negative capacity commissioning per ip exists which meets
+    # all given capacityFix values, while ips without capacityFix allow any
+    # commissioning. This is solved as a linear feasibility problem, as an earlier
+    # commissioning can be required to be decommissioned in time
+    nIp = len(investmentPeriods)
 
-        # check that decreasing capacity matches the commissioning
-        issueLocations = []
-        for loc in capacityDevelopment.columns:
-            capacityDevelopmentDiff = capacityDevelopment[loc].diff().fillna(0)
-            for ip in investmentPeriods:
-                # get technical lifetime
-                if floorTechnicalLifetime:
-                    roundedTechnicalLifetime = math.floor(technicalLifetime[loc])
-                else:
-                    roundedTechnicalLifetime = math.ceil(technicalLifetime[loc])
-
-                # technical lifetime smaller one lead to new commissioning in
-                # each investment period, independent of previous investment
-                # periods and therefore no contradicting between decreasing
-                # capacityFix and commissioning
-                if roundedTechnicalLifetime <= 1:
+    def isFeasible(locations):
+        rows, cols, rhs = [], [], []
+        for j, loc in enumerate(locations):
+            roundedTechnicalLifetime = roundTechnicalLifetime(technicalLifetime[loc])
+            for t in investmentPeriods:
+                if pd.isna(futureCapacityDevelopment.loc[t, loc]):
                     continue
-
-                capacityFixDiffOfIp = capacityDevelopmentDiff[ip]
-                capacityFixDiffOneTechnicalLifetimeAgo = capacityDevelopmentDiff[
-                    ip - roundedTechnicalLifetime
+                # capacity commissioned in (t - lifetime, t] is still active in t
+                activeIps = [
+                    i
+                    for i, ip in enumerate(investmentPeriods)
+                    if t - roundedTechnicalLifetime < ip <= t
                 ]
+                rows += [len(rhs)] * len(activeIps)
+                cols += [j * nIp + i for i in activeIps]
+                activeStock = 0
+                if stockCommissioning is not None and loc in stockCommissioningDf:
+                    activeStock = stockCommissioningDf.loc[
+                        [
+                            y
+                            for y in stockCommissioningDf.index
+                            if t - roundedTechnicalLifetime < y < 0
+                        ],
+                        loc,
+                    ].sum()
+                rhs.append(futureCapacityDevelopment.loc[t, loc] - activeStock)
+        if not rhs:
+            return True
+        A = csr_matrix(
+            (np.ones(len(rows)), (rows, cols)), shape=(len(rhs), nIp * len(locations))
+        )
+        result = linprog(
+            np.zeros(A.shape[1]), A_eq=A, b_eq=rhs, bounds=(0, None), method="highs"
+        )
+        # status 2: the problem is infeasible
+        return result.status != 2
 
-                if (
-                    capacityFixDiffOfIp < 0
-                    and capacityFixDiffOneTechnicalLifetimeAgo >= 0
-                ):
-                    # capacity reduction cannot exceed commissioning one
-                    # technical lifetime ago
-                    # 1) filter for commissioning
-                    if capacityDevelopmentDiff[ip - roundedTechnicalLifetime] >= 0:
-                        # 2) check that capacity reduction is not higher than commissioning
-                        if (-capacityDevelopmentDiff[ip]) > capacityDevelopmentDiff[
-                            ip - maxTechnicalLifetime
-                        ]:
-                            issueLocations.append(loc)
-        issueLocations = list(set(issueLocations))
+    # a technical lifetime of 1 ip or below will not cause issues
+    # as all capacity will be decommissioned after 1 ip
+    locations = [
+        loc
+        for loc in futureCapacityDevelopment.columns
+        if roundTechnicalLifetime(technicalLifetime[loc]) > 1
+    ]
 
-        if len(issueLocations) > 0:
-            raise ValueError(
-                f"Decreasing capacity fix set for regions {issueLocations} do"
-                + " not match with the decommissioning with its "
-                + "technical lifetime."
-            )
+    # solve one problem for all locations and only identify the issue locations
+    # individually if it is infeasible
+    if locations and not isFeasible(locations):
+        issueLocations = [loc for loc in locations if not isFeasible([loc])]
+        raise ValueError(
+            f"Decreasing capacity fix set for regions {issueLocations} do"
+            + " not match with the decommissioning with its "
+            + "technical lifetime."
+        )
 
 
 def checkAndSetAnnuityPerpetuity(annuityPerpetuity, numberOfInvestmentPeriods):
@@ -851,18 +867,16 @@ def checkAndSetAnnuityPerpetuity(annuityPerpetuity, numberOfInvestmentPeriods):
 
 
 def checkAndSetInterestRate(esM, name, interestRate, dimension, elig):
-    """Set up interest rate per investment period."""
-    # set up interest rate per investment period
+    """Set up interest rate per location."""
+    # set up interest rate per location (constant for all investment periods)
     processedInterestRate = checkAndSetCostParameter(
         esM, name, interestRate, dimension, elig
     )
     # if annuity perpetuity is used, the interest rate cannot be 0
-    if esM.annuityPerpetuity:
-        for ip in esM.investmentPeriods:
-            if (processedInterestRate[ip] == 0).any():
-                raise ValueError(
-                    "An interest rate of 0 cannot be set if also using annuityPerpetuity"
-                )
+    if esM.annuityPerpetuity and (processedInterestRate == 0).any():
+        raise ValueError(
+            "An interest rate of 0 cannot be set if also using annuityPerpetuity"
+        )
     return processedInterestRate
 
 
@@ -1138,23 +1152,6 @@ def checkAndSetInvestmentPeriodTimeSeries(
     return parameter
 
 
-def checkAndSetInvestmentPeriodCostTimeSeries(
-    esM, name, data, locationalEligibility, dimension=Dimension.ONE
-):
-    """MISSING."""
-    if (
-        isinstance(data, dict)
-        and any(x is None for x in data.values())
-        and not all(x is None for x in data.values())
-    ):
-        raise TypeError(
-            f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
-        )
-    return checkAndSetInvestmentPeriodTimeSeries(
-        esM, name, data, locationalEligibility, dimension
-    )
-
-
 def checkAndSetTimeSeries(
     esM, name, operationTimeSeries, locationalEligibility, dimension=Dimension.ONE
 ):
@@ -1327,13 +1324,6 @@ def checkDesignVariableModelingParameters(
             )
 
 
-def checkTechnicalLifetime(esM, technicalLifetime, economicLifetime):
-    """Set technical lifetime to economical lifetime if not explicitly given."""
-    if technicalLifetime is None:
-        technicalLifetime = economicLifetime
-    return technicalLifetime
-
-
 def checkEconomicAndTechnicalLifetime(economicLifetime, technicalLifetime):
     """Ensure that economic lifetime is smaller than technical lifetime."""
     if (economicLifetime.sort_index() > technicalLifetime.sort_index()).any():
@@ -1436,19 +1426,6 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
     return _data
 
 
-def setPartLoadMin(esM, partLoadMin):
-    """Set minimum part load."""
-    partLoadMin_ip = {}
-    for _ip in esM.investmentPeriodNames:
-        # map name of investment period (e.g. 2020) to index (e.g. 0)
-        ip = esM.investmentPeriodNames.index(_ip)
-        if isinstance(partLoadMin, float) or partLoadMin is None:
-            partLoadMin_ip[ip] = partLoadMin
-        elif isinstance(partLoadMin, dict):
-            partLoadMin_ip[ip] = partLoadMin[_ip]
-    return partLoadMin_ip
-
-
 def checkAndSetPartLoadMin(
     esM,
     name,
@@ -1495,9 +1472,11 @@ def checkAndSetPartLoadMin(
                 + " if partLoadMin is not None."
             )
 
+    # set part load min per investment period (also checks the years of a dict)
+    partLoadMin_ip = checkAndSetInvestmentPeriodParameters(name, partLoadMin, esM)
+
     # check the raw partloadmin
     if partLoadMin is not None:
-        checkInvestmentPeriodParameters(name, partLoadMin, esM.investmentPeriodNames)
         if isinstance(partLoadMin, dict):
             for ip in esM.investmentPeriodNames:
                 if partLoadMin[ip] is not None:
@@ -1510,9 +1489,6 @@ def checkAndSetPartLoadMin(
                 "Wrong datatype for partLoadMin. "
                 + "Either a dict, int or float is accepted."
             )
-
-    # set part load min per investment period
-    partLoadMin_ip = setPartLoadMin(esM, partLoadMin)
 
     if not any(value for value in partLoadMin_ip.values()):
         partLoadMin_ip = None
@@ -1588,9 +1564,62 @@ def checkAndSetInvestmentPeriodCostParameter(
     return parameter
 
 
-def checkAndSetLifetimeInvestmentPeriod(esM, name, lifetime):
-    """Calculate lifetime in investement periods."""
-    return lifetime / esM.investmentPeriodInterval
+def processCommodityCost(esM, name, data, locationalEligibility):
+    """Check a commodity cost or revenue parameter and convert it to a time series
+    (DataFrame) per investment period. Zero or None results in None.
+    """
+    checkInvestmentPeriodParameters(name, data, esM.investmentPeriodNames)
+
+    if (
+        isinstance(data, dict)
+        and any(x is None for x in data.values())
+        and not all(x is None for x in data.values())
+    ):
+        raise TypeError(
+            f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
+        )
+
+    # a zero cost is treated as no cost, so that no zero time series is built
+    if isinstance(data, (int, float)) and data == 0:
+        data = None
+
+    parameterCost = {}
+    for ip, _ip in zip(esM.investmentPeriods, esM.investmentPeriodNames):
+        value = data[_ip] if isinstance(data, dict) else data
+        if isinstance(value, (int, float)) or (
+            isinstance(value, pd.Series) and set(value.index) != set(esM.totalTimeSteps)
+        ):
+            parameterCost[ip] = checkAndSetCostParameter(
+                esM, name, value, Dimension.ONE, locationalEligibility
+            )
+        elif isinstance(value, (pd.Series, pd.DataFrame, type(None))):
+            parameterCost[ip] = checkAndSetTimeSeries(
+                esM, name, value, locationalEligibility
+            )
+        else:
+            raise TypeError(f"Parameter of {name} has an unsupported type.")
+
+    # Convert any static Series parameters into DataFrames with MultiIndex and pass through checkAndSetTimeSeries
+    for ip in esM.investmentPeriods:
+        if isinstance(parameterCost[ip], pd.Series):
+            series = parameterCost[ip]
+            # A scalar or per-location value gets broadcast across every
+            # location in the energy system model (see checkAndSetCostParameter),
+            # including locations the component is not eligible for. Mask those
+            # out before handing the data to checkAndSetTimeSeries, which
+            # otherwise rejects nonzero values at ineligible locations.
+            if locationalEligibility is not None:
+                mask = locationalEligibility.reindex(series.index).fillna(0)
+                series = series.where(mask != 0, 0.0)
+            df = pd.DataFrame(
+                [series.values] * len(esM.totalTimeSteps),
+                index=esM.totalTimeSteps,
+                columns=series.index,
+            )
+            parameterCost[ip] = checkAndSetTimeSeries(
+                esM, name, df, locationalEligibility
+            )
+    return parameterCost
 
 
 def checkAndSetTimeSeriesConversionFactors(
@@ -2099,16 +2128,6 @@ def formatOptimizationOutput(
     )
 
 
-def setOptimalComponentVariables(optVal, varType, compDict):
-    """MISSING."""
-    if optVal is not None:
-        for compName, comp in compDict.items():
-            if compName in optVal.index:
-                setattr(comp, varType, optVal.loc[compName])
-            else:
-                setattr(comp, varType, None)
-
-
 def process2dimCapacityData(esM, name, data, years):
     """MISSING."""
     data = preprocess2dimInvestmentPeriodData(esM, name, data, years)
@@ -2205,13 +2224,6 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
     if isinstance(data, dict):
         return {ip: preprocessDataPerIp(data[ip]) for ip in data.keys()}
     return preprocessDataPerIp(data)
-
-
-def map2dimData(data, mapC):
-    """Missing."""
-    if data is not None and isinstance(data, pd.DataFrame):
-        return pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
-    return data
 
 
 def output(output, verbose, val):

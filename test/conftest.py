@@ -179,8 +179,8 @@ def minimal_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -326,8 +326,8 @@ def single_node_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -645,7 +645,7 @@ def multi_node_test_esM_init(get_data_fixture):
             interestRate=0.08,
             economicLifetime=20,
             opexPerOperation=0.005,
-            commodityCostTimeSeries=offshore_cost_time_series,
+            commodityCost=offshore_cost_time_series,
         )
     )
 
@@ -694,7 +694,7 @@ def multi_node_test_esM_init(get_data_fixture):
             name="Natural gas purchase",
             commodity="methane",
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Natural Gas, commodityCostTimeSeries"],
+            commodityCost=data["Natural Gas, commodityCostTimeSeries"],
         )
     )
 
@@ -706,7 +706,7 @@ def multi_node_test_esM_init(get_data_fixture):
             commodity="biogas",
             operationRateMax=data["Biogas, operationRateMax"],
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Biogas, commodityCostTimeSeries"],
+            commodityCost=data["Biogas, commodityCostTimeSeries"],
         )
     )
 
@@ -1400,7 +1400,9 @@ def balanceLimitConstraint_test_esM():
 
 
 @pytest.fixture(scope="function")
-def perfectForesight_test_esM():
+def perfectForesight_test_esM(request):
+    # annuityPerpetuity can be set via indirect parametrization, default False
+    annuityPerpetuity = getattr(request, "param", False)
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},
@@ -1417,6 +1419,7 @@ def perfectForesight_test_esM():
         startYear=2020,
         lengthUnit="km",
         verboseLogLevel=2,
+        annuityPerpetuity=annuityPerpetuity,
     )
 
     PVoperationRateMax = pd.DataFrame(
