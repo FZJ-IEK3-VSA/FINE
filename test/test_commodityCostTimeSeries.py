@@ -167,3 +167,52 @@ def test_unknown_keyword_is_rejected(component):
     )
     with pytest.raises(TypeError, match="comodityCost"):
         component(esM, "comp", "electricity", False, comodityCost=1)
+
+
+@pytest.mark.parametrize("asDict", [False, True])
+def test_commodity_cost_as_time_indexed_series(asDict):
+    esM = fn.EnergySystemModel(
+        locations={"loc1"},
+        commodities={"electricity"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"electricity": "GW"},
+        hoursPerTimeStep=4380,
+        verboseLogLevel=2,
+    )
+    costTS = pd.Series([1.0, 2.0])
+
+    source = fn.Source(
+        esM,
+        "source",
+        "electricity",
+        False,
+        commodityCost={0: costTS} if asDict else costTS,
+    )
+
+    assert list(source.fullCommodityCost[0]["loc1"]) == [1.0, 2.0]
+
+
+def test_commodity_cost_series_with_unknown_index_is_rejected():
+    esM = fn.EnergySystemModel(
+        locations={"loc1", "loc2"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "GW"},
+        verboseLogLevel=2,
+    )
+    with pytest.raises(ValueError):
+        fn.Source(
+            esM, "source", "electricity", False, commodityCost=pd.Series({"x": 1.0})
+        )
+
+
+def test_default_commodity_cost_builds_no_time_series():
+    esM = fn.EnergySystemModel(
+        locations={"loc1", "loc2"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "GW"},
+        verboseLogLevel=2,
+    )
+    source = fn.Source(esM, "source", "electricity", False)
+
+    assert source.fullCommodityCost[0] is None
+    assert source.fullCommodityRevenue[0] is None

@@ -1594,6 +1594,10 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
             f"Parameter of {name} can not be None for individual investment periods if specified for as dict."
         )
 
+    # a zero cost is treated as no cost, so that no zero time series is built
+    if isinstance(data, (int, float)) and data == 0:
+        data = None
+
     # Initialize parameterCost for each year
     parameterCost = {}
     for ip in years:
@@ -1608,16 +1612,13 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
                 esM, name, data, dimension, locationalEligibility
             )
         elif isinstance(data, pd.Series):
-            if set(data.index) == esM.locations or (
-                dimension != "1dim"
-                and set(data.index) == set(locationalEligibility.index)
-            ):
-                parameterCost[ip] = checkAndSetCostParameter(
-                    esM, name, data, dimension, locationalEligibility
-                )
-            elif set(data.index) == esM.totalTimeSteps:
+            if set(data.index) == set(esM.totalTimeSteps):
                 parameterCost[ip] = checkAndSetTimeSeries(
                     esM, name, data, locationalEligibility, dimension=dimension
+                )
+            else:
+                parameterCost[ip] = checkAndSetCostParameter(
+                    esM, name, data, dimension, locationalEligibility
                 )
         elif isinstance(data, dict):
             if data[_ip] is None:
@@ -1629,7 +1630,7 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
                     esM, name, data[_ip], dimension, locationalEligibility
                 )
             elif isinstance(data[_ip], pd.Series) and (
-                set(data[_ip].index) == esM.totalTimeSteps
+                set(data[_ip].index) == set(esM.totalTimeSteps)
             ):
                 parameterCost[ip] = checkAndSetTimeSeries(
                     esM, name, data[_ip], locationalEligibility, dimension=dimension
