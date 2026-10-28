@@ -213,6 +213,14 @@ class Source(Component):
         :type pathwayBalanceLimitID: string
 
         """
+        # kwargs only accepts the deprecated keywords handled below
+        unknownKwargs = set(kwargs) - {
+            "commodityCostTimeSeries",
+            "commodityRevenueTimeSeries",
+        }
+        if unknownKwargs:
+            raise TypeError(f"Unexpected keyword argument(s): {sorted(unknownKwargs)}")
+
         Component.__init__(
             self,
             esM,
@@ -573,6 +581,7 @@ class Sink(Source):
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        **kwargs,
     ):
         """Create a Sink class instance.
 
@@ -620,6 +629,7 @@ class Sink(Source):
             pathwayBalanceLimitID=pathwayBalanceLimitID,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
+            **kwargs,
         )
 
         self.sign = -1

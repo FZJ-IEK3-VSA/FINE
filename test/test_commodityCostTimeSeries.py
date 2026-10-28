@@ -23,6 +23,7 @@
 import fine as fn
 import pandas as pd
 import numpy as np
+import pytest
 
 from fine.utils import ImplementedSolvers
 
@@ -125,3 +126,44 @@ def test_miniSystem():
     np.testing.assert_almost_equal(
         summary.loc[("Electricity purchase", "TAC", "[Euro/a]"), "loc2"], 2920
     )
+
+
+@pytest.mark.parametrize("component", [fn.Source, fn.Sink])
+@pytest.mark.parametrize(
+    "deprecatedName, name",
+    [
+        ("commodityCostTimeSeries", "commodityCost"),
+        ("commodityRevenueTimeSeries", "commodityRevenue"),
+    ],
+)
+def test_deprecated_commodity_time_series_keywords(component, deprecatedName, name):
+    esM = fn.EnergySystemModel(
+        locations={"loc1", "loc2"},
+        commodities={"electricity"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"electricity": "GW"},
+        hoursPerTimeStep=4380,
+        verboseLogLevel=2,
+    )
+    costTS = pd.DataFrame({"loc1": [1.0, 2.0], "loc2": [3.0, 4.0]})
+
+    with pytest.warns(DeprecationWarning, match=deprecatedName):
+        comp = component(esM, "comp", "electricity", False, **{deprecatedName: costTS})
+    pd.testing.assert_frame_equal(getattr(comp, name), costTS)
+
+    with pytest.raises(TypeError, match=deprecatedName):
+        component(
+            esM, "comp", "electricity", False, **{deprecatedName: costTS, name: 1}
+        )
+
+
+@pytest.mark.parametrize("component", [fn.Source, fn.Sink])
+def test_unknown_keyword_is_rejected(component):
+    esM = fn.EnergySystemModel(
+        locations={"loc1", "loc2"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "GW"},
+        verboseLogLevel=2,
+    )
+    with pytest.raises(TypeError, match="comodityCost"):
+        component(esM, "comp", "electricity", False, comodityCost=1)
