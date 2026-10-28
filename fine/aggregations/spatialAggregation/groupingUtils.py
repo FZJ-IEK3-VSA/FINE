@@ -2,7 +2,7 @@
 
 import warnings
 import numpy as np
-from scipy.cluster import hierarchy
+from scipy.spatial import distance
 from fine.IOManagement.utilsIO import PowerDict
 
 try:
@@ -120,9 +120,7 @@ def preprocess_2d_variables(vars_dict):
             norm_comp_matrix = get_normalized_array(da.values)
 
             ## Obtain the vector form of this symmetric connectivity matrix
-            norm_comp_vector = hierarchy.distance.squareform(
-                norm_comp_matrix, checks=False
-            )
+            norm_comp_vector = distance.squareform(norm_comp_matrix, checks=False)
 
             ## Convert the value of connectivity (similarity) to distance (dissimilarity)
             norm_comp_vector = 1 - norm_comp_vector

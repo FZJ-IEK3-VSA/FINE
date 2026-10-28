@@ -314,8 +314,8 @@ class Storage(Component):
         self.dischargeEfficiency = utils.isInRange(dischargeEfficiency, 0, 1)
         self.selfDischarge = utils.isInRange(selfDischarge, 0, 1)
         self.cyclicLifetime = cyclicLifetime
-        self.stateOfChargeMin = stateOfChargeMin
-        self.stateOfChargeMax = stateOfChargeMax
+        self.stateOfChargeMin = utils.sortTimeSeriesColumns(stateOfChargeMin)
+        self.stateOfChargeMax = utils.sortTimeSeriesColumns(stateOfChargeMax)
         self.isPeriodicalStorage = isPeriodicalStorage
         self.doPreciseTsaModeling = doPreciseTsaModeling
         self.socOffsetUp = socOffsetUp
@@ -323,12 +323,12 @@ class Storage(Component):
         self.modelingClass = StorageModel
 
         self.fullStateOfChargeMin = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, stateOfChargeMin, locationalEligibility
+            esM, name, self.stateOfChargeMin, locationalEligibility
         )
         self.aggregatedStateOfChargeMin = dict.fromkeys(esM.investmentPeriods)
 
         self.fullStateOfChargeMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, stateOfChargeMax, locationalEligibility
+            esM, name, self.stateOfChargeMax, locationalEligibility
         )
         self.aggregatedStateOfChargeMax = dict.fromkeys(esM.investmentPeriods)
 
@@ -359,32 +359,32 @@ class Storage(Component):
         )
 
         # chargeOpRateFix and chargeOpRateMax
-        self.chargeOpRateMax = chargeOpRateMax
-        self.chargeOpRateFix = chargeOpRateFix
+        self.chargeOpRateMax = utils.sortTimeSeriesColumns(chargeOpRateMax)
+        self.chargeOpRateFix = utils.sortTimeSeriesColumns(chargeOpRateFix)
 
         # chargeOpRateMax
         self.fullChargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, chargeOpRateMax, locationalEligibility
+            esM, name, self.chargeOpRateMax, locationalEligibility
         )
         self.aggregatedChargeOpRateMax = dict.fromkeys(esM.investmentPeriods)
 
         # chargeOpRateFix
         self.fullChargeOpRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, chargeOpRateFix, locationalEligibility
+            esM, name, self.chargeOpRateFix, locationalEligibility
         )
         self.aggregatedChargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
 
         # dischargeOpRateMax
-        self.dischargeOpRateMax = dischargeOpRateMax
+        self.dischargeOpRateMax = utils.sortTimeSeriesColumns(dischargeOpRateMax)
         self.fullDischargeOpRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, dischargeOpRateMax, locationalEligibility
+            esM, name, self.dischargeOpRateMax, locationalEligibility
         )
         self.aggregatedDischargeOpRateMax = {}
 
         # dischargeOpRateFix
-        self.dischargeOpRateFix = dischargeOpRateFix
+        self.dischargeOpRateFix = utils.sortTimeSeriesColumns(dischargeOpRateFix)
         self.fullDischargeOpRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, dischargeOpRateFix, locationalEligibility
+            esM, name, self.dischargeOpRateFix, locationalEligibility
         )
         self.aggregatedDischargeOpRateFix = dict.fromkeys(esM.investmentPeriods)
 
@@ -1910,12 +1910,12 @@ class StorageModel(ComponentModel):
         """Extract the storage specific raw solved operation variables.
 
         Adds ``chargeOperation``, ``dischargeOperation`` and ``stateOfChargeOperation`` to
-        ``rawResults`` and populates the corresponding ``self._*VariablesOptimum`` attributes
-        (and the component-level ``_stateOfChargeVariablesOptimum``). The state of charge is
-        reconstructed for both the non-TSA and the TSA/segmentation cases.
+        ``rawResults`` and populates the corresponding ``self._*VariablesOptimum`` attributes.
+        The state of charge is reconstructed for both the non-TSA and the TSA/segmentation
+        cases.
         """
         super()._extractSubclassRawResults(esM, pyM, rawResults)
-        compDict, abbrvName = self.componentsDict, self.abbrvName
+        abbrvName = self.abbrvName
         chargeOp = getattr(pyM, "chargeOp_" + abbrvName)
         dischargeOp = getattr(pyM, "dischargeOp_" + abbrvName)
         SOC = getattr(pyM, "stateOfCharge_" + abbrvName)
@@ -2024,9 +2024,6 @@ class StorageModel(ComponentModel):
                 else:
                     optVal = None
             self._stateOfChargeOperationVariablesOptimum[ipName] = optVal
-            utils.setOptimalComponentVariables(
-                optVal, "_stateOfChargeVariablesOptimum", compDict
-            )
             rawResults[ipName]["stateOfChargeOperation"] = optVal
 
     def _deriveSubclassEconomics(self, esM, pyM, rawResults):
