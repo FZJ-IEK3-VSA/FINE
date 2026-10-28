@@ -1563,12 +1563,11 @@ def checkAndSetInvestmentPeriodCostParameter(
     return parameter
 
 
-def processCommodityCost(esM, name, data, dimension, locationalEligibility, years):
+def processCommodityCost(esM, name, data, locationalEligibility):
     """Check a commodity cost or revenue parameter and convert it to a time series
     (DataFrame) per investment period. Zero or None results in None.
     """
-    _years = [int(esM.startYear + ip * esM.investmentPeriodInterval) for ip in years]
-    checkInvestmentPeriodParameters(name, data, _years)
+    checkInvestmentPeriodParameters(name, data, esM.investmentPeriodNames)
 
     if (
         isinstance(data, dict)
@@ -1584,59 +1583,23 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
         data = None
 
     parameterCost = {}
-    for ip in years:
-        _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
-        if isinstance(data, (int, float)):
+    for ip, _ip in zip(esM.investmentPeriods, esM.investmentPeriodNames):
+        value = data[_ip] if isinstance(data, dict) else data
+        if isinstance(value, (int, float)) or (
+            isinstance(value, pd.Series) and set(value.index) != set(esM.totalTimeSteps)
+        ):
             parameterCost[ip] = checkAndSetCostParameter(
-                esM, name, data, dimension, locationalEligibility
+                esM, name, value, Dimension.ONE, locationalEligibility
             )
-        elif isinstance(data, pd.Series):
-            if set(data.index) == set(esM.totalTimeSteps):
-                parameterCost[ip] = checkAndSetTimeSeries(
-                    esM, name, data, locationalEligibility, dimension=dimension
-                )
-            else:
-                parameterCost[ip] = checkAndSetCostParameter(
-                    esM, name, data, dimension, locationalEligibility
-                )
-        elif isinstance(data, dict):
-            if data[_ip] is None:
-                parameterCost[ip] = checkAndSetTimeSeries(
-                    esM, name, None, locationalEligibility, dimension=dimension
-                )
-            elif isinstance(data[_ip], (int, float)):
-                parameterCost[ip] = checkAndSetCostParameter(
-                    esM, name, data[_ip], dimension, locationalEligibility
-                )
-            elif isinstance(data[_ip], pd.Series) and (
-                set(data[_ip].index) == set(esM.totalTimeSteps)
-            ):
-                parameterCost[ip] = checkAndSetTimeSeries(
-                    esM, name, data[_ip], locationalEligibility, dimension=dimension
-                )
-            elif isinstance(data[_ip], pd.Series):
-                parameterCost[ip] = checkAndSetCostParameter(
-                    esM, name, data[_ip], dimension, locationalEligibility
-                )
-            elif isinstance(data[_ip], (pd.DataFrame, type(None))):
-                parameterCost[ip] = checkAndSetTimeSeries(
-                    esM, name, data[_ip], locationalEligibility, dimension=dimension
-                )
-            else:
-                raise TypeError(
-                    f"Parameter of {name} has an unsupported type for investment period {_ip}."
-                )
-        elif isinstance(data, (pd.DataFrame, type(None))):
+        elif isinstance(value, (pd.Series, pd.DataFrame, type(None))):
             parameterCost[ip] = checkAndSetTimeSeries(
-                esM, name, data, locationalEligibility, dimension=dimension
+                esM, name, value, locationalEligibility
             )
         else:
-            raise TypeError(
-                f"Parameter of {name} should be a pandas series or a dictionary."
-            )
+            raise TypeError(f"Parameter of {name} has an unsupported type.")
 
     # Convert any static Series parameters into DataFrames with MultiIndex and pass through checkAndSetTimeSeries
-    for ip in years:
+    for ip in esM.investmentPeriods:
         if isinstance(parameterCost[ip], pd.Series):
             series = parameterCost[ip]
             # A scalar or per-location value gets broadcast across every
@@ -1653,7 +1616,7 @@ def processCommodityCost(esM, name, data, dimension, locationalEligibility, year
                 columns=series.index,
             )
             parameterCost[ip] = checkAndSetTimeSeries(
-                esM, name, df, locationalEligibility, dimension=dimension
+                esM, name, df, locationalEligibility
             )
     return parameterCost
 

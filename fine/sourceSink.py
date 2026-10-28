@@ -154,13 +154,12 @@ class Source(Component):
         Example:
             * In a national energy system, natural gas could be purchased from another country with a
               certain cost.
-            * A spot-market commodity price that varies by time step can be given as a time series.
 
             |br| * the default value is 0
         :type commodityCost:
 
             * positive (>=0) float
-            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the energy system model specified locations.
+            * Pandas Series with positive (>=0).The indices of the series have to equal the in the energy system model specified locations.
             * Pandas DataFrame with positive (>=0) entries. The row indices have to match the in the energy
               system model specified time steps. The column indices have to equal the in the energy system
               model specified locations.
@@ -180,13 +179,12 @@ class Source(Component):
 
         Example:
             * Modeling a PV electricity feed-in tariff for a household
-            * A time-varying feed-in tariff can be given as a time series.
 
             |br| * the default value is 0
         :type commodityRevenue:
 
             * positive (>=0) float
-            * Pandas Series with positive (>=0) values. The indices of the series have to equal the in the energy system model specified locations.
+            * Pandas Series with positive (>=0). The indices of the series have to equal the in the energy system model specified locations.
             * Pandas DataFrame with positive (>=0) entries. The row indices have to match the in the energy
               system model specified time steps. The column indices have to equal the in the energy system
               model specified locations.
@@ -273,8 +271,7 @@ class Source(Component):
             esM.investmentPeriods,
         )
 
-        # commodityCost (accepts a scalar, a location-indexed Series, a time-indexed
-        # DataFrame, or a dict of any of these per investment period)
+        # commodityCost
         # Check if legacy key exists in kwargs
         if "commodityCostTimeSeries" in kwargs:
             if not (isinstance(commodityCost, (int, float)) and commodityCost == 0):
@@ -290,18 +287,12 @@ class Source(Component):
 
         self.commodityCost = utils.sortTimeSeriesColumns(commodityCost)
         self.fullCommodityCost = utils.processCommodityCost(
-            esM,
-            name,
-            self.commodityCost,
-            Dimension.ONE,
-            locationalEligibility,
-            esM.investmentPeriods,
+            esM, name, self.commodityCost, locationalEligibility
         )
         self.aggregatedCommodityCost = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityCost = dict.fromkeys(esM.investmentPeriods)
 
-        # commodityRevenue (accepts a scalar, a location-indexed Series, a time-indexed
-        # DataFrame, or a dict of any of these per investment period)
+        # commodtyRevenue
         # Check if legacy key exists in kwargs
         if "commodityRevenueTimeSeries" in kwargs:
             if not (
@@ -319,12 +310,7 @@ class Source(Component):
 
         self.commodityRevenue = utils.sortTimeSeriesColumns(commodityRevenue)
         self.fullCommodityRevenue = utils.processCommodityCost(
-            esM,
-            name,
-            self.commodityRevenue,
-            Dimension.ONE,
-            locationalEligibility,
-            esM.investmentPeriods,
+            esM, name, self.commodityRevenue, locationalEligibility
         )
         self.aggregatedCommodityRevenue = dict.fromkeys(esM.investmentPeriods)
         self.processedCommodityRevenue = dict.fromkeys(esM.investmentPeriods)
