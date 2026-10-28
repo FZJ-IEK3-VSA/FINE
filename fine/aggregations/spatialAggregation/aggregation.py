@@ -99,9 +99,7 @@ def aggregate_time_series_spatially(
     }
     aggregated_coords["space"] = space_coords
 
-    # Use the input array's actual positional dim order (not dict iteration
-    # order of .coords, which xarray does not guarantee to match .dims) so the
-    # output DataArray's values are not silently transposed.
+    # follow the input's dim order, as the order of .coords may differ from .dims
     dim_list = list(xr_data_array_in.dims)
     coord_list = [aggregated_coords[dim] for dim in dim_list]
 
@@ -191,9 +189,7 @@ def aggregate_values_spatially(
 
     aggregated_coords["space"] = space_coords
 
-    # Use the input array's actual positional dim order (not dict iteration
-    # order of .coords, which xarray does not guarantee to match .dims) so the
-    # output DataArray's values are not silently transposed.
+    # follow the input's dim order, as the order of .coords may differ from .dims
     dim_list = list(xr_data_array_in.dims)
     coord_list = [aggregated_coords[dim] for dim in dim_list]
 
@@ -263,9 +259,7 @@ def aggregate_connections(xr_data_array_in, sub_to_sup_region_id_dict, mode="boo
     aggregated_coords["space"] = space_coords
     aggregated_coords["space_2"] = space_coords
 
-    # Use the input array's actual positional dim order (not dict iteration
-    # order of .coords, which xarray does not guarantee to match .dims) so the
-    # output DataArray's values are not silently transposed.
+    # follow the input's dim order, as the order of .coords may differ from .dims
     dim_list = list(xr_data_array_in.dims)
     coord_list = [aggregated_coords[dim] for dim in dim_list]
 

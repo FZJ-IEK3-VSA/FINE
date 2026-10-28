@@ -1343,7 +1343,9 @@ def balanceLimitConstraint_test_esM():
 
 
 @pytest.fixture(scope="function")
-def perfectForesight_test_esM():
+def perfectForesight_test_esM(request):
+    # annuityPerpetuity can be set via indirect parametrization, default False
+    annuityPerpetuity = getattr(request, "param", False)
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},
@@ -1360,6 +1362,7 @@ def perfectForesight_test_esM():
         startYear=2020,
         lengthUnit="km",
         verboseLogLevel=2,
+        annuityPerpetuity=annuityPerpetuity,
     )
 
     PVoperationRateMax = pd.DataFrame(
