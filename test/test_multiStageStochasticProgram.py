@@ -294,6 +294,13 @@ def test_rejects_stage_mapping_that_does_not_cover_all_periods(
         )
 
 
+def test_extensive_form_is_refused_under_mpi(monkeypatch):
+    """Under MPI, mpi-sppy gives every process an extensive form of its own scenarios only."""
+    monkeypatch.setattr(mssp, "_mpiProcessCount", lambda: 2)
+    with pytest.raises(ValueError, match="cannot run under MPI with 2 processes"):
+        _solve("ef")
+
+
 def test_scenario_model_receives_the_values_along_its_path():
     """Each scenario sees the values of every node on its path, per investment period."""
     tree = mssp.ScenarioTree(_treeSpec())

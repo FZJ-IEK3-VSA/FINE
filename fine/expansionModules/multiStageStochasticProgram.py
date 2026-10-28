@@ -110,6 +110,16 @@ def _requireMpisppy():
     return ExtensiveForm, PH, ScenarioNode
 
 
+def _mpiProcessCount():
+    """Return the number of MPI processes this program runs with (1 without MPI).
+
+    :rtype: int
+    """
+    from mpisppy import MPI  # noqa: PLC0415
+
+    return MPI.COMM_WORLD.Get_size()
+
+
 class ScenarioTree:
     """A validated multi-stage scenario tree.
 
@@ -1421,7 +1431,9 @@ def optimizeMultiStageStochastic(
     :param method: how to solve the program.
 
         (a) 'ef': build the extensive form, i.e. one large deterministic equivalent, and
-            solve it directly. Exact, and the right choice for small trees.
+            solve it directly. Exact, and the right choice for small trees. It runs in a
+            single process and is refused under MPI with several processes, where mpi-sppy
+            would give each process an extensive form of only its own scenarios.
         (b) 'ph': progressive hedging, which decomposes the program into one problem per
             scenario and iterates. Approximate up to the convergence threshold, but it
             parallelizes across scenarios and scales to trees for which the extensive form
@@ -1506,6 +1518,19 @@ def optimizeMultiStageStochastic(
             "the investment period axis as a scenario axis. Multi-stage stochastic "
             "programming needs the investment periods to be actual investment periods; "
             "the scenarios are handled by this module instead."
+        )
+
+    processCount = _mpiProcessCount()
+    if method.lower() == "ef" and processCount > 1:
+        # mpi-sppy distributes the scenarios over the processes and ExtensiveForm joins only
+        # the local ones, so every process would solve a different, incomplete program:
+        # with one scenario per process, the perfect-foresight problem of that scenario.
+        raise ValueError(
+            f"The extensive form cannot run under MPI with {processCount} processes: "
+            "mpi-sppy gives every process only its share of the scenarios, so each would "
+            "solve a different, incomplete extensive form without non-anticipativity "
+            "between the processes. Run it in a single process (without mpiexec), or use "
+            "method='ph' to make use of several processes."
         )
 
     if onNonConvergence not in _ON_NON_CONVERGENCE_OPTIONS:
