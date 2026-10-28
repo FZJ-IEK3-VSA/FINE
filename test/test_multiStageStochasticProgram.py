@@ -662,6 +662,11 @@ def test_ef_scenario_results_are_processed(efResults):
     assert ("Wind", "capacity") in {(comp, prop) for comp, prop, *_ in summary.index}
 
 
+def test_ef_counts_as_converged(efResults):
+    assert efResults.converged
+    assert efResults.convergence["stopReason"] == "extensiveForm"
+
+
 # ---------------------------------------------------------------- progressive hedging
 
 
@@ -674,6 +679,46 @@ def test_ph_agrees_with_ef(efResults):
         mpisppyOptions={"PHIterLimit": 200, "defaultPHrho": 0.01, "convthresh": 1e-6},
     )
     assert phResults.objectiveValue == pytest.approx(efResults.objectiveValue, rel=1e-4)
+    convergence = phResults.convergence
+    assert phResults.converged
+    assert convergence["stopReason"] == "threshold"
+    assert convergence["convergenceMetric"] < 1e-6
+    assert convergence["maxRelativeDeviation"] <= 1e-3
+
+
+# one PH iteration leaves the scenarios far apart (up to 14 GW of wind)
+_ONE_ITERATION = {"PHIterLimit": 1, "defaultPHrho": 0.01}
+
+
+def test_ph_that_has_not_converged_raises():
+    with pytest.raises(mssp.ProgressiveHedgingNotConvergedError, match="iteration limit"):
+        _solve("ph", mpisppyOptions=_ONE_ITERATION)
+
+
+def test_ph_that_has_not_converged_warns_on_request():
+    with pytest.warns(UserWarning, match="did not converge"):
+        results = _solve("ph", mpisppyOptions=_ONE_ITERATION, onNonConvergence="warn")
+    assert results.converged is False
+    assert results.convergence["stopReason"] == "iterationLimit"
+    assert results.convergence["iterations"] == 1
+    assert results.convergence["maxDeviation"] > 1.0
+
+
+def test_ph_mean_below_threshold_but_one_decision_off_is_not_converged():
+    """mpi-sppy's metric is a mean, so a single deviating decision can hide in it."""
+    with pytest.warns(UserWarning, match="did not converge"):
+        results = _solve(
+            "ph",
+            mpisppyOptions={**_ONE_ITERATION, "convthresh": 10.0},
+            onNonConvergence="warn",
+        )
+    assert results.convergence["stopReason"] == "threshold"
+    assert results.converged is False
+
+
+def test_invalid_reaction_to_non_convergence_is_refused():
+    with pytest.raises(ValueError, match="onNonConvergence must be one of"):
+        _solve("ph", onNonConvergence="ignore")
 
 
 # ---------------------------------------------------------- time series aggregation

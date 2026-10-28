@@ -1000,6 +1000,129 @@ def _nonAnticipativeVariables(
     return variables
 
 
+#: What optimizeMultiStageStochastic does when progressive hedging has not converged.
+_ON_NON_CONVERGENCE_OPTIONS = ("raise", "warn")
+
+
+class ProgressiveHedgingNotConvergedError(RuntimeError):
+    """Progressive hedging stopped before its scenarios agreed.
+
+    The decisions that have to be equal in all scenarios are therefore not.
+    """
+
+
+def _progressiveHedgingConvergence(solverObject, convergenceMetric, tolerance):
+    """Assess whether a progressive hedging run has converged.
+
+    mpi-sppy stops when its convergence metric, the mean absolute deviation of the
+    non-anticipative variables from their probability-weighted average (xbar), drops below
+    ``convthresh``, but also when the iteration or time limit is reached, which it only
+    logs. Being a mean, the metric can also hide a single large deviation. The run counts
+    as converged only if it stopped at the threshold and no non-anticipative variable of
+    any scenario deviates from xbar by more than ``tolerance`` (absolute, and relative to
+    xbar for values above 1). The largest deviation is taken over all processes, so every
+    process reaches the same verdict.
+
+    :param solverObject: the mpi-sppy PH object after ``ph_main()``
+    :type solverObject: mpisppy.opt.ph.PH instance
+
+    :param convergenceMetric: the metric returned by ``ph_main()``
+    :type convergenceMetric: float or None
+
+    :param tolerance: largest accepted deviation of a non-anticipative variable from xbar
+    :type tolerance: positive float
+
+    :return: ``converged``, ``stopReason`` ("threshold", "iterationLimit" or "timeLimit"),
+        ``iterations``, ``convergenceMetric``, ``convergenceThreshold``, ``maxDeviation``
+        (absolute) and ``maxRelativeDeviation``
+    :rtype: dict
+    """
+    from mpisppy import MPI  # noqa: PLC0415
+
+    threshold = solverObject.options["convthresh"]
+    iterations = solverObject._PHIter
+    if convergenceMetric is not None and convergenceMetric < threshold:
+        stopReason = "threshold"
+    elif iterations >= int(solverObject.options["PHIterLimit"]):
+        stopReason = "iterationLimit"
+    else:
+        stopReason = "timeLimit"
+
+    # A PH iteration computes xbar before its solves, so after stopping at the iteration
+    # limit xbar still belongs to the previous iterate. Recompute it from the solution that
+    # is returned (a collective call, made by every process).
+    solverObject.Compute_Xbar()
+    maxDeviation = maxRelativeDeviation = 0.0
+    for scenario in solverObject.local_scenarios.values():
+        for index, variable in scenario._mpisppy_data.nonant_indices.items():
+            if variable.value is None:
+                continue
+            xbar = pyomo.value(scenario._mpisppy_model.xbars[index])
+            deviation = abs(variable.value - xbar)
+            maxDeviation = max(maxDeviation, deviation)
+            maxRelativeDeviation = max(
+                maxRelativeDeviation, deviation / max(1.0, abs(xbar))
+            )
+    maxDeviation = float(solverObject.mpicomm.allreduce(maxDeviation, op=MPI.MAX))
+    maxRelativeDeviation = float(
+        solverObject.mpicomm.allreduce(maxRelativeDeviation, op=MPI.MAX)
+    )
+
+    return {
+        "converged": bool(
+            stopReason == "threshold" and maxRelativeDeviation <= tolerance
+        ),
+        "stopReason": stopReason,
+        "iterations": int(iterations),
+        "convergenceMetric": (
+            None if convergenceMetric is None else float(convergenceMetric)
+        ),
+        "convergenceThreshold": float(threshold),
+        "maxDeviation": maxDeviation,
+        "maxRelativeDeviation": maxRelativeDeviation,
+    }
+
+
+def _reportNonConvergence(convergence, tolerance, onNonConvergence):
+    """Raise or warn if progressive hedging has not converged.
+
+    :param convergence: the result of :func:`_progressiveHedgingConvergence`
+    :type convergence: dict
+
+    :param tolerance: the accepted deviation from xbar the verdict was taken with
+    :type tolerance: positive float
+
+    :param onNonConvergence: "raise" or "warn"
+    :type onNonConvergence: string
+
+    :raises ProgressiveHedgingNotConvergedError: if ``onNonConvergence`` is "raise"
+    """
+    if convergence["converged"]:
+        return
+    stoppedBy = {
+        "threshold": "the convergence threshold",
+        "iterationLimit": "the iteration limit (PHIterLimit)",
+        "timeLimit": "the time limit",
+    }[convergence["stopReason"]]
+    metric = convergence["convergenceMetric"]
+    message = (
+        f"Progressive hedging did not converge: it stopped at {stoppedBy} after "
+        f"{convergence['iterations']} iterations with convergence metric "
+        f"{'none' if metric is None else f'{metric:.3g}'} (threshold "
+        f"{convergence['convergenceThreshold']:.3g}, in the model's own units), and a "
+        "non-anticipative decision deviates from the scenarios' average by up to "
+        f"{convergence['maxDeviation']:.3g} ({convergence['maxRelativeDeviation']:.3g} "
+        f"relative; accepted: {tolerance:.3g}). The scenarios therefore disagree on "
+        "decisions that have to be equal in all of them. Increase PHIterLimit or the time "
+        "limit, fit defaultPHrho to the model's cost scale, or use method='ef'."
+    )
+    if onNonConvergence == "raise":
+        raise ProgressiveHedgingNotConvergedError(
+            message + " Pass onNonConvergence='warn' to get the results anyway."
+        )
+    warnings.warn(message)
+
+
 def _checkSolverStatus(solverResults):
     """Raise a readable error if the extensive form was not solved to optimality.
 
@@ -1292,6 +1415,16 @@ class StochasticOptimizationResults:
         non-anticipative as well
         |br| * the default value is True
     :type includeIsBuiltBinaryVariables: boolean
+
+    :param convergence: how the solve ended. For progressive hedging: ``converged``,
+        ``stopReason`` ("threshold", "iterationLimit" or "timeLimit"), ``iterations``,
+        ``convergenceMetric`` and ``convergenceThreshold`` (mpi-sppy's mean absolute
+        deviation from xbar and its threshold, in the model's units), ``maxDeviation`` and
+        ``maxRelativeDeviation`` (the largest deviation of a non-anticipative variable from
+        xbar, over all scenarios). For the extensive form ``converged`` is True and
+        ``stopReason`` is "extensiveForm".
+        |br| * the default value is None
+    :type convergence: dict or None
     """
 
     def __init__(
@@ -1302,6 +1435,7 @@ class StochasticOptimizationResults:
         objectiveValue,
         stageInvestmentPeriods,
         includeIsBuiltBinaryVariables=True,
+        convergence=None,
     ):
         self.tree = tree
         self.solverObject = solverObject
@@ -1309,6 +1443,14 @@ class StochasticOptimizationResults:
         self.objectiveValue = objectiveValue
         self.stageInvestmentPeriods = stageInvestmentPeriods
         self.includeIsBuiltBinaryVariables = includeIsBuiltBinaryVariables
+        self.convergence = convergence
+
+    @property
+    def converged(self):
+        """Whether the scenarios agree on their non-anticipative decisions: always True for
+        the extensive form, for progressive hedging see ``convergence``. None if unknown.
+        """
+        return None if self.convergence is None else self.convergence["converged"]
 
     def firstStageDecisions(self, isBuiltDecisions=False, tolerance=1e-5):
         """Return the decisions of the first stage, which are equal in all scenarios.
@@ -1399,6 +1541,8 @@ def optimizeMultiStageStochastic(
     timeSeriesAggregation=False,
     temporalAggregationSpecs=None,
     processResults=True,
+    onNonConvergence="raise",
+    nonanticipativityTolerance=1e-3,
 ):
     """Solve an energy system model as a multi-stage stochastic program.
 
@@ -1453,7 +1597,10 @@ def optimizeMultiStageStochastic(
 
     :param mpisppyOptions: additional options handed to the mpi-sppy solver object. For
         progressive hedging the defaults are ``PHIterLimit=50``, ``defaultPHrho=1.0`` and
-        ``convthresh=1e-4``; anything given here overrides them.
+        ``convthresh=1e-4``; anything given here overrides them. ``convthresh`` bounds the
+        mean absolute deviation of the non-anticipative variables from their average, in the
+        model's own units (capacity units, and 0/1 for is-built decisions), so like
+        ``defaultPHrho`` it has to fit the model's scale.
         |br| * the default value is None
     :type mpisppyOptions: dict or None
 
@@ -1485,6 +1632,25 @@ def optimizeMultiStageStochastic(
         |br| * the default value is True
     :type processResults: boolean
 
+    :param onNonConvergence: what to do if progressive hedging has not converged, i.e. it
+        stopped at its iteration or time limit, or a non-anticipative decision still
+        deviates from the scenarios' average by more than ``nonanticipativityTolerance``.
+
+        (a) 'raise': raise a ``ProgressiveHedgingNotConvergedError``
+        (b) 'warn': issue a warning and return the results; ``converged`` and
+            ``convergence`` of the results tell what happened
+
+        Not relevant for the extensive form, which solves non-anticipativity exactly.
+        |br| * the default value is 'raise'
+    :type onNonConvergence: string
+
+    :param nonanticipativityTolerance: largest deviation of a non-anticipative variable
+        from the scenarios' average (xbar) that still counts as converged, absolute, and
+        relative to the average for values above 1. Checked in addition to mpi-sppy's
+        ``convthresh``, which only bounds the mean deviation.
+        |br| * the default value is 1e-3
+    :type nonanticipativityTolerance: positive float
+
     :return: the results of the stochastic optimization
     :rtype: StochasticOptimizationResults instance
     """
@@ -1497,6 +1663,12 @@ def optimizeMultiStageStochastic(
             "the investment period axis as a scenario axis. Multi-stage stochastic "
             "programming needs the investment periods to be actual investment periods; "
             "the scenarios are handled by this module instead."
+        )
+
+    if onNonConvergence not in _ON_NON_CONVERGENCE_OPTIONS:
+        raise ValueError(
+            f"onNonConvergence must be one of {_ON_NON_CONVERGENCE_OPTIONS}, got "
+            f"{onNonConvergence!r}."
         )
 
     if not isinstance(tree, ScenarioTree):
@@ -1583,9 +1755,9 @@ def optimizeMultiStageStochastic(
     if methodKey == "ef":
         solverResults = solverObject.solve_extensive_form()
         _checkSolverStatus(solverResults)
+        convergence = {"converged": True, "stopReason": "extensiveForm"}
     else:
-        solverObject.ph_main()
-        solverResults = None
+        convergenceMetric, _, _ = solverObject.ph_main()
 
     try:
         objectiveValue = (
@@ -1602,6 +1774,13 @@ def optimizeMultiStageStochastic(
             "scenarios with the highest demand or the tightest capacity limits."
         ) from exc
 
+    # after the objective value, which is read with the xbar PH ended with
+    if methodKey == "ph":
+        convergence = _progressiveHedgingConvergence(
+            solverObject, convergenceMetric, nonanticipativityTolerance
+        )
+        _reportNonConvergence(convergence, nonanticipativityTolerance, onNonConvergence)
+
     scenarioModels = {}
     for scenarioName, scenarioPyM in solverObject.local_scenarios.items():
         scenarioEsM = scenarioPyM._fineEsM
@@ -1616,4 +1795,5 @@ def optimizeMultiStageStochastic(
         objectiveValue,
         stageInvestmentPeriods,
         includeIsBuiltBinaryVariables=includeIsBuiltBinaryVariables,
+        convergence=convergence,
     )
