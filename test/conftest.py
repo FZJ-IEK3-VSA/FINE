@@ -1,4 +1,3 @@
-import os
 import pytest
 import sys
 from pathlib import Path
@@ -22,16 +21,6 @@ sys.path.append(
 from getData import getData
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--solver",
-        choices=ImplementedSolvers.supported_solvers(),
-        default=None,
-        help="Run the test suite with this solver, without fallback to another "
-        "solver. Equivalent to setting the environment variable FINE_SOLVER.",
-    )
-
-
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
@@ -41,16 +30,6 @@ def pytest_configure(config):
         "markers",
         "multi_solver: the test deliberately uses solvers other than the selected one",
     )
-
-    # --solver is passed on via FINE_SOLVER, which also enables the strict mode
-    # (no fallback) of EnergySystemModel.optimize()
-    solver = config.getoption("--solver")
-    if solver:
-        os.environ[ImplementedSolvers.SOLVER_ENV_VARIABLE] = solver
-        try:
-            ImplementedSolvers.set_standard_solver()
-        except (ValueError, RuntimeError) as e:
-            raise pytest.UsageError(f"--solver {solver}: {e}") from e
 
 
 def pytest_report_header(config):
@@ -76,18 +55,17 @@ def pytest_collection_modifyitems(config, items):
 def check_used_solver(request, monkeypatch):
     """Fail a test if a model is solved with a solver other than the selected one.
 
-    Only active if a solver is selected via --solver or FINE_SOLVER. Tests
+    Only active if a solver is selected via FINE_SOLVER. Tests
     marked with multi_solver are exempt.
     """
     selected = ImplementedSolvers.solver_from_environment()
     if not selected or request.node.get_closest_marker("multi_solver"):
         return
 
-    original_optimize = fn.EnergySystemModel.optimize
+    original_runOptimization = fn.EnergySystemModel._runOptimization
 
-    def optimize(self, *args, **kwargs):
-        result = original_optimize(self, *args, **kwargs)
-        used = self.solverSpecs["usedSolver"]
+    def _runOptimization(self, *args, **kwargs):
+        used, solver_info = original_runOptimization(self, *args, **kwargs)
         if used != selected:
             pytest.fail(
                 f"The model was solved with '{used}', but '{selected}' is the "
@@ -95,9 +73,9 @@ def check_used_solver(request, monkeypatch):
                 "of a fixed solver, or mark the test with requires_solver or "
                 "multi_solver."
             )
-        return result
+        return used, solver_info
 
-    monkeypatch.setattr(fn.EnergySystemModel, "optimize", optimize)
+    monkeypatch.setattr(fn.EnergySystemModel, "_runOptimization", _runOptimization)
 
 
 @pytest.fixture(scope="session")

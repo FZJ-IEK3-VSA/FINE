@@ -210,12 +210,12 @@ Run the test suite from the repository root with
 pytest -n auto
 ```
 
-By default, the tests use the automatically detected standard solver (GUROBI if a full licence is available, otherwise HiGHS). To run the complete suite with a specific solver, without fallback to another solver, use the `--solver` option (or set the environment variable `FINE_SOLVER`):
+By default, the tests use the automatically detected standard solver (GUROBI if a full licence is available, otherwise HiGHS). To run the complete suite with a specific solver, without fallback to another solver, set the environment variable `FINE_SOLVER`:
 
 ```bash
-pytest -n auto --solver gurobi
-pytest -n auto --solver highs
-pytest -n auto --solver glpk
+FINE_SOLVER=gurobi pytest -n auto
+FINE_SOLVER=highs pytest -n auto
+FINE_SOLVER=glpk pytest -n auto
 ```
 
 The solver in use is shown in the header of the test output (`FINE solver: ...`). If the selected solver is not available, pytest stops with an error. If a test solves a model with a different solver than the selected one, it fails. Therefore, use `ImplementedSolvers.STANDARD_SOLVER.value` in tests instead of a fixed solver. Two markers cover the exceptions:
@@ -231,7 +231,7 @@ Current solver-specific tests:
 | `test/test_performanceSummary.py` | `requires_solver("gurobi")` | The performance summary is parsed from the GUROBI log file |
 | `test/test_miniSystem.py` | `multi_solver` | Compares the results of GUROBI, HiGHS and GLPK |
 
-For pull requests to `develop`, the workflow [Test all solvers](https://github.com/FZJ-IEK3-VSA/FINE/blob/develop/.github/workflows/test_pull_request_solvers.yml) runs the complete suite separately with each solver, in the jobs `Tests (Gurobi)`, `Tests (HiGHS)` and `Tests (GLPK)`.
+For every push to `develop`, the workflow [Test all solvers](https://github.com/FZJ-IEK3-VSA/FINE/blob/develop/.github/workflows/test_pull_request_solvers.yml) runs the complete suite separately with each solver, in the jobs `Tests (Gurobi)`, `Tests (HiGHS)` and `Tests (GLPK)`.
 
 ## License
 

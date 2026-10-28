@@ -1,25 +1,3 @@
-#!/usr/bin/env python
-
-# # Workflow for a multi-regional energy system
-#
-# In this application of the FINE framework, a multi-regional energy system is modeled and optimized.
-#
-# All classes which are available to the user are utilized and examples of the selection of different parameters within these classes are given.
-#
-# The workflow is structures as follows:
-# 1. Required packages are imported and the input data path is set
-# 2. An energy system model instance is created
-# 3. Commodity sources are added to the energy system model
-# 4. Commodity conversion components are added to the energy system model
-# 5. Commodity storages are added to the energy system model
-# 6. Commodity transmission components are added to the energy system model
-# 7. Commodity sinks are added to the energy system model
-# 8. The energy system model is optimized
-# 9. Selected optimization results are presented
-#
-
-# 1. Import required packages and set input data path
-
 import numpy as np
 import pandas as pd
 import pytest

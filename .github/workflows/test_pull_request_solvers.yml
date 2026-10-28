@@ -2,19 +2,19 @@ name: Test all solvers
 
 # Runs the complete test suite separately with every supported solver, without
 # automatic solver detection or fallback (see issue #821). Each job selects its
-# solver with `pytest --solver`; tests that cannot run with a solver are marked
+# solver with the environment variable FINE_SOLVER; tests that cannot run with a solver are marked
 # with `requires_solver` (see "Running the tests" in the README).
 #
 # The setup steps mirror FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1,
 # which cannot pass additional pytest arguments.
 
 on:
-  pull_request:
+  push:
     branches: ["develop"]
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 defaults:
@@ -37,8 +37,6 @@ jobs:
             label: GLPK
     env:
       FINE_SOLVER: ${{ matrix.solver }}
-      ZENODO_API_KEY: ${{ secrets.ZENODO_API_KEY }}
-      ZENODO_USER_AGENT_STRING: ${{ secrets.ZENODO_USER_AGENT_STRING }}
       # The Gurobi licence is only provided to the Gurobi job
       WLSACCESSID: ${{ matrix.solver == 'gurobi' && secrets.WLSACCESSID || '' }}
       WLSSECRET: ${{ matrix.solver == 'gurobi' && secrets.WLSSECRET || '' }}
@@ -78,5 +76,5 @@ jobs:
 
       - name: Run tests with ${{ matrix.label }}
         run: |
-          mamba run --name test_env pytest --solver ${{ matrix.solver }} -n 3 -vv -rs
+          mamba run --name test_env pytest -n 3 -vv -rs
           if ($LASTEXITCODE -ne 0) { throw "Tests failed with solver ${{ matrix.solver }}" }

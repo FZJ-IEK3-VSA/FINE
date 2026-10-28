@@ -3166,8 +3166,8 @@ class ImplementedSolvers:
     GLPK = _Solver("glpk")
     GUROBI = _Solver("gurobi")
     HIGHS = _Solver("highs")
-    # Set by set_standard_solver(): the solver given explicitly or via the
-    # FINE_SOLVER environment variable, otherwise Gurobi if available, otherwise HiGHS
+    # Set by set_standard_solver(): the solver selected via the FINE_SOLVER
+    # environment variable, otherwise Gurobi if available, otherwise HiGHS
     STANDARD_SOLVER = _Solver("gurobi")
 
     # Environment variable to select the standard solver explicitly (e.g. in CI)
@@ -3260,30 +3260,21 @@ class ImplementedSolvers:
         )
 
     @classmethod
-    def set_standard_solver(cls, solver=None):
+    def set_standard_solver(cls):
         """Set STANDARD_SOLVER, either explicitly or by automatic detection.
 
-        If a solver is given, either as argument or via the FINE_SOLVER
-        environment variable, it is used as STANDARD_SOLVER without any
-        fallback: an unsupported or unavailable solver raises an error. The
-        argument takes precedence over the environment variable.
+        If a solver is selected via the FINE_SOLVER environment variable, it
+        is used as STANDARD_SOLVER without any fallback: an unsupported or
+        unavailable solver raises an error.
 
         Otherwise, Gurobi is used if it is available with a full license, and
         HiGHS if not.
 
-        :param solver: name of the solver, one of supported_solvers()
-            |br| * the default value is None
-        :type solver: str or None
-
         :raises ValueError: if the selected solver is not supported
         :raises RuntimeError: if the selected solver is not available
         """
-        if solver is None:
-            solver = cls.solver_from_environment()
-            source = f"the environment variable {cls.SOLVER_ENV_VARIABLE}"
-        else:
-            solver = solver.strip().lower()
-            source = "the solver argument"
+        solver = cls.solver_from_environment()
+        source = f"the environment variable {cls.SOLVER_ENV_VARIABLE}"
 
         if solver:
             if solver not in cls.supported_solvers():
