@@ -2,7 +2,6 @@ import random
 import time
 import warnings
 import copy
-import importlib.util
 
 from . import solutionsOutput
 
@@ -544,87 +543,15 @@ def mgaOptimize(
                 timeSeriesAggregation,
             )
 
-            # Check which solvers are available and choose default solver if no solver is specified explicitely
-            # Order of possible solvers in solverList defines the priority of chosen default solver.
-            solverList = ["gurobi", "glpk", "cbc"]
-
-            if solver != "None":
-                try:
-                    opt.SolverFactory(solver).available()
-                except Exception:
-                    solver = "None"
-
-            if solver == "None":
-                for nSolver in solverList:
-                    if solver == "None":
-                        try:
-                            if opt.SolverFactory(nSolver).available():
-                                solver = nSolver
-                                fn.utils.output(
-                                    "Either solver not selected or specified solver not available."
-                                    + str(nSolver)
-                                    + " is set as solver.",
-                                    esM.verboseLogLevel,
-                                    0,
-                                )
-                        except Exception:
-                            pass
-
-            if solver == "None":
-                raise TypeError(
-                    "At least one solver must be installed."
-                    " Have a look at the FINE documentation to see how to install possible solvers."
-                    " https://vsa-fine.readthedocs.io/en/latest/"
-                )
-
-            ################################################################################################################
-            #                                  Solve the specified optimization problem                                    #
-            ################################################################################################################
-
-            # Set which solver should solve the specified optimization problem
-            if solver == "gurobi" and importlib.util.find_spec('gurobipy'):
-                # Use the direct gurobi solver that uses the Python API.
-                optimizer = opt.SolverFactory(solver, solver_io="python")
-            else:
-                optimizer = opt.SolverFactory(solver)
-
-            # Set, if specified, the time limit
-            if esM.solverSpecs["timeLimit"] is not None and solver == "gurobi":
-                optimizer.options["timelimit"] = timeLimit
-
-            # Set the specified solver options
-            if "LogToConsole=" not in optimizationSpecs and solver == "gurobi":
-                if esM.verboseLogLevel == 2:
-                    optimizationSpecs += " LogToConsole=0"
-
-            # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
-            if solver == "gurobi":
-                optimizer.set_options(
-                    "Threads="
-                    + str(threads)
-                    + " logfile="
-                    + logFileName
-                    + " "
-                    + optimizationSpecs
-                )
-                solver_info = optimizer.solve(
-                    esM.pyM,
-                    warmstart=warmstart,
-                    tee=True,
-                )
-            elif solver == "glpk":
-                optimizer.set_options(optimizationSpecs)
-                solver_info = optimizer.solve(esM.pyM, tee=True)
-            else:
-                solver_info = optimizer.solve(esM.pyM, tee=True)
-            esM.solverSpecs["solvetime"] = time.time() - timeStart
-            fn.utils.output(solver_info.solver(), esM.verboseLogLevel, 0), fn.utils.output(
-                solver_info.problem(), esM.verboseLogLevel, 0
-            )
-            fn.utils.output(
-                "Solve time: " + str(esM.solverSpecs["solvetime"]) + " sec.",
-                esM.verboseLogLevel,
-                0,
+            # Solve with the same solver selection and settings as EnergySystemModel.optimize
+            solver, solver_info = esM._runOptimization(
+                logFileName,
+                threads,
+                solver,
+                timeLimit,
+                optimizationSpecs,
+                warmstart,
+                timeStart,
             )
 
             # Post-process the optimization output by differentiating between different solver statuses and termination
