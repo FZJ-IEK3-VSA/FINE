@@ -1,3 +1,10 @@
+import re
+import time
+from pathlib import Path
+
+from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
+import pyomo.environ as pyo
+
 """
 Modeling to Generate Alternatives (MGA) on top of ETHOS.FINE.
 
@@ -8,23 +15,9 @@ Workflow
      variables (minimized or maximized).
   4. Re-solve the existing Pyomo model (declaresOptimizationProblem=False).
 
-
-
-  variable: "capacity"  -> cap_<abbrv>          (all modeling classes)
-            "operation" -> op_<abbrv>           (SourceSink, Conversion, Transmission)
-            "charge"    -> chargeOp_<abbrv>     (Storage)
-            "discharge" -> dischargeOp_<abbrv>  (Storage)
   Operation variables are aggregated to annual sums (period occurrences and
   number of years are taken into account, so time series aggregation works).
 """
-
-import os
-import re
-import time
-
-# import fine as fn
-from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
-import pyomo.environ as pyo
 
 varPatterns = {
     "capacity": "cap_{}",
@@ -40,6 +33,7 @@ selections = ("custom", "allCapacity", "allCapacityAndOperation")
 # Index helpers. FINE index layout: (loc, compName, [ip], [p, t])
 # --------------------------------------------------------------------------- #
 def periodOccurrence(esM, ip, p):
+    """Return how many times typical period p occurs, for investment period ip if applicable."""
     occ = esM.periodOccurrences
     if isinstance(occ, dict):  # FINE versions with investment periods
         return occ[ip][p]
@@ -74,6 +68,7 @@ def weightedParts(esM, var, weightOf):
 # (a) user-defined terms
 # --------------------------------------------------------------------------- #
 def termParts(esM, term):
+    """Weighted objective terms for one user-defined term (see runMGA's 'custom' spec)."""
     pyM = esM.pyM
     comp = term["component"]
     kind = term["variable"]
@@ -89,10 +84,15 @@ def termParts(esM, term):
     mdl = esM.componentModelingDict[esM.componentNames[comp]]
     var = pyM.find_component(varPatterns[kind].format(mdl.abbrvName))
     if var is None:
-        available = [v.name for v in pyM.component_objects(pyo.Var)
-                     if v.name.endswith("_" + mdl.abbrvName)]
-        raise ValueError(f"'{kind}' is not available for '{comp}' "
-                         f"({type(mdl).__name__}). Variables of this class: {available}")
+        available = [
+            v.name
+            for v in pyM.component_objects(pyo.Var)
+            if v.name.endswith("_" + mdl.abbrvName)
+        ]
+        raise ValueError(
+            f"'{kind}' is not available for '{comp}' "
+            f"({type(mdl).__name__}). Variables of this class: {available}"
+        )
 
     print(f"    Adding {kind} of '{comp}' (weight {weight}) ...", flush=True)
 
@@ -115,6 +115,7 @@ def termParts(esM, term):
 # (b), (c) all capacity [and operation] variables of the model
 # --------------------------------------------------------------------------- #
 def lookupWeight(weights, comp, kind, default):
+    """Resolve the weight of a component/variable pair, honoring per-variable overrides."""
     w = weights.get(comp, default)
     if isinstance(w, dict):  # per-variable override, e.g. {"capacity": 0.5}
         w = w.get(kind, default)
@@ -122,13 +123,16 @@ def lookupWeight(weights, comp, kind, default):
 
 
 def allVariableParts(esM, objSpec, includeOperation):
+    """Weighted objective terms for all capacity (and, optionally, operation) variables."""
     pyM = esM.pyM
     default = float(objSpec.get("defaultWeight", 1.0))
     weights = objSpec.get("weights", {})
     exclude = set(objSpec.get("excludeComponents", []))
     unknown = (set(weights) | exclude) - set(esM.componentNames)
     if unknown:
-        raise KeyError(f"Unknown components in weights/excludeComponents: {sorted(unknown)}")
+        raise KeyError(
+            f"Unknown components in weights/excludeComponents: {sorted(unknown)}"
+        )
 
     kinds = ("capacity",) + (operationKinds if includeOperation else ())
     parts = []
@@ -154,17 +158,22 @@ def allVariableParts(esM, objSpec, includeOperation):
 # Objective, cost constraint, driver
 # --------------------------------------------------------------------------- #
 def objectiveParts(esM, objSpec):
+    """Weighted objective terms for one MGA objective, dispatched on variableSelection."""
     selection = objSpec.get("variableSelection", "custom")
     if selection == "custom":
         if not objSpec.get("terms"):
-            raise ValueError(f"Objective '{objSpec.get('name')}' is 'custom' but has no terms.")
+            raise ValueError(
+                f"Objective '{objSpec.get('name')}' is 'custom' but has no terms."
+            )
         parts = [p for t in objSpec["terms"] for p in termParts(esM, t)]
     elif selection == "allCapacity":
         parts = allVariableParts(esM, objSpec, includeOperation=False)
     elif selection == "allCapacityAndOperation":
         parts = allVariableParts(esM, objSpec, includeOperation=True)
     else:
-        raise ValueError(f"variableSelection must be one of {selections}, got '{selection}'.")
+        raise ValueError(
+            f"variableSelection must be one of {selections}, got '{selection}'."
+        )
     if not parts:
         raise ValueError(f"Objective '{objSpec.get('name')}' contains no variables.")
     return parts
@@ -176,27 +185,39 @@ def setMGAObjective(esM, objSpec):
     t0 = time.perf_counter()
     sense = objSpec.get("sense", "max")
     selection = objSpec.get("variableSelection", "custom")
-    print(f"  Declaring MGA objective function ({sense}, variableSelection='{selection}') ...",
-          flush=True)
+    print(
+        f"  Declaring MGA objective function ({sense}, variableSelection='{selection}') ...",
+        flush=True,
+    )
 
     if pyM.find_component("Obj") is not None:
         print("    Removing previous objective function ...", flush=True)
         pyM.del_component("Obj")
 
     parts = objectiveParts(esM, objSpec)
-    print(f"    Building objective expression from {len(parts)} variables ...", flush=True)
+    print(
+        f"    Building objective expression from {len(parts)} variables ...", flush=True
+    )
     pyoSense = pyo.maximize if sense.lower().startswith("max") else pyo.minimize
-    pyM.Obj = pyo.Objective(expr=pyo.quicksum(parts),
-                            sense=pyoSense)  # keep FINE's name "Obj"
-    print(f"  MGA objective function declared ({time.perf_counter() - t0:.1f} s).", flush=True)
+    pyM.Obj = pyo.Objective(
+        expr=pyo.quicksum(parts), sense=pyoSense
+    )  # keep FINE's name "Obj"
+    print(
+        f"  MGA objective function declared ({time.perf_counter() - t0:.1f} s).",
+        flush=True,
+    )
 
 
 def addCostSlackConstraint(esM, costExpr, optimalCost, slack):
+    """Constrain total cost to optimalCost + slack * |optimalCost|."""
     pyM = esM.pyM
     t0 = time.perf_counter()
     bound = optimalCost + slack * abs(optimalCost)
-    print(f"Declaring cost constraint: total cost <= {bound:.6g} "
-          f"(optimal cost {optimalCost:.6g}, slack {slack:.1%}) ...", flush=True)
+    print(
+        f"Declaring cost constraint: total cost <= {bound:.6g} "
+        f"(optimal cost {optimalCost:.6g}, slack {slack:.1%}) ...",
+        flush=True,
+    )
     if pyM.find_component("mgaCostConstraint") is not None:
         pyM.del_component("mgaCostConstraint")
     # abs() keeps the bound correct if the optimum is negative (e.g. export revenues)
@@ -207,32 +228,36 @@ def addCostSlackConstraint(esM, costExpr, optimalCost, slack):
 def _snapshot(esM, **summaryKwargs):
     """Copy the summaries, because every solve overwrites them in esM."""
     print("  Collecting optimization summaries ...", flush=True)
-    return {name: esM.getOptimizationSummary(name, outputLevel=2, **summaryKwargs).copy()
-            for name in esM.componentModelingDict}
+    return {
+        name: esM.getOptimizationSummary(name, outputLevel=2, **summaryKwargs).copy()
+        for name in esM.componentModelingDict
+    }
 
 
 def writeExcel(esM, outputDir, fileStem, excelKwargs):
     """Write the current esM results with FINE's writeOptimizationOutputToExcel."""
     t0 = time.perf_counter()
     safeStem = re.sub(r"[^\w\-]+", "_", fileStem)  # file-system safe name
-    outputFileName = os.path.join(outputDir, safeStem)
+    outputFileName = Path(outputDir) / safeStem
     print(f"  Writing results to Excel: {outputFileName}.xlsx ...", flush=True)
-    writeOptimizationOutputToExcel(esM, outputFileName=outputFileName, **excelKwargs)
+    writeOptimizationOutputToExcel(
+        esM, outputFileName=str(outputFileName), **excelKwargs
+    )
     print(f"  Excel file written ({time.perf_counter() - t0:.1f} s).", flush=True)
-    return outputFileName + ".xlsx"
+    return str(outputFileName) + ".xlsx"
 
 
 def runMGA(
-    esM, 
-    spec, 
+    esM,
+    spec,
     summaryKwargs=None,
-    save_mga_results_in_excel=False, 
+    save_mga_results_in_excel=False,
     excelOutputDir="mga_results",
-    excelFilePrefix="MGA", 
+    excelFilePrefix="MGA",
     excelKwargs={"optSumOutputLevel": 2, "optValOutputLevel": 2},
-    **optimizeKwargs):
-    """
-    Solve cost-optimal, then each MGA objective in spec["objectives"].
+    **optimizeKwargs,
+):
+    """Solve cost-optimal, then each MGA objective in spec["objectives"].
 
     **Arguments:**
 
@@ -275,6 +300,14 @@ def runMGA(
             ],
         }
 
+        variables and their respective component classes must adhere to the following criteria
+        variable:   "capacity"  ->   (all modeling classes)
+                    "operation" ->   (SourceSink, Conversion, Transmission)
+                    "charge"    ->   (Storage)
+                    "discharge" ->   (Storage)
+
+            e.g., A storage component cannot have "operation" variable and only "charge" and/or "discharge"
+
     :type spec: dictionary
 
     : param summaryKwargs: summaryKwargs are passed to getOptimizationSummary (e.g. ip=2030)
@@ -315,14 +348,14 @@ def runMGA(
     summaryKwargs = summaryKwargs or {}
     excelKwargs = excelKwargs or {}
     if save_mga_results_in_excel:
-        os.makedirs(excelOutputDir, exist_ok=True)
+        Path(excelOutputDir).mkdir(parents=True, exist_ok=True)
     optimizeKwargs.pop("declaresOptimizationProblem", None)
     nObj = len(spec["objectives"])
 
     print("=" * 70, flush=True)
     print(f"MGA run: slack {spec['slack']:.1%}, {nObj} alternative(s)", flush=True)
     if save_mga_results_in_excel:
-        print(f"Excel output enabled: {os.path.abspath(excelOutputDir)}", flush=True)
+        print(f"Excel output enabled: {Path(excelOutputDir).resolve()}", flush=True)
     print("=" * 70, flush=True)
 
     # 1) cost-optimal solution
@@ -330,11 +363,13 @@ def runMGA(
     costExpr = esM.pyM.Obj.expr
     optimalCost = pyo.value(costExpr)
     print(f"Cost-optimal solution found: total cost = {optimalCost:.6g}", flush=True)
-    results = {"costOptimal": {"cost": optimalCost,
-                               "summary": _snapshot(esM, **summaryKwargs)}}
+    results = {
+        "costOptimal": {"cost": optimalCost, "summary": _snapshot(esM, **summaryKwargs)}
+    }
     if save_mga_results_in_excel:
         results["costOptimal"]["excelFile"] = writeExcel(
-            esM, excelOutputDir, f"{excelFilePrefix}_costOptimal", excelKwargs)
+            esM, excelOutputDir, f"{excelFilePrefix}_costOptimal", excelKwargs
+        )
 
     # 2) near-optimal cost constraint
     print("Adding the near-optimal cost constraint ...", flush=True)
@@ -353,8 +388,11 @@ def runMGA(
 
         cost = pyo.value(costExpr)
         mgaValue = pyo.value(esM.pyM.Obj)
-        print(f"  MGA objective value = {mgaValue:.6g}, total cost = {cost:.6g} "
-              f"({(cost - optimalCost) / abs(optimalCost):+.2%} vs. cost-optimal)", flush=True)
+        print(
+            f"  MGA objective value = {mgaValue:.6g}, total cost = {cost:.6g} "
+            f"({(cost - optimalCost) / abs(optimalCost):+.2%} vs. cost-optimal)",
+            flush=True,
+        )
         results[objSpec["name"]] = {
             "cost": cost,
             "mgaObjective": mgaValue,
@@ -362,9 +400,12 @@ def runMGA(
         }
         if save_mga_results_in_excel:
             results[objSpec["name"]]["excelFile"] = writeExcel(
-                esM, excelOutputDir, f"{excelFilePrefix}_{objSpec['name']}", excelKwargs)
-        print(f"Alternative '{objSpec['name']}' done ({time.perf_counter() - tObj:.1f} s).",
-              flush=True)
+                esM, excelOutputDir, f"{excelFilePrefix}_{objSpec['name']}", excelKwargs
+            )
+        print(
+            f"Alternative '{objSpec['name']}' done ({time.perf_counter() - tObj:.1f} s).",
+            flush=True,
+        )
 
     print("=" * 70, flush=True)
     print(f"MGA run finished in {time.perf_counter() - tStart:.1f} s.", flush=True)
