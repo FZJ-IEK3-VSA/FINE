@@ -9,24 +9,22 @@ import pyomo.environ as pyomo
 from pyomo import opt
 import fine as fn
 
-def declareOptimalCostConstraint(esM, pyM):
 
-    """ Optimum cost should not be more than the objective value obtained in the original optimization + slack value.
-    """
+def declareOptimalCostConstraint(esM, pyM):
+    """Optimum cost should not be more than the objective value obtained in the original optimization + slack value."""
     fn.utils.output("Declaring cost constraint...", esM.verboseLogLevel, 0)
 
     def optimalCostConstraint(pyM):
-        return (
-            sum(
-                mdl.getObjectiveFunctionContribution(esM, pyM)
-                for mdl in esM.componentModelingDict.values()
-            )
-            <= esM.objectiveValue*(1+esM.slack)
-        )
+        return sum(
+            mdl.getObjectiveFunctionContribution(esM, pyM)
+            for mdl in esM.componentModelingDict.values()
+        ) <= esM.objectiveValue * (1 + esM.slack)
+
     pyM.optimalCostConstraint = pyomo.Constraint(rule=optimalCostConstraint)
 
-def declareMGAObjective(esM, pyM,iteration,sense):
 
+def declareMGAObjective(esM, pyM, iteration, sense):
+    """Declare the beta-weighted MGA objective of an iteration with the given sense ("minimize" or "maximize")."""
     fn.utils.output("Declaring MGA objective function...", esM.verboseLogLevel, 0)
 
     def mgaOperation(
@@ -36,17 +34,14 @@ def declareMGAObjective(esM, pyM,iteration,sense):
         iteration,
         opVarName,
         isOperationCommisYearDepending=False,
-        ):
-
-        r"""
-        Declare the objective function by obtaining the opertaion rate variables abd capacity variables of the components.
+    ):
+        r"""Declare the objective function by obtaining the opertaion rate variables abd capacity variables of the components.
         The  objective function is the sum of the operation and capacity variables of the componenets multiplied by the Beta value.
 
             .. math::
                     \{min/max}\:  {\beta}^{loc,comp,iteration} * ({op}^{comp,loc,ip,p,t} + {cap}^{comp,loc,ip,p})
 
         """
-
         abbrvName = mdl.abbrvName
         opVar = getattr(pyM, opVarName + "_" + abbrvName)
         capVar = getattr(pyM, "cap_" + abbrvName)
@@ -54,35 +49,45 @@ def declareMGAObjective(esM, pyM,iteration,sense):
         capVarSet = getattr(pyM, "designDimensionVarSet_" + abbrvName)
 
         if isOperationCommisYearDepending:
-
-            opsum = sum(opVar[loc, compName, commis, ip, p, t]  * esM.beta[loc][iteration][compName]
-                for loc,compName,commis,ip in opVarSet for p,t in pyM.intraYearTimeSet
+            opsum = sum(
+                opVar[loc, compName, commis, ip, p, t]
+                * esM.beta[loc][iteration][compName]
+                for loc, compName, commis, ip in opVarSet
+                for p, t in pyM.intraYearTimeSet
             )
 
         else:
-
-            opsum = sum(opVar[loc, compName, ip, p, t] * esM.beta[loc][iteration][compName]
-                for loc,compName,ip in opVarSet for p,t in pyM.intraYearTimeSet
+            opsum = sum(
+                opVar[loc, compName, ip, p, t] * esM.beta[loc][iteration][compName]
+                for loc, compName, ip in opVarSet
+                for p, t in pyM.intraYearTimeSet
             )
 
-        capsum = sum(capVar[loc, compName, ip]  * esM.beta[loc][iteration][compName]
-                            for loc, compName, ip in capVarSet)
+        capsum = sum(
+            capVar[loc, compName, ip] * esM.beta[loc][iteration][compName]
+            for loc, compName, ip in capVarSet
+        )
 
-        return (opsum + capsum)
+        return opsum + capsum
+
     def mgaObjective(pyM):
-        mgaContribution  = 0
-        for key,mdl in esM.componentModelingDict.items():
-            if key != 'StorageModel':
-                mgaContribution += mgaOperation(mdl,pyM, esM, iteration, "op")
+        mgaContribution = 0
+        for key, mdl in esM.componentModelingDict.items():
+            if key != "StorageModel":
+                mgaContribution += mgaOperation(mdl, pyM, esM, iteration, "op")
             else:
-                variables = ["chargeOp","dischargeOp"]
-                storageContribution = sum(mgaOperation(mdl,pyM, esM, iteration, var) for var in variables)
+                variables = ["chargeOp", "dischargeOp"]
+                storageContribution = sum(
+                    mgaOperation(mdl, pyM, esM, iteration, var) for var in variables
+                )
                 mgaContribution += storageContribution
         return mgaContribution
+
     if sense == "minimize":
         pyM.Obj = pyomo.Objective(rule=mgaObjective, sense=pyomo.minimize)
     else:
         pyM.Obj = pyomo.Objective(rule=mgaObjective, sense=pyomo.maximize)
+
 
 def declareMGAOptimizationProblem(
     esM,
@@ -92,10 +97,9 @@ def declareMGAOptimizationProblem(
     relaxIsBuiltBinary=False,
     relevanceThreshold=None,
 ):
+    """Declare the MGA optimization problem of an iteration.
 
-    """
-    Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
-    instance is built and filled with
+    A pyomo concrete model instance is built for the specified energy system and filled with
 
     * basic time sets,
     * sets, variables and constraints contributed by the component modeling classes,
@@ -103,7 +107,7 @@ def declareMGAOptimizationProblem(
     * an objective function.
 
     """
-    fn.utils.output(f"MGA Iteration {iteration} {sense} .....", esM.verboseLogLevel, 0 )
+    fn.utils.output(f"MGA Iteration {iteration} {sense} .....", esM.verboseLogLevel, 0)
 
     # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
     timeStart = time.time()
@@ -146,12 +150,26 @@ def declareMGAOptimizationProblem(
 
     for key, mdl in esM.componentModelingDict.items():
         _t = time.time()
-        fn.utils.output("Declaring sets, variables and constraints for " + key, esM.verboseLogLevel, 0)
-        fn.utils.output("\tdeclaring sets... ", esM.verboseLogLevel, 0), mdl.declareSets(esM, pyM)
-        fn.utils.output("\tdeclaring variables... ", esM.verboseLogLevel, 0), mdl.declareVariables(esM, pyM,relaxIsBuiltBinary,
-                                                                                           relevanceThreshold)
-        fn.utils.output("\tdeclaring constraints... ", esM.verboseLogLevel, 0), mdl.declareComponentConstraints(esM, pyM)
-        fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
+        fn.utils.output(
+            "Declaring sets, variables and constraints for " + key,
+            esM.verboseLogLevel,
+            0,
+        )
+        (
+            fn.utils.output("\tdeclaring sets... ", esM.verboseLogLevel, 0),
+            mdl.declareSets(esM, pyM),
+        )
+        (
+            fn.utils.output("\tdeclaring variables... ", esM.verboseLogLevel, 0),
+            mdl.declareVariables(esM, pyM, relaxIsBuiltBinary, relevanceThreshold),
+        )
+        (
+            fn.utils.output("\tdeclaring constraints... ", esM.verboseLogLevel, 0),
+            mdl.declareComponentConstraints(esM, pyM),
+        )
+        fn.utils.output(
+            "\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0
+        )
 
     ################################################################################################################
     #                              Declare cross-componential sets and constraints                                 #
@@ -160,27 +178,37 @@ def declareMGAOptimizationProblem(
     # Declare constraints for enforcing shared capacities
     _t = time.time()
     esM.declareSharedPotentialConstraints(pyM)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
+    fn.utils.output(
+        "\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0
+    )
 
     # Declare constraints for linked quantities
     _t = time.time()
     esM.declareComponentLinkedQuantityConstraints(pyM)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
+    fn.utils.output(
+        "\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0
+    )
 
     # Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
     _t = time.time()
     esM.declareCommodityBalanceConstraints(pyM)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
+    fn.utils.output(
+        "\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0
+    )
 
     # Declare constraint for balanceLimit
     _t = time.time()
     esM.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
+    fn.utils.output(
+        "\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0
+    )
 
     # Declare constraint for optimal cost
     _t = time.time()
     declareOptimalCostConstraint(esM, pyM)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
+    fn.utils.output(
+        "\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0
+    )
 
     ###############################################################################################################
     #                                         Declare MGA objective function                                           #
@@ -188,47 +216,50 @@ def declareMGAOptimizationProblem(
 
     # Declare objective function by obtaining the contributions to the objective function from all modeling classes
     _t = time.time()
-    declareMGAObjective(esM, pyM,iteration,sense)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
+    declareMGAObjective(esM, pyM, iteration, sense)
+    fn.utils.output(
+        "\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0
+    )
 
     # Store the build time of the optimize function call in the EnergySystemModel instance
     esM.solverSpecs["buildtime"] = time.time() - timeStart
 
-def optimalValues(esM, iteration, outputLevel):
 
+def optimalValues(esM, iteration, outputLevel):
+    """Store the operation and capacity variable values of the solved problem in esM.solutions[iteration]."""
     esM.solutions[iteration] = {}
 
     esM.optimalValueParameters = [
-    "op_",
-    "cap_",
+        "op_",
+        "cap_",
     ]
-    esM.storageParameters = ["chargeOp_","dischargeOp_","stateOfCharge_"]
+    esM.storageParameters = ["chargeOp_", "dischargeOp_", "stateOfCharge_"]
 
     for key, mdl in esM.componentModelingDict.items():
-
         esM.solutions[iteration][key] = {}
         for parameter in esM.optimalValueParameters:
             if not (parameter == "op_" and mdl.abbrvName == "stor"):
-                esM.solutions[iteration][key][parameter] = getattr(esM.pyM, parameter + mdl.abbrvName).get_values()
+                esM.solutions[iteration][key][parameter] = getattr(
+                    esM.pyM, parameter + mdl.abbrvName
+                ).get_values()
             else:
                 for action in esM.storageParameters:
-                    esM.solutions[iteration][key][action] = getattr(esM.pyM, action + mdl.abbrvName).get_values()
+                    esM.solutions[iteration][key][action] = getattr(
+                        esM.pyM, action + mdl.abbrvName
+                    ).get_values()
 
     if esM.writeSolutionsasExcels:
-
         esM.output[iteration] = {}
-        solutionsOutput.setSolutions(
-            esM,
-            iteration,
-            outputLevel
-        )
-def calculateBeta(esM, random_seed):
+        solutionsOutput.setSolutions(esM, iteration, outputLevel)
 
+
+def calculateBeta(esM, random_seed):
+    """Draw a random weight esM.beta[location][iteration][component] in [0, 1) for every MGA iteration."""
     components = []
     transmissionComponents = []
 
     for item in esM.componentModelingDict.values():
-        for key,_item in item.componentsDict.items():
+        for key, _item in item.componentsDict.items():
             components.append(key)
 
             if isinstance(_item, fn.transmission.Transmission):
@@ -246,39 +277,40 @@ def calculateBeta(esM, random_seed):
             if loc1 != loc2:
                 transmission_locations.append(loc1 + "_" + loc2)
 
-    esM.beta = {location:
-            {iteration+1:
-            {component: random.random() for component in components
-             if component not in transmissionComponents
+    esM.beta = {
+        location: {
+            iteration + 1: {
+                component: random.random()
+                for component in components
+                if component not in transmissionComponents
             }
             for iteration in range(esM.iterations)
-            }
-            for location in esM.locations
-            }
+        }
+        for location in esM.locations
+    }
 
-    transmission_data = {location:
-            {iteration+1:
-            {component: random.random() for component in transmissionComponents
+    transmission_data = {
+        location: {
+            iteration + 1: {
+                component: random.random() for component in transmissionComponents
             }
             for iteration in range(esM.iterations)
-            }
-            for location in transmission_locations
-            }
+        }
+        for location in transmission_locations
+    }
 
     esM.beta.update(transmission_data)
 
-def identifySolutions(
-    esM,
-    operationRateinOutput
-):
+
+def identifySolutions(esM, operationRateinOutput):
     # ############################################################################################################
     # # #                                      Identify maximally different solutions
     # # ################################################################################################################
-    """
-    MGA optimization provides 2*(esM.iterations) times different solutions. From these solutions, solutions
+    """MGA optimization provides 2*(esM.iterations) times different solutions. From these solutions, solutions
     which are maximally different to the optimal solutions should be identified.
     For this, largest squared Euclidian distance between the solutions are calculated.
     """
+
     def supremum(i):
         m = 10**4
         x_sum = 0
@@ -286,31 +318,43 @@ def identifySolutions(
         for iteration in range(len(esM.set_solutions)):
             sel_sum = 0
 
-            sel_sum += sum((esM.solutions[i][key][parameter][item]-esM.set_solutions[iteration][key][parameter][item])**2
-                        for key in esM.solutions[i]
-                        for parameter in esM.solutions[i][key]
-                        for item in esM.solutions[i][key][parameter])
+            sel_sum += sum(
+                (
+                    esM.solutions[i][key][parameter][item]
+                    - esM.set_solutions[iteration][key][parameter][item]
+                )
+                ** 2
+                for key in esM.solutions[i]
+                for parameter in esM.solutions[i][key]
+                for item in esM.solutions[i][key][parameter]
+            )
             if sel_sum == 0:
                 x_sum += m
             else:
-                x_sum += 1/sel_sum
+                x_sum += 1 / sel_sum
 
-        return 1/x_sum
+        return 1 / x_sum
 
     esM.set_solutions = {}
-    esM.set_solutions[0] = esM.solutions[0] # Optimal solution is saved in iteration 0
-    esM.min_distances = [] # This holds the HMSED values for each identified maximally different solution
-    esM.highest_distance = [0] # This holds the iteration of the seleteced maximally different solution. This can be later used to
-                              # save the data of the selected maximally different solutions. Optimal solution is saved in iteration 0
+    esM.set_solutions[0] = esM.solutions[0]  # Optimal solution is saved in iteration 0
+    esM.min_distances = []  # This holds the HMSED values for each identified maximally different solution
+    esM.highest_distance = [
+        0
+    ]  # This holds the iteration of the seleteced maximally different solution. This can be later used to
+    # save the data of the selected maximally different solutions. Optimal solution is saved in iteration 0
 
-    fn.utils.output("\nIdentifying maximally different solutions....\n", esM.verboseLogLevel, 0)
+    fn.utils.output(
+        "\nIdentifying maximally different solutions....\n", esM.verboseLogLevel, 0
+    )
 
     # From all the solutions in esM.solutions, identify solutions which are not none because there can be some solutions which
     # are not feasible
-    feasible_solutions = [key for key in esM.solutions.keys() if esM.solutions[key] is not None]
+    feasible_solutions = [
+        key for key in esM.solutions.keys() if esM.solutions[key] is not None
+    ]
 
     # Final identified solutions should be the minimum of esM.iterations and len(feasible_solutions)
-    for k in range(min(len(feasible_solutions),esM.iterations)):
+    for k in range(min(len(feasible_solutions), esM.iterations)):
         if k in feasible_solutions:
             _t = time.time()
             previous_max = 0
@@ -324,8 +368,12 @@ def identifySolutions(
                         previous_max = get_max
 
             esM.min_distances.append(previous_max)
-            fn.utils.output (f"Maximally different solution {k+1} identified (Iteration {_highest_distance})---> ({time.time() - _t:.4f} sec)", esM.verboseLogLevel, 0)
-            esM.set_solutions[k+1] = esM.solutions[_highest_distance]
+            fn.utils.output(
+                f"Maximally different solution {k + 1} identified (Iteration {_highest_distance})---> ({time.time() - _t:.4f} sec)",
+                esM.verboseLogLevel,
+                0,
+            )
+            esM.set_solutions[k + 1] = esM.solutions[_highest_distance]
             esM.solutions.pop(_highest_distance)
             esM.highest_distance.append(_highest_distance)
     esM.solutions.pop(0)
@@ -337,11 +385,8 @@ def identifySolutions(
     # if esM.writeSolutionsasExcels is True, solutions are written to Excel files
 
     if esM.writeSolutionsasExcels:
+        solutionsOutput.writeSolutions(esM, operationRateinOutput)
 
-        solutionsOutput.writeSolutions(
-            esM,
-            operationRateinOutput
-        )
 
 def mgaOptimize(
     esM,
@@ -355,14 +400,13 @@ def mgaOptimize(
     warmstart=False,
     relevanceThreshold=None,
     slack=0.1,
-    iterations = 5,
-    random_seed = False,
-    writeSolutionsasExcels = False,
-    outputLevel = 2,
-    operationRateinOutput = False
+    iterations=5,
+    random_seed=False,
+    writeSolutionsasExcels=False,
+    outputLevel=2,
+    operationRateinOutput=False,
 ):
-    """
-    Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
+    """Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
     A pyomo instance is optimized with the specified inputs, and the optimization results are further
     processed.
 
@@ -456,9 +500,10 @@ def mgaOptimize(
     :type operationRateinOutput: boolean
 
     """
-
     # outputLevel = outputLevel # outputLevel for optimization summary
-    esM.objectiveValue = copy.deepcopy(esM.pyM.Obj()) # This holds the optimal value of the initial optimization problem
+    esM.objectiveValue = copy.deepcopy(
+        esM.pyM.Obj()
+    )  # This holds the optimal value of the initial optimization problem
     esM.solutions = {}  # This will hold the solutions of the optimization
 
     esM.iterations = iterations
@@ -466,20 +511,19 @@ def mgaOptimize(
     esM.writeSolutionsasExcels = writeSolutionsasExcels
 
     if esM.writeSolutionsasExcels:
-        esM.output = {} # This will store the values that are needed to be written in the Excel files.
+        esM.output = {}  # This will store the values that are needed to be written in the Excel files.
 
-    optimalValues(esM, 0, outputLevel) # This will store the optimal solution of the initial optimization problem in esM.solutions
+    optimalValues(
+        esM, 0, outputLevel
+    )  # This will store the optimal solution of the initial optimization problem in esM.solutions
 
     if esM.solutions[0] is None:
         raise TypeError(
-        "The optimization problem for optimal solution doesn't have an optimal solution"
-        "Cannot perofrm a MGA optimization if the optimization problem doesn't have an optimal solution."
+            "The optimization problem for optimal solution doesn't have an optimal solution"
+            "Cannot perofrm a MGA optimization if the optimization problem doesn't have an optimal solution."
         )
 
-    calculateBeta(
-        esM,
-        random_seed
-    )
+    calculateBeta(esM, random_seed)
 
     if not timeSeriesAggregation:
         esM.segmentation = False
@@ -493,16 +537,15 @@ def mgaOptimize(
     there will be a maximum of 2*(esM.iterations) times final solutions. The optimization problem is defined in
     the declareMGAOptimizationProblem function."
     """
-    #Initially, all solutions in esM.solutions except the optimal solution are set to None. This can be later used to identify the
+    # Initially, all solutions in esM.solutions except the optimal solution are set to None. This can be later used to identify the
     # iterations which did not provide a feasible solution.
     for i in range(1, esM.iterations + 1):
         esM.solutions[i] = None  # for minimize
-        esM.solutions[esM.iterations + i] = None # for maximize
+        esM.solutions[esM.iterations + i] = None  # for maximize
 
-    iteration =1
+    iteration = 1
     while iteration <= esM.iterations:
-        for sense in ["minimize","maximize"]:
-
+        for sense in ["minimize", "maximize"]:
             if declaresOptimizationProblem:
                 declareMGAOptimizationProblem(
                     esM,
@@ -510,12 +553,12 @@ def mgaOptimize(
                     sense,
                     timeSeriesAggregation=timeSeriesAggregation,
                     relevanceThreshold=relevanceThreshold,
-                    )
+                )
             elif esM.pyM is None:
-                    raise TypeError(
-                        "The optimization problem is not declared yet. Set the argument declaresOptimization"
-                        " problem to True or call the declareOptimizationProblem function first."
-                    )
+                raise TypeError(
+                    "The optimization problem is not declared yet. Set the argument declaresOptimization"
+                    " problem to True or call the declareOptimizationProblem function first."
+                )
 
             # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
             timeStart = time.time()
@@ -601,8 +644,9 @@ def mgaOptimize(
                     warnings.warn("Output is generated for a non-optimal solution.")
 
                 if esM.writeSolutionsasExcels:
-
-                    fn.utils.output("\nProcessing optimization output...", esM.verboseLogLevel, 0)
+                    fn.utils.output(
+                        "\nProcessing optimization output...", esM.verboseLogLevel, 0
+                    )
                     # Declare component specific sets, variables and constraints
                     w = str(len(max(esM.componentModelingDict.keys())) + 6)
 
@@ -633,17 +677,23 @@ def mgaOptimize(
                 MGA solutions consist of the operation rate variables and capacity variables of the components. MGA solutions are stored in esM.solutions.
                 """
                 if sense == "minimize":
-                    optimalValues(esM,iteration, outputLevel)
+                    optimalValues(esM, iteration, outputLevel)
 
                 else:
                     optimalValues(esM, esM.iterations + iteration, outputLevel)
-        iteration +=1
+        iteration += 1
 
-    fn.utils.output("\n\t\tMGA optimization completed after %.4f" % (time.time() - startTime) + " sec\n", esM.verboseLogLevel, 0)
-
-    identifySolutions(
-        esM,
-        operationRateinOutput
+    fn.utils.output(
+        "\n\t\tMGA optimization completed after %.4f" % (time.time() - startTime)
+        + " sec\n",
+        esM.verboseLogLevel,
+        0,
     )
 
-    fn.utils.output("\n\t\tMGA process completed after %.4f" % (time.time() - startTime) + " sec\n", esM.verboseLogLevel, 0)
+    identifySolutions(esM, operationRateinOutput)
+
+    fn.utils.output(
+        "\n\t\tMGA process completed after %.4f" % (time.time() - startTime) + " sec\n",
+        esM.verboseLogLevel,
+        0,
+    )

@@ -1,26 +1,31 @@
 import pandas as pd
-import os
 import time
+from pathlib import Path
 import fine as fn
 
-def setSolutions(
-    esM,
-    iteration,
-    optSumOutputLevel
-):
+
+def setSolutions(esM, iteration, optSumOutputLevel):
+    """Store the optimization summary and optimal values of an MGA iteration in esM.output.
+
+    :param iteration: key under which the results are stored in esM.output
+    :param optSumOutputLevel: output level of the optimization summary, either one value or one per modeling class
+    """
     for ip in esM.investmentPeriodNames:
         esM.output[iteration][ip] = {}
         optValOutputLevel = 1
 
         for name in esM.componentModelingDict.keys():
-
-            abbreviatedName = name[:-5] #last 5 letters are "Model" and cut off
+            abbreviatedName = name[:-5]  # last 5 letters are "Model" and cut off
 
             oL = optSumOutputLevel
             oL_ = oL[name] if isinstance(oL, dict) else oL
 
             optSum = esM.getOptimizationSummary(name, ip=ip, outputLevel=oL_)
-            esM.output[iteration][ip][abbreviatedName + "OptSummary_" + esM.componentModelingDict[name].dimension] = optSum
+            esM.output[iteration][ip][
+                abbreviatedName
+                + "OptSummary_"
+                + esM.componentModelingDict[name].dimension
+            ] = optSum
 
             data = esM.componentModelingDict[name].getOptimalValues(ip=ip)
             oL = optValOutputLevel
@@ -61,19 +66,27 @@ def setSolutions(
                 dfTI = pd.concat(dataTI, keys=indexTI, names=names)
                 if oL_ == 1:
                     dfTI = dfTI.loc[((dfTI != 0) & (~dfTI.isnull())).any(axis=1)]
-                esM.output[iteration][ip][abbreviatedName + "_TIoptVar_" + esM.componentModelingDict[name].dimension] = dfTI
+                esM.output[iteration][ip][
+                    abbreviatedName
+                    + "_TIoptVar_"
+                    + esM.componentModelingDict[name].dimension
+                ] = dfTI
+
 
 def writeSolutions(
     esM,
     operationRateinOutput,
 ):
-    fn.utils.output("\nWriting optimization output to Excel files\n", esM.verboseLogLevel, 0)
+    """Write the selected MGA solutions to Excel files in OutputData/IP<ip> in the working directory.
 
-    cwd = os.getcwd()
-    directory = os.path.join(cwd, "OutputData")
+    :param operationRateinOutput: if True, the time dependent optimal values are written as well
+    """
+    fn.utils.output(
+        "\nWriting optimization output to Excel files\n", esM.verboseLogLevel, 0
+    )
 
-    if not os.path.exists(directory):
-        os.mkdir(directory)
+    directory = Path.cwd() / "OutputData"
+    directory.mkdir(exist_ok=True)
 
     fn.utils.output(f"Output saved in {directory}\n", esM.verboseLogLevel, 0)
 
@@ -84,23 +97,25 @@ def writeSolutions(
         optimalParameters = ["OptSummary_", "_TIoptVar_"]
 
     for ip in esM.investmentPeriods:
-
-        outdir = os.path.join(directory, f"IP{ip}")
-        if not os.path.exists(outdir):
-            os.mkdir(outdir)
+        outdir = directory / f"IP{ip}"
+        outdir.mkdir(exist_ok=True)
 
         for name in esM.componentModelingDict.keys():
             _t = time.time()
             abbreviatedName = name[:-5]
 
-            fn.utils.output(f"\tWriting {abbreviatedName} output....", esM.verboseLogLevel, 0)
+            fn.utils.output(
+                f"\tWriting {abbreviatedName} output....", esM.verboseLogLevel, 0
+            )
             file_name = abbreviatedName + "Model.xlsx"
-            outputFile = os.path.join(outdir, file_name)
+            outputFile = outdir / file_name
 
             with pd.ExcelWriter(outputFile) as writer:
                 for item in optimalParameters:
                     for key in esM.highest_distance:
-                        for parameter,val in esM.output[key][ip].items():
+                        for parameter, val in esM.output[key][ip].items():
                             if abbreviatedName + item in parameter:
                                 val.to_excel(writer, sheet_name=item + str(key))
-            fn.utils.output("\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verboseLogLevel, 0)
+            fn.utils.output(
+                "\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verboseLogLevel, 0
+            )

@@ -1,5 +1,5 @@
-"""
-Last edited: February 18, 2025
+"""Modelling to generate alternatives (MGA).
+
 |br| @author: FINE Developer Team (FZJ IEK-3)
 """
 
