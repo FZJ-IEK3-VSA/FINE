@@ -385,7 +385,7 @@ def sourceEsM(stochasticModel=False, **sourceKwargs):
 
 def test_capacityFixWithMissingInvestmentPeriods():
     # issue 839: capacityFix given as dict with None for some investment periods
-    esM = sourceEsM(capacityFix={2023: 0.0, 2028: None, 2033: None})
+    esM = sourceEsM(capacityFix={2023: 1.0, 2028: None, 2033: None})
     esM.optimize(
         solver=ImplementedSolvers.STANDARD_SOLVER.value, timeSeriesAggregation=False
     )
