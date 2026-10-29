@@ -1,5 +1,12 @@
+import json
+import shutil
 import time
+import warnings
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
 import xarray as xr
 from netCDF4 import Dataset
@@ -59,6 +66,11 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
         if isinstance(value, pd.Timestamp):
             logger.debug("Converting timestamp: %s", value)
             df.loc[idx] = value.strftime("%Y-%m-%d %H:%M:%S")
+        # a netCDF attribute cannot hold a dict, so write its repr. This is one
+        # way: the summary is a record of the run and is never read back into a
+        # model, so the dict is not rebuilt on read.
+        elif isinstance(value, dict):
+            df.loc[idx] = str(value)
     summary_dict = df.to_dict()
     summary_xr = xr.Dataset()
     summary_xr.attrs = summary_dict
@@ -286,6 +298,255 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
     return {"Results": xr_dss}
 
 
+def serialiseDatasetsForWriting(datasets):
+    """Convert the attributes of every dataset in the tree into writable types.
+
+    :func:`writeDatasetsToNetCDF` does this per group as it writes. The folder
+    writer hands whole datasets to worker processes, so it has to be done up
+    front instead.
+
+    :param datasets: nested dictionary of xarray datasets holding the esM data
+    :type datasets: dict
+
+    :return: the same dictionary, with the attributes converted in place
+    :rtype: dict
+    """
+    for group in datasets:
+        if group in ("Parameters", "PerformanceSummary"):
+            utilsIO.serialiseDatasetAttributes(datasets[group])
+    return datasets
+
+
+# Name of the file that records the folder layout written by
+# writeDatasetsToNetCDFfolder, so the reader can rebuild the nested dictionary.
+STRUCTURE_FILE_NAME = "structure.json"
+
+# Name of the netCDF file inside each leaf directory.
+DATASET_FILE_NAME = "data.nc"
+
+
+def _saveSingleDataset(task):
+    """Write one dataset to one file. Top level, so it can be sent to a worker process.
+
+    :param task: the file path, the dataset, the per variable encoding and the write mode
+    :type task: tuple
+
+    :return: the file path that was written
+    :rtype: string
+    """
+    filePath, dataset, encoding, mode = task
+    dataset.to_netcdf(
+        filePath,
+        encoding={var: encoding for var in dataset.data_vars},
+        mode=mode,
+    )
+    return filePath
+
+
+def writeDatasetsToNetCDFfolder(
+    datasets,
+    base_path="my_esm",
+    compression=True,
+    parallel=False,
+    chunks=None,
+    mode="w",
+):
+    """Write a nested dictionary of xarray datasets to a folder tree.
+
+    Each dataset goes into its own netCDF file, one directory level per
+    dictionary level, with the leaf file named ``data.nc``. A ``structure.json``
+    next to them records the layout as paths relative to ``base_path``, which is
+    what :func:`readNetCDFfolderToDatasets` reads back.
+
+    Compared with one large netCDF file this writes and reads much faster on a
+    parallel file system, because the files are independent.
+
+    **Required arguments:**
+
+    :param datasets: nested dictionary of xarray datasets holding the esM data
+    :type datasets: dict
+
+    **Default arguments:**
+
+    :param base_path: directory the tree is written into. It is created if it does not exist.
+        |br| * the default value is "my_esm"
+    :type base_path: string or pathlib.Path
+
+    :param compression: states if the variables are written with zlib compression
+        |br| * the default value is True
+    :type compression: boolean
+
+    :param parallel: states if the files are written by a pool of worker processes.
+        Worth it for many large datasets, wasteful for a small model.
+        |br| * the default value is False
+    :type parallel: boolean
+
+    :param chunks: dask chunk sizes applied to every dataset before writing, e.g. {"time": 100}
+        |br| * the default value is None
+    :type chunks: None or dict
+
+    :param mode: netCDF write mode, "w" to overwrite or "a" to append
+        |br| * the default value is "w"
+    :type mode: string
+
+    :return: the same nested structure, with the relative file path in place of each dataset
+    :rtype: dict
+    """
+    base_path = Path(base_path)
+    base_path.mkdir(parents=True, exist_ok=True)
+
+    encoding = {"zlib": True, "complevel": 5, "shuffle": True} if compression else {}
+    save_tasks = []
+
+    def collect_save_tasks(item, current_path):
+        if isinstance(item, dict):
+            structure = {}
+            for key, value in item.items():
+                new_path = current_path / str(key)
+                new_path.mkdir(exist_ok=True)
+                structure[key] = collect_save_tasks(value, new_path)
+            return structure
+
+        if isinstance(item, xr.Dataset):
+            filePath = current_path / DATASET_FILE_NAME
+            if chunks is not None:
+                item = item.chunk(chunks)
+            save_tasks.append((str(filePath), item, encoding, mode))
+            # the structure file holds relative paths, so the tree can be moved
+            return str(filePath.relative_to(base_path))
+
+        raise ValueError(
+            f"Cannot write an object of type {type(item)} to a netCDF folder. "
+            "Only nested dictionaries of xarray datasets are supported."
+        )
+
+    datasets = serialiseDatasetsForWriting(datasets)
+    structure = collect_save_tasks(datasets, base_path)
+
+    with (base_path / STRUCTURE_FILE_NAME).open("w") as structureFile:
+        json.dump(structure, structureFile, indent=2)
+
+    if parallel and save_tasks:
+        with ProcessPoolExecutor() as executor:
+            list(executor.map(_saveSingleDataset, save_tasks))
+    else:
+        for task in save_tasks:
+            _saveSingleDataset(task)
+
+    return structure
+
+
+def _loadSingleDataset(path, chunks=None, lazy_load=False):
+    """Read one dataset from one file. Top level, so it can be sent to a worker process.
+
+    :param path: path of the netCDF file
+    :type path: string
+
+    :param chunks: dask chunk sizes, e.g. {"time": 100}
+    :type chunks: None or dict
+
+    :param lazy_load: states if the file stays open and the data is read on demand
+    :type lazy_load: boolean
+
+    :return: the dataset
+    :rtype: xr.Dataset
+    """
+    if lazy_load:
+        return xr.open_dataset(path, chunks=chunks)
+    return xr.load_dataset(path, chunks=chunks)
+
+
+def _rebuildFolderStructure(item, loaded_datasets):
+    """Put the loaded datasets back into the nested structure that was written.
+
+    :param item: the structure as read from structure.json
+    :type item: dict or string
+
+    :param loaded_datasets: the datasets, keyed by their relative path
+    :type loaded_datasets: dict
+
+    :return: the nested dictionary of datasets
+    :rtype: dict or xr.Dataset
+    """
+    if isinstance(item, dict):
+        return {
+            key: _rebuildFolderStructure(value, loaded_datasets)
+            for key, value in item.items()
+        }
+    if isinstance(item, str):
+        return loaded_datasets[item]
+    raise ValueError(f"Unsupported entry in {STRUCTURE_FILE_NAME}: {type(item)}")
+
+
+def readNetCDFfolderToDatasets(base_path, parallel=True, chunks=None, lazy_load=False):
+    """Read back a folder tree written by :func:`writeDatasetsToNetCDFfolder`.
+
+    **Required arguments:**
+
+    :param base_path: directory holding the tree and its structure.json
+    :type base_path: string or pathlib.Path
+
+    **Default arguments:**
+
+    :param parallel: states if the files are read by a pool of worker processes.
+        Not compatible with lazy_load, which needs the files to stay open in this process.
+        |br| * the default value is True
+    :type parallel: boolean
+
+    :param chunks: dask chunk sizes, e.g. {"time": 100}
+        |br| * the default value is None
+    :type chunks: None or dict
+
+    :param lazy_load: states if the data is read on demand instead of at once. Keeps the
+        memory use down for a model that does not fit in memory.
+        |br| * the default value is False
+    :type lazy_load: boolean
+
+    :return: the nested dictionary of datasets that was written
+    :rtype: dict
+    """
+    base_path = Path(base_path)
+
+    with (base_path / STRUCTURE_FILE_NAME).open() as structureFile:
+        structure = json.load(structureFile)
+
+    paths_to_load = []
+
+    def collect_all_paths(item):
+        if isinstance(item, dict):
+            for value in item.values():
+                collect_all_paths(value)
+        elif isinstance(item, str):
+            paths_to_load.append(str(base_path / item))
+
+    collect_all_paths(structure)
+
+    load_fn = partial(_loadSingleDataset, chunks=chunks, lazy_load=lazy_load)
+
+    if lazy_load and parallel:
+        # a lazily read dataset keeps a file handle in the process that opened it,
+        # so it cannot be handed back from a worker process
+        logger.debug("lazy_load is set, reading in this process instead of in parallel")
+        parallel = False
+
+    if parallel and paths_to_load:
+        with ProcessPoolExecutor() as executor:
+            results = executor.map(load_fn, paths_to_load)
+            loaded_datasets = dict(
+                zip(
+                    (str(Path(path).relative_to(base_path)) for path in paths_to_load),
+                    results,
+                )
+            )
+    else:
+        loaded_datasets = {
+            str(Path(path).relative_to(base_path)): load_fn(path)
+            for path in paths_to_load
+        }
+
+    return _rebuildFolderStructure(structure, loaded_datasets)
+
+
 def writeDatasetsToNetCDF(
     datasets,
     outputFilePath="my_esm.nc",
@@ -338,49 +599,7 @@ def writeDatasetsToNetCDF(
     for group in datasets.keys():
         if group in ("Parameters", "PerformanceSummary"):
             xarray_dataset = datasets[group]
-            _xarray_dataset = (
-                xarray_dataset.copy()
-            )  # Copying to avoid errors due to change of size during iteration
-
-            for attr_name, attr_value in _xarray_dataset.attrs.items():
-                # if the attribute is set, convert into sorted list
-                if isinstance(attr_value, set):
-                    xarray_dataset.attrs[attr_name] = sorted(
-                        xarray_dataset.attrs[attr_name]
-                    )
-
-                # if the attribute is dict, convert into a "flattened" list
-                elif isinstance(attr_value, dict):
-                    xarray_dataset.attrs[attr_name] = list(
-                        f"{k} : {v}"
-                        for (k, v) in xarray_dataset.attrs[attr_name].items()
-                    )
-
-                # if the attribute is pandas series, add a new attribute corresponding
-                # to each row.
-                elif isinstance(attr_value, pd.Series):
-                    for idx, value in attr_value.items():
-                        xarray_dataset.attrs.update({f"{attr_name}.{idx}": value})
-
-                    # Delete the original attribute
-                    del xarray_dataset.attrs[attr_name]
-
-                # if the attribute is pandas df, add a new attribute corresponding
-                # to each row by converting the column into a numpy array.
-                elif isinstance(attr_value, pd.DataFrame):
-                    utilsIO.addDataFrameAttributeToXarray(
-                        xarray_dataset, attr_name, attr_value
-                    )
-
-                # if the attribute is bool, add a corresponding string
-                elif isinstance(attr_value, bool):
-                    xarray_dataset.attrs[attr_name] = (
-                        "True" if attr_value is True else "False"
-                    )
-
-                # if the attribute is None, add a corresponding string
-                elif attr_value is None:
-                    xarray_dataset.attrs[attr_name] = "None"
+            utilsIO.serialiseDatasetAttributes(xarray_dataset)
 
             if groupPrefix:
                 group_path = f"{groupPrefix}/{group}"
@@ -1047,12 +1266,67 @@ def writeEnergySystemModelToNetCDF(
     utils.output("Done. (%.4f" % (time.time() - _t) + " sec)", esM.verboseLogLevel, 0)
 
 
+def convertEnergySystemModelToDatasets(
+    esM,
+    optSumOutputLevel=0,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
+):
+    """Convert an esM instance (input and, if it was optimized, output) into datasets.
+
+    This is the one export. Every writer starts here, and every storage format is
+    built from the result, so a model has one canonical layout whatever it is
+    written to.
+
+    **Required arguments:**
+
+    :param esM: EnergySystemModel instance in which the model is held
+    :type esM: EnergySystemModel instance
+
+    **Default arguments:**
+
+    :param optSumOutputLevel: Output level of the optimization summary (see
+        EnergySystemModel). Either an integer (0,1,2) which holds for all model
+        classes or a dictionary with model class names as keys and an integer
+        (0,1,2) for each key (e.g. {'StorageModel':1,'SourceSinkModel':1,...}
+        |br| * the default value is 0
+    :type optSumOutputLevel: int (0,1,2) or dict
+
+    :param includeShadowPrices: states if the shadow prices are part of the result
+        |br| * the default value is False
+    :type includeShadowPrices: boolean
+
+    :param shadowPriceConstraintStr: name of the constraint the shadow prices are
+        taken from
+        |br| * the default value is "commodityBalanceConstraint"
+    :type shadowPriceConstraintStr: string
+
+    :return: the esM data in xarray dataset format, keyed by group
+    :rtype: dict
+    """
+    datasets = convertOptimizationInputToDatasets(esM)
+
+    if esM.objectiveValue is not None:  # model was optimized
+        datasets.update(convertOptimizationOutputToDatasets(esM, optSumOutputLevel))
+        if "performanceSummary" in vars(esM):
+            datasets.update(convertPerformanceSummaryToDatasets(esM))
+        if includeShadowPrices:
+            datasets["ShadowPrices"] = utilsIO.getShadowPriceXarray(
+                esM, constraint_str=shadowPriceConstraintStr
+            )
+
+    return datasets
+
+
 def writeEnergySystemModelToDatasets(
     esM,
     includeShadowPrices=False,
     shadowPriceConstraintStr="commodityBalanceConstraint",
 ):
     """Convert esM instance (input and output) into a xarray dataset.
+
+    Deprecated. Call :func:`convertEnergySystemModelToDatasets`, which carries the
+    optimization summary output level as well.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
@@ -1069,34 +1343,17 @@ def writeEnergySystemModelToDatasets(
         dataset format
     :rtype: xr.DataSet
     """
-    if esM.objectiveValue is not None:  # model was optimized
-        xr_dss_output = convertOptimizationOutputToDatasets(esM)
-        xr_dss_input = convertOptimizationInputToDatasets(esM)
-
-        xr_dss_results = {
-            "Results": xr_dss_output["Results"],
-            "Input": xr_dss_input["Input"],
-            "Parameters": xr_dss_input["Parameters"],
-        }
-        if "performanceSummary" in vars(esM):
-            xr_dss_performance = convertPerformanceSummaryToDatasets(esM)
-            xr_dss_results["PerformanceSummary"] = xr_dss_performance[
-                "PerformanceSummary"
-            ]
-
-        if includeShadowPrices:
-            xr_dss_shadowPrices = utilsIO.getShadowPriceXarray(
-                esM, constraint_str=shadowPriceConstraintStr
-            )
-            xr_dss_results["ShadowPrices"] = xr_dss_shadowPrices
-    else:
-        xr_dss_input = convertOptimizationInputToDatasets(esM)
-        xr_dss_results = {
-            "Input": xr_dss_input["Input"],
-            "Parameters": xr_dss_input["Parameters"],
-        }
-
-    return xr_dss_results
+    warnings.warn(
+        "writeEnergySystemModelToDatasets is deprecated. Call "
+        "convertEnergySystemModelToDatasets, which also carries optSumOutputLevel.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return convertEnergySystemModelToDatasets(
+        esM,
+        includeShadowPrices=includeShadowPrices,
+        shadowPriceConstraintStr=shadowPriceConstraintStr,
+    )
 
 
 def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
@@ -1221,3 +1478,522 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
 
     # xarray dataset to esm
     return convertDatasetsToEnergySystemModel(xr_dss)
+
+
+def _make_datasets_lazy(data_dict, chunks="auto", _path=()):
+    """Turn the in-memory arrays of a nested dataset dictionary into dask arrays.
+
+    ``chunks`` must never be None. ``Dataset.chunk(None)`` does not pick a sensible
+    size, it puts the whole array into a single dask chunk. For a reconstructed
+    time series that chunk can pass 2 GB, which the Blosc codec refuses, and a
+    single chunk also rules out a streamed write. "auto" bounds a chunk by dask's
+    target size, 128 MiB by default.
+
+    ``_path`` is the dictionary key path down to the current dataset, and it is
+    passed to ``chunk`` as the ``token``. Without a token, xarray names each dask
+    array by hashing the whole array content, sha1 over every byte, which dominates
+    the save time for large result arrays that are already in memory. A dictionary
+    path is unique, so it is as safe a name as a content hash, and it costs nothing
+    to compute.
+
+    :param data_dict: nested dictionary of xarray datasets
+    :type data_dict: dict
+
+    :param chunks: dask chunk sizes, or "auto"
+    :type chunks: string or dict
+
+    :param _path: key path to the current dataset, used to build the dask token
+    :type _path: tuple
+
+    :return: the same structure, with every dataset chunked
+    :rtype: dict
+    """
+    if isinstance(data_dict, dict):
+        return {
+            key: _make_datasets_lazy(value, chunks, _path=(*_path, str(key)))
+            for key, value in data_dict.items()
+        }
+
+    if isinstance(data_dict, xr.Dataset):
+        try:
+            return data_dict.chunk(chunks, token="/".join(_path) if _path else None)
+        except (ValueError, TypeError, NotImplementedError) as error:
+            logger.warning("Could not chunk the dataset at %s: %s", _path, error)
+            return data_dict
+
+    return data_dict
+
+
+# Chunk sizes used when a dataset is written to Zarr.
+#
+# Zarr needs a uniform chunk size along every axis except in the last chunk, and
+# a dataset that comes out of a concatenation carries the ragged chunks of that
+# concatenation. Every dimension therefore has to be chunked, not only the ones
+# named here: the two mask variables are indexed by "parameter", which appears in
+# no scheme, and leaving them unchunked produced chunks like ((1,)*42, (49,1,1,19)).
+#
+# "auto" rather than -1 for the spatial and component axes: -1 keeps a whole
+# dimension in one chunk, which is unbounded. For a large model a single chunk of
+# (1000 time steps x every location x every location x every component) passes 2 GB,
+# which the Blosc codec refuses ("Codec does not support buffers of > 2147483647
+# bytes"). "auto" keeps the deliberate 1000-step time chunk and lets dask size the
+# rest so a chunk stays near 128 MiB whatever the model size.
+ZARR_CHUNK_SCHEME = {
+    "time": 1000,
+    "space": "auto",
+    "space_2": "auto",
+    utilsIO.COMPONENT_DIMENSION: "auto",
+}
+
+# fill value written for float variables when replaceFillValue is set
+ZARR_FLOAT_FILL_VALUE = -9999.0
+
+# name the ShadowPrices DataArray is stored under inside its own Zarr group
+ZARR_SHADOW_PRICE_VARIABLE = "shadowPrices"
+
+# version of the Zarr layout, recorded in structure.json
+ZARR_FORMAT_VERSION = 1
+
+
+def _zarrCompressorEncoding(compressionAlgorithm, compressionLevel):
+    """Build the per variable Zarr encoding that selects the Blosc compressor.
+
+    zarr 2 takes a numcodecs codec under the key "compressor". zarr 3 renamed the
+    key to "compressors" and wants a codec from zarr.codecs, and it rejects a raw
+    numcodecs object with "Expected a BytesBytesCodec". FINE supports both, so the
+    key and the codec are chosen from the installed version rather than pinned.
+
+    :param compressionAlgorithm: Blosc compressor name, e.g. "zstd"
+    :type compressionAlgorithm: string
+
+    :param compressionLevel: Blosc compression level, 1 to 9
+    :type compressionLevel: int
+
+    :return: the encoding entries to merge into each variable's encoding
+    :rtype: dict
+    """
+    # imported here, not at module scope, so that "import fine" keeps working in an
+    # environment that has no zarr. Only the Zarr writer needs it.
+    import zarr  # noqa: PLC0415
+
+    if int(zarr.__version__.split(".")[0]) >= 3:
+        from zarr.codecs import BloscCodec, BloscShuffle  # noqa: PLC0415
+
+        return {
+            "compressors": [
+                BloscCodec(
+                    cname=compressionAlgorithm,
+                    clevel=compressionLevel,
+                    shuffle=BloscShuffle.shuffle,
+                )
+            ]
+        }
+
+    from numcodecs import Blosc  # noqa: PLC0415
+
+    return {
+        "compressor": Blosc(
+            cname=compressionAlgorithm,
+            clevel=compressionLevel,
+            shuffle=Blosc.SHUFFLE,
+        )
+    }
+
+
+def _chunkForZarr(dataset, useScheme=True):
+    """Chunk a dataset so Zarr can write it.
+
+    :param dataset: dataset to chunk
+    :type dataset: xr.Dataset
+
+    :param useScheme: states if ZARR_CHUNK_SCHEME is applied. False falls back to
+        letting dask choose every chunk, which is the retry after a chunking failure.
+    :type useScheme: boolean
+
+    :return: the chunked dataset
+    :rtype: xr.Dataset
+    """
+    if not useScheme:
+        return dataset.chunk("auto")
+    return dataset.chunk(
+        {dim: ZARR_CHUNK_SCHEME.get(dim, "auto") for dim in dataset.dims}
+    )
+
+
+def _writeZarr(dataset, path, compressorEncoding, replaceFillValue):
+    """Write one dataset to one Zarr group, retrying with plain chunking on failure.
+
+    :param dataset: dataset to write
+    :type dataset: xr.Dataset
+
+    :param path: path of the Zarr group
+    :type path: string
+
+    :param compressorEncoding: encoding entries from :func:`_zarrCompressorEncoding`
+    :type compressorEncoding: dict
+
+    :param replaceFillValue: states if float variables get an explicit fill value
+    :type replaceFillValue: boolean
+    """
+
+    def _encoding(chunked):
+        encoding = {}
+        for name, variable in chunked.data_vars.items():
+            encoding[name] = dict(compressorEncoding)
+            if replaceFillValue and np.issubdtype(variable.dtype, np.floating):
+                encoding[name]["_FillValue"] = ZARR_FLOAT_FILL_VALUE
+        return encoding
+
+    try:
+        chunked = _chunkForZarr(dataset, useScheme=True)
+        chunked.to_zarr(path, mode="w", encoding=_encoding(chunked))
+    except (ValueError, TypeError) as chunkingError:
+        logger.warning(
+            "Writing %s with the standard chunk scheme failed (%s). Retrying with "
+            "chunks chosen by dask.",
+            path,
+            chunkingError,
+        )
+        chunked = _chunkForZarr(dataset, useScheme=False)
+        try:
+            chunked.to_zarr(path, mode="w", encoding=_encoding(chunked))
+        except (ValueError, TypeError) as retryError:
+            raise ValueError(
+                f"Could not write {path} to Zarr, with the standard chunk scheme "
+                "or without it."
+            ) from retryError
+
+
+def writeDatasetsToZarr(
+    datasets,
+    output_zarr_path="my_esm.zarr",
+    overwrite_existing=True,
+    compression_level=5,
+    compression_algorithm="zstd",
+    replace_fill_value=False,
+):
+    """Write a nested dictionary of xarray datasets to a Zarr store.
+
+    It takes the canonical datasets, that is the ones
+    :func:`convertEnergySystemModelToDatasets` builds, and stacks them. The
+    components of a model class are concatenated into one dataset along a
+    "component" dimension, so the store holds a handful of large arrays instead of
+    thousands of small ones. That is what makes it fast to read a single variable
+    across all components. See :func:`~fine.IOManagement.utilsIO.stackComponents`.
+
+    **Required arguments:**
+
+    :param datasets: nested dictionary of xarray datasets holding the esM data
+    :type datasets: dict
+
+    **Default arguments:**
+
+    :param output_zarr_path: path of the Zarr store directory
+        |br| * the default value is "my_esm.zarr"
+    :type output_zarr_path: string or pathlib.Path
+
+    :param overwrite_existing: states if an existing store at that path is removed
+        first. Leave it on unless you mean to add to a store you already control:
+        each group is written on its own, so a group of a previous model that this
+        model does not have stays behind, and the store then describes neither.
+        |br| * the default value is True
+    :type overwrite_existing: boolean
+
+    :param compression_level: Blosc compression level, 1 to 9. Higher compresses more and
+        writes more slowly.
+        |br| * the default value is 5
+    :type compression_level: int
+
+    :param compression_algorithm: Blosc compressor name, e.g. "zstd" or "lz4"
+        |br| * the default value is "zstd"
+    :type compression_algorithm: string
+
+    :param replace_fill_value: states if float variables are written with an explicit fill
+        value instead of NaN
+        |br| * the default value is False
+    :type replace_fill_value: boolean
+    """
+    missing = [group for group in ("Input", "Parameters") if group not in datasets]
+    if missing:
+        raise ValueError(
+            f"The datasets are missing the group(s) {missing}. writeDatasetsToZarr "
+            "takes the canonical datasets, that is the ones "
+            "convertEnergySystemModelToDatasets builds. To write an esM directly, "
+            "call writeEnergySystemModelToZarr."
+        )
+
+    output_zarr_path = Path(output_zarr_path)
+    if overwrite_existing and output_zarr_path.exists():
+        shutil.rmtree(output_zarr_path)
+    output_zarr_path.mkdir(parents=True, exist_ok=True)
+
+    startTime = time.time()
+    compressorEncoding = _zarrCompressorEncoding(
+        compression_algorithm, compression_level
+    )
+    lazy_datasets = _make_datasets_lazy(datasets, chunks="auto")
+
+    for model_class, components in lazy_datasets["Input"].items():
+        stacked = utilsIO.stackComponents(components, prefixed=True)
+        if stacked is not None:
+            _writeZarr(
+                stacked,
+                f"{output_zarr_path}/Input/{model_class}",
+                compressorEncoding,
+                replace_fill_value,
+            )
+
+    for ip, models in lazy_datasets.get("Results", {}).items():
+        for model_class, components in models.items():
+            stacked = utilsIO.stackComponents(components, prefixed=False)
+            if stacked is not None:
+                _writeZarr(
+                    stacked,
+                    f"{output_zarr_path}/Results/{ip}/{model_class}",
+                    compressorEncoding,
+                    replace_fill_value,
+                )
+
+    parameters = serialiseDatasetsForWriting(
+        {"Parameters": lazy_datasets["Parameters"]}
+    )
+    parameters["Parameters"].to_zarr(f"{output_zarr_path}/Parameters", mode="w")
+    if "PerformanceSummary" in lazy_datasets:
+        lazy_datasets["PerformanceSummary"].to_zarr(
+            f"{output_zarr_path}/PerformanceSummary", mode="w"
+        )
+    if lazy_datasets.get("ShadowPrices") is not None:
+        # a DataArray, not a dataset. Zarr writes a group, so give it a name.
+        shadowPrices = lazy_datasets["ShadowPrices"]
+        utilsIO._normaliseDtypes(
+            shadowPrices.rename(ZARR_SHADOW_PRICE_VARIABLE).to_dataset()
+        ).to_zarr(f"{output_zarr_path}/ShadowPrices", mode="w")
+
+    # A model class is a directory in the store, and a directory listing has no
+    # order. Record the order the classes were written in, so a model read back
+    # holds its components in the order it had before, as the netCDF format does.
+    structure = {
+        "fine_zarr_format": ZARR_FORMAT_VERSION,
+        "Input": list(lazy_datasets["Input"]),
+        "Results": {
+            str(ip): list(models)
+            for ip, models in lazy_datasets.get("Results", {}).items()
+        },
+    }
+    with (output_zarr_path / STRUCTURE_FILE_NAME).open("w") as structureFile:
+        json.dump(structure, structureFile, indent=2)
+
+    logger.debug("Wrote the Zarr store in %.4f sec", time.time() - startTime)
+
+
+def readZarrToDatasets(zarr_path, lazy_load=True, chunks=None):
+    """Read a Zarr store written by :func:`writeDatasetsToZarr` back into datasets.
+
+    **Required arguments:**
+
+    :param zarr_path: path of the Zarr store directory
+    :type zarr_path: string or pathlib.Path
+
+    **Default arguments:**
+
+    :param lazy_load: states if the data is read on demand, as dask arrays, instead of at once
+        |br| * the default value is True
+    :type lazy_load: boolean
+
+    :param chunks: dask chunk sizes used when reading lazily
+        |br| * the default value is None
+    :type chunks: None or dict
+
+    The store is returned as it was written, that is stacked and, unless
+    ``lazy_load`` is off, lazy. That is the point of the format. Use
+    :func:`readZarrToEnergySystemModel` to get a model back, or
+    :func:`~fine.IOManagement.utilsIO.unstackComponents` to get one dataset per
+    component.
+
+    :return: the nested dictionary of datasets, with one dataset per model class
+    :rtype: dict
+    """
+    zarr_path = Path(zarr_path)
+    if not zarr_path.exists():
+        raise FileNotFoundError(f"Zarr store not found at: {zarr_path}")
+
+    loader = xr.open_dataset if lazy_load else xr.load_dataset
+    xr_dss = {}
+
+    structure = {}
+    structure_path = zarr_path / STRUCTURE_FILE_NAME
+    if structure_path.exists():
+        with structure_path.open() as structureFile:
+            structure = json.load(structureFile)
+
+    def _orderedGroups(path, order):
+        """List the subdirectories of a store group in the order they were written."""
+        present = {group.name: group for group in path.iterdir() if group.is_dir()}
+        names = [name for name in order if name in present]
+        names += sorted(set(present) - set(names))
+        return [(name, present[name]) for name in names]
+
+    input_path = zarr_path / "Input"
+    if input_path.exists():
+        xr_dss["Input"] = {
+            name: loader(group, engine="zarr", chunks=chunks)
+            for name, group in _orderedGroups(input_path, structure.get("Input", []))
+        }
+
+    results_path = zarr_path / "Results"
+    if results_path.exists():
+        results_order = structure.get("Results", {})
+        xr_dss["Results"] = {
+            ip_name: {
+                name: loader(group, engine="zarr", chunks=chunks)
+                for name, group in _orderedGroups(
+                    ip_path, results_order.get(ip_name, [])
+                )
+            }
+            for ip_name, ip_path in _orderedGroups(results_path, list(results_order))
+        }
+
+    for group in ("Parameters", "PerformanceSummary"):
+        group_path = zarr_path / group
+        if group_path.exists():
+            xr_dss[group] = loader(group_path, engine="zarr")
+
+    shadow_path = zarr_path / "ShadowPrices"
+    if shadow_path.exists():
+        # written as a one variable dataset, handed back as the DataArray it was
+        xr_dss["ShadowPrices"] = loader(shadow_path, engine="zarr")[
+            ZARR_SHADOW_PRICE_VARIABLE
+        ]
+
+    return xr_dss
+
+
+def readZarrToEnergySystemModel(zarr_path):
+    """Read a Zarr store written by :func:`writeDatasetsToZarr` back into an esM.
+
+    The store holds one dataset per model class, with the components stacked along
+    "component" and the shape of each parameter in the two masks. The unstack undoes
+    both, which leaves exactly the layout
+    :func:`convertDatasetsToEnergySystemModel` reads, so there is one reader and
+    not two.
+
+    :param zarr_path: path of the Zarr store directory
+    :type zarr_path: string or pathlib.Path
+
+    :return: esM - EnergySystemModel instance
+    :rtype: EnergySystemModel instance
+    """
+    datasets = readZarrToDatasets(zarr_path, lazy_load=False)
+    datasets["Input"] = {
+        model_class: utilsIO.unstackComponents(stacked)
+        for model_class, stacked in datasets["Input"].items()
+    }
+    if "Results" in datasets:
+        datasets["Results"] = {
+            ip: {
+                model_class: utilsIO.unstackComponents(stacked)
+                for model_class, stacked in models.items()
+            }
+            for ip, models in datasets["Results"].items()
+        }
+    return convertDatasetsToEnergySystemModel(datasets)
+
+
+def writeEnergySystemModelToZarr(
+    esM,
+    output_zarr_path="my_esm.zarr",
+    optSumOutputLevel=0,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
+    **kwargs,
+):
+    """Write an esM (input and, if it was optimized, output) to a Zarr store.
+
+    :param esM: EnergySystemModel instance in which the model is held
+    :type esM: EnergySystemModel instance
+
+    :param output_zarr_path: path of the Zarr store directory
+        |br| * the default value is "my_esm.zarr"
+    :type output_zarr_path: string or pathlib.Path
+
+    :param optSumOutputLevel: output level of the optimization summary
+        |br| * the default value is 0
+    :type optSumOutputLevel: int (0,1,2) or dict
+
+    :param includeShadowPrices: states if the shadow prices are written as well
+        |br| * the default value is False
+    :type includeShadowPrices: boolean
+
+    :param shadowPriceConstraintStr: name of the constraint the shadow prices are
+        taken from
+        |br| * the default value is "commodityBalanceConstraint"
+    :type shadowPriceConstraintStr: string
+
+    :param kwargs: passed on to :func:`writeDatasetsToZarr`, e.g. the compression
+    """
+    datasets = convertEnergySystemModelToDatasets(
+        esM,
+        optSumOutputLevel=optSumOutputLevel,
+        includeShadowPrices=includeShadowPrices,
+        shadowPriceConstraintStr=shadowPriceConstraintStr,
+    )
+    writeDatasetsToZarr(datasets, output_zarr_path=output_zarr_path, **kwargs)
+
+
+def writeEnergySystemModelToNetCDFfolder(
+    esM,
+    base_path="my_esm",
+    optSumOutputLevel=0,
+    includeShadowPrices=False,
+    shadowPriceConstraintStr="commodityBalanceConstraint",
+    **kwargs,
+):
+    """Write an esM (input and, if it was optimized, output) to a netCDF folder.
+
+    :param esM: EnergySystemModel instance in which the model is held
+    :type esM: EnergySystemModel instance
+
+    :param base_path: directory the tree is written into
+        |br| * the default value is "my_esm"
+    :type base_path: string or pathlib.Path
+
+    :param optSumOutputLevel: output level of the optimization summary
+        |br| * the default value is 0
+    :type optSumOutputLevel: int (0,1,2) or dict
+
+    :param includeShadowPrices: states if the shadow prices are written as well
+        |br| * the default value is False
+    :type includeShadowPrices: boolean
+
+    :param shadowPriceConstraintStr: name of the constraint the shadow prices are
+        taken from
+        |br| * the default value is "commodityBalanceConstraint"
+    :type shadowPriceConstraintStr: string
+
+    :param kwargs: passed on to :func:`writeDatasetsToNetCDFfolder`, e.g. parallel
+
+    :return: the structure that was written, see :func:`writeDatasetsToNetCDFfolder`
+    :rtype: dict
+    """
+    datasets = convertEnergySystemModelToDatasets(
+        esM,
+        optSumOutputLevel=optSumOutputLevel,
+        includeShadowPrices=includeShadowPrices,
+        shadowPriceConstraintStr=shadowPriceConstraintStr,
+    )
+    return writeDatasetsToNetCDFfolder(datasets, base_path=base_path, **kwargs)
+
+
+def readNetCDFfolderToEnergySystemModel(base_path, **kwargs):
+    """Read a netCDF folder written by :func:`writeDatasetsToNetCDFfolder` into an esM.
+
+    :param base_path: directory holding the tree and its structure.json
+    :type base_path: string or pathlib.Path
+
+    :param kwargs: passed on to :func:`readNetCDFfolderToDatasets`
+
+    :return: esM - EnergySystemModel instance
+    :rtype: EnergySystemModel instance
+    """
+    datasets = readNetCDFfolderToDatasets(base_path, **kwargs)
+    return convertDatasetsToEnergySystemModel(datasets)

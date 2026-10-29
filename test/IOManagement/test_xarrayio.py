@@ -1,4 +1,5 @@
 import io
+import json
 import os
 from pathlib import Path
 
@@ -933,6 +934,70 @@ def test_shadow_price_with_multiple_ip(perfectForesight_test_esM):
     assert list(sp.coords["ip"].values) == esM.investmentPeriodNames
 
 
+def _roundtrip_through_netcdf_folder(esm, base_path, **kwargs):
+    """Write an optimized esM to a netCDF folder and read it back into an esM."""
+    esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm)
+    xrIO.writeDatasetsToNetCDFfolder(esm_datasets, base_path=base_path)
+    read_datasets = xrIO.readNetCDFfolderToDatasets(base_path=base_path, **kwargs)
+    return xrIO.convertDatasetsToEnergySystemModel(read_datasets)
+
+
+@pytest.mark.parametrize("parallel", [False, True])
+def test_esm_output_to_netcdf_folder_and_back(minimal_test_esM, tmp_path, parallel):
+    """Optimize an esM, write it to a netCDF folder and read it back.
+
+    The folder format writes one file per dataset instead of one large file.
+    Both the serial and the parallel read have to give the same esM back.
+    """
+    esm_original = minimal_test_esM
+    esm_original.optimize()
+
+    esm_from_folder = _roundtrip_through_netcdf_folder(
+        esm_original, str(tmp_path / "test_esM"), parallel=parallel
+    )
+
+    compare_esm_inputs(esm_original, esm_from_folder)
+    compare_esm_outputs(esm_original, esm_from_folder)
+
+
+def test_esm_output_to_netcdf_folder_and_back_lazy(minimal_test_esM, tmp_path):
+    """The same round trip, with the data read on demand instead of at once."""
+    esm_original = minimal_test_esM
+    esm_original.optimize()
+
+    esm_from_folder = _roundtrip_through_netcdf_folder(
+        esm_original, str(tmp_path / "test_esM"), lazy_load=True, parallel=False
+    )
+
+    compare_esm_inputs(esm_original, esm_from_folder)
+    compare_esm_outputs(esm_original, esm_from_folder)
+
+
+def test_netcdf_folder_structure_file_holds_relative_paths(minimal_test_esM, tmp_path):
+    """structure.json has to stay free of absolute paths, so the tree can be moved."""
+    base_path = tmp_path / "test_esM"
+    esm_datasets = xrIO.writeEnergySystemModelToDatasets(minimal_test_esM)
+    xrIO.writeDatasetsToNetCDFfolder(esm_datasets, base_path=str(base_path))
+
+    with (base_path / "structure.json").open() as structureFile:
+        structure = json.load(structureFile)
+
+    paths = []
+
+    def collect(item):
+        if isinstance(item, dict):
+            for value in item.values():
+                collect(value)
+        else:
+            paths.append(item)
+
+    collect(structure)
+    assert paths, "the structure file has to name at least one dataset"
+    for path in paths:
+        assert not path.startswith("/")
+        assert (base_path / path).is_file()
+
+
 def _esM_with_component_limit():
     """Build a small two-region esM that uses every componentLimit argument."""
     locations = {"R1", "R2"}
@@ -1075,3 +1140,341 @@ def test_balanceLimit_netcdf_roundtrip(tmp_path):
 
     assert esm_from_netcdf.balanceLimit is not None
     assert_frame_equal(esm_original.balanceLimit, esm_from_netcdf.balanceLimit)
+
+
+def test_esm_input_to_zarr_and_back(minimal_test_esM, tmp_path):
+    """Write an esM to a Zarr store and read it back.
+
+    The Zarr layout stacks the components of a class into one dataset and records
+    the shape of every parameter in the two masks, so this exercises both the mask
+    layer and the concatenation.
+    """
+    store = str(tmp_path / "test_esM.zarr")
+
+    esm_original = minimal_test_esM
+    xrIO.writeEnergySystemModelToZarr(esm_original, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    compare_esm_inputs(esm_original, esm_from_zarr)
+
+
+def test_esm_output_to_zarr_and_back(minimal_test_esM, tmp_path):
+    """An optimized model has to survive the Zarr round trip, results included.
+
+    The writer used to stack Results and the reader used to unstack Input only, so
+    an optimized model came back without its results.
+    """
+    store = str(tmp_path / "test_esM.zarr")
+
+    esm_original = minimal_test_esM
+    esm_original.optimize()
+    xrIO.writeEnergySystemModelToZarr(esm_original, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    compare_esm_inputs(esm_original, esm_from_zarr)
+    compare_esm_outputs(esm_original, esm_from_zarr)
+
+
+def test_zarr_store_holds_parameters_and_shadow_prices(
+    multi_node_test_esM_init, tmp_path
+):
+    """ShadowPrices used to be dropped silently: the writer knew four groups only."""
+    store = str(tmp_path / "test_esM.zarr")
+
+    esM = multi_node_test_esM_init
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=3,
+        segmentation=False,
+        sortValues=True,
+        representationMethod=None,
+        rescaleClusterPeriods=True,
+    )
+    esM.optimize(
+        timeSeriesAggregation=True, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+
+    original = xrIO.convertEnergySystemModelToDatasets(esM, includeShadowPrices=True)
+    xrIO.writeDatasetsToZarr(original, output_zarr_path=store)
+    read = xrIO.readZarrToDatasets(store, lazy_load=False)
+
+    assert "ShadowPrices" in read
+    assert isinstance(read["ShadowPrices"], xr.DataArray)
+    assert set(["ip", "component", "space", "time"]).issubset(
+        set(read["ShadowPrices"].dims)
+    )
+    assert read["ShadowPrices"].attrs["constraint"] == "commodityBalanceConstraint"
+    assert ("PerformanceSummary" in read) == ("PerformanceSummary" in original)
+    assert read["Parameters"].attrs["costUnit"] == esM.costUnit
+
+    with (Path(store) / "structure.json").open() as structureFile:
+        assert json.load(structureFile)["fine_zarr_format"] == 1
+
+
+def test_readZarrToDatasets_returns_the_store_as_written(minimal_test_esM, tmp_path):
+    """The reader hands back the stacked groups, which is the point of the format."""
+    store = str(tmp_path / "test_esM.zarr")
+
+    xrIO.writeEnergySystemModelToZarr(minimal_test_esM, output_zarr_path=store)
+    read = xrIO.readZarrToDatasets(store)
+
+    stacked = read["Input"]["Source"]
+    assert "component" in stacked.dims
+    assert "Electricity market" in set(stacked["component"].values)
+    for mask in ("variable_present", "variable_dims"):
+        assert stacked[mask].dims == ("component", "parameter")
+    # the names are plain: the prefix lives in the mask, not in the name
+    assert "operationRateMax" in stacked.data_vars
+    assert "ts_operationRateMax" not in stacked.data_vars
+
+
+def test_esm_input_with_componentLimit_to_zarr_and_back(tmp_path):
+    """The Zarr round trip has to carry componentLimit as well."""
+    store = str(tmp_path / "test_esM.zarr")
+
+    esm_original = _esM_with_component_limit()
+    xrIO.writeEnergySystemModelToZarr(esm_original, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    compare_esm_inputs(esm_original, esm_from_zarr)
+    assert_frame_equal(esm_original.componentLimit, esm_from_zarr.componentLimit)
+    assert esm_from_zarr.getComponent("PV").componentLimitID == [
+        "capLimit",
+        "opLimit",
+    ]
+
+
+def test_componentLimitID_lists_of_different_length_survive_zarr(tmp_path):
+    """Two components of one class may hold ID lists of different length.
+
+    The stack puts the components of a class into one array, so the list of the
+    shorter component is padded up to the longer one. The padding must not come
+    back as an extra ID.
+    """
+    store = str(tmp_path / "test_esM.zarr")
+    locations = {"R1", "R2"}
+
+    esM = fn.EnergySystemModel(
+        locations=locations,
+        commodities={"electricity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        hoursPerTimeStep=2190,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        componentLimit=pd.DataFrame(
+            index=["limitA", "limitB", "limitC"],
+            columns=["value", "bound", "type", "commodity", "ip", "ipEnd"],
+            data=[
+                [100.0, "upper", "capacity", None, 0, None],
+                [200.0, "upper", "capacity", None, 0, None],
+                [300.0, "upper", "capacity", None, 0, None],
+            ],
+        ),
+        componentLimitEligibility=pd.DataFrame(
+            index=sorted(locations),
+            columns=["limitA", "limitB", "limitC"],
+            data=[[1, 1, 1], [1, 1, 1]],
+        ),
+    )
+    # three IDs on one Source, one on the other: the ragged case
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            componentLimitID=["limitA", "limitB", "limitC"],
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Wind",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            componentLimitID=["limitA"],
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame([[1.0, 1.0]] * 4, columns=sorted(locations)),
+        )
+    )
+
+    xrIO.writeEnergySystemModelToZarr(esM, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    assert esm_from_zarr.getComponent("PV").componentLimitID == [
+        "limitA",
+        "limitB",
+        "limitC",
+    ]
+    assert esm_from_zarr.getComponent("Wind").componentLimitID == ["limitA"]
+    compare_esm_inputs(esM, esm_from_zarr)
+
+
+def test_a_none_parameter_reads_back_as_none(tmp_path):
+    """capacityMax=None means unbounded, capacityMax=NaN means a missing number."""
+    store = str(tmp_path / "test_esM.zarr")
+
+    esm_original = _esM_with_component_limit()
+    assert esm_original.getComponent("PV").capacityMax is None
+
+    xrIO.writeEnergySystemModelToZarr(esm_original, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    assert esm_from_zarr.getComponent("PV").capacityMax is None
+
+
+def test_esm_output_to_netcdf_folder_entry_points(minimal_test_esM, tmp_path):
+    """The netCDF folder has a writer and a reader that take an esM, like the others."""
+    base_path = str(tmp_path / "test_esM")
+
+    esm_original = minimal_test_esM
+    esm_original.optimize()
+    xrIO.writeEnergySystemModelToNetCDFfolder(esm_original, base_path=base_path)
+    esm_from_folder = xrIO.readNetCDFfolderToEnergySystemModel(base_path)
+
+    compare_esm_inputs(esm_original, esm_from_folder)
+    compare_esm_outputs(esm_original, esm_from_folder)
+
+
+def test_zarr_compressor_encoding_matches_the_installed_zarr():
+    """The compressor encoding has to follow the zarr major version.
+
+    zarr 2 takes a numcodecs codec under "compressor". zarr 3 renamed the key to
+    "compressors" and rejects a raw numcodecs object. FINE supports both, and CI
+    and the cluster environment do not run the same one, so this asserts against
+    whichever is installed rather than against a fixed expectation.
+    """
+    zarr = pytest.importorskip("zarr")
+
+    encoding = xrIO._zarrCompressorEncoding("zstd", 5)
+
+    if int(zarr.__version__.split(".")[0]) >= 3:
+        assert list(encoding) == ["compressors"]
+        assert len(encoding["compressors"]) == 1
+    else:
+        assert list(encoding) == ["compressor"]
+        assert encoding["compressor"].cname == "zstd"
+        assert encoding["compressor"].clevel == 5
+
+
+def test_esm_multinode_zarr_agrees_with_netcdf(multi_node_test_esM_init, tmp_path):
+    """A model of many components, of every class, reads back as netCDF reads it.
+
+    The stack puts one class into one array, so a defect that needs two components
+    to disagree about a parameter cannot show on a smaller model. The two formats
+    are compared with each other rather than with the original, because this model
+    does not survive the netCDF round trip either: a Series loses its name.
+    """
+    esm_original = multi_node_test_esM_init
+
+    store = str(tmp_path / "test_esM.zarr")
+    xrIO.writeEnergySystemModelToZarr(esm_original, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    netcdf_path = str(tmp_path / "test_esM.nc")
+    xrIO.writeEnergySystemModelToNetCDF(esm_original, outputFilePath=netcdf_path)
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(netcdf_path)
+
+    compare_esm_inputs(esm_from_netcdf, esm_from_zarr)
+
+
+def test_esm_perfectForesight_to_zarr_and_back(perfectForesight_test_esM, tmp_path):
+    """A model of several investment periods writes one Results group per period."""
+    store = str(tmp_path / "test_esM.zarr")
+
+    esm_original = perfectForesight_test_esM
+    esm_original.optimize()
+    xrIO.writeEnergySystemModelToZarr(esm_original, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    compare_esm_inputs(esm_original, esm_from_zarr)
+    compare_esm_outputs(esm_original, esm_from_zarr)
+
+
+def test_a_none_id_does_not_become_the_string_nan(tmp_path):
+    """One component sets balanceLimitID, the other does not.
+
+    A string parameter shares one dtype across the class, so writing the None as
+    NaN yielded the literal "nan". That reads back as an ID that was never set,
+    and a component then enters code paths meant for a component that has one.
+    """
+    store = str(tmp_path / "test_esM.zarr")
+    locations = {"R1", "R2"}
+
+    esM = fn.EnergySystemModel(
+        locations=locations,
+        commodities={"electricity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        hoursPerTimeStep=2190,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        balanceLimit=pd.DataFrame(
+            index=["el"],
+            columns=[*sorted(locations), "Total"],
+            data=[[100.0, 100.0, 200.0]],
+        ),
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            balanceLimitID="el",
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Wind",
+            commodity="electricity",
+            hasCapacityVariable=True,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame([[1.0, 1.0]] * 4, columns=sorted(locations)),
+        )
+    )
+    assert esM.getComponent("Wind").balanceLimitID is None
+
+    xrIO.writeEnergySystemModelToZarr(esM, output_zarr_path=store)
+    esm_from_zarr = xrIO.readZarrToEnergySystemModel(store)
+
+    assert esm_from_zarr.getComponent("Wind").balanceLimitID is None
+    assert esm_from_zarr.getComponent("PV").balanceLimitID == "el"
+
+
+def test_writeEnergySystemModelToDatasets_warns(minimal_test_esM):
+    """The old name still works, and it says that it is the old name."""
+    with pytest.warns(DeprecationWarning, match="convertEnergySystemModelToDatasets"):
+        old = xrIO.writeEnergySystemModelToDatasets(minimal_test_esM)
+
+    new = xrIO.convertEnergySystemModelToDatasets(minimal_test_esM)
+    assert set(old) == set(new)
+
+
+def test_writeDatasetsToZarr_names_the_group_it_misses(minimal_test_esM, tmp_path):
+    """A dict that is not the canonical one has to say so, not raise a KeyError.
+
+    writeDatasetsToZarr is public and the suite calls it directly.
+    """
+    datasets = xrIO.convertEnergySystemModelToDatasets(minimal_test_esM)
+    del datasets["Parameters"]
+
+    with pytest.raises(ValueError, match="Parameters"):
+        xrIO.writeDatasetsToZarr(datasets, output_zarr_path=str(tmp_path / "x.zarr"))
