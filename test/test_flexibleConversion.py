@@ -2,8 +2,10 @@ import fine as fn
 import pandas as pd
 from pathlib import Path
 import pytest
+import numpy as np
 
 from fine.IOManagement.xarrayIO import writeEnergySystemModelToNetCDF
+from fine.utils import ImplementedSolvers
 
 
 def test_flexibleConversion_init():
@@ -62,7 +64,6 @@ def test_flexibleConversion_init():
             investPerCapacity=0,
             interestRate=0,
             economicLifetime=10,
-            # flexibleConversion=True,
         )
     )
 
@@ -82,7 +83,6 @@ def test_flexibleConversion_init():
             investPerCapacity=0,
             interestRate=0,
             economicLifetime=10,
-            # flexibleConversion=True,
         )
     )
 
@@ -197,6 +197,46 @@ def test_flexibleConversion_init():
                 economicLifetime=10,
             )
         )
+    with pytest.raises(ValueError, match=r".*contain NaN values.*"):
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name="conversion_flex",
+                physicalUnit=r"kW$_{el}$",
+                commodityConversionFactors={
+                    "electricity": 1,
+                    "in": {
+                        "hydrogen": -4,
+                        "nat_gas": -2,
+                    },
+                },
+                hasCapacityVariable=True,
+                investPerCapacity=0,
+                interestRate=0,
+                economicLifetime=10,
+                emissionFactors={"co2": {"electricity": np.nan}},
+            )
+        )
+    with pytest.raises(ValueError, match=r".*contain NaN values.*"):
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name="conversion_flex",
+                physicalUnit=r"kW$_{el}$",
+                commodityConversionFactors={
+                    "electricity": 1,
+                    "in": {
+                        "hydrogen": np.nan,
+                        "nat_gas": -2,
+                    },
+                },
+                hasCapacityVariable=True,
+                investPerCapacity=0,
+                interestRate=0,
+                economicLifetime=10,
+                emissionFactors={"co2": {"electricity": 3}},
+            )
+        )
 
 
 def test_flexibleConversion_groups():
@@ -237,7 +277,6 @@ def test_flexibleConversion_groups():
             name="hydrogen_import",
             commodity="hydrogen",
             hasCapacityVariable=False,
-            # commodityCost=1,
         )
     )
 
@@ -367,7 +406,10 @@ def test_flexibleConversion_groups():
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     writeEnergySystemModelToNetCDF(esM, "flex_conversion_esm.nc")
     print("Objective Value: \n" + str(esM.pyM.Obj()))
     Path("flex_conversion_esm.nc").unlink()
@@ -484,17 +526,20 @@ def test_flexibleConversion_emissionFactors(use_balanceLimit):
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     if use_balanceLimit:
         assert (
             esM.getOptimizationSummary("SourceSinkModel", ip=2020)
-            .loc["co2Sink", "operation", "[Mio. t$_{CO_2}$/h*h/a]"]
+            .loc["co2Sink", "operation_annual", "[Mio. t$_{CO_2}$/h*h/a]"]
             .values[0]
             == 38280
         )
         assert (
             esM.getOptimizationSummary("SourceSinkModel", ip=2025)
-            .loc["co2Sink", "operation", "[Mio. t$_{CO_2}$/h*h/a]"]
+            .loc["co2Sink", "operation_annual", "[Mio. t$_{CO_2}$/h*h/a]"]
             .values[0]
             == 26280
         )
@@ -626,7 +671,10 @@ def test_flexibleConversionFlowShare():
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     assert (
         esM.pyM.op_flex_conv[
             "loc1", "conversion_flex", 0, "in", "hydrogen", 0, 0

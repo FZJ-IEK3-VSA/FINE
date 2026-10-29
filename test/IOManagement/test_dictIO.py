@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import fine as fn
+import pandas as pd
 
 
 def test_export_to_dict_minimal(minimal_test_esM):
@@ -23,6 +24,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "balanceLimit",
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
+                "pooledCommodities",
             ),
             (
                 minimal_test_esM.locations,
@@ -40,6 +42,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.balanceLimit,
                 minimal_test_esM.pathwayBalanceLimit,
                 minimal_test_esM.annuityPerpetuity,
+                minimal_test_esM.pooledCommodities,
             ),
         )
     )
@@ -55,7 +58,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
     )
 
     investPerCapacity = pd.DataFrame(
-        [[0.177, 0.17], [0.177, 0.14]],
+        [[0, 0.17], [0.177, 0]],
         index=["ElectrolyzerLocation", "IndustryLocation"],
         columns=["ElectrolyzerLocation", "IndustryLocation"],
     )
@@ -68,12 +71,20 @@ def test_export_to_dict_minimal(minimal_test_esM):
         ],
     )
 
-    minimal_test_esM.updateComponent(
-        "Pipelines", {"investPerCapacity": investPerCapacity}
-    )
-    minimal_test_esM.updateComponent(
-        "Pipelines", {"operationRateMax": operationRateMax}
-    )
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        minimal_test_esM.updateComponent(
+            "Pipelines", {"investPerCapacity": investPerCapacity}
+        )
+
+    with pytest.warns(
+        UserWarning, match="Component identifier Pipelines already exists"
+    ):
+        minimal_test_esM.updateComponent(
+            "Pipelines", {"operationRateMax": operationRateMax}
+        )
+
     expected_Transmission_investPerCapacity = minimal_test_esM.getComponentAttribute(
         "Pipelines", "investPerCapacity"
     )
@@ -143,6 +154,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "balanceLimit",
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
+                "pooledCommodities",
             ),
             (
                 single_node_test_esM.locations,
@@ -160,6 +172,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.balanceLimit,
                 single_node_test_esM.pathwayBalanceLimit,
                 single_node_test_esM.annuityPerpetuity,
+                single_node_test_esM.pooledCommodities,
             ),
         )
     )
@@ -201,6 +214,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
 
 
 def test_export_to_dict_multinode(multi_node_test_esM_init):
+    # to check if the function does not change the input esM
     # EXPECTED
     expected_esm_dict = dict(
         zip(
@@ -220,6 +234,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "balanceLimit",
                 "pathwayBalanceLimit",
                 "annuityPerpetuity",
+                "pooledCommodities",
             ),
             (
                 multi_node_test_esM_init.locations,
@@ -237,6 +252,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.balanceLimit,
                 multi_node_test_esM_init.pathwayBalanceLimit,
                 multi_node_test_esM_init.annuityPerpetuity,
+                multi_node_test_esM_init.pooledCommodities,
             ),
         )
     )
@@ -337,7 +353,7 @@ def test_import_from_dict(test_esM_fixture, request):
         output_df = output_esM.getComponentAttribute(
             "Electricity market", "operationRateMax"
         )
-        output_df.reset_index(level=0, drop=True, inplace=True)
+        output_df = output_df.reset_index(level=0, drop=True)
 
         output_value = output_esM.getComponentAttribute(
             "Electrolyzers", "investPerCapacity"
@@ -359,7 +375,7 @@ def test_import_from_dict(test_esM_fixture, request):
         output_df = output_esM.getComponentAttribute(
             "Hydrogen demand", "operationRateFix"
         )
-        output_df.reset_index(level=0, drop=True, inplace=True)
+        output_df = output_df.reset_index(level=0, drop=True)
 
         output_series = output_esM.getComponentAttribute(
             "AC cables", "reactances"

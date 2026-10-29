@@ -1,8 +1,18 @@
 from fine import utils
 import fine as fn
 import numpy as np
+import logging
+from tsam import ClusterConfig
+
+# Deprecation shim, removed together with the ETHOS.TSAM 3.x keywords.
+from fine.aggregations.temporalAggregation.deprecatedKeywords import (
+    translateDeprecatedClusterMethod,
+)
+
+logger = logging.getLogger(__name__)
 
 
+@translateDeprecatedClusterMethod
 def optimizeTSAmultiStage(
     esM,
     declaresOptimizationProblem=True,
@@ -17,8 +27,7 @@ def optimizeTSAmultiStage(
     optimizationSpecs="",
     warmstart=False,
 ):
-    """
-    Call the optimize function for a temporally aggregated MILP (so the model has to include
+    """Call the optimize function for a temporally aggregated MILP (so the model has to include
     hasIsBuiltBinaryVariables in all or some components). Fix the binary variables and run it again
     without temporal aggregation. Furthermore, a LP with relaxed binary variables can be solved to
     obtain both, an upper and lower bound for the fully resolved MILP.
@@ -59,10 +68,14 @@ def optimizeTSAmultiStage(
     :type numberOfTimeStepsPerPeriod: strictly positive integer
 
     :param clusterMethod: states the method which is used in the tsam package for clustering the time series
-        data. Options are for example 'averaging','k_means','exact k_medoid' or 'hierarchical'.
+        data. Options are 'averaging', 'kmeans', 'kmedoids', 'kmaxoids', 'hierarchical' and 'contiguous'.
 
         .. note::
-            Please refer to the tsam package documentation of the parameter clusterMethod for more information.
+            Please refer to the tsam package documentation of the parameter method of the ClusterConfig for more information.
+
+        .. deprecated:: 2.8.0
+            The ETHOS.TSAM 3.x values ('k_means', 'k_medoids', 'k_maxoids' and 'adjacent_periods')
+            are still accepted. They are converted to the names above and warn.
 
         |br| * the default value is 'hierarchical'
     :type clusterMethod: string
@@ -122,14 +135,15 @@ def optimizeTSAmultiStage(
         lowerBound = esM.objectiveValue
 
     esM.aggregateTemporally(
-        numberOfTypicalPeriods=numberOfTypicalPeriods,
-        numberOfTimeStepsPerPeriod=numberOfTimeStepsPerPeriod,
-        segmentation=False,
-        clusterMethod=clusterMethod,
-        solver=solver,
-        sortValues=True,
-        rescaleClusterPeriods=True,
-        representationMethod=None,
+        n_clusters=numberOfTypicalPeriods,
+        period_duration=numberOfTimeStepsPerPeriod * esM.hoursPerTimeStep,
+        cluster=ClusterConfig(
+            method=clusterMethod,
+            use_duration_curves=True,
+            solver=solver,
+        ),
+        segments=None,
+        preserve_column_means=True,
     )
 
     esM.optimize(
@@ -165,20 +179,16 @@ def optimizeTSAmultiStage(
         gap = delta / upperBound
         esM.lowerBound, esM.upperBound = lowerBound, upperBound
         esM.gap = gap
-        print(
-            "The real optimal value lies between "
-            + str(round(lowerBound, 2))
-            + " and "
-            + str(round(upperBound, 2))
-            + " with a gap of "
-            + str(round(gap * 100, 2))
-            + "%."
+        logger.info(
+            "The real optimal value lies between %s and %s with a gap of %s%%.",
+            round(lowerBound, 2),
+            round(upperBound, 2),
+            round(gap * 100, 2),
         )
 
 
 def fixBinaryVariables(esM):
-    """
-    Search for the optimized binary variables and set them as fixed.
+    """Search for the optimized binary variables and set them as fixed.
 
     :param esM: energy system model to which the component should be added. Used for unit checks.
     :type esM: EnergySystemModel instance from the FINE package
@@ -191,7 +201,7 @@ def fixBinaryVariables(esM):
             for comp in compValues.index.get_level_values(0).unique():
                 values = utils.preprocess2dimData(
                     compValues.loc[comp]
-                    .fillna(value=-1)
+                    .fillna(value=0)
                     .round(decimals=0)
                     .astype(np.int64),
                     discard=False,

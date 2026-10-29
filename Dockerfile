@@ -1,4 +1,4 @@
-FROM mambaorg/micromamba:latest
+FROM mambaorg/micromamba:2.3.1
 
 LABEL authors="Kevin Knosala,Julian Schönau"
 

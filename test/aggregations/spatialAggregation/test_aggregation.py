@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import xarray as xr
 
 from fine.aggregations.spatialAggregation import aggregation
 
@@ -118,3 +119,30 @@ def test_aggregate_based_on_sub_to_sup_region_id_dict(
         .get("trans_comp")["2d_locationalEligibility"]
     )
     assert np.array_equal(output_xarray.values, expected_2d_locationalEligibility)
+
+
+@pytest.mark.parametrize(
+    "aggregation_function, dims",
+    [
+        (aggregation.aggregate_time_series_spatially, ("time", "space")),
+        (aggregation.aggregate_values_spatially, ("component", "space")),
+        (aggregation.aggregate_connections, ("space", "space_2")),
+    ],
+)
+def test_aggregation_keeps_dim_order(aggregation_function, dims):
+    regions = ["01_reg", "02_reg"]
+    coords = {
+        "time": ["T0", "T1"],
+        "component": ["comp"],
+        "space": regions,
+        "space_2": regions,
+    }
+    # coords added in reverse dim order, so the order of .coords differs from .dims
+    test_ds = xr.Dataset(coords={dim: coords[dim] for dim in reversed(dims)})
+    test_ds["var"] = (dims, np.ones([len(coords[dim]) for dim in dims]))
+
+    output_xarray = aggregation_function(
+        test_ds["var"], {"01_reg_02_reg": regions}, mode="sum"
+    )
+
+    assert output_xarray.dims == dims
