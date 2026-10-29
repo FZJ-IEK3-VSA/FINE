@@ -3,6 +3,7 @@
 # # Workflow for a multi-regional energy system
 #
 import fine as fn
+import fine.IOManagement.xarrayIO as xrIO
 import numpy as np
 import pandas as pd
 
@@ -197,6 +198,251 @@ def test_minimumDowntimeRequired_validation(updates, error, message):
     esM = _create_system(numberOfTimeSteps=NUMBER_OF_HOURS, hoursPerTimeStep=1)
     with pytest.raises(error, match=message):
         esM.updateComponent("Methane heater", updates)
+
+
+def test_scheduled_maintenance_windows():
+    """Schedule two distinct maintenance windows of two hours each."""
+    esM = _create_system(numberOfTimeSteps=NUMBER_OF_HOURS, hoursPerTimeStep=1)
+    esM.updateComponent(
+        "Methane heater",
+        {
+            "maintenanceTime": 2,
+            "maintenanceOccurrences": 2,
+            "bigM": 1000,
+        },
+    )
+
+    esM.optimize()
+
+    heater_operation = (
+        esM.getOptimizationSummary("ConversionDynamicModel")
+        .loc["Methane heater", "operation", "[kW*h]"]
+        .loc["region1"]
+    )
+    starts = esM.pyM.maintenanceStart_conv_dyn
+    start_times = sorted(index[-1] for index in starts if starts[index].value > 0.5)
+
+    assert heater_operation == ENERGY_FLOW * (NUMBER_OF_HOURS - 4)
+    assert len(start_times) == 2
+    assert abs(start_times[1] - start_times[0]) > 2
+
+    maintenance_active = esM.componentModelingDict[
+        "ConversionDynamicModel"
+    ].maintenanceActiveVariablesOptimum
+    assert maintenance_active.loc["Methane heater", "region1"].sum() == 4
+
+
+def test_scheduled_maintenance_is_exported_to_xarray_and_netcdf(tmp_path):
+    """Export active maintenance through the xarray and netCDF result pipelines."""
+    esM = _create_system(numberOfTimeSteps=NUMBER_OF_HOURS, hoursPerTimeStep=1)
+    esM.updateComponent(
+        "Methane heater",
+        {
+            "maintenanceTime": 2,
+            "maintenanceOccurrences": 2,
+            "bigM": 1000,
+        },
+    )
+    esM.optimize()
+
+    datasets = xrIO.writeEnergySystemModelToDatasets(esM)
+    exported = datasets["Results"][0]["ConversionDynamicModel"]["Methane heater"]
+
+    assert "maintenanceActiveVariablesOptimum" in exported
+    expected = esM.componentModelingDict[
+        "ConversionDynamicModel"
+    ].maintenanceActiveVariablesOptimum.loc["Methane heater", "region1"]
+    np.testing.assert_array_equal(
+        exported["maintenanceActiveVariablesOptimum"].sel(location="region1"),
+        expected,
+    )
+
+    output_file = tmp_path / "scheduled_maintenance.nc"
+    xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=output_file)
+    restored = xrIO.readNetCDFToDatasets(output_file)
+    restored_component = restored["Results"]["0"]["ConversionDynamicModel"][
+        "Methane heater"
+    ]
+    assert "maintenanceActiveVariablesOptimum" in restored_component
+    np.testing.assert_array_equal(
+        restored_component["maintenanceActiveVariablesOptimum"].sel(location="region1"),
+        expected,
+    )
+
+
+def test_no_scheduled_maintenance_without_installed_capacity():
+    """Do not schedule maintenance when optimized capacity is zero."""
+    esM = _create_system(numberOfTimeSteps=NUMBER_OF_HOURS, hoursPerTimeStep=1)
+    esM.updateComponent(
+        "Methane heater",
+        {
+            "capacityFix": None,
+            "capacityMax": 100,
+            "investPerCapacity": 1e6,  # expensive enough that no capacity is built
+            "maintenanceTime": 2,
+            "maintenanceOccurrences": 2,
+            "bigM": 1000,
+        },
+    )
+
+    esM.optimize()
+
+    pyM = esM.pyM
+    assert pyM.maintenanceInstalled_conv_dyn["region1", "Methane heater", 0].value < 0.5
+    assert all(var.value < 0.5 for var in pyM.maintenanceStart_conv_dyn.values())
+
+
+@pytest.mark.parametrize(
+    "updates, error, message",
+    [
+        (
+            {"maintenanceTime": 2, "bigM": 100},
+            ValueError,
+            "must be specified together",
+        ),
+        (
+            {"maintenanceTime": 2, "maintenanceOccurrences": 1},
+            ValueError,
+            "bigM.*needs to be specified",
+        ),
+        (
+            {
+                "maintenanceTime": 2,
+                "maintenanceOccurrences": 1.5,
+                "bigM": 100,
+            },
+            TypeError,
+            "must be non-negative integers",
+        ),
+        (
+            {
+                "maintenanceTime": 2.5,
+                "maintenanceOccurrences": 1,
+                "bigM": 100,
+            },
+            ValueError,
+            "multiples of hoursPerTimeStep",
+        ),
+        (
+            {
+                "maintenanceTime": 4,
+                "maintenanceOccurrences": 3,
+                "bigM": 100,
+            },
+            ValueError,
+            "cannot fit into the time horizon",
+        ),
+    ],
+)
+def test_scheduled_maintenance_validation(updates, error, message):
+    esM = _create_system(numberOfTimeSteps=NUMBER_OF_HOURS, hoursPerTimeStep=1)
+    with pytest.raises(error, match=message):
+        esM.updateComponent("Methane heater", updates)
+
+
+def test_scheduled_maintenance_by_location_and_investment_period():
+    """Process maintenance parameters independently by IP and location."""
+    locations = {"region1", "region2"}
+    esM = fn.EnergySystemModel(
+        locations=locations,
+        numberOfTimeSteps=10,
+        hoursPerTimeStep=1,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        commodities={"methane", "heat"},
+        commodityUnitsDict={"methane": "kW", "heat": "kW"},
+        verboseLogLevel=2,
+    )
+    maintenance_time = {
+        2020: pd.Series({"region1": 2, "region2": 3}),
+        2025: pd.Series({"region1": 3, "region2": 2}),
+    }
+    maintenance_occurrences = {
+        2020: pd.Series({"region1": 1, "region2": 2}),
+        2025: pd.Series({"region1": 2, "region2": 1}),
+    }
+
+    component = fn.ConversionDynamic(
+        esM=esM,
+        name="Methane heater",
+        physicalUnit="kW",
+        commodityConversionFactors={"methane": -1, "heat": 1},
+        hasCapacityVariable=True,
+        capacityFix=pd.Series(10, index=list(locations)),
+        maintenanceTime=maintenance_time,
+        maintenanceOccurrences=maintenance_occurrences,
+        bigM=1000,
+    )
+
+    assert component.processedMaintenanceTime[0]["region1"] == 2
+    assert component.processedMaintenanceTime[1]["region2"] == 2
+    assert component.processedMaintenanceOccurrences[0]["region2"] == 2
+    assert component.processedMaintenanceOccurrences[1]["region1"] == 2
+
+    esM.add(component)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Heating Grid",
+            commodity="heat",
+            hasCapacityVariable=False,
+            commodityCost=1,
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Methane purchase",
+            commodity="methane",
+            hasCapacityVariable=False,
+            commodityCost=0.05,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Heat demand",
+            commodity="heat",
+            operationRateFix=pd.DataFrame(
+                ENERGY_FLOW, index=range(10), columns=list(locations)
+            ),
+            hasCapacityVariable=False,
+        )
+    )
+    esM.optimize()
+
+    maintenance_active = esM.componentModelingDict[
+        "ConversionDynamicModel"
+    ].maintenanceActiveVariablesOptimum
+    for ipName, loc, expected in [
+        (2020, "region1", 2 * 1),
+        (2020, "region2", 3 * 2),
+        (2025, "region1", 3 * 2),
+        (2025, "region2", 2 * 1),
+    ]:
+        assert maintenance_active[ipName].loc["Methane heater", loc].sum() == expected
+
+
+def test_scheduled_maintenance_rejects_time_series_aggregation():
+    """Scheduled maintenance requires full-resolution chronology."""
+    esM = _create_system(numberOfTimeSteps=NUMBER_OF_HOURS, hoursPerTimeStep=1)
+    esM.updateComponent(
+        "Methane heater",
+        {
+            "maintenanceTime": 2,
+            "maintenanceOccurrences": 1,
+            "bigM": 1000,
+        },
+    )
+    esM.aggregateTemporally(
+        numberOfTypicalPeriods=1,
+        numberOfTimeStepsPerPeriod=5,
+        segmentation=False,
+    )
+
+    with pytest.raises(ValueError, match="do not support time series aggregation"):
+        esM.declareOptimizationProblem(timeSeriesAggregation=True)
 
 
 @pytest.mark.parametrize(
