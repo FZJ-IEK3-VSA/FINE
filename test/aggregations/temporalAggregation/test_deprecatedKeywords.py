@@ -10,7 +10,7 @@ import warnings
 from copy import deepcopy
 
 import pytest
-from tsam import ClusterConfig, Distribution, MinMaxMean, SegmentConfig
+from tsam import ClusterConfig, Distribution, KMedoids, MinMaxMean, SegmentConfig
 
 import fine as fn
 from fine.aggregations.temporalAggregation import deprecatedKeywords as deprecated
@@ -32,7 +32,7 @@ def test_deprecated_keywords_are_converted():
         rescaleExcludeColumns=["wind"],
         roundOutput=4,
         numericalTolerance=1e-10,
-        clusterMethod="k_means",
+        clusterMethod="k_medoids",
         representationMethod="durationRepresentation",
         sortValues=False,
         sameMean=True,
@@ -48,7 +48,7 @@ def test_deprecated_keywords_are_converted():
     assert arguments["numerical_tolerance"] == 1e-10
 
     cluster = arguments["cluster"]
-    assert cluster.method == "kmeans"
+    assert cluster.method == KMedoids(solver="gurobi")
     assert cluster.representation == "distribution"
     assert cluster.use_duration_curves is False
     assert cluster.scale_by_column_means is True

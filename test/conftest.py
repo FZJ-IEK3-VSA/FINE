@@ -21,6 +21,63 @@ sys.path.append(
 from getData import getData
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "requires_solver(name): run the test only if name is the selected solver",
+    )
+    config.addinivalue_line(
+        "markers",
+        "multi_solver: the test deliberately uses solvers other than the selected one",
+    )
+
+
+def pytest_report_header(config):
+    solver = ImplementedSolvers.STANDARD_SOLVER.value
+    if ImplementedSolvers.solver_from_environment():
+        return f"FINE solver: {solver} (selected explicitly, no fallback)"
+    return f"FINE solver: {solver} (automatic detection)"
+
+
+def pytest_collection_modifyitems(config, items):
+    solver = ImplementedSolvers.STANDARD_SOLVER.value
+    for item in items:
+        marker = item.get_closest_marker("requires_solver")
+        if marker is not None and marker.args[0] != solver:
+            item.add_marker(
+                pytest.mark.skip(
+                    reason=f"requires solver {marker.args[0]}, selected is {solver}"
+                )
+            )
+
+
+@pytest.fixture(autouse=True)
+def check_used_solver(request, monkeypatch):
+    """Fail a test if a model is solved with a solver other than the selected one.
+
+    Only active if a solver is selected via FINE_SOLVER. Tests
+    marked with multi_solver are exempt.
+    """
+    selected = ImplementedSolvers.solver_from_environment()
+    if not selected or request.node.get_closest_marker("multi_solver"):
+        return
+
+    original_runOptimization = fn.EnergySystemModel._runOptimization
+
+    def _runOptimization(self, *args, **kwargs):
+        used, solver_info = original_runOptimization(self, *args, **kwargs)
+        if used != selected:
+            pytest.fail(
+                f"The model was solved with '{used}', but '{selected}' is the "
+                "selected solver. Use ImplementedSolvers.STANDARD_SOLVER instead "
+                "of a fixed solver, or mark the test with requires_solver or "
+                "multi_solver."
+            )
+        return used, solver_info
+
+    monkeypatch.setattr(fn.EnergySystemModel, "_runOptimization", _runOptimization)
+
+
 @pytest.fixture(scope="session")
 def get_data_fixture():
     return getData()
@@ -122,8 +179,8 @@ def minimal_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -269,8 +326,8 @@ def single_node_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -588,7 +645,7 @@ def multi_node_test_esM_init(get_data_fixture):
             interestRate=0.08,
             economicLifetime=20,
             opexPerOperation=0.005,
-            commodityCostTimeSeries=offshore_cost_time_series,
+            commodityCost=offshore_cost_time_series,
         )
     )
 
@@ -637,7 +694,7 @@ def multi_node_test_esM_init(get_data_fixture):
             name="Natural gas purchase",
             commodity="methane",
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Natural Gas, commodityCostTimeSeries"],
+            commodityCost=data["Natural Gas, commodityCostTimeSeries"],
         )
     )
 
@@ -649,7 +706,7 @@ def multi_node_test_esM_init(get_data_fixture):
             commodity="biogas",
             operationRateMax=data["Biogas, operationRateMax"],
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Biogas, commodityCostTimeSeries"],
+            commodityCost=data["Biogas, commodityCostTimeSeries"],
         )
     )
 
@@ -1343,7 +1400,9 @@ def balanceLimitConstraint_test_esM():
 
 
 @pytest.fixture(scope="function")
-def perfectForesight_test_esM():
+def perfectForesight_test_esM(request):
+    # annuityPerpetuity can be set via indirect parametrization, default False
+    annuityPerpetuity = getattr(request, "param", False)
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},
@@ -1360,6 +1419,7 @@ def perfectForesight_test_esM():
         startYear=2020,
         lengthUnit="km",
         verboseLogLevel=2,
+        annuityPerpetuity=annuityPerpetuity,
     )
 
     PVoperationRateMax = pd.DataFrame(

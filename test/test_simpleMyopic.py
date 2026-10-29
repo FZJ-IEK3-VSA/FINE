@@ -395,8 +395,8 @@ def test_exceededLifetime():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 

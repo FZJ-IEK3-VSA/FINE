@@ -2086,8 +2086,9 @@ class EnergySystemModel:
         :type threads: positive integer
 
         :param solver: specifies which solver should solve the optimization problem (which of course has to be
-            installed on the machine on which the model is run).
-            |br| * the default value is 'gurobi'
+            installed on the machine on which the model is run). If not specified, ImplementedSolvers.STANDARD_SOLVER
+            is used.
+            |br| * the default value is 'None'
         :type solver: string
 
         :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
