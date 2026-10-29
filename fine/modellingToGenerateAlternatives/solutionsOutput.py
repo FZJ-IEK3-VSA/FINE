@@ -67,7 +67,7 @@ def writeSolutions(
     esM,
     operationRateinOutput,
 ):
-    fn.utils.output("\nWriting optimization output to Excel files\n", esM.verbose, 0)
+    fn.utils.output("\nWriting optimization output to Excel files\n", esM.verboseLogLevel, 0)
 
     cwd = os.getcwd()
     directory = os.path.join(cwd, "OutputData")
@@ -75,7 +75,7 @@ def writeSolutions(
     if not os.path.exists(directory):
         os.mkdir(directory)
 
-    fn.utils.output(f"Output saved in {directory}\n", esM.verbose, 0)
+    fn.utils.output(f"Output saved in {directory}\n", esM.verboseLogLevel, 0)
 
     # if operationRateinOutput is False, we do not require operation rate variables in the output files.
     if operationRateinOutput:
@@ -93,7 +93,7 @@ def writeSolutions(
             _t = time.time()
             abbreviatedName = name[:-5]
 
-            fn.utils.output(f"\tWriting {abbreviatedName} output....", esM.verbose, 0)
+            fn.utils.output(f"\tWriting {abbreviatedName} output....", esM.verboseLogLevel, 0)
             file_name = abbreviatedName + "Model.xlsx"
             outputFile = os.path.join(outdir, file_name)
 
@@ -103,4 +103,4 @@ def writeSolutions(
                         for parameter,val in esM.output[key][ip].items():
                             if abbreviatedName + item in parameter:
                                 val.to_excel(writer, sheet_name=item + str(key))
-            fn.utils.output("\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verbose, 0)
+            fn.utils.output("\t\t (%.4f)" % (time.time() - _t) + " sec\n", esM.verboseLogLevel, 0)

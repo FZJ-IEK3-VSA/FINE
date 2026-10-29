@@ -14,7 +14,7 @@ def declareOptimalCostConstraint(esM, pyM):
 
     """ Optimum cost should not be more than the objective value obtained in the original optimization + slack value.
     """
-    fn.utils.output("Declaring cost constraint...", esM.verbose, 0)
+    fn.utils.output("Declaring cost constraint...", esM.verboseLogLevel, 0)
 
     def optimalCostConstraint(pyM):
         return (
@@ -28,7 +28,7 @@ def declareOptimalCostConstraint(esM, pyM):
 
 def declareMGAObjective(esM, pyM,iteration,sense):
 
-    fn.utils.output("Declaring MGA objective function...", esM.verbose, 0)
+    fn.utils.output("Declaring MGA objective function...", esM.verboseLogLevel, 0)
 
     def mgaOperation(
         mdl,
@@ -104,7 +104,7 @@ def declareMGAOptimizationProblem(
     * an objective function.
 
     """
-    fn.utils.output(f"MGA Iteration {iteration} {sense} .....", esM.verbose, 0 )
+    fn.utils.output(f"MGA Iteration {iteration} {sense} .....", esM.verboseLogLevel, 0 )
 
     # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
     timeStart = time.time()
@@ -147,12 +147,12 @@ def declareMGAOptimizationProblem(
 
     for key, mdl in esM.componentModelingDict.items():
         _t = time.time()
-        fn.utils.output("Declaring sets, variables and constraints for " + key, esM.verbose, 0)
-        fn.utils.output("\tdeclaring sets... ", esM.verbose, 0), mdl.declareSets(esM, pyM)
-        fn.utils.output("\tdeclaring variables... ", esM.verbose, 0), mdl.declareVariables(esM, pyM,relaxIsBuiltBinary,
+        fn.utils.output("Declaring sets, variables and constraints for " + key, esM.verboseLogLevel, 0)
+        fn.utils.output("\tdeclaring sets... ", esM.verboseLogLevel, 0), mdl.declareSets(esM, pyM)
+        fn.utils.output("\tdeclaring variables... ", esM.verboseLogLevel, 0), mdl.declareVariables(esM, pyM,relaxIsBuiltBinary,
                                                                                            relevanceThreshold)
-        fn.utils.output("\tdeclaring constraints... ", esM.verbose, 0), mdl.declareComponentConstraints(esM, pyM)
-        fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
+        fn.utils.output("\tdeclaring constraints... ", esM.verboseLogLevel, 0), mdl.declareComponentConstraints(esM, pyM)
+        fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
 
     ################################################################################################################
     #                              Declare cross-componential sets and constraints                                 #
@@ -161,27 +161,27 @@ def declareMGAOptimizationProblem(
     # Declare constraints for enforcing shared capacities
     _t = time.time()
     esM.declareSharedPotentialConstraints(pyM)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
+    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
 
     # Declare constraints for linked quantities
     _t = time.time()
     esM.declareComponentLinkedQuantityConstraints(pyM)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
+    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
 
     # Declare commodity balance constraints (one balance constraint for each commodity, location and time step)
     _t = time.time()
     esM.declareCommodityBalanceConstraints(pyM)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
+    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
 
     # Declare constraint for balanceLimit
     _t = time.time()
     esM.declareBalanceLimitConstraint(pyM, timeSeriesAggregation)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
+    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
 
     # Declare constraint for optimal cost
     _t = time.time()
     declareOptimalCostConstraint(esM, pyM)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
+    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
 
     ###############################################################################################################
     #                                         Declare MGA objective function                                           #
@@ -190,7 +190,7 @@ def declareMGAOptimizationProblem(
     # Declare objective function by obtaining the contributions to the objective function from all modeling classes
     _t = time.time()
     declareMGAObjective(esM, pyM,iteration,sense)
-    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verbose, 0)
+    fn.utils.output("\t\t(%.4f" % (time.time() - _t) + " sec)\n", esM.verboseLogLevel, 0)
 
     # Store the build time of the optimize function call in the EnergySystemModel instance
     esM.solverSpecs["buildtime"] = time.time() - timeStart
@@ -304,7 +304,7 @@ def identifySolutions(
     esM.highest_distance = [0] # This holds the iteration of the seleteced maximally different solution. This can be later used to
                               # save the data of the selected maximally different solutions. Optimal solution is saved in iteration 0
 
-    fn.utils.output("\nIdentifying maximally different solutions....\n", esM.verbose, 0)
+    fn.utils.output("\nIdentifying maximally different solutions....\n", esM.verboseLogLevel, 0)
 
     # From all the solutions in esM.solutions, identify solutions which are not none because there can be some solutions which
     # are not feasible
@@ -325,7 +325,7 @@ def identifySolutions(
                         previous_max = get_max
 
             esM.min_distances.append(previous_max)
-            fn.utils.output (f"Maximally different solution {k+1} identified (Iteration {_highest_distance})---> ({time.time() - _t:.4f} sec)", esM.verbose, 0)
+            fn.utils.output (f"Maximally different solution {k+1} identified (Iteration {_highest_distance})---> ({time.time() - _t:.4f} sec)", esM.verboseLogLevel, 0)
             esM.set_solutions[k+1] = esM.solutions[_highest_distance]
             esM.solutions.pop(_highest_distance)
             esM.highest_distance.append(_highest_distance)
@@ -564,7 +564,7 @@ def mgaOptimize(
                                     "Either solver not selected or specified solver not available."
                                     + str(nSolver)
                                     + " is set as solver.",
-                                    esM.verbose,
+                                    esM.verboseLogLevel,
                                     0,
                                 )
                         except Exception:
@@ -594,7 +594,7 @@ def mgaOptimize(
 
             # Set the specified solver options
             if "LogToConsole=" not in optimizationSpecs and solver == "gurobi":
-                if esM.verbose == 2:
+                if esM.verboseLogLevel == 2:
                     optimizationSpecs += " LogToConsole=0"
 
             # Solve optimization problem. The optimization solve time is stored and the solver information is printed.
@@ -618,12 +618,12 @@ def mgaOptimize(
             else:
                 solver_info = optimizer.solve(esM.pyM, tee=True)
             esM.solverSpecs["solvetime"] = time.time() - timeStart
-            fn.utils.output(solver_info.solver(), esM.verbose, 0), fn.utils.output(
-                solver_info.problem(), esM.verbose, 0
+            fn.utils.output(solver_info.solver(), esM.verboseLogLevel, 0), fn.utils.output(
+                solver_info.problem(), esM.verboseLogLevel, 0
             )
             fn.utils.output(
                 "Solve time: " + str(esM.solverSpecs["solvetime"]) + " sec.",
-                esM.verbose,
+                esM.verboseLogLevel,
                 0,
             )
 
@@ -648,7 +648,7 @@ def mgaOptimize(
                     + ", termination condition:  "
                     + str(termCondition)
                     + ". No output is generated.",
-                    esM.verbose,
+                    esM.verboseLogLevel,
                     0,
                 )
             elif solver_info.solver.termination_condition in (
@@ -660,7 +660,7 @@ def mgaOptimize(
                     "Optimization problem is "
                     + str(solver_info.solver.termination_condition)
                     + ". No output is generated.",
-                    esM.verbose,
+                    esM.verboseLogLevel,
                     0,
                 )
             else:
@@ -669,13 +669,13 @@ def mgaOptimize(
                 if (
                     not solver_info.solver.termination_condition
                     == opt.TerminationCondition.optimal
-                    and esM.verbose < 2
+                    and esM.verboseLogLevel < 2
                 ):
                     warnings.warn("Output is generated for a non-optimal solution.")
 
                 if esM.writeSolutionsasExcels:
 
-                    fn.utils.output("\nProcessing optimization output...", esM.verbose, 0)
+                    fn.utils.output("\nProcessing optimization output...", esM.verboseLogLevel, 0)
                     # Declare component specific sets, variables and constraints
                     w = str(len(max(esM.componentModelingDict.keys())) + 6)
 
@@ -687,53 +687,20 @@ def mgaOptimize(
                         # if _capacityVariablesOptimum is not a dict, convert to dict
                         # (if single year system is optimized several times)
 
-                        mdl.setOptimalValues(esM, esM.pyM)
+                        # Same result pipeline as in EnergySystemModel.optimize
+                        mdl.extractRawResults(esM, esM.pyM)
+                        mdl.deriveEconomics(esM, esM.pyM)
+                        mdl.buildOptimizationSummary(esM)
+                        mdl._convertOptimalValueNames(esM)
                         outputString = (
                             ("for {:" + w + "}").format(key + " ...")
                             + "(%.4f" % (time.time() - __t)
                             + "sec)"
                         )
-                        fn.utils.output(outputString, esM.verbose, 0)
+                        fn.utils.output(outputString, esM.verboseLogLevel, 0)
 
-                        # convert optimal values from internal name to external name
-                        # e.g. from _capacityVariablesOptimum to capacityVariablesOptimum
-                        # For perfectForesight the data stays the same, for a single year optimization
-                        # the data is converted from a dict with a single entry to a dataframe
-                        # By this, old models will not fail.
-                        def convertOptimalValues(esM, mdl, key):
-                            if key in mdl.__dict__.keys():
-                                if esM.numberOfInvestmentPeriods == 1:
-                                    setattr(
-                                        mdl,
-                                        key.replace("_", ""),
-                                        getattr(mdl, key)[esM.investmentPeriodNames[0]],
-                                    )
-                                else:
-                                    setattr(mdl, key.replace("_", ""), getattr(mdl, key))
-                            else:
-                                pass
-
-                        optimalValueParameters = [
-                            "_optSummary",
-                            "_stateOfChargeOperationVSariablesOptimum",
-                            "_chargeOperationVariablesOptimum",
-                            "_dischargeOperationVariablesOptimum",
-                            "_phaseAngleVariablesOptimum",
-                            "_operationVariablesOptimum",
-                            "_discretizationPointVariablesOptimun",
-                            "_discretizationSegmentConVariablesOptimun",
-                            "_discretizationSegmentBinVariablesOptimun",
-                            "_capacityVariablesOptimum",
-                            "_isBuiltVariablesOptimum",
-                            "_commissioningVariablesOptimum",
-                            "_decommissioningVariablesOptimum",
-                        ]
-
-                        for optParam in optimalValueParameters:
-                            convertOptimalValues(esM, mdl, optParam)
-
-                    if hasattr(esM, "etlModel"):
-                        esM.etlModel.setOptimalValues(esM, esM.pyM)
+                    if hasattr(esM, "pwlcfModel"):
+                        esM.pwlcfModel.setOptimalValues(esM, esM.pyM)
 
                 """
                 MGA solutions consist of the operation rate variables and capacity variables of the components. MGA solutions are stored in esM.solutions.
@@ -745,11 +712,11 @@ def mgaOptimize(
                     optimalValues(esM, esM.iterations + iteration, outputLevel)
         iteration +=1
 
-    fn.utils.output("\n\t\tMGA optimization completed after %.4f" % (time.time() - startTime) + " sec\n", esM.verbose, 0)
+    fn.utils.output("\n\t\tMGA optimization completed after %.4f" % (time.time() - startTime) + " sec\n", esM.verboseLogLevel, 0)
 
     identifySolutions(
         esM,
         operationRateinOutput
     )
 
-    fn.utils.output("\n\t\tMGA process completed after %.4f" % (time.time() - startTime) + " sec\n", esM.verbose, 0)
+    fn.utils.output("\n\t\tMGA process completed after %.4f" % (time.time() - startTime) + " sec\n", esM.verboseLogLevel, 0)
