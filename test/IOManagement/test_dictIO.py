@@ -1,5 +1,5 @@
 import pytest
-import pandas as pd
+
 import fine as fn
 import pandas as pd
 

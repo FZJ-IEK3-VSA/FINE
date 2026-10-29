@@ -5,14 +5,14 @@ import copy
 from pyomo.environ import *
 
 esM = fn.EnergySystemModel(
-    locations={"Region1","Region2"},
-    commodities={"electricity","heat"},
+    locations={"Region1", "Region2"},
+    commodities={"electricity", "heat"},
     numberOfTimeSteps=6,
     commodityUnitsDict={"electricity": r"GW$_{el}$", "heat": r"GW$_{heat}$"},
     hoursPerTimeStep=1,
     costUnit="1e9 Euro",
     lengthUnit="km",
-    verboseLogLevel=0
+    verboseLogLevel=0,
 )
 
 demandProfile = [
@@ -40,16 +40,9 @@ esM.add(
     )
 )
 
-generationProfile = [
-    0.05,
-    0.15,
-    0.2,
-    0.0,
-    0.8,
-    0.7
-]
+generationProfile = [0.05, 0.15, 0.2, 0.0, 0.8, 0.7]
 operationRateFix = pd.DataFrame(
-    [[u*4, u*8] for u in generationProfile],
+    [[u * 4, u * 8] for u in generationProfile],
     index=range(6),
     columns=["Region1", "Region2"],
 )
@@ -76,7 +69,7 @@ esM.add(
         esM=esM,
         name="Heat Pump",
         physicalUnit=r"GW$_{el}$",
-        commodityConversionFactors={"electricity": -1/2.5, "heat": 1},
+        commodityConversionFactors={"electricity": -1 / 2.5, "heat": 1},
         hasCapacityVariable=True,
         investPerCapacity=0.76,
         opexPerCapacity=0.00646,
@@ -105,7 +98,11 @@ esM.add(
     )
 )
 
-acCables = pd.DataFrame(data =[[0,10],[10,0]], index=["Region1","Region2"], columns=["Region1","Region2"])
+acCables = pd.DataFrame(
+    data=[[0, 10], [10, 0]],
+    index=["Region1", "Region2"],
+    columns=["Region1", "Region2"],
+)
 print(acCables)
 
 esM.add(
@@ -133,7 +130,7 @@ fn.Mgaoptimize.declareMGAOptimizationProblem(esM, iteration=1, sense="maximize")
 
 print("Optimum cost value:", esM.objectiveValue)
 print("Slack value:", esM.slack)
-print("optimum Cost Constraint:", esM.objectiveValue*(1+esM.slack))
+print("optimum Cost Constraint:", esM.objectiveValue * (1 + esM.slack))
 
 print(esM.pyM.component("optimalCostConstraint").expr)
 

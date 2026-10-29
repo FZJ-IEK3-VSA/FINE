@@ -1,13 +1,13 @@
 import fine as fn
 import random
 
-def calculateBeta(esM):
 
+def calculateBeta(esM):
     components = []
     transmissionComponents = []
 
     for item in esM.componentModelingDict.values():
-        for key,_item in item.componentsDict.items():
+        for key, _item in item.componentsDict.items():
             components.append(key)
 
             if isinstance(_item, fn.transmission.Transmission):
@@ -19,36 +19,40 @@ def calculateBeta(esM):
             if loc1 != loc2:
                 transmission_locations.append(loc1 + "_" + loc2)
 
-    esM.beta = {location:
-            {iteration+1:
-            {component: random.random() for component in components
-             if component not in transmissionComponents
+    esM.beta = {
+        location: {
+            iteration + 1: {
+                component: random.random()
+                for component in components
+                if component not in transmissionComponents
             }
             for iteration in range(esM.iterations)
-            }
-            for location in esM.locations
-            }
+        }
+        for location in esM.locations
+    }
 
-    transmission_data = {location:
-            {iteration+1:
-            {component: random.random() for component in transmissionComponents
+    transmission_data = {
+        location: {
+            iteration + 1: {
+                component: random.random() for component in transmissionComponents
             }
             for iteration in range(esM.iterations)
-            }
-            for location in transmission_locations
-            }
+        }
+        for location in transmission_locations
+    }
 
     esM.beta.update(transmission_data)
 
+
 esM = fn.EnergySystemModel(
-    locations={"Region1","Region2"},
-    commodities={"electricity","heat"},
+    locations={"Region1", "Region2"},
+    commodities={"electricity", "heat"},
     numberOfTimeSteps=6,
     commodityUnitsDict={"electricity": r"GW$_{el}$", "heat": r"GW$_{heat}$"},
     hoursPerTimeStep=1,
     costUnit="1e9 Euro",
     lengthUnit="km",
-    verboseLogLevel=0
+    verboseLogLevel=0,
 )
 
 esM.add(
@@ -74,7 +78,7 @@ esM.add(
         esM=esM,
         name="Heat Pump",
         physicalUnit=r"GW$_{el}$",
-        commodityConversionFactors={"electricity": -1/2.5, "heat": 1},
+        commodityConversionFactors={"electricity": -1 / 2.5, "heat": 1},
         hasCapacityVariable=True,
     )
 )
