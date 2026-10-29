@@ -1,0 +1,42 @@
+on:
+  pull_request:
+    branches: ["develop"]
+
+jobs:
+  detect-changes:
+    name: Detect changed dependencies
+    if: startsWith(github.head_ref, 'renovate/')
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/detect_renovate_changes.yml@v1
+    with:
+      files: "requirements_dev.yml pyproject.toml"
+
+  extract-versions:
+    name: Extract max versions of changed libraries
+    needs: detect-changes
+    if: startsWith(github.head_ref, 'renovate/') && needs.detect-changes.outputs.libraries != ''
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
+    with:
+      libraries: ${{ needs.detect-changes.outputs.libraries }}
+      version_type: max
+      env_file: requirements_dev.yml
+
+  TestRenovateMaxVersions:
+    name: Test ${{ matrix.dependencies.library_name }} ${{ matrix.dependencies.version }} (max)
+    needs: extract-versions
+    if: startsWith(github.head_ref, 'renovate/')
+    strategy:
+      fail-fast: false
+      matrix:
+        runner_tag: ["self-hosted"]
+        dependencies: ${{ fromJSON(needs.extract-versions.outputs.matrix) }}
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
+    secrets: inherit
+    with:
+      runner_tag: ${{ matrix.runner_tag }}
+      requirements_file_name: requirements_dev.yml
+      ipynb_example_folder: "examples"
+      library_name: ${{ matrix.dependencies.library_name }}
+      library_version: ${{ matrix.dependencies.version }}
+      dependency_position_env_file: ${{ matrix.dependencies.yaml_position }}
+      multiprocessing_pytest_string: "-n auto"
+      multiprocessing_example_string: "-n auto"

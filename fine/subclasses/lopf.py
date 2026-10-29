@@ -1,12 +1,12 @@
 from fine.transmission import Transmission, TransmissionModel
 from fine import utils
+from fine.enums import ComponentAbbreviation, Dimension, VarType
 import pyomo.environ as pyomo
 import pandas as pd
 
 
 class LinearOptimalPowerFlow(Transmission):
-    """
-    A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a
+    """A LinearOptimalPowerFlow component shows the behavior of a Transmission component but additionally models a
     linearized power flow (i.e. for AC lines). The LinearOptimalPowerFlow class inherits from the Transmission
     class.
     """
@@ -48,9 +48,12 @@ class LinearOptimalPowerFlow(Transmission):
         technicalLifetime=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        balanceLimitID=None,
+        pathwayBalanceLimitID=None,
+        pwlcfParameters=None,
+        linkedQuantityID=None,
     ):
-        """
-        Constructor for creating an LinearOptimalPowerFlow class instance.
+        """Create a LinearOptimalPowerFlow class instance.
         The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
         component specific input arguments are described in the Transmission class and the general component
         input arguments are described in the Component class.
@@ -97,6 +100,10 @@ class LinearOptimalPowerFlow(Transmission):
             technicalLifetime=technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
             stockCommissioning=stockCommissioning,
+            balanceLimitID=balanceLimitID,
+            pathwayBalanceLimitID=pathwayBalanceLimitID,
+            pwlcfParameters=pwlcfParameters,
+            linkedQuantityID=linkedQuantityID,
         )
 
         self.modelingClass = LOPFModel
@@ -107,13 +114,12 @@ class LinearOptimalPowerFlow(Transmission):
             self.reactances = pd.Series(self._mapC).apply(
                 lambda loc: self.reactances2dim[loc[0]][loc[1]]
             )
-        except Exception:
+        except (KeyError, TypeError, IndexError):
             self.reactances = utils.preprocess2dimData(self.reactances2dim)
 
 
 class LOPFModel(TransmissionModel):
-    """
-    A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
+    """A LOPFModel class instance will be instantly created if a LinearOptimalPowerFlow class instance is initialized.
     It is used for the declaration of the sets, variables and constraints which are valid for the LinearOptimalPowerFlow
     class instance. These declarations are necessary for the modeling and optimization of the energy system model.
     The LOPFModel class inherits from the TransmissionModel class.
@@ -121,8 +127,8 @@ class LOPFModel(TransmissionModel):
 
     def __init__(self):
         super().__init__()
-        self.abbrvName = "lopf"
-        self.dimension = "2dim"
+        self.abbrvName = ComponentAbbreviation.LOPF
+        self.dimension = Dimension.TWO
         self._operationVariablesOptimum = {}
         self._phaseAngleVariablesOptimum = {}
 
@@ -131,8 +137,7 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
 
     def initPhaseAngleVarSet(self, pyM):
-        """
-        Declare phase angle variable set in the pyomo object for for each node.
+        """Declare phase angle variable set in the pyomo object for for each node.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -154,8 +159,7 @@ class LOPFModel(TransmissionModel):
         )
 
     def declareSets(self, esM, pyM):
-        """
-        Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
+        """Declare sets and dictionaries: design variable sets, operation variable sets, operation mode sets and
         linked components dictionary.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
@@ -164,7 +168,6 @@ class LOPFModel(TransmissionModel):
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
         """
-
         # # Declare design variable sets
         self.declareDesignVarSet(pyM, esM)
         self.declareCommissioningVarSet(pyM, esM)
@@ -178,6 +181,7 @@ class LOPFModel(TransmissionModel):
 
         # Declare operation variable sets
         self.declareOpVarSet(esM, pyM)
+        self.declareBinOpVarSet(esM, pyM)
         self.initPhaseAngleVarSet(pyM)
 
         # Declare operation variable set
@@ -190,8 +194,7 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
 
     def declarePhaseAngleVariables(self, pyM):
-        """
-        Declare phase angle variables.
+        """Declare phase angle variables.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -219,8 +222,7 @@ class LOPFModel(TransmissionModel):
         )
 
     def declareVariables(self, esM, pyM, relaxIsBuiltBinary, relevanceThreshold):
-        """
-        Declare design and operation variables.
+        """Declare design and operation variables.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -237,7 +239,6 @@ class LOPFModel(TransmissionModel):
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
         """
-
         # Call the declareVariables function of transmission model class
         super().declareVariables(esM, pyM, relaxIsBuiltBinary, relevanceThreshold)
 
@@ -248,8 +249,7 @@ class LOPFModel(TransmissionModel):
     ####################################################################################################################
 
     def powerFlowDC(self, pyM):
-        """
-        Ensure that the flow between two locations is equal to the difference between the phase angle variables at
+        """Ensure that the flow between two locations is equal to the difference between the phase angle variables at
         these locations divided by the reactance of the line between these locations.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
@@ -281,9 +281,7 @@ class LOPFModel(TransmissionModel):
         )
 
     def basePhaseAngle(self, pyM):
-        # TODO Check if this function is still required due to new added bounds
-        """
-        Declare the constraint that the reference phase angle is set to zero for all time steps.
+        """Declare the constraint that the reference phase angle is set to zero for all time steps.
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo Concrete Model
@@ -302,8 +300,7 @@ class LOPFModel(TransmissionModel):
         )
 
     def declareComponentConstraints(self, esM, pyM):
-        """
-        Declare time independent and dependent constraints.
+        """Declare time independent and dependent constraints.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: EnergySystemModel class instance
@@ -324,88 +321,68 @@ class LOPFModel(TransmissionModel):
     #        Declare component contributions to basic EnergySystemModel constraints and its objective function         #
     ####################################################################################################################
 
-    def setOptimalValues(self, esM, pyM):
-        """
-        Set the optimal values of the components.
+    def _extractSubclassRawResults(self, esM, pyM, rawResults):
+        """Extract the LOPF specific raw solved ``phaseAngle`` variable.
 
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: EnergySystemModel class instance
-
-        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pyM: pyomo Concrete Model
+        Chains the Transmission hook (operation) and adds ``phaseAngle`` to ``rawResults``
+        while populating ``self._phaseAngleVariablesOptimum``.
         """
-        super().setOptimalValues(esM, pyM)
+        super()._extractSubclassRawResults(esM, pyM, rawResults)
+        phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
         for ip in esM.investmentPeriods:
-            abbrvName = self.abbrvName
-            phaseAngleVar = getattr(pyM, "phaseAngle_" + abbrvName)
-
+            ipName = esM.investmentPeriodNames[ip]
             optVal_ = utils.formatOptimizationOutput(
                 phaseAngleVar.get_values(),
-                "operationVariables",
-                "1dim",
+                VarType.OPERATION,
+                Dimension.ONE,
                 ip,
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._phaseAngleVariablesOptimum[esM.investmentPeriodNames[ip]] = optVal_
+            self._phaseAngleVariablesOptimum[ipName] = optVal_
+            rawResults[ipName]["phaseAngle"] = optVal_
+
+    def _exportOptimumVarMap(self):
+        """Extend the Transmission export map with the LOPF phase angle.
+
+        The phase angle is a 1-dim, time-dependent variable even though the LOPF component
+        itself is 2-dim, so its dimension is given explicitly. It was part of the
+        netCDF/xarray export before the results-dict refactor.
+        """
+        return super()._exportOptimumVarMap() + [
+            ("phaseAngle", "phaseAngleVariablesOptimum", True, Dimension.ONE),
+        ]
 
     def getOptimalValues(self, name="all", ip=0):
-        """
-        Return optimal values of the components.
+        """Return optimal values of the components.
 
         :param name: name of the variables of which the optimal values should be returned:
 
-            * 'capacityVariables',
-            * 'isBuiltVariables',
-            * '_operationVariablesOptimum',
+            * 'capacityVariablesOptimum',
+            * 'isBuiltVariablesOptimum',
+            * 'operationVariablesOptimum',
+            * 'commissioningVariablesOptimum',
+            * 'decommissioningVariablesOptimum',
             * 'phaseAngleVariablesOptimum',
             * 'all' or another input: all variables are returned.
 
         :type name: string
         """
-        if name == "capacityVariablesOptimum":
-            return {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "isBuiltVariablesOptimum":
-            return {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            }
-        if name == "operationVariablesOptimum":
-            return {
-                "values": self._operationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
         if name == "phaseAngleVariablesOptimum":
             return {
                 "values": self._phaseAngleVariablesOptimum[ip],
                 "timeDependent": True,
-                "dimension": "1dim",
+                "dimension": Dimension.ONE,
             }
-        return {
-            "capacityVariablesOptimum": {
-                "values": self._capacityVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "isBuiltVariablesOptimum": {
-                "values": self._isBuiltVariablesOptimum[ip],
-                "timeDependent": False,
-                "dimension": self.dimension,
-            },
-            "operationVariablesOptimum": {
-                "values": self._operationVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            },
-            "phaseAngleVariablesOptimum": {
-                "values": self._phaseAngleVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": "1dim",
-            },
+
+        result = super().getOptimalValues(name, ip=ip)
+        # a single transmission variable was requested and returned by the base class
+        if name != "all" and "values" in result:
+            return result
+        # 'all' or an unknown name: the base class returned every variable it knows
+        result["phaseAngleVariablesOptimum"] = {
+            "values": self._phaseAngleVariablesOptimum[ip],
+            "timeDependent": True,
+            "dimension": Dimension.ONE,
         }
+        return result

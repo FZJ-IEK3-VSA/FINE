@@ -14,8 +14,14 @@ __pycache__/
 .vscode/
 build/
 .venv/
-examples/12_Modelling_to_Generate_Alternatives/OutputData
-bkp
+site/
+
+# auto-copied example notebooks (generated during mkdocs build)
+docs/examples/[0-9]*/
+
+# environment / secrets
+.env
+.env.*
 
 # file types to ignore
 *.pyc
@@ -25,3 +31,11 @@ bkp
 *.glp
 *.mps
 .coverage
+build_output*.*
+test_esM_etl.nc
+
+# Gurobi test files
+
+firstStage
+relaxedProblem
+secondStage

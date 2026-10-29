@@ -10,11 +10,15 @@ build:
   os: ubuntu-22.04
   tools:
     python: mambaforge-22.9
-  apt_packages:
-    - graphviz
+  jobs:
+    post_install:
+      - conda run --name $READTHEDOCS_VERSION pip install -e . --no-deps
+      - conda list -n $READTHEDOCS_VERSION
+    build:
+      html:
+        - conda run --name $READTHEDOCS_VERSION mkdocs build --site-dir $READTHEDOCS_OUTPUT/html
 conda:
   environment: requirements_dev.yml
 
-# Build documentation in the docs/ directory with Sphinx
-sphinx:
-  configuration: docs/source/conf.py
+mkdocs:
+  configuration: mkdocs.yml

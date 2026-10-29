@@ -2,13 +2,11 @@ import fine as fn
 import pandas as pd
 import pytest
 
-from pyomo.opt import SolverFactory
+from fine.utils import ImplementedSolvers
 
 
-@pytest.mark.skipif(
-    not SolverFactory("gurobi").available(),
-    reason="QP solver required (check for license",
-)
+# Quadratic objective: not supported by FINE's HiGHS interface and by GLPK
+@pytest.mark.requires_solver(ImplementedSolvers.GUROBI.value)
 @pytest.mark.parametrize("capacityMin", [0, 5])
 def test_QPinvest(capacityMin):
     capacityMin_variation = 5

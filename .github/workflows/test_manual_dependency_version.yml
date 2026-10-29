@@ -1,0 +1,75 @@
+on:
+  workflow_dispatch:
+    inputs:
+      library:
+        description: "Dependency library name to test (e.g. numpy)"
+        required: true
+        type: string
+      min_version:
+        description: "Minimum (lower-bound) version to test (optional)"
+        required: false
+        type: string
+        default: ""
+      max_version:
+        description: "Maximum (upper-bound) version to test (optional)"
+        required: false
+        type: string
+        default: ""
+      runner_tag:
+        description: "Runner to execute the tests on (e.g. self-hosted, ubuntu-latest)"
+        required: true
+        type: string
+        default: "self-hosted"
+      ref:
+        description: "Branch to check out and use for workflows"
+        required: false
+        type: string
+        default: "develop"
+      additional_conda_channel:
+        description: "Additional conda channel to search for packages (e.g. 'gurobi'). When provided, it is passed to the test workflow via -c flag."
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  # Resolve the line position of the library inside requirements_dev.yml so
+  # the test workflow knows which entry to override.
+  extract-position:
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/extract_versions.yml@v1
+    with:
+      libraries: ${{ inputs.library }}
+      env_file: requirements_dev.yml
+
+  # Query conda-forge for all versions of the library within the given bounds
+  # and produce a matrix ready for run_conda_forge_test.yml.
+  query-versions:
+    needs: extract-position
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/query_conda_versions.yml@v1
+    with:
+      package_name: ${{ inputs.library }}
+      min_version: ${{ inputs.min_version }}
+      max_version: ${{ inputs.max_version }}
+      dependency_position_env_file: ${{ needs.extract-position.outputs.dependency_position }}
+      requirements_file_name: requirements_dev.yml
+      conda_channel: ${{ inputs.additional_conda_channel || 'conda-forge' }}
+
+  TestManualVersions:
+    name: "Test ${{ matrix.library_name }} ${{ matrix.library_version }}"
+    needs: query-versions
+    if: needs.query-versions.outputs.matrix_json != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.query-versions.outputs.matrix_json) }}
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/run_conda_forge_test.yml@v1
+    secrets: inherit
+    with:
+      runner_tag: ${{ inputs.runner_tag }}
+      requirements_file_name: ${{ matrix.requirements_file_name }}
+      ipynb_example_folder: "examples"
+      library_name: ${{ matrix.library_name }}
+      library_version: ${{ matrix.library_version }}
+      dependency_position_env_file: ${{ matrix.dependency_position_env_file }}
+      multiprocessing_pytest_string: "-n auto"
+      multiprocessing_example_string: "-n auto"
+      additional_conda_channel: ${{ inputs.additional_conda_channel }}

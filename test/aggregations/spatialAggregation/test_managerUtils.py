@@ -1,6 +1,6 @@
-import os
 import shutil
 import pytest
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
@@ -16,9 +16,7 @@ def test_create_gdf():
     df = pd.DataFrame({"space": ["reg_01", "reg_02"]})
 
     crs = 3035
-    path_to_test_dir = os.path.join(
-        os.path.dirname(__file__), "../data/output/test_dir"
-    )
+    path_to_test_dir = Path(__file__).parent / "../data/output/test_dir"
     file_name = "test_file"
 
     # FUNCTION CALL
@@ -27,7 +25,7 @@ def test_create_gdf():
     )
 
     # EXPECTED
-    output_shp = gpd.read_file(os.path.join(path_to_test_dir, f"{file_name}.shp"))
+    output_shp = gpd.read_file(Path(path_to_test_dir) / f"{file_name}.shp")
     assert list(output_shp.columns) == ["space", "geometry"]
 
     # Delete test_dir

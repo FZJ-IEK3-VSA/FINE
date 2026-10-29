@@ -1,0 +1,14 @@
+name: Check code formatting and Linter hints
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["develop"]
+
+jobs:
+  ruff:
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/lint.yml@v1
+    with:
+      ruff_version: "0.13.1"

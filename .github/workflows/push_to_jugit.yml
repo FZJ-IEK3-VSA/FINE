@@ -1,0 +1,14 @@
+name: Push to Jugit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["master", "develop"]
+
+jobs:
+  sync:
+    uses: FZJ-IEK3-VSA/.github/.github/workflows/sync_jugit.yml@v1
+    with:
+      jugit_repo_path: "iek-3/shared-code/fine"
+    secrets:
+      JUGIT_ACCESS_TOKEN: ${{ secrets.GITLAB_ACCESS_TOKEN }}

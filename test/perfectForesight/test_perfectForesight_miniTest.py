@@ -3,10 +3,14 @@ import math
 import numpy as np
 import pandas as pd
 import pytest
+from fine.utils import ImplementedSolvers
 
 
 def test_perfectForesight_mini(perfectForesight_test_esM):
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    perfectForesight_test_esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 11861.771783274202
     )
@@ -60,7 +64,10 @@ def test_perfectForesight_stock(perfectForesight_test_esM):
         )
     )
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     # CHECKS
     # check the objective value
@@ -215,7 +222,7 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
             investPerCapacity=0.177,
             capacityMax={
                 ip: pd.DataFrame(
-                    data=[[0.2, 0.2], [0.25, 0.25]],
+                    data=[[0, 0.2], [0.25, 0]],
                     index=list(esM.locations),
                     columns=list(esM.locations),
                 )
@@ -257,7 +264,10 @@ def test_perfectForesight_storage_transmission(perfectForesight_test_esM):
             operationRateFix=demand,
         )
     )
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
 
 def test_perfectForesight_binary():
@@ -338,7 +348,7 @@ def test_perfectForesight_binary():
         )
     )
 
-    esM.optimize(solver="glpk")
+    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
 
     # test commissioning variables
     assert esM.pyM.commis_srcSnk.get_values()[("PerfectLand", "PV", -1)] == 1
@@ -369,12 +379,32 @@ def test_perfectForesight_binary():
     )
 
 
+@pytest.mark.parametrize("perfectForesight_test_esM", [True], indirect=True)
 def test_perfectForesight_annuityPerpetuity(perfectForesight_test_esM):
-    perfectForesight_test_esM.annuityPerpetuity = True
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    perfectForesight_test_esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
     np.testing.assert_almost_equal(
         perfectForesight_test_esM.pyM.Obj(), 31984.802368949295
     )
+
+
+@pytest.mark.parametrize("perfectForesight_test_esM", [True], indirect=True)
+def test_perfectForesight_annuityPerpetuity_zeroInterestRate(
+    perfectForesight_test_esM,
+):
+    with pytest.raises(ValueError, match="An interest rate of 0 cannot be set"):
+        perfectForesight_test_esM.add(
+            fn.Source(
+                esM=perfectForesight_test_esM,
+                name="PV_zeroInterest",
+                commodity="electricity",
+                hasCapacityVariable=True,
+                investPerCapacity=1e3,
+                interestRate=0,
+            )
+        )
 
 
 @pytest.mark.parametrize("annuityPerpetuity", [True, False])
@@ -416,7 +446,10 @@ def test_perfectForesight_npv_with_stock(perfectForesight_test_esM, annuityPerpe
         )
     )
     perfectForesight_test_esM.annuityPerpetuity = annuityPerpetuity
-    perfectForesight_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    perfectForesight_test_esM.optimize(
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
     print(perfectForesight_test_esM.pyM.Obj())
     if annuityPerpetuity:

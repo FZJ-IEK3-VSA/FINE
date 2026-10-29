@@ -1,0 +1,66 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended"
+    ],
+    "schedule": [
+        "* * 1 * *"
+    ],
+    "rangeStrategy": "widen",
+    "recreateWhen": "always",
+    "vulnerabilityAlerts": {
+        "enabled": false
+    },
+    "osvVulnerabilityAlerts": false,
+    "enabledManagers": [
+        "pep621",
+        "custom.regex"
+    ],
+    "pep621": {
+        "managerFilePatterns": [
+            "/(^|/)pyproject\\.toml$/"
+        ]
+    },
+    "customManagers": [
+        {
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/(^|/)requirements_dev\\.yml$/"
+            ],
+            "matchStrings": [
+                "- (?<depName>geopandas|glpk|openpyxl|matplotlib|xlrd|pyomo|numpy|pandas|scikit-learn|scipy|xarray|rasterio|netcdf4|tsam|pwlf|psutil|gurobi-logtools|ipykernel|pytest-cov|pytest-xdist|pytest|nbval|ruff|mkdocs-material|mkdocs-jupyter|mkdocs-gen-files|mkdocs-literate-nav|mkdocs-section-index|mkdocstrings-python|mkdocstrings|mkdocs|griffe)\\s[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
+            ],
+            "packageNameTemplate": "conda-forge/{{{depName}}}",
+            "datasourceTemplate": "conda",
+            "versioningTemplate": "pep440"
+        },
+        {
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/(^|/)requirements_dev\\.yml$/"
+            ],
+            "matchStrings": [
+                "- (?<depName>gurobi)\\s[^\\n]*?(?<currentValue><=\\d[^\\n,]*)"
+            ],
+            "packageNameTemplate": "gurobi/{{{depName}}}",
+            "datasourceTemplate": "conda",
+            "versioningTemplate": "pep440"
+        }
+    ],
+    "ignoreDeps": [
+        "sphinx",
+        "sphinx_rtd_theme",
+        "myst-parser",
+        "sphinx-rtd-theme",
+        "ruff",
+    ],
+    "packageRules": [
+        {
+            "matchManagers": [
+                "pep621",
+                "custom.regex"
+            ],
+            "groupName": "{{depName}}"
+        }
+    ]
+}

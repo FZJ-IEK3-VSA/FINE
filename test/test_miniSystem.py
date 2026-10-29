@@ -1,31 +1,30 @@
-#!/usr/bin/env python
-
-# # Workflow for a multi-regional energy system
-#
-# In this application of the FINE framework, a multi-regional energy system is modeled and optimized.
-#
-# All classes which are available to the user are utilized and examples of the selection of different parameters within these classes are given.
-#
-# The workflow is structures as follows:
-# 1. Required packages are imported and the input data path is set
-# 2. An energy system model instance is created
-# 3. Commodity sources are added to the energy system model
-# 4. Commodity conversion components are added to the energy system model
-# 5. Commodity storages are added to the energy system model
-# 6. Commodity transmission components are added to the energy system model
-# 7. Commodity sinks are added to the energy system model
-# 8. The energy system model is optimized
-# 9. Selected optimization results are presented
-#
-
-# 1. Import required packages and set input data path
-
 import numpy as np
 import pandas as pd
+import pytest
+from fine.utils import ImplementedSolvers
 
 
-def test_miniSystem(minimal_test_esM):
-    minimal_test_esM.optimize(timeSeriesAggregation=False, solver="glpk")
+# Deliberately compares the results of all solvers, independent of the selected one
+@pytest.mark.multi_solver
+@pytest.mark.parametrize(
+    "solver",
+    [
+        ImplementedSolvers.GUROBI.value,
+        ImplementedSolvers.HIGHS.value,
+        ImplementedSolvers.GLPK.value,
+    ],
+)
+def test_miniSystem(minimal_test_esM, solver):
+    if (
+        solver == ImplementedSolvers.GUROBI.value
+        and not ImplementedSolvers._gurobi_available()
+    ):
+        pytest.skip("gurobi not available")
+
+    minimal_test_esM.optimize(
+        timeSeriesAggregation=False,
+        solver=solver,
+    )
 
     # test if solve fits to the original results
     testresults = minimal_test_esM.componentModelingDict[

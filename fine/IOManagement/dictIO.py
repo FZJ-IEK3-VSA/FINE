@@ -1,4 +1,5 @@
 import inspect
+import logging
 
 import fine as fn
 from fine.IOManagement import utilsIO
@@ -6,14 +7,18 @@ from fine.utils import buildFullTimeSeries
 import pandas as pd
 from fine import utils
 
+logger = logging.getLogger(__name__)
+
 
 def reconstruct_full_timeseries(esM, timeseries, ip):
-    print("Reconstructing timeseries from TSA")
+    """Reconstruct the full timeseries from the time series aggregation (TSA) results."""
+    logger.debug("Reconstructing timeseries from TSA")
 
     # switch first index level and column level
     df = timeseries.copy()
-    df = df.stack().unstack(level=1)
-    df.index.names = [None] * len(df.index.names)
+    df = df.stack(future_stack=True).dropna().unstack(level=1)
+    number_of_index_level = df.index.nlevels
+    df.index = df.index.set_names(names=[None] * number_of_index_level)
     full_df = (
         buildFullTimeSeries(df, esM.periodsOrder[ip], ip=ip, esM=esM, divide=False)
         .reset_index(level=0, drop=True)
@@ -25,8 +30,7 @@ def reconstruct_full_timeseries(esM, timeseries, ip):
 
 
 def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
-    """
-    Writes the input arguments of EnergySysteModel and its Components input to a dictionary.
+    """Write the input arguments of EnergySysteModel and its Components input to a dictionary.
 
     :param esM: EnergySystemModel instance in which the optimization model is held
     :type esM: EnergySystemModel instance
@@ -34,7 +38,6 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
     :return: esmDict, compDict - dicts containing input arguments of
             EnergySysteModel and its Components input, respectively
     """
-
     # Get all input properties of the esM
     inputkwargs = inspect.getfullargspec(fn.EnergySystemModel.__init__)
 
@@ -45,6 +48,8 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
             esmDict[arg] = getattr(esM, arg)
 
     compDict = utilsIO.PowerDict()
+    if esM.isTimeSeriesDataClustered:
+        logger.info("Reconstructing timeseries from TSA")
     # Loop over all component models
     for componentModel in esM.componentModelingDict.values():
         # Loop over all components belonging to the model
@@ -197,8 +202,7 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
 
 
 def importFromDict(esmDict, compDict):
-    """
-    Converts the dictionaries created by the exportToDict function to an EnergySystemModel.
+    """Convert the dictionaries created by the exportToDict function to an EnergySystemModel.
 
     :param esMDict: dictionary created from exportToDict contains all esM information
     :type dict: dictionary instance
