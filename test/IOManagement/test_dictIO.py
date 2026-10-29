@@ -26,6 +26,10 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "annuityPerpetuity",
                 "rollingHorizonStartYear",
                 "pooledCommodities",
+                "componentLimitEligibility",
+                "componentLimitEligibility2dim",
+                "componentLimit",
+                "componentLimitGrouping",
             ),
             (
                 minimal_test_esM.locations,
@@ -45,6 +49,10 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.annuityPerpetuity,
                 minimal_test_esM.rollingHorizonStartYear,
                 minimal_test_esM.pooledCommodities,
+                minimal_test_esM.componentLimitEligibility,
+                minimal_test_esM.componentLimitEligibility2dim,
+                minimal_test_esM.componentLimit,
+                minimal_test_esM.componentLimitGrouping,
             ),
         )
     )
@@ -158,6 +166,10 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "annuityPerpetuity",
                 "rollingHorizonStartYear",
                 "pooledCommodities",
+                "componentLimitEligibility",
+                "componentLimitEligibility2dim",
+                "componentLimit",
+                "componentLimitGrouping",
             ),
             (
                 single_node_test_esM.locations,
@@ -177,6 +189,10 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.annuityPerpetuity,
                 single_node_test_esM.rollingHorizonStartYear,
                 single_node_test_esM.pooledCommodities,
+                single_node_test_esM.componentLimitEligibility,
+                single_node_test_esM.componentLimitEligibility2dim,
+                single_node_test_esM.componentLimit,
+                single_node_test_esM.componentLimitGrouping,
             ),
         )
     )
@@ -240,6 +256,10 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "annuityPerpetuity",
                 "rollingHorizonStartYear",
                 "pooledCommodities",
+                "componentLimitEligibility",
+                "componentLimitEligibility2dim",
+                "componentLimit",
+                "componentLimitGrouping",
             ),
             (
                 multi_node_test_esM_init.locations,
@@ -259,6 +279,10 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.annuityPerpetuity,
                 multi_node_test_esM_init.rollingHorizonStartYear,
                 multi_node_test_esM_init.pooledCommodities,
+                multi_node_test_esM_init.componentLimitEligibility,
+                multi_node_test_esM_init.componentLimitEligibility2dim,
+                multi_node_test_esM_init.componentLimit,
+                multi_node_test_esM_init.componentLimitGrouping,
             ),
         )
     )
