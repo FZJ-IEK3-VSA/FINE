@@ -187,6 +187,11 @@ nav:
     - Modular Examples:
           - Overview: examples/Examples/index.md
           - "Basic Tutorial": examples/Examples/_00_introduction/_2_basic_tutorial.ipynb
+          - "Sources": examples/Examples/_00_introduction/_3_sources.ipynb
+          - "Sinks": examples/Examples/_00_introduction/_4_sinks.ipynb
+          - "Conversions": examples/Examples/_00_introduction/_5_conversions.ipynb
+          - "Storages": examples/Examples/_00_introduction/_6_storages.ipynb
+          - "Transmissions": examples/Examples/_00_introduction/_7_transmissions.ipynb
 
     - Integrated Software: integrated_software.md
     - Further Reading: further_reading.md
