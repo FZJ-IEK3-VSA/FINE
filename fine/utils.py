@@ -2490,10 +2490,10 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 for x in yearly_stock.values
             ):
                 raise ValueError(f"Stock capacities in year '{year}' must be int/float")
-            if (yearly_stock < 0).any():
+            if not (yearly_stock >= 0).all():
                 raise ValueError(
-                    f"stockCommissioning of '{component.name}' is negative for {year} "
-                    + f"in location(s) {yearly_stock[yearly_stock < 0].index.tolist()}; "
+                    f"stockCommissioning of '{component.name}' is negative or NaN for {year} "
+                    + f"in location(s) {yearly_stock[~(yearly_stock >= 0)].index.tolist()}; "
                     + "stock must be >= 0."
                 )
 
