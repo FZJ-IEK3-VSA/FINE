@@ -3,8 +3,8 @@ Step 8: OPEX shift; Step 9.5: setOptimalValues/getOptimizationSummary() reportin
 fix).
 
 Mirrors the style of test_shadowCostOutput.py / test_netPresentValue.py: small,
-deterministic one-node models (commissioning forced via commissioningFix so the
-solver can't route around the exact scenario being tested) are solved end to end
+deterministic one-node models (commissioning decisions fixed so the solver can't
+route around the exact scenario being tested) are solved end to end
 and the actual solved objective/cost breakdown is inspected -- not just the Step 6
 primitives in isolation.
 
@@ -32,11 +32,31 @@ def _ip_year(ip, interval, start_year=2020):
     return start_year + ip * interval
 
 
-def _commissioning_series(commissioning_by_ip, n_ips, interval, loc=_LOC):
-    return {
-        _ip_year(ip, interval): pd.Series([commissioning_by_ip.get(ip, 0)], index=[loc])
-        for ip in range(n_ips)
-    }
+def _optimize_with_fixed_decisions(esM, decisions, **optimizeKwargs):
+    """Solve esM with the commissioning decisions of the given components fixed.
+
+    commissioningFix binds the capacity that becomes available, so it cannot force a
+    decision whose capacity arrives after the last investment period. These tests force
+    the decisions themselves by fixing the commis variables. decisions maps a component
+    name to {investment period: value or Series by location}; missing decisions are 0.
+    """
+    esM.declareOptimizationProblem(timeSeriesAggregation=False)
+    for compName, decisionsByIp in decisions.items():
+        modelName = esM.componentNames[compName]
+        abbrvName = esM.componentModelingDict[modelName].abbrvName
+        commis = getattr(esM.pyM, "commis_" + abbrvName)
+        for loc, name, ip in commis:
+            if name != compName or ip < 0:
+                continue
+            value = decisionsByIp.get(ip, 0)
+            if isinstance(value, pd.Series):
+                value = value.get(loc, 0)
+            commis[loc, name, ip].fix(value)
+    esM.optimize(
+        declaresOptimizationProblem=False,
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
 
 
 def _zero_demand_series(n_ips, interval, loc=_LOC):
@@ -86,7 +106,6 @@ def _build_leadtime_cost_model(
         commodity="electricity",
         hasCapacityVariable=True,
         operationRateMax=_op_max_series(n_ips, interval),
-        commissioningFix=_commissioning_series(commissioning_by_ip, n_ips, interval),
         investPerCapacity=invest_per_capacity,
         opexPerCapacity=opex_per_capacity,
         economicLifetime=economic_lifetime,
@@ -105,9 +124,7 @@ def _build_leadtime_cost_model(
             operationRateFix=_zero_demand_series(n_ips, interval),
         )
     )
-    esM.optimize(
-        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
-    )
+    _optimize_with_fixed_decisions(esM, {"src": commissioning_by_ip})
     return esM
 
 
@@ -669,8 +686,7 @@ def test_optimization_summary_reproduces_notebook_example_costs_scenario_fix():
 
 
 def _solve_two_node_model(componentClass, leadTime):
-    """One component with commissioningFix in 2020 at both nodes (both directions)."""
-    years = [_ip_year(ip, _INTERVAL) for ip in range(3)]
+    """One component decided in 2020 at both nodes (both directions)."""
     esM = fn.EnergySystemModel(
         locations={"a", "b"},
         commodities={"electricity"},
@@ -691,10 +707,6 @@ def _solve_two_node_model(componentClass, leadTime):
             name="comp",
             commodity="electricity",
             hasCapacityVariable=True,
-            commissioningFix={
-                year: pd.Series(_CAPACITY if year == 2020 else 0.0, index=index)
-                for year in years
-            },
             investPerCapacity=_INVEST_PER_CAPACITY,
             opexPerCapacity=5,
             interestRate=_INTEREST_RATE,
@@ -703,7 +715,9 @@ def _solve_two_node_model(componentClass, leadTime):
             leadTime=leadTime,
         )
     )
-    esM.optimize(solver=ImplementedSolvers.STANDARD_SOLVER.value)
+    _optimize_with_fixed_decisions(
+        esM, {"comp": {0: pd.Series(_CAPACITY, index=index)}}
+    )
     return esM
 
 

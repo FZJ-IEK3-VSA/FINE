@@ -221,11 +221,13 @@ class Component(metaclass=ABCMeta):
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
             If binary decision variables are declared, commissioningMin is only used
             if the component is built.
-            Note: this binds the investment/commissioning *decision* (the commis variable) at the
-            specified investment period, not the investment period in which the capacity becomes
-            physically available. If leadTime > 0 for the component, the capacity becomes available
-            roundedIpLeadTime investment periods later than the investment period specified here.
-            yearlyFullLoadHoursMin/Max (below), by contrast, bind the available capacity directly.
+            Note: like commissioningMax/Fix, this binds the capacity that becomes available in
+            the specified investment period: the decision (the commis variable) taken a lead time
+            earlier plus the stock arriving in that period (stock still under construction at the
+            start). Decisions that become available after the last investment period are not
+            bounded. In an investment period that no decision can reach (the first periods if
+            leadTime > 0), the arriving stock alone has to meet the bound, otherwise a ValueError
+            is raised. Without a lead time, the bound applies to the decision of the same period.
             |br| * the default value is None
         :type commissioningMin:
 
@@ -243,9 +245,9 @@ class Component(metaclass=ABCMeta):
             investment period. The type of this parameter depends on the dimension of the component:
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
-            Note: like commissioningMin (above), this binds the investment/commissioning *decision*,
-            not the investment period of physical availability -- see commissioningMin's note for
-            the leadTime interaction.
+            Note: like commissioningMin (above), this binds the capacity that becomes available in
+            the investment period, including arriving stock -- see commissioningMin's note for the
+            leadTime interaction. Arriving stock above commissioningMax raises a ValueError.
             |br| * the default value is None
         :type commissioningMax:
 
@@ -263,9 +265,9 @@ class Component(metaclass=ABCMeta):
             investment period. The type of this parameter depends on the dimension of the component:
             * If dimension=1dim, it has to be a Pandas Series.
             * If dimension=2dim, it has to be a Pandas Series or DataFrame.
-            Note: like commissioningMin (above), this fixes the investment/commissioning *decision*,
-            not the investment period of physical availability -- see commissioningMin's note for
-            the leadTime interaction.
+            Note: like commissioningMin (above), this fixes the capacity that becomes available in
+            the investment period, including arriving stock -- see commissioningMin's note for the
+            leadTime interaction. Arriving stock above commissioningFix raises a ValueError.
             |br| * the default value is None
         :type commissioningFix:
             * None or
@@ -462,8 +464,8 @@ class Component(metaclass=ABCMeta):
 
         :param yearlyFullLoadHoursMin: if specified, indicates the minimum yearly full load hours.
             Note: this binds the *available* capacity (the cap variable), which already reflects any
-            leadTime-based delay in physical availability -- unlike commissioningMin/Max/Fix (above),
-            no separate leadTime interaction applies here.
+            leadTime-based delay in physical availability, so no separate leadTime interaction
+            applies here.
             |br| * the default value is None
         :type yearlyFullLoadHoursMin:
 
@@ -825,6 +827,7 @@ class Component(metaclass=ABCMeta):
             esM.stochasticModel,
             stockLeadTime=self.roundedIpLeadTime,
         )
+        self._checkCommissioningBoundsAgainstStock(esM)
 
         self.pwlcfParameters = pwlcfParameters
 
@@ -955,6 +958,61 @@ class Component(metaclass=ABCMeta):
         :rtype: float
         """
         return self._stockArrivingIn(ip - lifetime, loc)
+
+    def _checkCommissioningBoundsAgainstStock(self, esM):
+        """Check that the stock alone does not violate a commissioning bound.
+
+        commissioningMin/Max/Fix bound the capacity that becomes available in an
+        investment period, which includes the stock arriving there. The decisions
+        can only add to the stock, so stock above commissioningMax or
+        commissioningFix cannot be undone. In an investment period that no decision
+        can reach (the first periods with a lead time), the stock alone must also
+        reach commissioningMin and commissioningFix. Raising here names the bound,
+        which an infeasible solve would not.
+
+        :param esM: energy system model containing general information.
+        :type esM: EnergySystemModel instance from the FINE package
+        """
+        bounds = {
+            "commissioningMax": self.processedCommissioningMax,
+            "commissioningFix": self.processedCommissioningFix,
+        }
+        if not self.hasIsBuiltBinaryVariable:
+            bounds["commissioningMin"] = self.processedCommissioningMin
+        for ip in esM.investmentPeriods:
+            for paramName, processedBound in bounds.items():
+                if processedBound[ip] is None:
+                    continue
+                for loc, value in processedBound[ip].items():
+                    stock = self._stockArrivingIn(ip, loc)
+                    tolerance = 1e-6 * max(1.0, abs(value))
+                    if paramName != "commissioningMin" and stock > value + tolerance:
+                        reason = (
+                            f"the stock that becomes available there already adds "
+                            f"up to {stock:g}"
+                        )
+                    elif paramName != "commissioningMax" and stock < value - tolerance:
+                        reachable = any(
+                            decisionIp + self.roundedIpLeadTime[decisionIp].get(loc, 0)
+                            == ip
+                            for decisionIp in esM.investmentPeriods
+                        )
+                        if reachable:
+                            continue
+                        reason = (
+                            "no decision of the model becomes available there (lead "
+                            f"time), and the arriving stock only adds up to {stock:g}"
+                        )
+                    else:
+                        continue
+                    raise ValueError(
+                        f"{paramName} of '{self.name}' at '{loc}' ({value:g} in "
+                        f"{esM.investmentPeriodNames[ip]}) cannot be met: {reason}. "
+                        "commissioningMin/Max/Fix bound the capacity that becomes "
+                        "available in a year, i.e. decisions taken a lead time earlier "
+                        "plus arriving stock (stock under construction at the start, "
+                        "or capacity passed on from an earlier rolling-horizon window)."
+                    )
 
     def addToEnergySystemModel(self, esM):
         """Add the component to an EnergySystemModel instance (esM). If the respective component class is not already in
@@ -1705,31 +1763,50 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
         """
 
         def commisBounds(pyM, loc, compName, ip):
-            """Set the lower and upper commissioning bounds."""
+            """Set the lower and upper commissioning bounds.
+
+            The bounds of an investment period apply to the capacity that becomes
+            available in it: the decision taken a lead time earlier plus the stock
+            arriving there. A decision that becomes available after the last
+            investment period is not bounded.
+            """
             comp = self.componentsDict[compName]
             if ip < 0:
                 return None, None
+            availabilityIp = ip + comp.roundedIpLeadTime[ip][loc]
+            if availabilityIp not in esM.investmentPeriods:
+                return 0, None
+            # _checkCommissioningBoundsAgainstStock ensures that the stock alone does
+            # not exceed the bounds, so clipping at 0 only absorbs round-off
+            arrivingStock = comp._stockArrivingIn(availabilityIp, loc)
             if (
-                comp.processedCommissioningFix[ip] is not None
-                and loc in comp.processedCommissioningFix[ip].index
+                comp.processedCommissioningFix[availabilityIp] is not None
+                and loc in comp.processedCommissioningFix[availabilityIp].index
             ):
                 # in utils.py there are checks to ensure that CommissioningFix is between min and max
-                return (
-                    comp.processedCommissioningFix[ip][loc],
-                    comp.processedCommissioningFix[ip][loc],
+                commisFix = max(
+                    comp.processedCommissioningFix[availabilityIp][loc] - arrivingStock,
+                    0,
                 )
+                return commisFix, commisFix
             # the upper bound is only set if the parameter is given and no binary design variable exists
             # In the case of the binary design variable, the bigM-constraint will suffice as upper bound.
             if (
-                comp.processedCommissioningMin[ip] is not None
+                comp.processedCommissioningMin[availabilityIp] is not None
                 and not comp.hasIsBuiltBinaryVariable
             ):
-                commisLowerBound = comp.processedCommissioningMin[ip][loc]
+                commisLowerBound = max(
+                    comp.processedCommissioningMin[availabilityIp][loc] - arrivingStock,
+                    0,
+                )
             else:
                 commisLowerBound = 0
 
-            if comp.processedCommissioningMax[ip] is not None:
-                commisUpperBound = comp.processedCommissioningMax[ip][loc]
+            if comp.processedCommissioningMax[availabilityIp] is not None:
+                commisUpperBound = max(
+                    comp.processedCommissioningMax[availabilityIp][loc] - arrivingStock,
+                    0,
+                )
             else:
                 commisUpperBound = None
 

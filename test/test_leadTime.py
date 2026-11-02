@@ -351,11 +351,38 @@ def _ip_loc_series(values_by_ip, n_ips, interval, location=_LEADTIME_MODEL_LOCAT
     }
 
 
+def _optimize_with_fixed_decisions(esM, decisions):
+    """Solve esM with the commissioning decisions of the given components fixed.
+
+    commissioningFix binds the capacity that becomes available, so it cannot force a
+    decision whose capacity arrives after the last investment period. These tests force
+    the decisions themselves by fixing the commis variables. decisions maps a component
+    name to {investment period: value or Series by location}; missing decisions are 0.
+    """
+    esM.declareOptimizationProblem(timeSeriesAggregation=False)
+    for compName, decisionsByIp in decisions.items():
+        modelName = esM.componentNames[compName]
+        abbrvName = esM.componentModelingDict[modelName].abbrvName
+        commis = getattr(esM.pyM, "commis_" + abbrvName)
+        for loc, name, ip in commis:
+            if name != compName or ip < 0:
+                continue
+            value = decisionsByIp.get(ip, 0)
+            if isinstance(value, pd.Series):
+                value = value.get(loc, 0)
+            commis[loc, name, ip].fix(value)
+    esM.optimize(
+        declaresOptimizationProblem=False,
+        timeSeriesAggregation=False,
+        solver=ImplementedSolvers.STANDARD_SOLVER.value,
+    )
+
+
 def _build_and_optimize_leadtime_availability_model(
     *, n_ips, interval, lead_time, technical_lifetime, demand_by_ip, commissioning_by_ip
 ):
-    """Minimal one-node model with commissioning forced via commissioningFix, so the
-    optimizer can't route around the capacity-availability logic being tested."""
+    """Minimal one-node model with the commissioning decisions fixed, so the optimizer
+    can't route around the capacity-availability logic being tested."""
     esM = fn.EnergySystemModel(
         locations={_LEADTIME_MODEL_LOCATION},
         commodities={"electricity"},
@@ -378,7 +405,6 @@ def _build_and_optimize_leadtime_availability_model(
             operationRateMax=_ip_time_series(
                 {ip: 1 for ip in range(n_ips)}, n_ips, interval
             ),
-            commissioningFix=_ip_loc_series(commissioning_by_ip, n_ips, interval),
             investPerCapacity=1,
             economicLifetime=5,
             technicalLifetime=technical_lifetime,
@@ -394,9 +420,7 @@ def _build_and_optimize_leadtime_availability_model(
             operationRateFix=_ip_time_series(demand_by_ip, n_ips, interval),
         )
     )
-    esM.optimize(
-        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
-    )
+    _optimize_with_fixed_decisions(esM, {"src": commissioning_by_ip})
     return esM
 
 
@@ -512,11 +536,6 @@ def test_leadtime_region_varying_shift_is_independent_per_location():
             operationRateMax=pd.DataFrame(
                 [[1, 1]], index=[0], columns=["loc1", "loc2"]
             ),
-            commissioningFix={
-                2020: pd.Series({"loc1": 10, "loc2": 10}),
-                2025: pd.Series({"loc1": 0, "loc2": 0}),
-                2030: pd.Series({"loc1": 0, "loc2": 0}),
-            },
             investPerCapacity=1,
             economicLifetime=5,
             technicalLifetime=20,
@@ -535,8 +554,8 @@ def test_leadtime_region_varying_shift_is_independent_per_location():
             ),
         )
     )
-    esM.optimize(
-        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    _optimize_with_fixed_decisions(
+        esM, {"src": {0: pd.Series({"loc1": 10, "loc2": 10})}}
     )
     resultsLoc1 = _read_design_variables(esM, location="loc1")
     resultsLoc2 = _read_design_variables(esM, location="loc2")
@@ -643,10 +662,6 @@ def _build_and_optimize_stock_model(
             _ip_year(ip, interval): _loc_series(value)
             for ip, value in capacity_fix_by_ip.items()
         }
-    else:
-        sourceKwargs["commissioningFix"] = _ip_loc_series(
-            commissioning_by_ip or {}, n_ips, interval
-        )
     if capacity_max is not None:
         sourceKwargs["capacityMax"] = capacity_max
     esM.add(
@@ -675,11 +690,13 @@ def _build_and_optimize_stock_model(
             operationRateFix=_ip_time_series(demand_by_ip or {}, n_ips, interval),
         )
     )
-    if optimize:
+    if optimize and capacity_fix_by_ip is not None:
         esM.optimize(
             timeSeriesAggregation=False,
             solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
+    elif optimize:
+        _optimize_with_fixed_decisions(esM, {"src": commissioning_by_ip or {}})
     return esM
 
 
@@ -760,7 +777,6 @@ def test_stock_lead_time_per_location():
         lengthUnit="km",
         verboseLogLevel=0,
     )
-    zero = pd.Series({"loc1": 0, "loc2": 0})
     esM.add(
         fn.Source(
             esM=esM,
@@ -770,7 +786,6 @@ def test_stock_lead_time_per_location():
             operationRateMax=pd.DataFrame(
                 [[1, 1]], index=[0], columns=["loc1", "loc2"]
             ),
-            commissioningFix={2020: zero, 2025: zero, 2030: zero},
             investPerCapacity=1,
             economicLifetime=5,
             technicalLifetime=20,
@@ -784,9 +799,7 @@ def test_stock_lead_time_per_location():
             stockCommissioning={2015: pd.Series({"loc1": 10, "loc2": 10})},
         )
     )
-    esM.optimize(
-        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
-    )
+    _optimize_with_fixed_decisions(esM, {"src": {}})
     _assert_expected(
         _read_design_variables(esM, location="loc1"), "cap", {0: 10, 1: 10, 2: 10}
     )
@@ -869,9 +882,7 @@ def test_stock_lead_time_survives_dict_export_import_round_trip():
     )
     esmDict, compDict = fn.dictIO.exportToDict(esM)
     rebuilt = fn.dictIO.importFromDict(esmDict, compDict)
-    rebuilt.optimize(
-        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
-    )
+    _optimize_with_fixed_decisions(rebuilt, {"src": {}})
     assert _read_design_variables(rebuilt) == _read_design_variables(esM)
 
 
@@ -1042,11 +1053,6 @@ def test_leadtime_per_ip_dict_with_per_location_series_gives_independent_maps():
             operationRateMax=pd.DataFrame(
                 [[1, 1]], index=[0], columns=["loc1", "loc2"]
             ),
-            commissioningFix={
-                2020: pd.Series({"loc1": 10, "loc2": 10}),
-                2025: pd.Series({"loc1": 0, "loc2": 0}),
-                2030: pd.Series({"loc1": 0, "loc2": 0}),
-            },
             investPerCapacity=1,
             economicLifetime=5,
             technicalLifetime=20,
@@ -1070,8 +1076,8 @@ def test_leadtime_per_ip_dict_with_per_location_series_gives_independent_maps():
             ),
         )
     )
-    esM.optimize(
-        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    _optimize_with_fixed_decisions(
+        esM, {"src": {0: pd.Series({"loc1": 10, "loc2": 10})}}
     )
     resultsLoc1 = _read_design_variables(esM, location="loc1")
     resultsLoc2 = _read_design_variables(esM, location="loc2")
@@ -1128,18 +1134,20 @@ def test_leadtime_per_ip_decommissioning_uses_the_decision_periods_own_lead():
 
 
 # ---------------------------------------------------------------------------
-# commissioningMin / yearlyFullLoadHoursMin interaction with leadTime (decision #8).
-# Ported from the (now-deleted) 12_leadTimes_check_commissioningMin.ipynb and
+# commissioningMin/Max/Fix and yearlyFullLoadHoursMin with leadTime: all of them bind
+# the capacity that becomes available. commissioningMin/Max/Fix of a year bound the
+# decision taken a lead time earlier plus the stock arriving in that year. Ported in
+# part from the (now-deleted) 12_leadTimes_check_commissioningMin.ipynb and
 # 12_leadTimes_check_yearlyFullLoadHours.ipynb example notebooks -- see
 # examples/12_LeadTimes/12_leadTimes_example.ipynb for an illustrative, non-test
 # walkthrough instead.
 # ---------------------------------------------------------------------------
 
 
-def test_leadtime_commissioningmin_binds_decision_not_availability():
-    """commissioningMin binds the investment/commissioning decision (commis), not
-    physical availability -- decision #8, exactly like commissioningFix. The forced
-    minimum still only becomes available once leadTime has elapsed."""
+def _build_commissioning_bound_model(
+    *, n_ips=2, lead_time=5, demand_by_ip=None, stock=None, optimize=True, **bounds
+):
+    """One-node model whose Source has the given commissioning bounds (by year)."""
     esM = fn.EnergySystemModel(
         locations={_LEADTIME_MODEL_LOCATION},
         commodities={"electricity"},
@@ -1147,7 +1155,7 @@ def test_leadtime_commissioningmin_binds_decision_not_availability():
         numberOfTimeSteps=1,
         hoursPerTimeStep=1,
         startYear=2020,
-        numberOfInvestmentPeriods=2,
+        numberOfInvestmentPeriods=n_ips,
         investmentPeriodInterval=5,
         costUnit="Euro",
         lengthUnit="km",
@@ -1159,15 +1167,16 @@ def test_leadtime_commissioningmin_binds_decision_not_availability():
             name="src",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=_ip_time_series({0: 1, 1: 1}, 2, 5),
-            # minimum of 2 forced in ip=0, exceeding what ip=1's demand of 1 alone
-            # would require -- makes the constraint visibly bind, not just coincide
-            # with what the model would have chosen anyway.
-            commissioningMin=_ip_loc_series({0: 2, 1: 0}, 2, 5),
+            operationRateMax=_ip_time_series({ip: 1 for ip in range(n_ips)}, n_ips, 5),
             investPerCapacity=1,
             economicLifetime=5,
             technicalLifetime=20,
-            leadTime=5,
+            leadTime=lead_time,
+            stockCommissioning=stock,
+            **{
+                name: _ip_loc_series(valuesByIp, n_ips, 5)
+                for name, valuesByIp in bounds.items()
+            },
         )
     )
     esM.add(
@@ -1176,21 +1185,130 @@ def test_leadtime_commissioningmin_binds_decision_not_availability():
             name="sink",
             commodity="electricity",
             hasCapacityVariable=False,
-            operationRateFix=_ip_time_series({0: 0, 1: 1}, 2, 5),
+            operationRateFix=_ip_time_series(demand_by_ip or {}, n_ips, 5),
         )
     )
-    esM.optimize(
-        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
-    )
+    if optimize:
+        esM.optimize(
+            timeSeriesAggregation=False,
+            solver=ImplementedSolvers.STANDARD_SOLVER.value,
+        )
+    return esM
+
+
+def test_leadtime_commissioningmin_binds_availability():
+    """The minimum of 2025 forces the decision of 2020, which becomes available then.
+
+    The minimum of 2 exceeds the demand of 1, so the bound visibly binds.
+    """
+    esM = _build_commissioning_bound_model(demand_by_ip={1: 1}, commissioningMin={1: 2})
     results = _read_design_variables(esM)
     _assert_expected(results, "commis", {0: 2, 1: 0})
     _assert_expected(results, "cap", {0: 0, 1: 2})
 
 
+def test_leadtime_commissioningmax_binds_availability():
+    """The maximum of 2020 is 0, yet the decision of 2020 builds 3.
+
+    Its capacity arrives in 2025, where the bound is 3. Bound by the decision year
+    instead, the model could not meet the demand of 2025.
+    """
+    esM = _build_commissioning_bound_model(
+        n_ips=3, demand_by_ip={1: 3, 2: 10}, commissioningMax={0: 0, 1: 3, 2: 10}
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "commis", {0: 3, 1: 7, 2: 0})
+    _assert_expected(results, "cap", {0: 0, 1: 3, 2: 10})
+
+
+def test_leadtime_commissioning_bounds_leave_decisions_after_the_horizon_free():
+    """A decision that becomes available after the last period has no bound."""
+    esM = _build_commissioning_bound_model(
+        commissioningMax={0: 3, 1: 3}, optimize=False
+    )
+    esM.declareOptimizationProblem(timeSeriesAggregation=False)
+    commis = esM.pyM.commis_srcSnk
+    assert commis[_LEADTIME_MODEL_LOCATION, "src", 0].bounds == (0, 3)
+    assert commis[_LEADTIME_MODEL_LOCATION, "src", 1].bounds == (0, None)
+
+
+def test_leadtime_commissioning_bounds_follow_a_varying_lead_time():
+    """The fixed value of 2025 binds the decision of 2020 (lead time 1 IP).
+
+    The decision of 2025 has a lead time of 2 IPs, so no decision reaches 2030 and its
+    bound must be 0.
+    """
+    esM = _build_commissioning_bound_model(
+        n_ips=3,
+        lead_time={2020: 5, 2025: 10, 2030: 10},
+        commissioningFix={0: 0, 1: 7, 2: 0},
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "commis", {0: 7, 1: 0, 2: 0})
+    _assert_expected(results, "cap", {0: 0, 1: 7, 2: 7})
+
+
+def test_leadtime_commissioning_bounds_count_arriving_stock():
+    """Stock arriving in 2025 counts against commissioningFix there.
+
+    The stock was decided in 2015 with a lead time of 2 IPs, so the decision of 2020
+    only adds the rest.
+    """
+    esM = _build_commissioning_bound_model(
+        n_ips=2,
+        lead_time={2015: 10, 2020: 5, 2025: 5},
+        stock={2015: _loc_series(4)},
+        commissioningFix={0: 0, 1: 10},
+    )
+    results = _read_design_variables(esM)
+    _assert_expected(results, "commis", {0: 6, 1: 0})
+    _assert_expected(results, "cap", {0: 0, 1: 10})
+
+
+def test_leadtime_commissioning_bound_met_by_stock_alone_is_accepted():
+    """2020 can be reached by no decision; the stock arriving there meets the bound."""
+    esM = _build_commissioning_bound_model(
+        lead_time={2015: 5, 2020: 5, 2025: 5},
+        stock={2015: _loc_series(10)},
+        commissioningFix={0: 10, 1: 0},
+    )
+    _assert_expected(_read_design_variables(esM), "cap", {0: 10, 1: 10})
+
+
+@pytest.mark.parametrize(
+    "bounds, match",
+    [
+        (
+            {"commissioningMax": {0: 0, 1: 5}},
+            "commissioningMax .* already adds up to 10",
+        ),
+        (
+            {"commissioningFix": {0: 0, 1: 5}},
+            "commissioningFix .* already adds up to 10",
+        ),
+    ],
+)
+def test_leadtime_stock_above_a_commissioning_bound_raises(bounds, match):
+    with pytest.raises(ValueError, match=match):
+        _build_commissioning_bound_model(
+            lead_time={2015: 10, 2020: 5, 2025: 5},
+            stock={2015: _loc_series(10)},
+            optimize=False,
+            **bounds,
+        )
+
+
+@pytest.mark.parametrize("bound", ["commissioningMin", "commissioningFix"])
+def test_leadtime_commissioning_bound_no_decision_can_reach_raises(bound):
+    """With a lead time of 1 IP, only stock can arrive in 2020."""
+    with pytest.raises(ValueError, match="no decision of the model becomes available"):
+        _build_commissioning_bound_model(**{bound: {0: 1, 1: 0}}, optimize=False)
+
+
 def test_leadtime_yearlyfullloadhoursmin_binds_available_capacity():
     """yearlyFullLoadHoursMin binds the *available* capacity (cap), which already
-    reflects the leadTime delay -- decision #8. Unlike commissioningFix/Min/Max, no
-    extra leadTime-aware handling is needed: the constraint is naturally inactive
+    reflects the leadTime delay -- decision #8. Like commissioningFix/Min/Max, it acts
+    on the capacity that becomes available: the constraint is naturally inactive
     while cap=0 (during construction) and forces full operation once cap becomes
     available.
 
@@ -1219,7 +1337,8 @@ def test_leadtime_yearlyfullloadhoursmin_binds_available_capacity():
             commodity="electricity",
             hasCapacityVariable=True,
             operationRateMax=_ip_time_series({0: 1, 1: 1}, 2, 5),
-            commissioningFix=_ip_loc_series({0: 1, 1: 0}, 2, 5),
+            # 1 decided in 2020, available in 2025
+            commissioningFix=_ip_loc_series({0: 0, 1: 1}, 2, 5),
             yearlyFullLoadHoursMin=8760,
             investPerCapacity=1,
             economicLifetime=5,
@@ -1302,7 +1421,8 @@ def test_leadtime_shifts_the_vintages_of_a_storage_with_cyclic_lifetime():
             name="store",
             commodity="electricity",
             hasCapacityVariable=True,
-            commissioningFix=_ip_loc_series({0: 10, 1: 0}, 2, 5),
+            # 10 decided in 2020, available in 2025
+            commissioningFix=_ip_loc_series({0: 0, 1: 10}, 2, 5),
             cyclicLifetime=1e6,
             opexPerChargeOperation=1e-3,
             investPerCapacity=1,
