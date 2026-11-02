@@ -26,6 +26,7 @@ from fine.expansionModules.rollingHorizon import (
     _STOCK_COMMISSIONING_DIGITS,
     _buildIntervalEsm,
     _expandLeadTimeForPassedOnStock,
+    _filterComponentLimitForInterval,
     _filterComponentParametersForInterval,
     _previousCommissioning,
     _roundedStockLeadTimeInYears,
@@ -720,6 +721,11 @@ def sequentialStochasticOptimization(
     )
 
     esmDict, compDict = fn.dictIO.exportToDict(esM)
+    # refuse a componentLimit range that crosses a window before any window is solved
+    for plan in plans:
+        _filterComponentLimitForInterval(
+            esmDict, years[plan.start : plan.start + plan.length], esM
+        )
     # as in rollingHorizonOptimization: every window discounts its NPVcontributionRH onto
     # the first year of the whole pathway, without modifying esM itself
     esmDict["rollingHorizonStartYear"] = (

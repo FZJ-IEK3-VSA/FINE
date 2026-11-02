@@ -15,6 +15,7 @@ from pyomo.common.errors import ApplicationError
 from pyomo import opt
 from pyomo.contrib.appsi.base import LegacySolverInterface
 from pyomo.contrib.appsi.solvers import Highs
+from pyomo.repn import generate_standard_repn
 import tsam
 from tsam import ClusterConfig, ExtremeConfig, SegmentConfig
 
@@ -302,7 +303,10 @@ class EnergySystemModel:
             * "value": the bound. For "lower", "upper" and "fixed" it is a float in the unit of the
               limited quantity. For "shareMax" and "shareMin" it is a fraction between 0 and 1.
             * "bound": "lower", "upper", "fixed", "shareMax" or "shareMin"
-            * "type": "capacity", "commissioning" or "operation"
+            * "type": "capacity", "commissioning" or "operation". A "commissioning" row bounds the capacity
+              that becomes available in its investment period: a decision counts in the period its leadTime
+              ends in, not in the period it is taken in, and stock that arrives in the period (stock still
+              under construction at the start) counts as well.
             * "commodity": the commodity a Conversion contributes in, or None
 
             Optional columns:
@@ -1600,6 +1604,12 @@ class EnergySystemModel:
         single investment period (``ip``), or to a range of them (``ip`` up to and
         including ``ipEnd``) for perfect foresight.
 
+        For "commissioning", :math:`E^{comp}` is the capacity that becomes
+        available in the period: the decision whose lead time ends in it plus the
+        arriving stock (see :meth:`ComponentModel.getArrivingCommissioning`). An
+        "upper" or "fixed" bound below the arriving stock alone raises a
+        ``ValueError``.
+
         This is **not** the same constraint as ``balanceLimit``, despite the
         similar name. ``balanceLimit`` bounds a signed *commodity balance* and
         produces one constraint per location; ``componentLimit`` bounds the
@@ -1722,6 +1732,35 @@ class EnergySystemModel:
                 groups.setdefault(label, []).append(loc)
             return groups
 
+        def _checkArrivingStock(ID, ip, ipEnd, bound, value, limitSum):
+            """Raise if the stock arriving in the limited periods exceeds the bound.
+
+            Stock counts against a commissioning limit. It is fixed, and the
+            commissioning variables can only add to it, so an "upper" or "fixed"
+            bound below the arriving stock cannot be met. Raising here names the
+            limit, which an infeasible solve would not.
+            """
+            if bound not in ("upper", "fixed"):
+                return
+            if isinstance(limitSum, (int, float)):
+                stock = float(limitSum)
+            else:
+                stock = generate_standard_repn(limitSum).constant
+            if stock <= value + 1e-6 * max(1.0, abs(value)):
+                return
+            # a NaN in ipEnd turns both columns into floats
+            periods = str(self.investmentPeriodNames[int(ip)])
+            if pd.notna(ipEnd):
+                periods += f" to {self.investmentPeriodNames[int(ipEnd)]}"
+            raise ValueError(
+                f"The componentLimit '{ID}' ({bound} bound {value:g}, type "
+                f"'commissioning') cannot be met in {periods}: the stock that "
+                f"becomes available there already adds up to {stock:g}. Stock "
+                "counts against a commissioning limit, including stock still "
+                "under construction at the start and capacity passed on as stock "
+                "from an earlier rolling-horizon window."
+            )
+
         # collect one entry per componentLimit row, keyed by everything the pyomo
         # constraint rule needs to rebuild the expression
         yearlyComponentLimitDict = {}
@@ -1768,6 +1807,8 @@ class EnergySystemModel:
                 (ID, ip, ipEnd, bound, limitType, value, commodity)
             ]
             limitSum = _limitExpr(locs, componentNames, ip, ipEnd, limitType, commodity)
+            if limitType == "commissioning":
+                _checkArrivingStock(ID, ip, ipEnd, bound, value, limitSum)
             # no decision variable contributes -> nothing to constrain
             if isinstance(limitSum, (int, float)):
                 return pyomo.Constraint.Skip

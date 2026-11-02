@@ -116,8 +116,12 @@ where $\lesseqgtr$ is $\leq$, $\geq$ or $=$ for a $\text{bound}$ of `"upper"`, `
 $E^\text{comp}$ is
 
 - the installed capacity $k_\text{c,l,ip}$ for a $\text{type}$ of `"capacity"`,
-- the newly commissioned capacity for a $\text{type}$ of `"commissioning"`,
+- the commissioned capacity that becomes available in $\text{ip}$ for a $\text{type}$ of `"commissioning"`,
 - the annual operation for a $\text{type}$ of `"operation"`.
+
+For `"commissioning"`, a decision counts in the investment period its lead time ends in, not in the one it is
+taken in. Stock that becomes available in $\text{ip}$, such as stock still under construction at the start,
+counts as well. Without lead times this is the capacity commissioned in $\text{ip}$.
 
 ### Share bounds
 

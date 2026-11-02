@@ -3324,3 +3324,52 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
             if compDict[compName].sharedPotentialID == key
             and (loc, compName, ip) in capVarSet
         )
+
+    def getArrivingCommissioning(self, esM, pyM, loc, compName, ip):
+        """Get the capacity of a component that becomes available in investment period ip.
+
+        This is the commissioning decision whose lead time ends in ip, plus the stock
+        that arrives in ip: stock still under construction at the start, and capacity
+        passed on as stock from an earlier rolling-horizon window. Without a lead time
+        it is the commissioning variable of ip itself. A componentLimit with
+        type="commissioning" bounds this quantity, so it uses the same lookup as the
+        capacity development constraint.
+
+        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
+        :type esM: EnergySystemModel instance
+
+        :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
+        :type pyM: pyomo ConcreteModel
+
+        :param loc: location (1-dim) or connection (2-dim)
+        :type loc: string
+
+        :param compName: name of the component
+        :type compName: string
+
+        :param ip: investment period
+        :type ip: int
+
+        :returns: the commissioning variable of the arriving decision plus the
+            arriving stock, or only the arriving stock if no decision becomes
+            available in ip
+        :rtype: pyomo expression or float
+        """
+        comp = self.componentsDict[compName]
+        if comp.leadTimeVariesByInvestmentPeriod:
+            availabilityMap = comp._getLeadTimeAvailabilityMap(esM, loc)
+            decisionIp = next(
+                (
+                    _decisionIp
+                    for _decisionIp, availIp in availabilityMap.items()
+                    if availIp == ip
+                ),
+                None,
+            )
+        else:
+            decisionIp = ip - comp.roundedIpLeadTime[ip][loc]
+        arrivingStock = comp._stockArrivingIn(ip, loc)
+        if decisionIp is not None and decisionIp in esM.investmentPeriods:
+            commisVar = getattr(pyM, "commis_" + self.abbrvName)
+            return commisVar[loc, compName, decisionIp] + arrivingStock
+        return arrivingStock

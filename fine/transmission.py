@@ -951,7 +951,8 @@ class TransmissionModel(ComponentModel):
 
         :param limitType: Quantity the componentLimit applies to. One of "operation"
             (annual operation), "capacity" (installed capacity) or "commissioning"
-            (newly commissioned capacity).
+            (commissioned capacity that becomes available in the period, i.e. after
+            its lead time, including arriving stock).
         :type limitType: string
 
         :returns: the summed contribution as a pyomo expression, or None if no
@@ -1057,7 +1058,6 @@ class TransmissionModel(ComponentModel):
                 )
                 aut = aut / 2
         elif limitType == "commissioning":
-            commisVar = getattr(pyM, "commis_" + abbrvName)
             if isinstance(ip, (list, tuple)):
                 start_ip, end_ip = ip
                 relevant_indices = [
@@ -1068,17 +1068,22 @@ class TransmissionModel(ComponentModel):
             else:
                 relevant_indices = [ip]
 
+            # the capacity that becomes available, i.e. decisions after their lead
+            # time plus arriving stock
+            def arriving(connection, compName, i):
+                return self.getArrivingCommissioning(esM, pyM, connection, compName, i)
+
             if isinstance(loc[0], tuple):
                 # For a specific set of connections (loc0 <-> loc1)
                 aut_list = []
                 for loc0, loc1 in loc:
                     _aut = sum(
-                        commisVar[loc1 + "_" + loc0, compName, i]
+                        arriving(loc1 + "_" + loc0, compName, i)
                         for i in relevant_indices
                         for compName in opVarDictIn[i][loc0].get(loc1, {})
                         if compName in componentNames
                     ) + sum(
-                        commisVar[loc0 + "_" + loc1, compName, i]
+                        arriving(loc0 + "_" + loc1, compName, i)
                         for i in relevant_indices
                         for compName in opVarDictIn[i][loc0].get(loc1, {})
                         if compName in componentNames
@@ -1089,13 +1094,13 @@ class TransmissionModel(ComponentModel):
             else:
                 # For a specific region (sum of all incoming/outgoing)
                 aut = sum(
-                    commisVar[loc_ + "_" + loc, compName, i]
+                    arriving(loc_ + "_" + loc, compName, i)
                     for i in relevant_indices
                     for loc_ in opVarDictIn[i][loc].keys()
                     for compName in opVarDictIn[i][loc][loc_]
                     if compName in componentNames
                 ) + sum(
-                    commisVar[loc + "_" + loc_, compName, i]
+                    arriving(loc + "_" + loc_, compName, i)
                     for i in relevant_indices
                     for loc_ in opVarDictOut[i][loc].keys()
                     for compName in opVarDictOut[i][loc][loc_]

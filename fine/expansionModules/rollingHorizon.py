@@ -725,6 +725,88 @@ def _loadCachedInterval(
     return candidateEsm
 
 
+_COMPONENT_LIMIT_TABLES = (
+    "componentLimitEligibility",
+    "componentLimitEligibility2dim",
+    "componentLimitGrouping",
+)
+
+
+def _filterComponentLimitForInterval(esmDict, rollingHorizonYears, esM):
+    """Restrict the componentLimit of the whole pathway to the years of one interval.
+
+    A row applies to the year in its "ip" column, or to the years from "ip" to "ipEnd".
+    A row whose years all lie in the interval is kept, one whose years all lie outside
+    is dropped. A range that crosses the start or the end of the interval is refused:
+    its value would have to be split between the intervals, which is not implemented.
+    The IDs left without a row are dropped from the eligibility and grouping tables as
+    well; :func:`_buildIntervalEsm` drops them from the components' componentLimitID.
+
+    :param esmDict: energy system model dict of the whole pathway, as exported by
+        dictIO.exportToDict.
+    :type esmDict: dict
+
+    :param rollingHorizonYears: investment period years this interval spans.
+    :type rollingHorizonYears: list of int
+
+    :param esM: the original energy system model of the whole pathway.
+    :type esM: EnergySystemModel instance
+
+    :return: the componentLimit arguments of the interval's energy system model, and the
+        componentLimitIDs it keeps (None if the pathway has no componentLimit)
+    :rtype: tuple of (dict, set of string or None)
+
+    :raises NotImplementedError: if a range crosses the start or the end of the interval.
+    """
+    componentLimit = esmDict.get("componentLimit")
+    if componentLimit is None:
+        return {}, None
+    componentLimit = componentLimit.copy()
+    # without an ip, a row applies to the first investment period of the pathway, which
+    # is not the first one of the interval
+    if "ip" not in componentLimit.columns:
+        componentLimit["ip"] = esM.investmentPeriodNames[0]
+    componentLimit["ip"] = componentLimit["ip"].where(
+        componentLimit["ip"].notna(), esM.investmentPeriodNames[0]
+    )
+    if "ipEnd" not in componentLimit.columns:
+        componentLimit["ipEnd"] = None
+
+    firstYear, lastYear = rollingHorizonYears[0], rollingHorizonYears[-1]
+    keep, crossing = [], []
+    for componentLimitID, row in componentLimit.iterrows():
+        start = row["ip"]
+        end = row["ipEnd"] if pd.notna(row["ipEnd"]) else start
+        inside = firstYear <= start and end <= lastYear
+        outside = end < firstYear or start > lastYear
+        if not (inside or outside):
+            crossing.append(f"{componentLimitID} ({start}-{end})")
+        keep.append(inside)
+    if crossing:
+        raise NotImplementedError(
+            "A componentLimit row whose range of years crosses the start or the end of "
+            f"a window ({firstYear}-{lastYear}) is not supported yet, because its value "
+            "would have to be split between the windows. Give the limit per year "
+            "instead (ip == year, ipEnd empty). Offending componentLimitID(s): "
+            f"{crossing}."
+        )
+
+    intervalLimit = componentLimit[keep]
+    keptIDs = set(intervalLimit.index)
+    if not keptIDs:
+        # componentLimit and componentLimitEligibility are either both given or both None
+        arguments = {"componentLimit": None}
+        arguments.update({name: None for name in _COMPONENT_LIMIT_TABLES})
+        return arguments, keptIDs
+    arguments = {"componentLimit": intervalLimit}
+    for name in _COMPONENT_LIMIT_TABLES:
+        table = esmDict.get(name)
+        if isinstance(table, pd.DataFrame):
+            table = table[[column for column in table.columns if column in keptIDs]]
+        arguments[name] = table
+    return arguments, keptIDs
+
+
 def _buildIntervalEsm(
     esmDict,
     rollingHorizonCompDict,
@@ -773,16 +855,28 @@ def _buildIntervalEsm(
                 for (_year, _value) in value.items()
                 if _year in rollingHorizonYears
             }
+    componentLimitArguments, componentLimitIDs = _filterComponentLimitForInterval(
+        esmDict, rollingHorizonYears, esM
+    )
+    rollingHorizonEsmDict.update(componentLimitArguments)
     rollingHorizonEsm = fn.EnergySystemModel(**rollingHorizonEsmDict)
     # add components per class
     for classname in rollingHorizonCompDict:
         for comp in rollingHorizonCompDict[classname]:
+            compArguments = rollingHorizonCompDict[classname][comp]
+            # a component may only name the componentLimitIDs the interval keeps; the
+            # dict itself stays as it is, the rolling horizon cache compares against it
+            if componentLimitIDs is not None and compArguments.get("componentLimitID"):
+                compArguments = dict(compArguments)
+                compArguments["componentLimitID"] = [
+                    ID
+                    for ID in compArguments["componentLimitID"]
+                    if ID in componentLimitIDs
+                ] or None
             rollingHorizonEsm.add(
                 getattr(fn, classname)(
                     esM=rollingHorizonEsm,
-                    **rollingHorizonCompDict[classname][
-                        comp
-                    ],  # information of component
+                    **compArguments,  # information of component
                 )
             )
     return rollingHorizonEsm
@@ -920,6 +1014,12 @@ def rollingHorizonOptimization(
     What a window does not see is the cost it commits its successors to beyond its own last year - that is
     what limited foresight means, and it is stronger the smaller the window. As under perfect foresight, cost
     falling beyond the last year of the pathway is not booked at all.
+
+    Component limits: every window keeps the componentLimit rows of the years it spans and drops the others.
+    A "commissioning" row counts the capacity that becomes available in its year, so a decision of an earlier
+    window that arrives in a later one, as stock, counts against that later window's limit of the year. A
+    row with a range of years (ipEnd) is refused if any window holds only part of its years, because its
+    value would have to be split between the windows; give such a limit per year instead.
 
     **Required arguments:**
 
@@ -1122,6 +1222,9 @@ def rollingHorizonOptimization(
 
     # extract all information of original esM
     esmDict, compDict = fn.dictIO.exportToDict(esM)
+    # refuse a componentLimit range that crosses a window before any window is solved
+    for rollingHorizonYears in rollingHorizonIntervals:
+        _filterComponentLimitForInterval(esmDict, rollingHorizonYears, esM)
 
     # Every window inherits the first year of the whole pathway, so that the
     # NPVcontributionRH rows of all windows are discounted onto one shared reference year

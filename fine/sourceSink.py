@@ -889,7 +889,8 @@ class SourceSinkModel(ComponentModel):
 
         :param limitType: Quantity the componentLimit applies to. One of "operation"
             (annual operation), "capacity" (installed capacity) or "commissioning"
-            (newly commissioned capacity).
+            (commissioned capacity that becomes available in the period, i.e. after
+            its lead time, including arriving stock).
         :type limitType: string
 
         :returns: the summed contribution as a pyomo expression, or None if no
@@ -954,7 +955,6 @@ class SourceSinkModel(ComponentModel):
                 return None
             return balance
         if limitType == "commissioning":
-            commisVar = getattr(pyM, "commis_" + abbrvName)
             if isinstance(ip, tuple):
                 start_ip, end_ip = ip
                 relevant_indices = [
@@ -962,21 +962,19 @@ class SourceSinkModel(ComponentModel):
                     for idx, ip in enumerate(esM.investmentPeriods)
                     if start_ip <= ip <= end_ip
                 ]
-                balance = sum(
-                    commisVar[loc, compName, i]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                    for i in relevant_indices
-                )
             else:
-                balance = sum(
-                    commisVar[loc, compName, ip]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                )
-            if isinstance(balance, int) or isinstance(balance, float):
+                relevant_indices = [ip]
+            # the capacity that becomes available, i.e. decisions after their lead
+            # time plus arriving stock
+            balance = sum(
+                self.getArrivingCommissioning(esM, pyM, loc, compName, i)
+                for compName in compDict.keys()
+                if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
+                for i in relevant_indices
+            )
+            # arriving stock counts even when no decision becomes available
+            if isinstance(balance, (int, float)) and balance == 0:
                 return None
             return balance
         raise ValueError(
