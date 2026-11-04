@@ -620,7 +620,7 @@ def sequentialStochasticOptimization(
     is undervalued there (the window sees its cost but not all of its use), which warns
     before the first window is solved. A commissioning bound of the year it becomes
     available (commissioningMin/Max/Fix, or a componentLimit of type "commissioning")
-    cannot act on it: a lower or fixed one raises before solving, an upper one warns.
+    cannot act on it and raises before solving.
 
     Under MPI, every process runs the loop. It has to build identical trees, and the
     windows' results hold only the scenarios of the process.

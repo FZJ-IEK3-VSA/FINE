@@ -762,12 +762,10 @@ def _checkWindowsAgainstLeadTimes(esM, windows):
     this warns. A bound on the capacity that becomes available in that year
     (commissioningMin/Max/Fix, or a componentLimit of type "commissioning") cannot act on
     such a decision either, since the window that takes it does not hold the year, and
-    the window that does receives the capacity as stock. A lower or fixed bound raises
-    here, before any window is solved: it would otherwise be met by chance at best, and
-    raise in a later window once the stock arrives. A commissioningMin that the stock
-    alone already meets is exempt. An upper bound warns: the window that takes the
-    decision is not limited by it, and the window that holds the year raises if the
-    decision exceeds it.
+    the window that does receives the capacity as stock. Such a bound raises here, before
+    any window is solved: it would otherwise be met by chance at best, and a later window
+    would raise once the stock arrives, after the earlier windows were solved. A
+    commissioningMin that the stock alone already meets is exempt.
 
     :param esM: the pathway model
     :type esM: EnergySystemModel instance
@@ -805,7 +803,7 @@ def _checkWindowsAgainstLeadTimes(esM, windows):
             f"{names[decisionIp]})"
         )
 
-    lowerBounds, upperBounds = [], []
+    bounds = []
     for compName, entries in late.items():
         comp = esM.getComponent(compName)
         for key, decisionIp, availabilityIp in entries:
@@ -818,16 +816,16 @@ def _checkWindowsAgainstLeadTimes(esM, windows):
                 return bound is not None and key in bound.index
 
             if given(comp.processedCommissioningFix):
-                lowerBounds.append(f"commissioningFix of {where}")
+                bounds.append(f"commissioningFix of {where}")
             elif given(comp.processedCommissioningMin) and (
                 not comp.hasIsBuiltBinaryVariable
             ):
                 value = comp.processedCommissioningMin[availabilityIp][key]
                 stock = comp._stockArrivingIn(availabilityIp, key)
                 if stock < value - 1e-6 * max(1.0, abs(value)):
-                    lowerBounds.append(f"commissioningMin of {where}")
+                    bounds.append(f"commissioningMin of {where}")
             if given(comp.processedCommissioningMax):
-                upperBounds.append(f"commissioningMax of {where}")
+                bounds.append(f"commissioningMax of {where}")
 
     componentLimit = getattr(esM, "processedComponentLimit", None)
     if componentLimit is not None and not componentLimit.empty:
@@ -857,22 +855,19 @@ def _checkWindowsAgainstLeadTimes(esM, windows):
                     ):
                         continue
                     where = describe(compName, key, decisionIp, availabilityIp)
-                    if row["bound"] == "upper":
-                        upperBounds.append(f"componentLimit '{ID}' for {where}")
-                    else:
-                        lowerBounds.append(f"componentLimit '{ID}' for {where}")
+                    bounds.append(f"componentLimit '{ID}' for {where}")
 
     def listed(entries):
         shown = "; ".join(sorted(set(entries))[:10])
         more = len(set(entries)) - 10
         return shown + (f"; and {more} more" if more > 0 else "")
 
-    if lowerBounds:
+    if bounds:
         raise ValueError(
-            "These lower or fixed commissioning bounds bind capacity that a window decides "
-            "on but that only becomes available after the end of that window, so no "
-            f"window can enforce them: {listed(lowerBounds)}. Use windows that span at "
-            "least the implemented years plus the longest lead time, or drop the bounds."
+            "These commissioning bounds bind capacity that a window decides on but that "
+            "only becomes available after the end of that window, so no window can "
+            f"enforce them: {listed(bounds)}. Use windows that span at least the "
+            "implemented years plus the longest lead time, or drop the bounds."
         )
     longest = {
         compName: max(
@@ -880,20 +875,13 @@ def _checkWindowsAgainstLeadTimes(esM, windows):
         )
         for compName, entries in late.items()
     }
-    message = (
+    warnings.warn(
         "Some implemented decisions become available only after the end of the window "
         "that takes them (component: longest such lead time in investment periods: "
         f"{longest}). The window sees their cost but not all of their use, so they are "
         "undervalued and maybe never taken. Use windows that span at least the "
         "implemented years plus the longest lead time, plus some operating years."
     )
-    if upperBounds:
-        message += (
-            " These upper commissioning bounds cannot limit those decisions, and the "
-            "window that holds their year raises if a decision exceeds them: "
-            f"{listed(upperBounds)}."
-        )
-    warnings.warn(message)
 
 
 _COMPONENT_LIMIT_TABLES = (
@@ -1195,8 +1183,8 @@ def rollingHorizonOptimization(
     Lead times: a window implements the decisions of its first year. If one of them becomes available only
     after the end of the window, the window sees its cost but not all of its use, which undervalues long lead
     times; this warns before the first window is solved. A commissioning bound of that year
-    (commissioningMin/Max/Fix, or a componentLimit of type "commissioning") cannot act on such a decision:
-    a lower or fixed one raises before solving, an upper one warns.
+    (commissioningMin/Max/Fix, or a componentLimit of type "commissioning") cannot act on such a decision
+    and raises before solving.
 
     **Required arguments:**
 

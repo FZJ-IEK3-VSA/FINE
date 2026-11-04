@@ -1,9 +1,9 @@
 """Windows of the rolling horizon and the sequential driver against lead times.
 
 A decision a window implements may become available only after the end of that window.
-The drivers warn about it before solving, and refuse a lower or fixed commissioning bound
-(commissioningMin/Fix, or a componentLimit of type "commissioning") that no window can
-enforce. The evaluation of an implemented pathway fixes the decisions themselves, since
+The drivers warn about it before solving, and refuse a commissioning bound
+(commissioningMin/Max/Fix, or a componentLimit of type "commissioning") that no window
+can enforce. The evaluation of an implemented pathway fixes the decisions themselves, since
 the last ones become available after the evaluated years. These tests need the lead-time
 feature together with the rolling horizon and the sequential driver.
 """
@@ -139,8 +139,10 @@ def test_a_decision_arriving_after_the_implemented_years_does_not_warn(recwarn):
     assert not [w for w in recwarn if "after the end of the window" in str(w.message)]
 
 
-@pytest.mark.parametrize("bound", ["commissioningMin", "commissioningFix"])
-def test_a_lower_bound_no_window_can_enforce_raises(bound):
+@pytest.mark.parametrize(
+    "bound", ["commissioningMin", "commissioningMax", "commissioningFix"]
+)
+def test_a_bound_no_window_can_enforce_raises(bound):
     """The bound on 2030 binds the 2020 decision, which the window 2020-2025 takes."""
     esM = _pathway(**{bound: _commissioningBound(2030, 1)})
     with pytest.raises(
@@ -160,24 +162,10 @@ def test_a_minimum_the_arriving_stock_meets_is_accepted():
         _checkWindowsAgainstLeadTimes(esM, _rollingHorizonWindows(2))
 
 
-def test_an_upper_bound_no_window_can_enforce_warns():
-    esM = _pathway(commissioningMax=_commissioningBound(2030, 1))
-    with pytest.warns(
-        UserWarning, match="commissioningMax of 'src' at 'node1' in 2030"
-    ):
-        _checkWindowsAgainstLeadTimes(esM, _rollingHorizonWindows(2))
-
-
-@pytest.mark.parametrize("bound", ["lower", "fixed"])
-def test_a_lower_componentLimit_no_window_can_enforce_raises(bound):
+@pytest.mark.parametrize("bound", ["lower", "upper", "fixed"])
+def test_a_componentLimit_no_window_can_enforce_raises(bound):
     esM = _pathway(componentLimit=_commissioningLimit(bound))
     with pytest.raises(ValueError, match="componentLimit 'lim' for 'src'"):
-        _checkWindowsAgainstLeadTimes(esM, _rollingHorizonWindows(2))
-
-
-def test_an_upper_componentLimit_no_window_can_enforce_warns():
-    esM = _pathway(componentLimit=_commissioningLimit("upper"))
-    with pytest.warns(UserWarning, match="componentLimit 'lim' for 'src'"):
         _checkWindowsAgainstLeadTimes(esM, _rollingHorizonWindows(2))
 
 
