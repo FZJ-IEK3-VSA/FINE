@@ -1702,19 +1702,21 @@ class ConversionModel(ComponentModel):
                 ]
             else:
                 relevant_indices = [ip]
-            # the capacity that becomes available, i.e. decisions after their lead
-            # time plus arriving stock
-            balance = sum(
-                self.getArrivingCommissioning(esM, pyM, loc, compName, i)
+            contributors = [
+                compName
                 for compName in compDict.keys()
                 if compName in componentNames
                 and compDict[compName].processedLocationalEligibility[loc] == 1
+            ]
+            if not contributors:
+                return None
+            # the capacity that becomes available, i.e. decisions after their lead
+            # time plus arriving stock: a plain number if only stock can arrive
+            return sum(
+                self.getArrivingCommissioning(esM, pyM, loc, compName, i)
+                for compName in contributors
                 for i in relevant_indices
             )
-            # arriving stock counts even when no decision becomes available
-            if isinstance(balance, (int, float)) and balance == 0:
-                return None
-            return balance
         raise ValueError(
             "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
         )

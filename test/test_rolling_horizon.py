@@ -639,18 +639,26 @@ def test_outdated_stock_is_dropped_without_new_commissioning():
     assert 2015 not in (results[2025].getComponent("Src").stockCommissioning or {})
 
 
-def leadTimePathwayEsM(leadTime, technicalLifetime=20, **sourceKwargs):
-    """Build a pathway whose source commissions 1 in 2020 and nothing later."""
+def leadTimePathwayEsM(
+    leadTime, technicalLifetime=20, numberOfInvestmentPeriods=4, **sourceKwargs
+):
+    """Build a pathway whose source decides on 1 in 2020 and nothing later.
+
+    With the lead time of 10 years the tests use, the 2020 decision becomes available in
+    2030, so commissioningFix forces it there: it binds the capacity that becomes
+    available. Windows of three periods hold both years.
+    """
+    years = [2020 + 5 * ip for ip in range(numberOfInvestmentPeriods)]
     return simplePathwayEsM(
-        4,
+        numberOfInvestmentPeriods,
         demand=0.0,
         sourceKwargs={
             "economicLifetime": technicalLifetime,
             "technicalLifetime": technicalLifetime,
             "leadTime": leadTime,
             "commissioningFix": {
-                year: pd.Series({"PerfectLand": 1.0 if year == 2020 else 0.0})
-                for year in [2020, 2025, 2030, 2035]
+                year: pd.Series({"PerfectLand": 1.0 if year == 2030 else 0.0})
+                for year in years
             },
             **sourceKwargs,
         },
@@ -681,7 +689,7 @@ def test_a_passed_on_decision_keeps_its_lead_time(leadTime):
     results = rollingHorizonOptimization(
         esM=leadTimePathwayEsM(leadTime),
         timeSeriesAggregation=False,
-        numberOfInvestmentPeriodsForRollingHorizon=2,
+        numberOfInvestmentPeriodsForRollingHorizon=3,
     )
     assert srcCapacity(results, 2025, 2025) == pytest.approx(0)
     assert srcCapacity(results, 2025, 2030) == pytest.approx(1)
@@ -701,7 +709,7 @@ def test_existing_stock_is_not_delayed_by_a_scalar_lead_time():
             },
         ),
         timeSeriesAggregation=False,
-        numberOfInvestmentPeriodsForRollingHorizon=2,
+        numberOfInvestmentPeriodsForRollingHorizon=3,
     )
     for windowStart in results:
         assert srcCapacity(results, windowStart, windowStart) == pytest.approx(2)
@@ -713,9 +721,9 @@ def test_stock_still_in_operation_because_of_its_lead_time_is_kept():
     gone from the window starting in 2030.
     """
     results = rollingHorizonOptimization(
-        esM=leadTimePathwayEsM(10, technicalLifetime=5),
+        esM=leadTimePathwayEsM(10, technicalLifetime=5, numberOfInvestmentPeriods=5),
         timeSeriesAggregation=False,
-        numberOfInvestmentPeriodsForRollingHorizon=2,
+        numberOfInvestmentPeriodsForRollingHorizon=3,
     )
     assert 2020 in stockOf(results, 2030, "Src")
     assert srcCapacity(results, 2030, 2030) == pytest.approx(1)

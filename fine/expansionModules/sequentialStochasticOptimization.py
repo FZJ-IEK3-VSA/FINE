@@ -20,11 +20,11 @@ import pandas as pd
 
 import fine as fn
 from fine import utils
-from fine.enums import Dimension
 from fine.expansionModules import multiStageStochasticProgram as mssp
 from fine.expansionModules.rollingHorizon import (
     _STOCK_COMMISSIONING_DIGITS,
     _buildIntervalEsm,
+    _checkWindowsAgainstLeadTimes,
     _expandLeadTimeForPassedOnStock,
     _filterComponentLimitForInterval,
     _filterComponentParametersForInterval,
@@ -478,9 +478,11 @@ def evaluateImplementedPathway(
     pathway in hindsight, and its operation is the best one possible with that system. It
     can be compared with a perfect foresight or a myopic run of the same model.
 
-    The commissioning of every component with a capacity variable is fixed by
-    commissioningFix, in every implemented year and location (zero where nothing was
-    commissioned); commissioningMin and commissioningMax are dropped. Binary is-built
+    The commissioning decision of every component with a capacity variable is fixed in
+    every implemented year and location (zero where nothing was commissioned), directly on
+    its commissioning variable: commissioningFix would bind the capacity that becomes
+    available, which for the last decisions lies after the evaluated years.
+    commissioningMin, commissioningMax and commissioningFix are dropped. Binary is-built
     decisions are not fixed, they follow from the commissioning.
 
     :param esM: energy system model of the whole pathway, holding the realized data. It is
@@ -545,18 +547,7 @@ def evaluateImplementedPathway(
             _filterComponentParametersForInterval(compEntry, years, stockYears, esM)
             if compName not in decisions:
                 continue
-            perYear = {}
-            for year in years:
-                values = pd.Series(decisions[compName].get(year, {}), dtype=float)
-                if esM.getComponent(compName).dimension == Dimension.ONE:
-                    values = values.reindex(sorted(esM.locations), fill_value=0.0)
-                # solver noise must neither be negative nor exceed a capacity limit
-                perYear[year] = (
-                    values.fillna(0.0)
-                    .clip(lower=0.0)
-                    .round(_STOCK_COMMISSIONING_DIGITS)
-                )
-            compEntry["commissioningFix"] = perYear
+            compEntry["commissioningFix"] = None
             compEntry["commissioningMin"] = None
             compEntry["commissioningMax"] = None
 
@@ -565,8 +556,29 @@ def evaluateImplementedPathway(
     )
     if timeSeriesAggregation:
         evaluationEsM.aggregateTemporally(**(temporalAggregationSpecs or {}))
+    evaluationEsM.declareOptimizationProblem(
+        timeSeriesAggregation=timeSeriesAggregation,
+        relaxIsBuiltBinary=optimizeSettings.get("relaxIsBuiltBinary", False),
+        relevanceThreshold=optimizeSettings.get("relevanceThreshold"),
+    )
+    for mdl in evaluationEsM.componentModelingDict.values():
+        commisVar = getattr(evaluationEsM.pyM, "commis_" + mdl.abbrvName, None)
+        if commisVar is None:
+            continue
+        for loc, compName, ip in commisVar:
+            if compName not in decisions or ip < 0:
+                continue
+            year = evaluationEsM.investmentPeriodNames[ip]
+            value = decisions[compName].get(year, {}).get(loc, 0.0)
+            # solver noise must neither be negative nor exceed a capacity limit
+            if not value > 0:
+                value = 0.0
+            commisVar[loc, compName, ip].fix(round(value, _STOCK_COMMISSIONING_DIGITS))
     evaluationEsM.optimize(
-        timeSeriesAggregation=timeSeriesAggregation, solver=solver, **optimizeSettings
+        declaresOptimizationProblem=False,
+        timeSeriesAggregation=timeSeriesAggregation,
+        solver=solver,
+        **optimizeSettings,
     )
     return evaluationEsM
 
@@ -602,6 +614,13 @@ def sequentialStochasticOptimization(
     annuityPerpetuity, pwlcfParameters), and a window's NPVcontributionRH is discounted onto
     the first year of the whole pathway. Only commissioning is handed over, not the binary
     is-built decisions, as in rollingHorizonOptimization.
+
+    A window should span its first stage plus the longest lead time, plus some operating
+    years. An implemented decision that becomes available only after the end of its window
+    is undervalued there (the window sees its cost but not all of its use), which warns
+    before the first window is solved. A commissioning bound of the year it becomes
+    available (commissioningMin/Max/Fix, or a componentLimit of type "commissioning")
+    cannot act on it: a lower or fixed one raises before solving, an upper one warns.
 
     Under MPI, every process runs the loop. It has to build identical trees, and the
     windows' results hold only the scenarios of the process.
@@ -726,6 +745,16 @@ def sequentialStochasticOptimization(
         _filterComponentLimitForInterval(
             esmDict, years[plan.start : plan.start + plan.length], esM
         )
+    _checkWindowsAgainstLeadTimes(
+        esM,
+        [
+            (
+                list(range(plan.start, plan.start + plan.length)),
+                list(range(plan.start, plan.start + plan.implemented)),
+            )
+            for plan in plans
+        ],
+    )
     # as in rollingHorizonOptimization: every window discounts its NPVcontributionRH onto
     # the first year of the whole pathway, without modifying esM itself
     esmDict["rollingHorizonStartYear"] = (

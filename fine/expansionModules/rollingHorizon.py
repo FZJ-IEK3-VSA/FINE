@@ -725,6 +725,177 @@ def _loadCachedInterval(
     return candidateEsm
 
 
+def _componentKeysInLimit(comp, locs):
+    """Return the locations or connections of ``comp`` that a componentLimit sums over.
+
+    :param comp: a component carrying the componentLimitID
+    :param locs: the eligible locations of the limit: regions, or (locFrom, locTo)
+        connections for a 2-dim eligibility
+    :return: keys of comp's design variables (regions, or connections for Transmission)
+    :rtype: list
+    """
+    connections = getattr(comp, "_mapC", None)
+    locsAreConnections = bool(locs) and isinstance(locs[0], tuple)
+    if connections is None:
+        return [] if locsAreConnections else list(locs)
+    if locsAreConnections:
+        pairs = set(locs)
+        return [
+            connection
+            for connection, (locFrom, locTo) in connections.items()
+            if (locFrom, locTo) in pairs or (locTo, locFrom) in pairs
+        ]
+    regions = set(locs)
+    return [
+        connection
+        for connection, (locFrom, locTo) in connections.items()
+        if locFrom in regions or locTo in regions
+    ]
+
+
+def _checkWindowsAgainstLeadTimes(esM, windows):
+    """Check that the windows see when their implemented decisions become available.
+
+    A decision becomes available its lead time after it is taken. If that is after the
+    end of the window that takes it, the window sees the decision's cost but not all of
+    its use, so long lead times are undervalued and their decisions maybe never taken:
+    this warns. A bound on the capacity that becomes available in that year
+    (commissioningMin/Max/Fix, or a componentLimit of type "commissioning") cannot act on
+    such a decision either, since the window that takes it does not hold the year, and
+    the window that does receives the capacity as stock. A lower or fixed bound raises
+    here, before any window is solved: it would otherwise be met by chance at best, and
+    raise in a later window once the stock arrives. A commissioningMin that the stock
+    alone already meets is exempt. An upper bound warns: the window that takes the
+    decision is not limited by it, and the window that holds the year raises if the
+    decision exceeds it.
+
+    :param esM: the pathway model
+    :type esM: EnergySystemModel instance
+
+    :param windows: for every window, the indices (among esM's investment periods) of the
+        years it spans and of the years whose decisions it implements
+    :type windows: list of tuples (list of int, list of int)
+    """
+    implementedIps = {ip for _, implemented in windows for ip in implemented}
+    # A decision becoming available after the last implemented year is cut off by a
+    # perfect foresight run over the same years as well, so it is no window artifact.
+    lastIp = max(implementedIps)
+    # decisions that become available after the end of the window taking them, as
+    # {compName: [(location, decisionIp, availabilityIp)]}
+    late = {}
+    for mdl in esM.componentModelingDict.values():
+        for compName, comp in mdl.componentsDict.items():
+            if not comp.hasCapacityVariable:
+                continue
+            for windowIps, implemented in windows:
+                for decisionIp in implemented:
+                    for key, lead in comp.roundedIpLeadTime[decisionIp].items():
+                        availabilityIp = decisionIp + int(lead)
+                        if windowIps[-1] < availabilityIp <= lastIp:
+                            late.setdefault(compName, []).append(
+                                (key, decisionIp, availabilityIp)
+                            )
+    if not late:
+        return
+
+    def describe(compName, key, decisionIp, availabilityIp):
+        names = esM.investmentPeriodNames
+        return (
+            f"'{compName}' at '{key}' in {names[availabilityIp]} (decided "
+            f"{names[decisionIp]})"
+        )
+
+    lowerBounds, upperBounds = [], []
+    for compName, entries in late.items():
+        comp = esM.getComponent(compName)
+        for key, decisionIp, availabilityIp in entries:
+            if availabilityIp not in implementedIps:
+                continue
+            where = describe(compName, key, decisionIp, availabilityIp)
+
+            def given(processedBound):
+                bound = processedBound[availabilityIp]
+                return bound is not None and key in bound.index
+
+            if given(comp.processedCommissioningFix):
+                lowerBounds.append(f"commissioningFix of {where}")
+            elif given(comp.processedCommissioningMin) and (
+                not comp.hasIsBuiltBinaryVariable
+            ):
+                value = comp.processedCommissioningMin[availabilityIp][key]
+                stock = comp._stockArrivingIn(availabilityIp, key)
+                if stock < value - 1e-6 * max(1.0, abs(value)):
+                    lowerBounds.append(f"commissioningMin of {where}")
+            if given(comp.processedCommissioningMax):
+                upperBounds.append(f"commissioningMax of {where}")
+
+    componentLimit = getattr(esM, "processedComponentLimit", None)
+    if componentLimit is not None and not componentLimit.empty:
+        componentsOfLimit = esM._collectComponentLimitComponents(
+            componentLimit.index.unique()
+        )
+        for ID, row in componentLimit.iterrows():
+            if (
+                row["type"] != "commissioning"
+                or row["bound"] in utils.SHARE_BOUNDS
+                or pd.isna(row["ip"])
+            ):
+                continue
+            rowIps = (
+                range(int(row["ip"]), int(row["ipEnd"]) + 1)
+                if pd.notna(row["ipEnd"])
+                else [int(row["ip"])]
+            )
+            locs = esM._eligibleComponentLimitLocations(ID)
+            for compName in componentsOfLimit[ID]:
+                keys = _componentKeysInLimit(esM.getComponent(compName), locs)
+                for key, decisionIp, availabilityIp in late.get(compName, []):
+                    if (
+                        key not in keys
+                        or availabilityIp not in rowIps
+                        or availabilityIp not in implementedIps
+                    ):
+                        continue
+                    where = describe(compName, key, decisionIp, availabilityIp)
+                    if row["bound"] == "upper":
+                        upperBounds.append(f"componentLimit '{ID}' for {where}")
+                    else:
+                        lowerBounds.append(f"componentLimit '{ID}' for {where}")
+
+    def listed(entries):
+        shown = "; ".join(sorted(set(entries))[:10])
+        more = len(set(entries)) - 10
+        return shown + (f"; and {more} more" if more > 0 else "")
+
+    if lowerBounds:
+        raise ValueError(
+            "These lower or fixed commissioning bounds bind capacity that a window decides "
+            "on but that only becomes available after the end of that window, so no "
+            f"window can enforce them: {listed(lowerBounds)}. Use windows that span at "
+            "least the implemented years plus the longest lead time, or drop the bounds."
+        )
+    longest = {
+        compName: max(
+            availabilityIp - decisionIp for _, decisionIp, availabilityIp in entries
+        )
+        for compName, entries in late.items()
+    }
+    message = (
+        "Some implemented decisions become available only after the end of the window "
+        "that takes them (component: longest such lead time in investment periods: "
+        f"{longest}). The window sees their cost but not all of their use, so they are "
+        "undervalued and maybe never taken. Use windows that span at least the "
+        "implemented years plus the longest lead time, plus some operating years."
+    )
+    if upperBounds:
+        message += (
+            " These upper commissioning bounds cannot limit those decisions, and the "
+            "window that holds their year raises if a decision exceeds them: "
+            f"{listed(upperBounds)}."
+        )
+    warnings.warn(message)
+
+
 _COMPONENT_LIMIT_TABLES = (
     "componentLimitEligibility",
     "componentLimitEligibility2dim",
@@ -1021,6 +1192,12 @@ def rollingHorizonOptimization(
     row with a range of years (ipEnd) is refused if any window holds only part of its years, because its
     value would have to be split between the windows; give such a limit per year instead.
 
+    Lead times: a window implements the decisions of its first year. If one of them becomes available only
+    after the end of the window, the window sees its cost but not all of its use, which undervalues long lead
+    times; this warns before the first window is solved. A commissioning bound of that year
+    (commissioningMin/Max/Fix, or a componentLimit of type "commissioning") cannot act on such a decision:
+    a lower or fixed one raises before solving, an upper one warns.
+
     **Required arguments:**
 
     :param esM: energy system model of the whole transformation pathway, which the rolling horizon windows
@@ -1225,6 +1402,18 @@ def rollingHorizonOptimization(
     # refuse a componentLimit range that crosses a window before any window is solved
     for rollingHorizonYears in rollingHorizonIntervals:
         _filterComponentLimitForInterval(esmDict, rollingHorizonYears, esM)
+    # every window implements its first year, the last one all of its years
+    windowIps = [
+        [esM.investmentPeriodNames.index(year) for year in rollingHorizonYears]
+        for rollingHorizonYears in rollingHorizonIntervals
+    ]
+    _checkWindowsAgainstLeadTimes(
+        esM,
+        [
+            (ips, ips if position == len(windowIps) - 1 else ips[:1])
+            for position, ips in enumerate(windowIps)
+        ],
+    )
 
     # Every window inherits the first year of the whole pathway, so that the
     # NPVcontributionRH rows of all windows are discounted onto one shared reference year

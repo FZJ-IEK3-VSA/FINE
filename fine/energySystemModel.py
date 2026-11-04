@@ -1608,7 +1608,9 @@ class EnergySystemModel:
         available in the period: the decision whose lead time ends in it plus the
         arriving stock (see :meth:`ComponentModel.getArrivingCommissioning`). An
         "upper" or "fixed" bound below the arriving stock alone raises a
-        ``ValueError``.
+        ``ValueError``, and so does a "lower" or "fixed" bound above it in a period
+        that no decision reaches (the first periods with a lead time). A row none of
+        whose components is eligible in its locations builds no constraint.
 
         This is **not** the same constraint as ``balanceLimit``, despite the
         similar name. ``balanceLimit`` bounds a signed *commodity balance* and
@@ -1639,8 +1641,9 @@ class EnergySystemModel:
         def _limitExpr(locs, componentNames, ip, ipEnd, limitType, commodity):
             """Sum the componentLimit contribution of ``componentNames`` over ``locs``.
 
-            Returns a pyomo expression, or a plain number when none of the
-            components has a decision variable over ``locs``.
+            Returns a pyomo expression, None when none of the components
+            contributes over ``locs``, or a plain number when they contribute
+            without a decision variable (a commissioning limit only stock reaches).
             """
             # a non-null ipEnd marks a range of investment periods (perfect foresight)
             if pd.notna(ipEnd):
@@ -1712,7 +1715,10 @@ class EnergySystemModel:
                         for loc in locs
                     ]
                 contributions.extend(_contributions)
-            return sum(c for c in contributions if c is not None)
+            contributions = [c for c in contributions if c is not None]
+            if not contributions:
+                return None
+            return sum(contributions)
 
         def _resolveGroups(componentLimitID, locs):
             """Bucket the eligible locations of a share-limited ID into groups.
@@ -1733,20 +1739,30 @@ class EnergySystemModel:
             return groups
 
         def _checkArrivingStock(ID, ip, ipEnd, bound, value, limitSum):
-            """Raise if the stock arriving in the limited periods exceeds the bound.
+            """Raise if the stock arriving in the limited periods violates the bound.
 
             Stock counts against a commissioning limit. It is fixed, and the
             commissioning variables can only add to it, so an "upper" or "fixed"
-            bound below the arriving stock cannot be met. Raising here names the
-            limit, which an infeasible solve would not.
+            bound below the arriving stock cannot be met. Where no decision becomes
+            available (limitSum is a plain number), the stock alone must also reach
+            a "lower" or "fixed" bound. Raising here names the limit, which an
+            infeasible solve or a skipped constraint would not.
             """
-            if bound not in ("upper", "fixed"):
-                return
             if isinstance(limitSum, (int, float)):
-                stock = float(limitSum)
+                stock, onlyStock = float(limitSum), True
             else:
-                stock = generate_standard_repn(limitSum).constant
-            if stock <= value + 1e-6 * max(1.0, abs(value)):
+                stock, onlyStock = generate_standard_repn(limitSum).constant, False
+            tolerance = 1e-6 * max(1.0, abs(value))
+            if bound in ("upper", "fixed") and stock > value + tolerance:
+                reason = f"the stock that becomes available there already adds up to {stock:g}"
+            elif (
+                bound in ("lower", "fixed") and onlyStock and stock < value - tolerance
+            ):
+                reason = (
+                    "no decision of the model becomes available there (lead time), and "
+                    f"the arriving stock only adds up to {stock:g}"
+                )
+            else:
                 return
             # a NaN in ipEnd turns both columns into floats
             periods = str(self.investmentPeriodNames[int(ip)])
@@ -1754,8 +1770,7 @@ class EnergySystemModel:
                 periods += f" to {self.investmentPeriodNames[int(ipEnd)]}"
             raise ValueError(
                 f"The componentLimit '{ID}' ({bound} bound {value:g}, type "
-                f"'commissioning') cannot be met in {periods}: the stock that "
-                f"becomes available there already adds up to {stock:g}. Stock "
+                f"'commissioning') cannot be met in {periods}: {reason}. Stock "
                 "counts against a commissioning limit, including stock still "
                 "under construction at the start and capacity passed on as stock "
                 "from an earlier rolling-horizon window."
@@ -1807,6 +1822,9 @@ class EnergySystemModel:
                 (ID, ip, ipEnd, bound, limitType, value, commodity)
             ]
             limitSum = _limitExpr(locs, componentNames, ip, ipEnd, limitType, commodity)
+            # no component contributes -> nothing to constrain
+            if limitSum is None:
+                return pyomo.Constraint.Skip
             if limitType == "commissioning":
                 _checkArrivingStock(ID, ip, ipEnd, bound, value, limitSum)
             # no decision variable contributes -> nothing to constrain
@@ -1833,7 +1851,7 @@ class EnergySystemModel:
                 groupLocs, componentNames, ip, ipEnd, limitType, commodity
             )
             # no decision variable in this group -> nothing to constrain
-            if isinstance(groupSum, (int, float)):
+            if groupSum is None or isinstance(groupSum, (int, float)):
                 return pyomo.Constraint.Skip
             totalSum = _limitExpr(
                 allLocs, componentNames, ip, ipEnd, limitType, commodity

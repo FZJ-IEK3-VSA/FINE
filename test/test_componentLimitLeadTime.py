@@ -290,6 +290,67 @@ def test_commissioning_limit_over_a_range_sums_the_arrivals():
     assert _designValues(esM, "cap")[2] == pytest.approx(6)
 
 
+@pytest.mark.parametrize("bound", ["lower", "fixed"])
+def test_a_lower_limit_that_only_stock_can_reach_raises(bound):
+    """With a lead time of one period no decision arrives in 2020, so a limit of 3
+    there would be skipped without a word. It raises instead.
+    """
+    with pytest.raises(ValueError, match="'lim'.*cannot be met in 2020: no decision"):
+        _optimizePathway(
+            componentLimit=_commissioningLimit(3.0, 2020, bound=bound),
+            leadTime=5,
+            demand={2025: 10, 2030: 10},
+        )
+
+
+def test_a_lower_limit_that_the_arriving_stock_meets_is_accepted():
+    """Stock decided in 2015 with a lead time of 5 years brings 4 in 2020."""
+    esM = _optimizePathway(
+        componentLimit=_commissioningLimit(3.0, 2020, bound="lower"),
+        leadTime={2015: 5, 2020: 5, 2025: 5, 2030: 5},
+        stockCommissioning={2015: _locSeries(4)},
+        demand={2020: 4, 2025: 10, 2030: 10},
+    )
+    assert _designValues(esM, "cap")[0] == pytest.approx(4)
+
+
+def test_a_limit_without_a_contributing_component_stays_inactive():
+    """A lower limit over a region where its component is not eligible builds no
+    constraint and raises nothing, with or without a lead time.
+    """
+    esM = fn.EnergySystemModel(
+        locations=set(_REGIONS),
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "GW_el"},
+        numberOfTimeSteps=1,
+        hoursPerTimeStep=1,
+        startYear=2020,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=5,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        componentLimit=_commissioningLimit(3.0, 2020, bound="lower"),
+        componentLimitEligibility=pd.DataFrame(
+            index=_REGIONS, columns=["lim"], data=[[0], [1]]
+        ),
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="comp",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            locationalEligibility=pd.Series({"R1": 1, "R2": 0}),
+            investPerCapacity=1.0,
+            leadTime=5,
+            componentLimitID="lim",
+        )
+    )
+    esM.declareOptimizationProblem(timeSeriesAggregation=False)
+    assert len(esM.pyM.yearlyComponentLimitConstraint) == 0
+
+
 @pytest.mark.parametrize(
     "decisionLeadTime",
     [

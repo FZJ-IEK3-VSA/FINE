@@ -1075,38 +1075,34 @@ class TransmissionModel(ComponentModel):
 
             if isinstance(loc[0], tuple):
                 # For a specific set of connections (loc0 <-> loc1)
-                aut_list = []
-                for loc0, loc1 in loc:
-                    _aut = sum(
-                        arriving(loc1 + "_" + loc0, compName, i)
-                        for i in relevant_indices
-                        for compName in opVarDictIn[i][loc0].get(loc1, {})
-                        if compName in componentNames
-                    ) + sum(
-                        arriving(loc0 + "_" + loc1, compName, i)
-                        for i in relevant_indices
-                        for compName in opVarDictIn[i][loc0].get(loc1, {})
-                        if compName in componentNames
-                    )
-                    _aut = _aut / 2
-                    aut_list.append(_aut)
-                aut = sum(aut_list)
+                terms = [
+                    arriving(connection, compName, i)
+                    for loc0, loc1 in loc
+                    for i in relevant_indices
+                    for compName in opVarDictIn[i][loc0].get(loc1, {})
+                    if compName in componentNames
+                    for connection in (loc1 + "_" + loc0, loc0 + "_" + loc1)
+                ]
             else:
                 # For a specific region (sum of all incoming/outgoing)
-                aut = sum(
+                terms = [
                     arriving(loc_ + "_" + loc, compName, i)
                     for i in relevant_indices
                     for loc_ in opVarDictIn[i][loc].keys()
                     for compName in opVarDictIn[i][loc][loc_]
                     if compName in componentNames
-                ) + sum(
+                ] + [
                     arriving(loc + "_" + loc_, compName, i)
                     for i in relevant_indices
                     for loc_ in opVarDictOut[i][loc].keys()
                     for compName in opVarDictOut[i][loc][loc_]
                     if compName in componentNames
-                )
-                aut = aut / 2
+                ]
+            # None if no connection contributes, a plain number if only stock can
+            # arrive
+            if not terms:
+                return None
+            aut = sum(terms) / 2
         else:
             raise ValueError(
                 "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."

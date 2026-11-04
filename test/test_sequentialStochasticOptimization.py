@@ -406,6 +406,9 @@ def test_a_passed_on_decision_keeps_its_lead_time():
     """Decided in 2020 with a lead time of 3 years, wind arrives in 2023, after the next
     window has started in 2022. Handed over as stock of 2020 with the lead time of 0 that a
     scalar leadTime gives stock years, it would be there in 2022 already.
+
+    commissioningFix of 2023 forces the 2020 decision: it binds the capacity that becomes
+    available.
     """
     years = [START_YEAR + i for i in range(8)]
     esM = pathwayEsM(
@@ -413,7 +416,7 @@ def test_a_passed_on_decision_keeps_its_lead_time():
         windKwargs={
             "leadTime": 3,
             "commissioningFix": {
-                year: pd.Series({"north": 5.0 if year == 2020 else 0.0, "south": 0.0})
+                year: pd.Series({"north": 5.0 if year == 2023 else 0.0, "south": 0.0})
                 for year in years
             },
         },
