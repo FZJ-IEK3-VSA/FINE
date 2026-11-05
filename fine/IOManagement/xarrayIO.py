@@ -1,3 +1,4 @@
+import json
 import time
 import tracemalloc
 from pathlib import Path
@@ -386,8 +387,18 @@ def processDataset(datasets):
             )  # Copying to avoid errors due to change of size during iteration
 
             for attr_name, attr_value in _xarray_dataset.attrs.items():
+                # pooledCommodities is a nested dict ({commodity: {pool: [locations]}}),
+                # which the "flattened" dict format below cannot restore. Store it as JSON.
+                if attr_name == "pooledCommodities":
+                    xarray_dataset.attrs[attr_name] = json.dumps(
+                        {
+                            commod: {pool: sorted(locs) for pool, locs in pools.items()}
+                            for commod, pools in (attr_value or {}).items()
+                        }
+                    )
+
                 # if the attribute is set, convert into sorted list
-                if isinstance(attr_value, set):
+                elif isinstance(attr_value, set):
                     xarray_dataset.attrs[attr_name] = sorted(
                         xarray_dataset.attrs[attr_name]
                     )
@@ -673,8 +684,18 @@ def writeDatasetsToNetCDF(
             )  # Copying to avoid errors due to change of size during iteration
 
             for attr_name, attr_value in _xarray_dataset.attrs.items():
+                # pooledCommodities is a nested dict ({commodity: {pool: [locations]}}),
+                # which the "flattened" dict format below cannot restore. Store it as JSON.
+                if attr_name == "pooledCommodities":
+                    xarray_dataset.attrs[attr_name] = json.dumps(
+                        {
+                            commod: {pool: sorted(locs) for pool, locs in pools.items()}
+                            for commod, pools in (attr_value or {}).items()
+                        }
+                    )
+
                 # if the attribute is set, convert into sorted list
-                if isinstance(attr_value, set):
+                elif isinstance(attr_value, set):
                     xarray_dataset.attrs[attr_name] = sorted(
                         xarray_dataset.attrs[attr_name]
                     )

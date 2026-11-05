@@ -29,6 +29,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "componentLimit",
                 "componentLimitGrouping",
                 "LP_savepath",
+                "pooledCommodities",
             ),
             (
                 minimal_test_esM.locations,
@@ -51,6 +52,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.componentLimit,
                 minimal_test_esM.componentLimitGrouping,
                 minimal_test_esM.LP_savepath,
+                minimal_test_esM.pooledCommodities,
             ),
         )
     )
@@ -159,6 +161,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "componentLimit",
                 "componentLimitGrouping",
                 "LP_savepath",
+                "pooledCommodities",
             ),
             (
                 single_node_test_esM.locations,
@@ -181,6 +184,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.componentLimit,
                 single_node_test_esM.componentLimitGrouping,
                 single_node_test_esM.LP_savepath,
+                single_node_test_esM.pooledCommodities,
             ),
         )
     )
@@ -246,6 +250,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "componentLimit",
                 "componentLimitGrouping",
                 "LP_savepath",
+                "pooledCommodities",
             ),
             (
                 multi_node_test_esM_init.locations,
@@ -268,6 +273,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.componentLimit,
                 multi_node_test_esM_init.componentLimitGrouping,
                 multi_node_test_esM_init.LP_savepath,
+                multi_node_test_esM_init.pooledCommodities,
             ),
         )
     )

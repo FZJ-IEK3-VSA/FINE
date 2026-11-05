@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -591,6 +593,13 @@ def processXarrayAttributes(xarray_dataset):
 
     for attr_name, attr_value in _xarray_dataset.attrs.items():
         if "balanceLimit" in attr_name:
+            continue
+        # pooledCommodities is stored as a JSON string (see xarrayIO.processDataset)
+        if attr_name == "pooledCommodities":
+            if isinstance(attr_value, str) and attr_value not in ("", "None"):
+                xarray_dataset.attrs[attr_name] = json.loads(attr_value)
+            else:
+                xarray_dataset.attrs[attr_name] = {}
             continue
         if attr_name in ["locations", "commodities"] and isinstance(attr_value, str):
             xarray_dataset.attrs[attr_name] = set([attr_value])
