@@ -29,7 +29,7 @@ def reconstruct_full_timeseries(esM, timeseries, ip):
     return full_df
 
 
-def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
+def exportToDict(esM, useTSAvalues=False):
     """Write the input arguments of EnergySysteModel and its Components input to a dictionary.
 
     :param esM: EnergySystemModel instance in which the optimization model is held
@@ -66,137 +66,77 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
             # Get component data
             component = componentModel.componentsDict[componentname]
 
-            # replace raw values with processed values if useProcessedValues is True
-            if useProcessedValues:
-                prop_list_full_set = component.__dict__.keys()
-
-                _prop_list = prop_list.copy()
-                for prop in _prop_list:
-                    # for soc min/max the original input must be used to ensure compatibility with spatial aggregation
-                    if prop in ["stateOfChargeMin", "stateOfChargeMax"]:
-                        prop_list.remove(prop)
-                        prop_list.append((prop, prop))
-                    # for the transmission investment parameters, the preprocessed version
-                    # (without multiplication with the distance and 0.5) must be used
-                    elif (
-                        f"preprocessed{prop[:1].upper()}{prop[1:]}"
-                        in prop_list_full_set
-                    ):
-                        prop_list.remove(prop)
-                        prop_list.append(
-                            (prop, f"preprocessed{prop[:1].upper()}{prop[1:]}")
+            # Loop over all input props
+            for prop in prop_list:
+                if class_ is not fn.Transmission:
+                    if prop not in ("self", "esM"):
+                        compDict[classname][componentname][prop] = getattr(
+                            component, prop
                         )
-
-                    # for time series, the full version must be used
-                    elif f"full{prop[:1].upper()}{prop[1:]}" in prop_list_full_set:
-                        prop_list.remove(prop)
-                        prop_list.append((prop, f"full{prop[:1].upper()}{prop[1:]}"))
-
-                    # for all other components, the processed version is used, if it exists
-                    elif f"processed{prop[:1].upper()}{prop[1:]}" in prop_list_full_set:
-                        prop_list.remove(prop)
-                        prop_list.append(
-                            (prop, f"processed{prop[:1].upper()}{prop[1:]}")
-                        )
+                elif prop not in ("self", "esM"):
+                    _data = getattr(component, prop)
+                    if isinstance(_data, pd.DataFrame) and "operationRate" not in prop:
+                        _data = utils.preprocess2dimData(_data)
+                        compDict[classname][componentname][prop] = _data
+                    elif isinstance(_data, dict):
+                        for ip, _data in _data.items():
+                            if (
+                                isinstance(_data, pd.DataFrame)
+                                and "operationRate" not in prop
+                            ):
+                                _data = utils.preprocess2dimData(_data)
+                            compDict[classname][componentname][prop][ip] = _data
                     else:
-                        prop_list.remove(prop)
-                        prop_list.append((prop, prop))
+                        compDict[classname][componentname][prop] = _data
 
-                # Loop over all input props
-                for prop in prop_list:
-                    if (prop[0] != "self") and (prop[0] != "esM"):
-                        # NOTE: thanks to utilsIO.PowerDict(), the nested dictionaries need
-                        # not be created before adding the data.
-                        _data = getattr(component, prop[1])
-                        # useprocessedValues is only used for xarray and we want to have the original investment period names
-                        if isinstance(_data, dict):
-                            investmentPeriodMapper = dict(
-                                zip(esM.investmentPeriods, esM.investmentPeriodNames)
+            # Add aggregatedRate timeseries from TSA
+            if esM.isTimeSeriesDataClustered:
+                prop_list_full_set = component.__dict__.keys()
+                for prop in prop_list_full_set:
+                    if prop not in ("self", "esM"):
+                        if ("aggregated" in prop) and ("Rate" in prop):
+                            timeseries = getattr(component, prop)
+                            # if only one time series was given by user, independent of the number of investment periods, we only save that
+                            original_name = prop.replace("aggregated", "")
+                            original_name = (
+                                f"{original_name[:1].lower()}{original_name[1:]}"
                             )
-                            # replace keys with investment period names in _data
-                            _data = {
-                                investmentPeriodMapper[k]: v for k, v in _data.items()
-                            }
-                        compDict[classname][componentname][prop[0]] = _data
-            else:
-                # Loop over all input props
-                for prop in prop_list:
-                    if class_ is not fn.Transmission:
-                        if prop not in ("self", "esM"):
-                            compDict[classname][componentname][prop] = getattr(
-                                component, prop
-                            )
-                    elif prop not in ("self", "esM"):
-                        _data = getattr(component, prop)
-                        if (
-                            isinstance(_data, pd.DataFrame)
-                            and "operationRate" not in prop
-                        ):
-                            _data = utils.preprocess2dimData(_data)
-                            compDict[classname][componentname][prop] = _data
-                        elif isinstance(_data, dict):
-                            for ip, _data in _data.items():
-                                if (
-                                    isinstance(_data, pd.DataFrame)
-                                    and "operationRate" not in prop
-                                ):
-                                    _data = utils.preprocess2dimData(_data)
-                                compDict[classname][componentname][prop][ip] = _data
-                        else:
-                            compDict[classname][componentname][prop] = _data
+                            inuptTimeSeries = getattr(component, original_name)
 
-                # Add aggregatedRate timeseries from TSA
-                if esM.isTimeSeriesDataClustered:
-                    prop_list_full_set = component.__dict__.keys()
-                    for prop in prop_list_full_set:
-                        if prop not in ("self", "esM"):
-                            if ("aggregated" in prop) and ("Rate" in prop):
-                                timeseries = getattr(component, prop)
-                                # if only one time series was given by user, independent of the number of investment periods, we only save that
-                                original_name = prop.replace("aggregated", "")
-                                original_name = (
-                                    f"{original_name[:1].lower()}{original_name[1:]}"
-                                )
-                                inuptTimeSeries = getattr(component, original_name)
-
-                                if isinstance(inuptTimeSeries, dict):
-                                    compDict[classname][componentname][prop] = {}
-                                    for ip in timeseries.keys():
-                                        ip_name = esM.investmentPeriodNames[ip]
-                                        # get years
-                                        if timeseries[ip] is not None:
-                                            compDict[classname][componentname][prop][
-                                                ip_name
-                                            ] = reconstruct_full_timeseries(
-                                                esM, timeseries[ip], ip=ip
-                                            )
-                                        else:
-                                            compDict[classname][componentname][prop] = (
-                                                None
-                                            )
-                                else:
-                                    ip = 0
-                                    if isinstance(timeseries, dict):
-                                        if (
-                                            timeseries[ip] is not None
-                                        ):  # we only save the first time series since they are all the same (becaue only one time series given by user)
-                                            compDict[classname][componentname][prop] = (
-                                                reconstruct_full_timeseries(
-                                                    esM, timeseries[ip], ip=ip
-                                                )
-                                            )
-                                        else:
-                                            compDict[classname][componentname][prop] = (
-                                                None
-                                            )
-                                    elif timeseries is not None:
+                            if isinstance(inuptTimeSeries, dict):
+                                compDict[classname][componentname][prop] = {}
+                                for ip in timeseries.keys():
+                                    ip_name = esM.investmentPeriodNames[ip]
+                                    # get years
+                                    if timeseries[ip] is not None:
+                                        compDict[classname][componentname][prop][
+                                            ip_name
+                                        ] = reconstruct_full_timeseries(
+                                            esM, timeseries[ip], ip=ip
+                                        )
+                                    else:
+                                        compDict[classname][componentname][prop] = None
+                            else:
+                                ip = 0
+                                if isinstance(timeseries, dict):
+                                    if (
+                                        timeseries[ip] is not None
+                                    ):  # we only save the first time series since they are all the same (becaue only one time series given by user)
                                         compDict[classname][componentname][prop] = (
                                             reconstruct_full_timeseries(
-                                                esM, timeseries, ip=ip
+                                                esM, timeseries[ip], ip=ip
                                             )
                                         )
                                     else:
                                         compDict[classname][componentname][prop] = None
+                                elif timeseries is not None:
+                                    compDict[classname][componentname][prop] = (
+                                        reconstruct_full_timeseries(
+                                            esM, timeseries, ip=ip
+                                        )
+                                    )
+                                else:
+                                    compDict[classname][componentname][prop] = None
 
     return esmDict, compDict
 

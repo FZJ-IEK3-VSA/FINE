@@ -12,24 +12,17 @@ from fine.IOManagement import dictIO, utilsIO
 logger = logging.getLogger(__name__)
 
 
-def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
+def convertOptimizationInputToDatasets(esM):
     """Take esM instance input and convert it into xarray datasets.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
 
-    **Default arguments:**
-
-        :param useProcessedValues: True if the raw values should be over-written by processed values, False otherwise.
-            A requirement for perfect-foresight and by extension for spatial and technology aggregations
-            |br| * the default value is False
-        :type useProcessedValues: bool
-
     :return: xr_ds - esM instance data in xarray dataset format
     :rtype: xarray.dataset
     """
     # STEP 1. Get the esm and component dicts
-    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
+    esm_dict, component_dict = dictIO.exportToDict(esM)
 
     # STEP 2. get _mapC for all transmission components
     _mapC_dict = {}
