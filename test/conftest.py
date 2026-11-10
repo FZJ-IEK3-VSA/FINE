@@ -1,7 +1,3 @@
-import difflib
-import gzip
-import os
-from itertools import islice
 import pytest
 import sys
 from pathlib import Path
@@ -80,69 +76,6 @@ def check_used_solver(request, monkeypatch):
         return used, solver_info
 
     monkeypatch.setattr(fn.EnergySystemModel, "_runOptimization", _runOptimization)
-
-
-LP_GOLDEN_DIR = Path(__file__).parent / "data" / "golden" / "lp"
-
-
-@pytest.fixture
-def assert_lp_snapshot(tmp_path):
-    """Return a function that compares the LP file of an esM with a stored reference.
-
-    References ending in .gz are stored compressed. Set UPDATE_GOLDEN=1 to
-    regenerate a reference intentionally.
-    """
-
-    def _assert_lp_snapshot(esM, reference_name):
-        esM.declareOptimizationProblem()
-        actual_path = tmp_path / reference_name.removesuffix(".gz")
-        esM.pyM.write(
-            str(actual_path),
-            io_options={"symbolic_solver_labels": True, "file_determinism": 20},
-        )
-        # Text mode with universal newlines: Windows writes CRLF, Linux LF.
-        actual = actual_path.read_text()
-        reference_path = LP_GOLDEN_DIR / reference_name
-        compressed = reference_path.suffix == ".gz"
-
-        if os.environ.get("UPDATE_GOLDEN", "").lower() in {"1", "true", "yes"}:
-            LP_GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
-            if compressed:
-                # mtime=0 keeps the file identical when nothing changed.
-                with gzip.GzipFile(reference_path, "wb", mtime=0) as f:
-                    f.write(actual.encode())
-            else:
-                reference_path.write_text(actual, newline="\n")
-            return
-
-        regenerate = (
-            "Regenerate it intentionally with: UPDATE_GOLDEN=1 pytest "
-            f"test/test_lpSnapshot.py -k {reference_name.split('.')[0]}"
-        )
-        assert reference_path.exists(), (
-            f"Missing LP reference {reference_path}. {regenerate}"
-        )
-        if compressed:
-            with gzip.open(reference_path, "rt") as f:
-                expected = f.read()
-        else:
-            expected = reference_path.read_text()
-
-        if actual != expected:
-            diff = difflib.unified_diff(
-                expected.splitlines(),
-                actual.splitlines(),
-                "reference",
-                "actual",
-                lineterm="",
-            )
-            pytest.fail(
-                f"LP file differs from {reference_path}.\n"
-                f"Actual file: {actual_path}\n{regenerate}\n"
-                + "\n".join(islice(diff, 40))
-            )
-
-    return _assert_lp_snapshot
 
 
 @pytest.fixture(scope="session")
