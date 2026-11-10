@@ -28,6 +28,7 @@ docs/examples/[0-9]*/
 *.egg-info
 *.log
 *.lp
+!test/data/golden/lp/*.lp
 *.glp
 *.mps
 .coverage
