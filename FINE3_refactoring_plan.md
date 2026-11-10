@@ -8,11 +8,12 @@ It replaces the older "FINE Input Refactor Plan". Line numbers refer to that com
 
 ### Branch and location
 
-- `fine_refactor` is the integration branch. Every PR of this plan targets `fine_refactor`, not `develop`.
-- The plan lives on `fine_refactor` as `FINE3_refactoring_plan.md`. Every revision is recorded there.
-- `develop` is merged into `fine_refactor` regularly so the two do not drift apart.
-- How and when `fine_refactor` goes back into `develop` is open (section 10).
+- Every PR of this plan targets `develop` (decision of 2026-11-10, replaces the earlier integration-branch approach).
+- The plan lives on `fine_refactor` as `FINE3_refactoring_plan.md`. Every revision is recorded there. `fine_refactor` holds only the plan.
+- Every PR gets its own branch from `develop`, created only when the user asks for it. The branch holds only the code changes of the PR, never this plan. A PR that needs an unmerged PR branches from that PR's branch.
+- `develop` is merged into `fine_refactor` regularly so the line numbers in the plan stay current.
 - The plan and all notes, comments and PR texts are written in English.
+- The plan is not followed blindly. Before and during every PR, check whether each planned step still makes sense against the current code (e.g. paths that no longer exist, helpers placed where only one test uses them, scope that contradicts the minimal-footprint rule) and raise every doubt with the user before implementing it.
 
 ### Status
 
@@ -20,9 +21,9 @@ Values for "Status": open, in progress, in review, merged. The last two columns 
 
 | PR | Status | GitHub | Plan reviewed before | Plan reviewed after |
 |---|---|---|---|---|
-| 1 | open | – | – | – |
-| 2 | open | – | – | – |
-| 3 | open | – | – | – |
+| 1 | in review | #884 | 2026-11-10 | – |
+| 2 | in review | #886 | 2026-11-10 | – |
+| 3 | in review | #885 | 2026-11-10 | – |
 | 4 | open | – | – | – |
 | 5 | open | – | – | – |
 | 6 | open | – | – | – |
@@ -45,16 +46,15 @@ Values for "Status": open, in progress, in review, merged. The last two columns 
 ### Checklist before every PR
 
 - [ ] `fine_refactor` is up to date with `develop`
-- [ ] Line numbers and function names of this PR checked against the current `fine_refactor`
+- [ ] Line numbers and function names of this PR checked against the current `develop`
 - [ ] All PRs listed under "Needs" are merged
 - [ ] Open decisions that affect this PR (section 10) are made and recorded
 - [ ] Scope, file list and acceptance of this PR are concrete enough to implement; missing target signatures or names are added
-- [ ] Suite green on `fine_refactor`
 - [ ] Status table updated
 
 ### Checklist after every PR
 
-- [ ] Acceptance criteria met and evidenced (command and result)
+- [ ] Acceptance criteria met and evidenced (CI run of the PR, or command and result)
 - [ ] Status and PR number recorded
 - [ ] Deviations from the plan noted in the section of the PR
 - [ ] Follow-up PRs reviewed: dependencies, scope and line numbers adjusted
@@ -68,12 +68,12 @@ If an LP file changes up to and including block C: do not continue, investigate 
 ### Environment
 
 - Environment `fine_env`; install packages with `mamba`.
-- Run tests with `pytest -n 4`.
+- The test suite is not run locally before a PR is created; the CI on GitHub runs it. Local runs use `pytest -n 4`.
 - Commits and PRs follow `CLAUDE.md`: ask before every commit and before every PR.
 
 ## 1. Summary
 
-The input system is rebuilt in 21 small PRs on the integration branch `fine_refactor`. The public constructors stay flat and backward compatible. The rebuild happens behind them:
+The input system is rebuilt in 21 small PRs onto `develop`. The public constructors stay flat and backward compatible. The rebuild happens behind them:
 
 - The check functions in `fine/utils.py` become pure: values in, result out.
 - Each component family gets one frozen input object as the single source for Pyomo, TSA, results and I/O.
@@ -104,7 +104,7 @@ Milestone "Fine3" on GitHub: 5 items done, 6 open (#786, #768, #803, #806, #148,
 
 ### Guidelines
 
-- Small PRs onto `fine_refactor`, each mergeable on its own and with a green suite.
+- Small PRs onto `develop`, each mergeable on its own and with a green suite.
 - Every PR does exactly one thing. No clean-up on the side.
 - Up to and including block C: the LP files of the fixtures stay identical.
 - Behaviour changes come with one release of advance warning (`FutureWarning`). Exception: spagat is removed without warning (PR 3, decision of 2026-11-10).
@@ -247,8 +247,14 @@ C has the largest benefit and the largest effort. B and C together make E cheap.
 - **Changes:** Helper in `test/conftest.py` that declares the Pyomo model for existing fixtures, writes it as an LP file and compares it with a stored reference. New test file, references under `test/data/`.
 - **Fixtures:** `minimal_test_esM`, `single_node_test_esM`, `multi_node_test_esM_init`, `dsm_test_esM`, `balanceLimitConstraint_test_esM`, `perfectForesight_test_esM`.
 - **First step in the PR:** Clarify the stability of the LP output (symbolic names, ordering): write the same fixture twice and compare, measure the file size for `multi_node_test_esM_init`. If the output is not stable or too large, a substitute criterion is defined and recorded here before continuing. `fine/energySystemModel.py` does not write an LP file itself today; the export goes through Pyomo.
+- **Result of the first step (2026-11-10):**
+  - Within one process the LP output is byte-identical. Across processes it depended on `PYTHONHASHSEED` (order of rows and terms). Writing with `io_options={"symbolic_solver_labels": True, "file_determinism": 20}` makes it byte-identical across hash seeds; no numeric differences.
+  - `balanceLimitConstraint_test_esM` draws unseeded random data; the test calls `np.random.seed(0)` first. Its LP has 5.7 MB and is stored as `.lp.gz` (about 300 KB).
+  - `multi_node_test_esM_init` is dropped: 1.15 GB unaggregated (7 min); with time series aggregation still 19 MB and dependent on tsam's clustering (local tsam differs from the CI version, every tsam update would trigger the stop rule).
+  - References under `test/data/golden/lp/`, regenerated with `UPDATE_GOLDEN=1` as in `test/IOManagement/test_xarrayio.py`. `.gitignore` excludes them from its `*.lp` rule.
+- **Deviations (2026-11-10):** PR #884, branch `test/lp-snapshot-check`. Local evidence before the PR: the test passes under `PYTHONHASHSEED` 1–3 and fails when a coefficient is changed on purpose; the full suite runs in CI only.
 - **Note:** `test/data/golden/` already holds a golden mechanism for results (`test/IOManagement/test_xarrayio.py`). Align the location of the LP references with it.
-- **Acceptance:** passes on `fine_refactor`; fails when a coefficient is changed on purpose.
+- **Acceptance:** passes on `develop`; fails when a coefficient is changed on purpose.
 - **Needs:** nothing.
 
 #### PR 2 – `test: add rejected-input tests per component family`
@@ -259,6 +265,9 @@ C has the largest benefit and the largest effort. B and C together make E cheap.
 - **Exception types:** The tests assert today's type (`ValueError` or `TypeError`). Tests on `TypeError` break on purpose in PR 11–15 and are adapted there (decision of 2026-11-10).
 - **Acceptance:** Every function from Appendix A with callers in the component files has at least one negative test.
 - **Needs:** nothing.
+- **State (2026-11-10):** PR #886, branch `test/rejected-input-tests`. `test/test_rejectedInputs.py`, 95 tests. A mutation check (every `raise` of the target function turned into `pass`) kills 91 of 95 cases; the 4 survivors are the `checkAndSetInvestmentPeriodParameters` cases, whose raise sits in `checkInvestmentPeriodParameters`.
+- **Not testable with `pytest.raises`:** `setStockCapacityStartYear`, `sortTimeSeriesColumns`, `process2dimCapacityData`, `preprocess2dimData` (no raise of their own); `checkOperationRateForCapacityVariable` (warns only); `checkSimultaneousChargeDischarge` (only after a solve); `checkAndSetFullLoadHoursParameter` for Storage and Transmission (their constructors do not forward `yearlyFullLoadHoursMin/Max`).
+- **Found bug (not fixed, out of scope):** for Storage and Transmission, any valid `partLoadMin` raises `TypeError: 'NoneType' object is not subscriptable` in `checkAndSetPartLoadMin`, because `fullOperationMin` is `None` there.
 
 #### PR 3 – `refactor: remove spagat` (issue #806, no PR yet)
 
@@ -269,6 +278,8 @@ C has the largest benefit and the largest effort. B and C together make E cheap.
 - **No advance warning:** spagat is removed without a warning release.
 - **Acceptance:** suite green; `import fine` works without the removed packages.
 - **Needs:** nothing.
+- **Deviations (2026-11-10):** PR #885 (branch `refactor/remove-spagat`) targets `develop` (user decision). `test/spagat/` did not exist; `test/aggregations/temporalAggregation/` stays. Also removed: the unused-after-removal `timer()` in `fine/IOManagement/standardIO.py`, the `xrIO` import in `fine/energySystemModel.py`, docs/README/mkdocs references, the three packages in `.github/workflows/test_pull_min_max_versions.yml`. The geopandas `ImportError` text now names plotting (user decision). `rasterio`, `networkx`, `scikit-learn` removed as direct dependencies; `scikit-learn` still comes in through tsam. Local suite: 367 passed, 2 skipped.
+- **Left for later:** `.github/renovate.json:31` still lists `scikit-learn` and `rasterio` (no-op); stale "spatial aggregation" wording in `xarrayIO.py:24` and `dictIO.py:75` (PR 4 touches both).
 
 #### PR 4 – `refactor(io): remove useProcessedValues`
 
@@ -499,8 +510,6 @@ The branch was read completely (six areas, every statement cross-checked, nothin
 
 | No. | Decision | Due before |
 |---|---|---|
-| 1 | Substitute criterion if the LP output is not stably comparable | in PR 1 |
-| 2 | How and when `fine_refactor` is merged back into `develop` (once at the end or per block) | first merge back |
 | 3 | Pattern signature for pure check functions; handling of `verboseLogLevel` | PR 7 |
 | 4 | Model-wide part of `checkLocationSpecficDesignInputParams` (shared potential): where does it go? | PR 8 |
 | 5 | Scope of the piecewise linear cost function (`utilsPWLCF.py`) | PR 10 |
@@ -516,18 +525,17 @@ The branch was read completely (six areas, every statement cross-checked, nothin
 
 ### Decided on 2026-11-10
 
-- `fine_refactor` is the integration branch; all PRs target it.
+- All PRs target `develop`; `fine_refactor` holds only the plan. Decision 2 (merging `fine_refactor` back) is therefore dropped.
 - The plan and all notes are written in English.
 - The stability of the LP output is clarified in PR 1, not beforehand.
 - Negative tests (PR 2) assert today's exception type and break on purpose in PR 11–15.
 - PR 3: the example notebook 07 is removed. `geopandas` stays for plotting. spagat is removed without a warning release.
 - If an LP file changes, work stops and the cause is investigated (section 0).
+- Decision 1 (PR 1): the LP files are compared byte-exactly, written with `file_determinism=20`. `multi_node_test_esM_init` is dropped from the snapshot set; `balanceLimitConstraint_test_esM` is stored gzip-compressed.
 
 ## 11. Not verified
 
 - The assignment of the `utils` functions to PR 6–10 is based on signatures, callers (Appendix A) and the calls between the functions, not on fully read function bodies.
-- Whether the LP output of Pyomo is stably comparable without further work (PR 1).
-- Which of the dependencies `rasterio`, `scikit-learn`, `networkx` are needed exclusively by spagat (PR 3).
 - The piecewise linear cost function was not read (PR 10).
 - The handling of stock years as keys (PR 20).
 - The test suite was not run as part of this planning. According to information from 2026-11-10 it is green on `develop`.
