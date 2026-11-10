@@ -1695,6 +1695,45 @@ import xarray as xr
 from typing import Dict, Optional, Any, List, Union
 
 
+def _zarr_write_options(compression_algorithm, compression_level, zarr_format):
+    """Blosc compression encoding and ``to_zarr`` keywords for the installed zarr.
+
+    zarr 2 takes a ``numcodecs.Blosc`` under the encoding key ``compressor`` and
+    writes zarr format 2 only. zarr 3 rejects that key/codec pair for format 3
+    ("Expected a BytesBytesCodec"): there the compressor goes under
+    ``compressors``, as ``numcodecs.Blosc`` for format 2 and as
+    ``zarr.codecs.BloscCodec`` for format 3. Both give Blosc with byte shuffle.
+
+    zarr 3 also gets ``write_empty_chunks=True``. By default it skips every chunk
+    that equals the fill value, and for integer and boolean variables without a
+    ``_FillValue`` the fill value is ``null``, which zarr 3 reads as 0/False. zarr 2
+    returns uninitialised memory for such a missing chunk, so an all-zero
+    ``investIfBuilt`` written by zarr 3 came back from zarr 2 as random integers.
+    Writing all chunks, as zarr 2 does, keeps the stores readable by both.
+
+    :return: (per-variable encoding dict, keyword arguments for ``to_zarr``)
+    """
+    import zarr
+    from numcodecs import Blosc
+
+    zarr_major = int(zarr.__version__.split(".")[0])
+    if zarr_format not in (2, 3):
+        raise ValueError(f"zarr_format must be 2 or 3, got {zarr_format!r}")
+    if zarr_major < 3:
+        if zarr_format == 3:
+            raise ValueError(
+                f"zarr format 3 needs zarr >= 3; this environment has zarr {zarr.__version__}"
+            )
+        compressor = Blosc(cname=compression_algorithm, clevel=compression_level, shuffle=Blosc.SHUFFLE)
+        return {"compressor": compressor}, {}
+    if zarr_format == 2:
+        compressor = Blosc(cname=compression_algorithm, clevel=compression_level, shuffle=Blosc.SHUFFLE)
+    else:
+        from zarr.codecs import BloscCodec
+        compressor = BloscCodec(cname=compression_algorithm, clevel=compression_level, shuffle="shuffle")
+    return {"compressors": (compressor,)}, {"zarr_format": zarr_format, "write_empty_chunks": True}
+
+
 def writeDatasetsToZarr(
     data_dict,
     output_zarr_path="my_esm.zarr",
@@ -1702,6 +1741,7 @@ def writeDatasetsToZarr(
     compression_level=5,
     compression_algorithm='zstd',
     replace_fill_value=False,
+    zarr_format=2,
 ):
     """
     Writes an entire EnergySystemModel instance to a consolidated Zarr store.
@@ -1714,8 +1754,16 @@ def writeDatasetsToZarr(
         If False, an error will be raised if the path already exists.
     compression_level : int
         Compression level (1-9, higher = better compression but slower).
+    zarr_format : int
+        Zarr format of the written store, 2 (default) or 3. Works with zarr 2
+        and zarr 3 installed; format 3 needs zarr 3. Format 2 is the default
+        because zarr 2 and zarr 3 can both read it, and because zarr 3 has no
+        stable format-3 specification yet for the fixed-length unicode strings
+        written here (UnstableSpecificationWarning).
     """
-    from numcodecs import Blosc  # Zarr's preferred compressor
+    compression_encoding, zarr_kwargs = _zarr_write_options(
+        compression_algorithm, compression_level, zarr_format
+    )
     if overwrite_existing and Path(output_zarr_path).exists():
         import shutil
         shutil.rmtree(output_zarr_path)
@@ -1737,9 +1785,6 @@ def writeDatasetsToZarr(
 
     
     _t = time.time()
-    
-    # Use higher compression and better algorithm for smaller files
-    compressor = Blosc(cname=compression_algorithm, clevel=compression_level, shuffle=Blosc.SHUFFLE)
     
     lazy_data_dict = _make_datasets_lazy(data_dict, chunks="auto")
     # lazy_data_dict = data_dict  # Assuming data_dict is already lazy-loaded or chunked
@@ -2012,78 +2057,40 @@ def writeDatasetsToZarr(
         return chunked_ds
     
                  
-    for model_class, ds in consolidated_input.items():
+    def _write_chunked(ds, store):
+        """Chunk ``ds`` and write it with the compression encoding; on failure
+        retry once with a uniform 'auto' chunking (see _chunk)."""
+        def _encoding(chunked_ds):
+            encoding_var = {}
+            for var, da in chunked_ds.data_vars.items():
+                encoding_var[var] = dict(compression_encoding)
+                if replace_fill_value and np.issubdtype(da.dtype, np.floating):
+                    encoding_var[var]['_FillValue'] = -9999.0
+            return encoding_var
 
         try:
             chunked_ds = _chunk(ds, chunk=True)
-
-            encoding_var = {}
-            for var, da in chunked_ds.data_vars.items():
-                if replace_fill_value and np.issubdtype(da.dtype, np.floating):
-                    encoding_var[var] = {'compressor': compressor, '_FillValue': -9999.0}
-                else:
-                    encoding_var[var] = {'compressor': compressor}
-
-
-            chunked_ds.to_zarr(
-                f"{output_zarr_path}/Input/{model_class}", mode='w',
-                encoding=encoding_var
-            )
+            chunked_ds.to_zarr(store, mode='w', encoding=_encoding(chunked_ds), **zarr_kwargs)
         except Exception as e:
             print(e)
             chunked_ds = _chunk(ds, chunk=False)
-            encoding_var = {}
-            for var, da in chunked_ds.data_vars.items():
-                if replace_fill_value and np.issubdtype(da.dtype, np.floating):
-                    encoding_var[var] = {'compressor': compressor, '_FillValue': -9999.0}
-                else:
-                    encoding_var[var] = {'compressor': compressor}
+            chunked_ds.to_zarr(store, mode='w', encoding=_encoding(chunked_ds), **zarr_kwargs)
 
-            chunked_ds.to_zarr(
-                f"{output_zarr_path}/Input/{model_class}", mode='w',
-                encoding=encoding_var
-            )
+    for model_class, ds in consolidated_input.items():
+        _write_chunked(ds, f"{output_zarr_path}/Input/{model_class}")
 
     # Write RESULTS
     for ip, ip_dict in consolidated_results.items():
         for model_class, ds in ip_dict.items():
-            # Chunk the dataset if needed
-            try:
-                chunked_ds = _chunk(ds, chunk=True)
+            _write_chunked(ds, f"{output_zarr_path}/Results/{ip}/{model_class}")
 
-                encoding_var = {}
-                for var, da in chunked_ds.data_vars.items():
-                    if replace_fill_value and np.issubdtype(da.dtype, np.floating):
-                        encoding_var[var] = {'compressor': compressor, '_FillValue': -9999.0}
-                    else:
-                        encoding_var[var] = {'compressor': compressor}
-
-                chunked_ds.to_zarr(
-                    f"{output_zarr_path}/Results/{ip}/{model_class}", mode='w',
-                    encoding=encoding_var
-                )
-                
-            except Exception as e:
-                print(e)
-                chunked_ds = _chunk(ds, chunk=False)
-
-                encoding_var = {}
-                for var, da in chunked_ds.data_vars.items():
-                    if replace_fill_value and np.issubdtype(da.dtype, np.floating):
-                        encoding_var[var] = {'compressor': compressor, '_FillValue': -9999.0}
-                    else:
-                        encoding_var[var] = {'compressor': compressor}
-
-                chunked_ds.to_zarr(
-                    f"{output_zarr_path}/Results/{ip}/{model_class}", mode='w',
-                    encoding=encoding_var
-                )
-            
     # Write Parameters and Performance Summary
     params_processed = processDataset({'Parameters': lazy_data_dict['Parameters']})
-    params_processed['Parameters'].to_zarr(f"{output_zarr_path}/Parameters", mode='w')
+    params_processed['Parameters'].to_zarr(f"{output_zarr_path}/Parameters", mode='w', **zarr_kwargs)
     if 'PerformanceSummary' in lazy_data_dict:
-        lazy_data_dict['PerformanceSummary'].to_zarr(f"{output_zarr_path}/PerformanceSummary", mode='w')
+        lazy_data_dict['PerformanceSummary'].to_zarr(
+            f"{output_zarr_path}/PerformanceSummary", mode='w', **zarr_kwargs
+        )
 
     print("Done. (%.4f" % (time.time() - _t) + " sec)")
     
