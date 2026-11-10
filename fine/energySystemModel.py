@@ -36,6 +36,13 @@ DEFAULT_CLUSTER = ClusterConfig(method="hierarchical", representation="distribut
 #: otherwise. Pass None to switch segmentation off.
 DEFAULT_SEGMENTS = SegmentConfig(n_segments=12, representation="distribution")
 
+#: Names of the component modeling classes that contribute to the (pathway) balance limits.
+BALANCE_LIMIT_MODELS = (
+    "SourceSinkModel",
+    "TransmissionModel",
+    "AsymmetricTransmissionModel",
+)
+
 
 class EnergySystemModel:
     r"""EnergySystemModel class.
@@ -551,7 +558,8 @@ class EnergySystemModel:
         if (
             hasattr(component, "commodity")
             and component.commodity in self.pooledCommodities
-            and component.__class__.__name__ == "Transmission"
+            and component.__class__.__name__
+            in ("Transmission", "AsymmetricTransmission")
         ):
             raise ValueError(
                 f"Commodity '{component.commodity}' is pooled. "
@@ -682,6 +690,7 @@ class EnergySystemModel:
             "ConversionDynamic",
             "ConversionPartLoadModel",
             "LinearOptimalPowerFlow",
+            "AsymmetricTransmission",
         ]
         if (
             _class.__name__ in subclass_names
@@ -1293,7 +1302,7 @@ class EnergySystemModel:
             # Get Components per balance limit
             componentsOfBalanceLimit = {}
             for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type in ("SourceSinkModel", "TransmissionModel"):
+                if mdl_type in BALANCE_LIMIT_MODELS:
                     for compName, comp in mdl.componentsDict.items():
                         if comp.balanceLimitID is not None:
                             componentsOfBalanceLimit.setdefault(
@@ -1351,7 +1360,7 @@ class EnergySystemModel:
                         ],
                     )
                     for mdl_type, mdl in self.componentModelingDict.items()
-                    if (mdl_type in ("SourceSinkModel", "TransmissionModel"))
+                    if mdl_type in BALANCE_LIMIT_MODELS
                 )
                 # Check whether we want to consider an upper or lower bound.
                 if lowerBound == 0:
@@ -1368,7 +1377,7 @@ class EnergySystemModel:
             # Get Components per balance limit
             componentsOfBalanceLimit = {}
             for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type in ("SourceSinkModel", "TransmissionModel"):
+                if mdl_type in BALANCE_LIMIT_MODELS:
                     for compName, comp in mdl.componentsDict.items():
                         if comp.pathwayBalanceLimitID is not None:
                             componentsOfBalanceLimit.setdefault(
@@ -1421,7 +1430,7 @@ class EnergySystemModel:
                     )
                     for mdl_type, mdl in self.componentModelingDict.items()
                     for _ip in self.investmentPeriods
-                    if (mdl_type in ("SourceSinkModel", "TransmissionModel"))
+                    if mdl_type in BALANCE_LIMIT_MODELS
                 )
                 value = self.processedPathwayBalanceLimit.loc[ID, loc]
                 lowerBound = self.processedPathwayBalanceLimit.loc[ID, "lowerBound"]

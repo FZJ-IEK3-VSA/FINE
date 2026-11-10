@@ -19,6 +19,7 @@ class ComponentAbbreviation(FineEnum):
     TRANSMISSION = "trans"
     SOURCE_SINK = "srcSnk"
     LOPF = "lopf"
+    ASYMMETRIC_TRANSMISSION = "asymTrans"
     PART_LOAD = "partLoad"
     CONVERSION_DYNAMIC = "conv_dyn"
     PWLCF = "pwlcf"

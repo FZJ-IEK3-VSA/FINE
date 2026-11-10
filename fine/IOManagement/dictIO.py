@@ -121,7 +121,7 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
             else:
                 # Loop over all input props
                 for prop in prop_list:
-                    if class_ is not fn.Transmission:
+                    if class_ not in (fn.Transmission, fn.AsymmetricTransmission):
                         if prop not in ("self", "esM"):
                             compDict[classname][componentname][prop] = getattr(
                                 component, prop

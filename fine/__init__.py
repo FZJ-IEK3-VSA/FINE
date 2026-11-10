@@ -5,7 +5,12 @@ from .storage import Storage
 from .transmission import Transmission
 from .component import Component, ComponentModel
 from . import subclasses, utils
-from .subclasses import ConversionDynamic, ConversionPartLoad, LinearOptimalPowerFlow
+from .subclasses import (
+    AsymmetricTransmission,
+    ConversionDynamic,
+    ConversionPartLoad,
+    LinearOptimalPowerFlow,
+)
 from .IOManagement import dictIO, xarrayIO
 from .IOManagement.standardIO import (
     getShadowPrices,
@@ -30,6 +35,7 @@ from tsam import ClusterConfig, Distribution, ExtremeConfig, MinMaxMean, Segment
 xrIO = xarrayIO
 
 __all__ = [
+    "AsymmetricTransmission",
     "ClusterConfig",
     "Component",
     "ComponentModel",

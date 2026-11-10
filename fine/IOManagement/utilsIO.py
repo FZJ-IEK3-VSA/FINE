@@ -185,7 +185,11 @@ def _leafToIndexedData(data, classname, component, _mapC_dict, locations):
     :return: (prefix, indexed_data), where indexed_data is a pd.Series for the
         1d/2d/ts cases or the raw constant for the 0d case
     """
-    isTransmission = classname in ["Transmission", "LinearOptimalPowerFlow"]
+    isTransmission = classname in [
+        "Transmission",
+        "LinearOptimalPowerFlow",
+        "AsymmetricTransmission",
+    ]
 
     # regional time series (time, space) - or (time, space, space_2) for Transmission
     if isinstance(data, pd.DataFrame):

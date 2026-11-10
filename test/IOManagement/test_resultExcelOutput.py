@@ -42,7 +42,7 @@ def test_compareResults_longClassNames():
     # add all subclasses which inherit from component to the esm:
     """
     Adding all possible future subclasses does not work, because it is not clear which future parameters are required.
-    Therefore, only the currently known subclasses "ConversionDynamic", "ConversionPartLoad" and "LinearOptimalPowerFlow" are added and an Error is raised if there are subclasses which do not match the ones known.
+    Therefore, only the currently known subclasses "ConversionDynamic", "ConversionPartLoad", "LinearOptimalPowerFlow" and "AsymmetricTransmission" are added and an Error is raised if there are subclasses which do not match the ones known.
     """
     for possibleClass in subclass_objects:
         if "ConversionDynamic" in str(possibleClass):
@@ -93,6 +93,14 @@ def test_compareResults_longClassNames():
                     name=str(possibleClass),
                     commodity="TestCom",
                     reactances=reactances,
+                )
+            )
+        elif "AsymmetricTransmission" in str(possibleClass):
+            esM.add(
+                possibleClass(
+                    esM=esM,
+                    name=str(possibleClass),
+                    commodity="TestCom",
                 )
             )
         else:

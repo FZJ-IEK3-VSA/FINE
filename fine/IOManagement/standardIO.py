@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 abbreviatedClassName = {
     "ConversionDynamicModel": "ConvDyn",
     "ConversionPartLoadModel": "ConvPartLoad",
+    "AsymmetricTransmissionModel": "AsymTrans",
 }
 
 

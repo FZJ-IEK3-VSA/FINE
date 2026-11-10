@@ -33,7 +33,11 @@ def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
 
     # STEP 2. get _mapC for all transmission components
     _mapC_dict = {}
-    for transmission_class in ["LinearOptimalPowerFlow", "Transmission"]:
+    for transmission_class in [
+        "LinearOptimalPowerFlow",
+        "Transmission",
+        "AsymmetricTransmission",
+    ]:
         for tech in component_dict[transmission_class].keys():
             _mapC_dict[tech] = esM.getComponent(tech)._mapC
 
