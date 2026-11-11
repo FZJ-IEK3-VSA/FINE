@@ -1,6 +1,5 @@
 import json
 import time
-import tracemalloc
 from pathlib import Path
 
 import numpy as np
@@ -1647,7 +1646,7 @@ def readNetCDFtoEnergySystemModel(filePath, groupPrefix=None):
 
     return esM
 
-def _make_datasets_lazy(data_dict, chunks="auto", _path=()):
+def _make_datasets_lazy(data_dict, chunks="auto", _path=(), release=False):
     """
     Recursively traverses a dictionary of datasets and converts their
     in-memory NumPy arrays to lazy Dask arrays by chunking them.
@@ -1671,8 +1670,19 @@ def _make_datasets_lazy(data_dict, chunks="auto", _path=()):
     using it as the token is just as safe as content hashing (no risk of two
     distinct arrays colliding on the same dask array name) but is O(1) instead
     of O(array size).
+
+    With release=True the dicts of data_dict are updated in place: each dataset
+    is replaced by its dask version as soon as that is made, so the in-memory
+    original (which dask.array.from_array has copied) can be freed at once
+    instead of after the whole dict is converted.
     """
     if isinstance(data_dict, dict):
+        if release:
+            for key in list(data_dict):
+                data_dict[key] = _make_datasets_lazy(
+                    data_dict[key], chunks, _path=_path + (str(key),), release=True
+                )
+            return data_dict
         return {
             key: _make_datasets_lazy(value, chunks, _path=_path + (str(key),))
             for key, value in data_dict.items()
@@ -1742,11 +1752,15 @@ def writeDatasetsToZarr(
     compression_algorithm='zstd',
     replace_fill_value=False,
     zarr_format=2,
+    release_input=False,
 ):
     """
     Writes an entire EnergySystemModel instance to a consolidated Zarr store.
     data_dict : dict
-        Nested dictionary containing xarray datasets
+        Nested dictionary containing xarray datasets. Each of the groups
+        "Input", "Results", "Parameters" and "PerformanceSummary" is optional,
+        so a store can be written group by group (overwrite_existing=False for
+        all calls after the first).
     output_zarr_path : str
         Path to the output Zarr store directory.
     overwrite_existing : bool
@@ -1760,6 +1774,12 @@ def writeDatasetsToZarr(
         because zarr 2 and zarr 3 can both read it, and because zarr 3 has no
         stable format-3 specification yet for the fixed-length unicode strings
         written here (UnstableSpecificationWarning).
+    release_input : bool
+        If True, every dataset in data_dict is replaced, in place, by its dask
+        version as soon as that is made. dask.array.from_array copies the
+        in-memory arrays, so without this the datasets are held twice while the
+        store is written. Only useful if the caller holds no other reference to
+        the datasets. The written values are the same either way.
     """
     compression_encoding, zarr_kwargs = _zarr_write_options(
         compression_algorithm, compression_level, zarr_format
@@ -1786,7 +1806,7 @@ def writeDatasetsToZarr(
     
     _t = time.time()
     
-    lazy_data_dict = _make_datasets_lazy(data_dict, chunks="auto")
+    lazy_data_dict = _make_datasets_lazy(data_dict, chunks="auto", release=release_input)
     # lazy_data_dict = data_dict  # Assuming data_dict is already lazy-loaded or chunked
 
 
@@ -1915,14 +1935,38 @@ def writeDatasetsToZarr(
         # Update component names to match standardized datasets
         component_names = component_names[:len(standardized_datasets)]
 
+        # A variable can be an array (a dask array, see _make_datasets_lazy) in
+        # some components and a 0-d placeholder in others (e.g. NaN for a
+        # parameter that was None). xr.concat broadcasts the placeholders to the
+        # full shape of the array; for a numpy placeholder that is a view without
+        # memory, but dask then copies each view into a real array, e.g. 8760 x
+        # 174 x 174 values for a transmission time series. With the placeholder
+        # as a dask array the broadcast stays lazy. The written values are the
+        # same.
+        import dask.array as da
+
+        lazy_variables = {
+            name
+            for ds in standardized_datasets
+            for name, variable in ds.data_vars.items()
+            if isinstance(variable.data, da.Array)
+        }
+        for ds in standardized_datasets:
+            for name in lazy_variables:
+                if (
+                    name in ds.data_vars
+                    and ds[name].ndim == 0
+                    and not isinstance(ds[name].data, da.Array)
+                ):
+                    # (chunk() leaves 0-d variables as they are)
+                    ds[name] = ds[name].copy(data=da.from_array(ds[name].values))
+
         # Concatenate using join='outer'.
         # This tells xarray to:
         # 1. Create a superset of all data variables from all datasets.
         # 2. For any component that is missing a variable, automatically create
         #    it and fill it with appropriate values.
         # 3. `coords='minimal'` robustly handles different coordinates (like time).
-        tracemalloc.start()
-
         consolidated_ds = xr.concat(
             standardized_datasets,
             dim=pd.Index(component_names, name=tech_dim_name),
@@ -1982,16 +2026,13 @@ def writeDatasetsToZarr(
                         })
         
         del standardized_datasets  # Free memory
-        current, peak = tracemalloc.get_traced_memory()
-        print(f"Current memory usage: {current / 1e6:.2f} MB")
-        print(f"Peak memory usage: {peak / 1e6:.2f} MB")
         return consolidated_ds
 
     # --- The rest of the function remains the same, using the new helper ---
 
     # 1. Prepare and Consolidate Input Data
     consolidated_input = {}
-    for model_class, components in lazy_data_dict["Input"].items():
+    for model_class, components in lazy_data_dict.get("Input", {}).items():
         consolidated_ds = robust_concat(components)
         if consolidated_ds:
             consolidated_input[model_class] = consolidated_ds
@@ -2085,8 +2126,9 @@ def writeDatasetsToZarr(
             _write_chunked(ds, f"{output_zarr_path}/Results/{ip}/{model_class}")
 
     # Write Parameters and Performance Summary
-    params_processed = processDataset({'Parameters': lazy_data_dict['Parameters']})
-    params_processed['Parameters'].to_zarr(f"{output_zarr_path}/Parameters", mode='w', **zarr_kwargs)
+    if 'Parameters' in lazy_data_dict:
+        params_processed = processDataset({'Parameters': lazy_data_dict['Parameters']})
+        params_processed['Parameters'].to_zarr(f"{output_zarr_path}/Parameters", mode='w', **zarr_kwargs)
     if 'PerformanceSummary' in lazy_data_dict:
         lazy_data_dict['PerformanceSummary'].to_zarr(
             f"{output_zarr_path}/PerformanceSummary", mode='w', **zarr_kwargs
