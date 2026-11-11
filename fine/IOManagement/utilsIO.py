@@ -7,6 +7,41 @@ from functools import reduce  # forward compatibility for Python 3
 import operator
 
 
+def _copyComponentDictLevels(component_dict):
+    """Copy the class and component levels of a component dict, not the values.
+
+    The functions that build a modified component dict replace values; they do
+    not change them in place. Copying the two dict levels is therefore enough to
+    leave component_dict unchanged, while a deep copy would also copy every
+    time series (several GB for a large model).
+    """
+    return {
+        classname: {
+            component: dict(parameters)
+            for component, parameters in components.items()
+        }
+        for classname, components in component_dict.items()
+    }
+
+
+def _splitJoinedLocations(index, mapC):
+    """Replace the joined location level of a (time, "loc1_loc2") index by two levels.
+
+    mapC maps each joined name to its (loc1, loc2) tuple (component._mapC).
+    Returns a (time, space, space_2) MultiIndex with the same values as building
+    it from one tuple per element, without creating those tuples.
+    """
+    time_index = index.get_level_values("time")
+    space_index = index.get_level_values("space")
+    joined_names = space_index.unique()
+    first = {joined: mapC[joined][0] for joined in joined_names}
+    second = {joined: mapC[joined][1] for joined in joined_names}
+    return pd.MultiIndex.from_arrays(
+        [time_index, space_index.map(first), space_index.map(second)],
+        names=["time", "space", "space_2"],
+    )
+
+
 def getFromDict(dataDict, mapList):
     """Get value from a dict by a list, which contains the dict keys.
 
@@ -279,23 +314,8 @@ def addDFVariablesToXarray(
 
             if classname in ["Transmission", "LinearOptimalPowerFlow"]:
                 # use _mapC to split via location names
-                space_index = multi_index_dataframe.index.get_level_values("space")
-                time_index = multi_index_dataframe.index.get_level_values("time")
-                # reconstruct multiindex
-                space_index_split = []
-                for idx in space_index:
-                    loc1, loc2 = _mapC_dict[component][idx]
-                    space_index_split.append((loc1, loc2))
-                multi_index_dataframe.index = pd.MultiIndex.from_tuples(
-                    [
-                        (
-                            time_index[i],
-                            space_index_split[i][0],
-                            space_index_split[i][1],
-                        )
-                        for i in range(len(space_index_split))
-                    ],
-                    names=["time", "space", "space_2"],
+                multi_index_dataframe.index = _splitJoinedLocations(
+                    multi_index_dataframe.index, _mapC_dict[component]
                 )
                 df_dict_3dim[df_description] = multi_index_dataframe
             else:
@@ -920,11 +940,11 @@ def replaceNoneValuesForXarray(component_dict):
     :return: modified component_dict with None values replaced by np.nan and all parameters included
     :rtype: dict
     """
-    import copy
     import numpy as np
-    
-    # Create a deep copy to avoid modifying the original
-    modified_component_dict = copy.deepcopy(component_dict)
+
+    # Copy the dict levels to avoid modifying the original (values are only
+    # replaced below, never changed in place)
+    modified_component_dict = _copyComponentDictLevels(component_dict)
     
     # Process each component class
     for classname in component_dict:
@@ -954,8 +974,9 @@ def convertToXarray(component_dict):
             if isinstance(value, pd.Series):
                 # remove any named index
                 #TODO: fix somewhere else!!!
+                # (renamed on a new Series: value may belong to the esM)
                 if "space" not in value.index.names:
-                    value.index.names = ["space"] * value.index.nlevels
+                    value = value.rename_axis(["space"] * value.index.nlevels)
                 # Handle pandas Series using xarray's built-in method
                 data_vars[key] = xr.DataArray.from_series(value)
             elif isinstance(value, pd.DataFrame):
@@ -1269,10 +1290,9 @@ def createParameterDimensionDict(component_dict):
     :return: parameter_mask dictionary with structure {classname: {component: {parameter: dimension_type}}}
     :rtype: dict
     """
-    import copy
     parameter_mask = {}
-    
-    for classname in copy.deepcopy(component_dict):
+
+    for classname in component_dict:
         parameter_mask[classname] = {}
         for component in component_dict[classname]:
             parameter_mask[classname][component] = {}
@@ -1288,8 +1308,7 @@ def createParameterDimensionDict(component_dict):
 def processComponentDict(component_dict, locations, _mapC_dict):
     # add variable dimension names to pandas dataframes and series in component_dict
     # for constants do not do anything
-    import copy
-    component_dict_mod = copy.deepcopy(component_dict)
+    component_dict_mod = _copyComponentDictLevels(component_dict)
     for classname in component_dict:
         for component in component_dict[classname]:
             for parameter_name, parameter_value in component_dict[classname][component].items():
@@ -1325,18 +1344,8 @@ def processComponentDict(component_dict, locations, _mapC_dict):
                             # split X_X into multiindex
                             mi_df.index.set_names("time", level=0, inplace=True)
                             mi_df.index.set_names("space", level=1, inplace=True)
-                            # use _mapC to split via location names 
-                            space_index = mi_df.index.get_level_values("space")
-                            time_index = mi_df.index.get_level_values("time")
-                            # reconstruct multiindex
-                            space_index_split = []
-                            for idx in space_index:
-                                loc1, loc2 = _mapC_dict[component][idx]
-                                space_index_split.append((loc1, loc2))
-                            mi_df.index = pd.MultiIndex.from_tuples(
-                                [(time_index[i], space_index_split[i][0], space_index_split[i][1]) for i in range(len(space_index_split))],
-                                names=["time", "space", "space_2"]
-                            )
+                            # use _mapC to split via location names
+                            mi_df.index = _splitJoinedLocations(mi_df.index, _mapC_dict[component])
                     else:
                         mi_df = parameter_value.stack()
                         if "Period" in mi_df.index.names:
