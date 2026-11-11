@@ -1519,6 +1519,97 @@ def writeEnergySystemModelToDatasetsBoth(esM, optSumOutputLevel=0):
     return _assemble(xr_dss_input_netcdf), _assemble(xr_dss_input_zarr)
 
 
+def writeEnergySystemModelToNetCDFfolderAndZarr(
+    esM, netcdf_path, zarr_path=None, optSumOutputLevel=0
+):
+    """Write the esM (input and, if optimized, output) to a NetCDF folder and,
+    optionally, a zarr store, one group at a time.
+
+    Writes the same files as converting with
+    writeEnergySystemModelToDatasetsBoth and then calling
+    writeDatasetsToNetCDFfolder and writeDatasetsToZarr, but never holds more
+    than one group in memory: the Results are converted, written to both
+    formats and freed before the Input is converted; the NetCDF Input is
+    written and freed before the zarr Input is converted. Both writers store
+    every group (and in the NetCDF folder every component) in its own files,
+    so writing them in several calls gives the same files; the NetCDF
+    structure.json is written once at the end, with the groups in the order
+    Input, Parameters, Results, PerformanceSummary as before.
+
+    :param esM: EnergySystemModel instance (optimized or not)
+    :param netcdf_path: folder for writeDatasetsToNetCDFfolder
+    :param zarr_path: store for writeDatasetsToZarr; None writes no zarr store
+    :param optSumOutputLevel: see convertOptimizationOutputToDatasets
+
+    :return: the structure of the NetCDF folder (as in structure.json)
+    :rtype: dict
+    """
+    netcdf_path = Path(netcdf_path)
+    is_optimized = esM.objectiveValue is not None
+    zarr_started = False
+    paths = {}
+
+    # Results: convert, write to both formats, free
+    if is_optimized:
+        results = convertOptimizationOutputToDatasets(esM, optSumOutputLevel)["Results"]
+        paths.update(writeDatasetsToNetCDFfolder({"Results": results}, base_path=netcdf_path))
+        if zarr_path is not None:
+            writeDatasetsToZarr(
+                {"Results": results},
+                output_zarr_path=zarr_path,
+                overwrite_existing=True,
+                release_input=True,
+            )
+            zarr_started = True
+        del results
+
+    # The PerformanceSummary dataset goes to both formats as one object, as
+    # before: writeDatasetsToNetCDFfolder (processDataset) changes its
+    # attributes in place before the zarr store is written.
+    performance = None
+    if hasattr(esM, "performanceSummary"):
+        performance = convertPerformanceSummaryToDatasets(esM)["PerformanceSummary"]
+
+    def _input_group(converted):
+        group = {"Input": converted["Input"], "Parameters": converted["Parameters"]}
+        if performance is not None:
+            group["PerformanceSummary"] = performance
+        return group
+
+    # Exported once (incl. the TSA full-timeseries reconstruction) for both
+    # input conversions
+    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues=False)
+
+    group = _input_group(
+        convertOptimizationInputToDatasets(
+            esM, esm_dict=esm_dict, component_dict=component_dict
+        )
+    )
+    paths.update(writeDatasetsToNetCDFfolder(group, base_path=netcdf_path))
+    del group
+
+    if zarr_path is not None:
+        group = _input_group(
+            convertOptimizationInputToDatasetsZarr(
+                esM, esm_dict=esm_dict, component_dict=component_dict
+            )
+        )
+        del esm_dict, component_dict
+        writeDatasetsToZarr(
+            group,
+            output_zarr_path=zarr_path,
+            overwrite_existing=not zarr_started,
+            release_input=True,
+        )
+        del group
+
+    order = ["Input", "Parameters", "Results", "PerformanceSummary"]
+    paths = {key: paths[key] for key in order if key in paths}
+    with open(netcdf_path / "structure.json", "w") as f:
+        json.dump(paths, f, indent=2)
+    return paths
+
+
 def readNetCDFToDatasets(filePath="my_esm.nc", groupPrefix=None, lazy_load=False):
     """Read optimization results from grouped netCDF file to dictionary of
     xr.Datasets.
