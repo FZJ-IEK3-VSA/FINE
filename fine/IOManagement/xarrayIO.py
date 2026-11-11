@@ -1520,7 +1520,7 @@ def writeEnergySystemModelToDatasetsBoth(esM, optSumOutputLevel=0):
 
 
 def writeEnergySystemModelToNetCDFfolderAndZarr(
-    esM, netcdf_path, zarr_path=None, optSumOutputLevel=0
+    esM, netcdf_path, zarr_path=None, optSumOutputLevel=0, dask_num_workers=4
 ):
     """Write the esM (input and, if optimized, output) to a NetCDF folder and,
     optionally, a zarr store, one group at a time.
@@ -1540,10 +1540,13 @@ def writeEnergySystemModelToNetCDFfolderAndZarr(
     :param netcdf_path: folder for writeDatasetsToNetCDFfolder
     :param zarr_path: store for writeDatasetsToZarr; None writes no zarr store
     :param optSumOutputLevel: see convertOptimizationOutputToDatasets
+    :param dask_num_workers: threads for the zarr write, see writeDatasetsToZarr
 
     :return: the structure of the NetCDF folder (as in structure.json)
     :rtype: dict
     """
+    import gc
+
     netcdf_path = Path(netcdf_path)
     is_optimized = esM.objectiveValue is not None
     zarr_started = False
@@ -1559,9 +1562,13 @@ def writeEnergySystemModelToNetCDFfolderAndZarr(
                 output_zarr_path=zarr_path,
                 overwrite_existing=True,
                 release_input=True,
+                dask_num_workers=dask_num_workers,
             )
             zarr_started = True
+        # the datasets hold reference cycles: free them now, not at some
+        # later automatic collection
         del results
+        gc.collect()
 
     # The PerformanceSummary dataset goes to both formats as one object, as
     # before: writeDatasetsToNetCDFfolder (processDataset) changes its
@@ -1587,6 +1594,7 @@ def writeEnergySystemModelToNetCDFfolderAndZarr(
     )
     paths.update(writeDatasetsToNetCDFfolder(group, base_path=netcdf_path))
     del group
+    gc.collect()
 
     if zarr_path is not None:
         group = _input_group(
@@ -1595,13 +1603,16 @@ def writeEnergySystemModelToNetCDFfolderAndZarr(
             )
         )
         del esm_dict, component_dict
+        gc.collect()
         writeDatasetsToZarr(
             group,
             output_zarr_path=zarr_path,
             overwrite_existing=not zarr_started,
             release_input=True,
+            dask_num_workers=dask_num_workers,
         )
         del group
+        gc.collect()
 
     order = ["Input", "Parameters", "Results", "PerformanceSummary"]
     paths = {key: paths[key] for key in order if key in paths}
@@ -1844,6 +1855,7 @@ def writeDatasetsToZarr(
     replace_fill_value=False,
     zarr_format=2,
     release_input=False,
+    dask_num_workers=None,
 ):
     """
     Writes an entire EnergySystemModel instance to a consolidated Zarr store.
@@ -1871,6 +1883,12 @@ def writeDatasetsToZarr(
         in-memory arrays, so without this the datasets are held twice while the
         store is written. Only useful if the caller holds no other reference to
         the datasets. The written values are the same either way.
+    dask_num_workers : int or None
+        Number of threads dask uses to compute and write the chunks (None:
+        dask's default, one per core). Every thread holds the source chunks of
+        the chunk it computes; with the transmission arrays of a large model
+        stacked over all components, 32 threads held about 9 GB more than 4.
+        The written values are the same.
     """
     compression_encoding, zarr_kwargs = _zarr_write_options(
         compression_algorithm, compression_level, zarr_format
@@ -1897,6 +1915,21 @@ def writeDatasetsToZarr(
     
     _t = time.time()
     
+    if dask_num_workers is not None:
+        import dask
+
+        with dask.config.set(num_workers=dask_num_workers):
+            return writeDatasetsToZarr(
+                data_dict,
+                output_zarr_path=output_zarr_path,
+                overwrite_existing=overwrite_existing,
+                compression_level=compression_level,
+                compression_algorithm=compression_algorithm,
+                replace_fill_value=replace_fill_value,
+                zarr_format=zarr_format,
+                release_input=release_input,
+            )
+
     lazy_data_dict = _make_datasets_lazy(data_dict, chunks="auto", release=release_input)
     # lazy_data_dict = data_dict  # Assuming data_dict is already lazy-loaded or chunked
 
