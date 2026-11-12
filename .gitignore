@@ -16,8 +16,9 @@ build/
 .venv/
 site/
 
-# auto-copied example notebooks (generated during mkdocs build)
+# auto-copied example notebooks and data (generated during mkdocs build)
 docs/examples/[0-9]*/
+docs/examples/data/
 
 # environment / secrets
 .env
