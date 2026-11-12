@@ -173,9 +173,6 @@ nav:
           - "04 District Optimization": examples/04_District_Optimization/04_Urban_District_Optimization_Workflow.ipynb
           - "05 Water Supply System": "examples/05_Water_Supply_System/05_Water Supply System.ipynb"
           - "06 NetCDF Model Instance": examples/06_NetCDF_to_save_and_set_up_model_instance/06_NetCDF_to_save_and_set_up_model_instance.ipynb
-          - "07 Aggregation":
-                - Spatial Aggregation: examples/07_Spatial_and_technology_aggregation/07a_Spatial_aggregation_of_energy_system_model.ipynb
-                - Technology Aggregation: examples/07_Spatial_and_technology_aggregation/07b_Technology_aggregation.ipynb
           - "08 Stochastic Optimization": "examples/08_Stochastic_Optimization/08_Stochastic Optimization.ipynb"
           - "09 Perfect Foresight": examples/09_PerfectForesight/09_perfectForesight_example.ipynb
           - "10 Partload": examples/10_Partload/10_Partload_Example.ipynb
