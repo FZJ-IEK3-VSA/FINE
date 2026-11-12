@@ -441,14 +441,22 @@ def addDFVariablesToXarray(
             else:
                 df_dict[df_description] = multi_index_dataframe
 
-        def add_to_xarray(xr_ds, df_dict, variable_description):
+        def add_to_xarray(xr_ds, df_dict, variable_description, lazy=False):
             df_variable = pd.concat(df_dict)
             df_variable.index.set_names("component", level=0, inplace=True)
 
             ds_component = xr.Dataset()
-            ds_component[f"ts_{variable_description}"] = (
-                df_variable.sort_index().to_xarray()
-            )
+            if lazy:
+                # same as to_xarray(), but the grid over all components and
+                # all pairs of locations (mostly NaN) is only filled block by
+                # block while it is written
+                ds_component[f"ts_{variable_description}"] = lazySeriesToXarray(
+                    df_variable.sort_index()
+                )
+            else:
+                ds_component[f"ts_{variable_description}"] = (
+                    df_variable.sort_index().to_xarray()
+                )
 
             for comp in df_variable.index.get_level_values(0).unique():
                 this_class = comp.split("; ")[0]
@@ -472,7 +480,9 @@ def addDFVariablesToXarray(
         if len(df_dict) > 0:
             xr_ds = add_to_xarray(xr_ds, df_dict, variable_description)
         if len(df_dict_3dim) > 0:
-            xr_ds = add_to_xarray(xr_ds, df_dict_3dim, variable_description)
+            xr_ds = add_to_xarray(
+                xr_ds, df_dict_3dim, variable_description, lazy=True
+            )
 
     return xr_ds
 
