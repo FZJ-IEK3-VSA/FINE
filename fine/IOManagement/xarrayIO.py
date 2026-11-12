@@ -1585,6 +1585,27 @@ def writeEnergySystemModelToDatasetsBoth(esM, optSumOutputLevel=0):
     return _assemble(xr_dss_input_netcdf), _assemble(xr_dss_input_zarr)
 
 
+def releaseMemory():
+    """Collect garbage and give the freed memory back to the operating system.
+
+    gc.collect() frees the objects, but glibc's malloc keeps most of the freed
+    memory for later allocations instead of returning it, so the process size
+    stays near its peak: after writing the Results of a large model (2030 case,
+    174 locations) the process still held 17.5 GB instead of 9.6 GB, and the
+    following Input conversion started from there. malloc_trim(0) returns the
+    free memory. It is only called where glibc is the C library (not on macOS
+    or Windows). No data is changed.
+    """
+    import ctypes
+    import gc
+
+    gc.collect()
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except (OSError, AttributeError):
+        pass
+
+
 def writeEnergySystemModelToNetCDFfolderAndZarr(
     esM, netcdf_path, zarr_path=None, optSumOutputLevel=0, dask_num_workers=4
 ):
@@ -1611,7 +1632,6 @@ def writeEnergySystemModelToNetCDFfolderAndZarr(
     :return: the structure of the NetCDF folder (as in structure.json)
     :rtype: dict
     """
-    import gc
 
     netcdf_path = Path(netcdf_path)
     is_optimized = esM.objectiveValue is not None
@@ -1634,7 +1654,7 @@ def writeEnergySystemModelToNetCDFfolderAndZarr(
         # the datasets hold reference cycles: free them now, not at some
         # later automatic collection
         del results
-        gc.collect()
+        releaseMemory()
 
     # The PerformanceSummary dataset goes to both formats as one object, as
     # before: writeDatasetsToNetCDFfolder (processDataset) changes its
@@ -1660,7 +1680,7 @@ def writeEnergySystemModelToNetCDFfolderAndZarr(
     )
     paths.update(writeDatasetsToNetCDFfolder(group, base_path=netcdf_path))
     del group
-    gc.collect()
+    releaseMemory()
 
     if zarr_path is not None:
         group = _input_group(
@@ -1669,7 +1689,7 @@ def writeEnergySystemModelToNetCDFfolderAndZarr(
             )
         )
         del esm_dict, component_dict
-        gc.collect()
+        releaseMemory()
         writeDatasetsToZarr(
             group,
             output_zarr_path=zarr_path,
@@ -1678,7 +1698,7 @@ def writeEnergySystemModelToNetCDFfolderAndZarr(
             dask_num_workers=dask_num_workers,
         )
         del group
-        gc.collect()
+        releaseMemory()
 
     order = ["Input", "Parameters", "Results", "PerformanceSummary"]
     paths = {key: paths[key] for key in order if key in paths}
