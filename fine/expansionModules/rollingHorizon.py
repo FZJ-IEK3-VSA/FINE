@@ -10,8 +10,11 @@ import fine as fn
 from fine import utils
 from fine.IOManagement.standardIO import writeOptimizationOutputToExcel
 from fine.IOManagement.xarrayIO import (
-    writeEnergySystemModelToNetCDF,
+    convertOptimizationInputToDatasets,
+    convertOptimizationOutputToDatasets,
     readNetCDFtoEnergySystemModel,
+    writeDatasetsToNetCDF,
+    writeEnergySystemModelToNetCDF,
 )
 
 #: Number of digits a commissioning result is rounded to before it is handed on to the next
@@ -92,9 +95,9 @@ def _checkedSettings(settingsName, settings):
 
 def _cachedGroupExists(netCDFPath, groupPrefix):
     """Check whether a given interval's group is already present in the
-    shared rolling horizon netCDF file, without loading it.
+    full_windows file of this rolling horizon run, without loading it.
 
-    :param netCDFPath: path of the shared netCDF file of this rolling horizon run.
+    :param netCDFPath: path of the full_windows file of this rolling horizon run.
     :type netCDFPath: pathlib.Path
 
     :param groupPrefix: group of the interval to look for, its start year as a string.
@@ -576,7 +579,7 @@ def _loadCachedInterval(
     stockCommissioningThreshold,
     verboseLogLevel,
 ):
-    """Load one interval from its group of the shared netCDF cache.
+    """Load one interval from its group of the full_windows file.
 
     Only called for a group that exists and may still be trusted; whether the cache may
     be used at all is decided by rollingHorizonOptimization (see its own cache-safety
@@ -584,7 +587,7 @@ def _loadCachedInterval(
     valid one is discarded with a warning and None is returned, so that the caller solves
     the interval fresh.
 
-    :param netCDFPath: path of the shared netCDF file of this rolling horizon run.
+    :param netCDFPath: path of the full_windows file of this rolling horizon run.
     :type netCDFPath: pathlib.Path
 
     :param groupPrefix: group of this interval, its start year as a string.
@@ -714,18 +717,17 @@ def _buildIntervalEsm(
 
 
 def _exportIntervalToNetCDF(
-    rollingHorizonEsm, netCDFPath, groupPrefix, netCDFOutputSettings
+    rollingHorizonEsm, fullWindowsPath, groupPrefix, netCDFOutputSettings
 ):
-    """Write one interval's esM into its own group of the shared rolling
-    horizon netCDF file. overwriteExisting=False: this call only ever
-    touches its own group (groupPrefix); the other intervals' groups in the
-    shared file must be left untouched.
+    """Write one interval's esM into its own group of the full_windows file of this
+    rolling horizon run. overwriteExisting=False: this call only ever touches its own group
+    (groupPrefix); the other intervals' groups in the shared file must be left untouched.
 
     :param rollingHorizonEsm: the interval's solved energy system model.
     :type rollingHorizonEsm: EnergySystemModel instance
 
-    :param netCDFPath: path of the shared netCDF file of this rolling horizon run.
-    :type netCDFPath: pathlib.Path
+    :param fullWindowsPath: path of the full_windows file of this rolling horizon run.
+    :type fullWindowsPath: pathlib.Path
 
     :param groupPrefix: group to write this interval to, its start year as a string.
     :type groupPrefix: string
@@ -736,7 +738,7 @@ def _exportIntervalToNetCDF(
     """
     writeEnergySystemModelToNetCDF(
         rollingHorizonEsm,
-        outputFilePath=str(netCDFPath),
+        outputFilePath=str(fullWindowsPath),
         overwriteExisting=False,
         groupPrefix=groupPrefix,
         **netCDFOutputSettings,
@@ -774,12 +776,7 @@ def _exportIntervalToExcel(
         standardIO.writeOptimizationOutputToExcel.
     :type excelOutputSettings: dict
     """
-    if rollingHorizonYears != rollingHorizonIntervals[-1]:
-        exportYears = [rollingHorizonYears[0]]
-    else:
-        exportYears = rollingHorizonYears
-
-    for year in exportYears:
+    for year in _exportYearsOfInterval(rollingHorizonYears, rollingHorizonIntervals):
         writeOptimizationOutputToExcel(
             rollingHorizonEsm,
             outputFileName=str(
@@ -788,6 +785,53 @@ def _exportIntervalToExcel(
             investmentPeriod=year,
             **excelOutputSettings,
         )
+
+
+def _exportYearsOfInterval(rollingHorizonYears, rollingHorizonIntervals):
+    """Return the years of the pathway one interval is responsible for: its own first year,
+    or every year it spans if it is the last interval. Together they cover the pathway once.
+
+    :param rollingHorizonYears: investment period years this interval spans.
+    :type rollingHorizonYears: list of int
+
+    :param rollingHorizonIntervals: every interval of this run, in order.
+    :type rollingHorizonIntervals: list of list of int
+
+    :return: the years this interval is responsible for.
+    :rtype: list of int
+    """
+    if rollingHorizonYears != rollingHorizonIntervals[-1]:
+        return [rollingHorizonYears[0]]
+    return rollingHorizonYears
+
+
+def _exportIntervalToRealizedNetCDF(
+    rollingHorizonEsm, exportYears, realizedPath, optSumOutputLevel
+):
+    """Append the results of the years one interval is responsible for to the realized
+    netCDF file, in the layout writeEnergySystemModelToNetCDF writes for a single model
+    (Results/{year}/{model}/{component}). Works alike for a freshly solved interval and for
+    one loaded from the full_windows file.
+
+    :param rollingHorizonEsm: the interval's solved energy system model.
+    :type rollingHorizonEsm: EnergySystemModel instance
+
+    :param exportYears: the years this interval is responsible for.
+    :type exportYears: list of int
+
+    :param realizedPath: path of the realized file of this rolling horizon run.
+    :type realizedPath: pathlib.Path
+
+    :param optSumOutputLevel: output level of the optimization summary, see
+        xarrayIO.writeEnergySystemModelToNetCDF.
+    :type optSumOutputLevel: int (0,1,2) or dict
+    """
+    results = convertOptimizationOutputToDatasets(rollingHorizonEsm, optSumOutputLevel)[
+        "Results"
+    ]
+    writeDatasetsToNetCDF(
+        {"Results": {year: results[year] for year in exportYears}}, str(realizedPath)
+    )
 
 
 def rollingHorizonOptimization(
@@ -802,6 +846,7 @@ def rollingHorizonOptimization(
     excelOutputSettings=None,
     writeNetCDFOutput=False,
     netCDFOutputSettings=None,
+    netCDFOutputMode="realized",
     resume=False,
     resultExportPath=None,
     scenario_name=None,
@@ -837,7 +882,8 @@ def rollingHorizonOptimization(
     NPVcontribution discounted back onto that shared reference year (see
     :class:`~fine.energySystemModel.EnergySystemModel`). Summed over the years described above, it
     reproduces the net present value of the equivalent perfect foresight run for the same commissioning
-    decisions. The Excel output of this function already writes exactly those years.
+    decisions. The Excel output and the realized file of this function already write exactly those
+    years.
 
     Costs of a window: capacity is charged as an annuity for the investment periods a window spans, and the
     capacity a window commissions keeps being charged in the following windows, where it arrives as stock, at
@@ -910,22 +956,20 @@ def rollingHorizonOptimization(
         |br| * the default value is None
     :type excelOutputSettings: dict or None
 
-    :param writeNetCDFOutput: states if the full esM (input and output) of every window should be written to
-        a single shared netCDF file in resultExportPath, named "{scenario_name}_rollingHorizon.nc" - one
-        group per window, keyed by its start year (consistent with the single file output of perfect
-        foresight, unlike writing one file per window). If resume is False, this file is cleared at the
-        start of the call so that a fresh run never mixes with stale groups from an earlier, unrelated run.
-        Requires resultExportPath and scenario_name to be set.
+    :param writeNetCDFOutput: states if the results should be written to netCDF in resultExportPath, in the
+        form netCDFOutputMode selects. Requires resultExportPath and scenario_name to be set.
         |br| * the default value is False
     :type writeNetCDFOutput: boolean
 
     :param netCDFOutputSettings: keyword arguments passed directly to
-        xarrayIO.writeEnergySystemModelToNetCDF for every written window (e.g. optSumOutputLevel,
-        includeShadowPrices, shadowPriceConstraintStr). outputFilePath, overwriteExisting and groupPrefix
-        are already determined by this function and must not be repeated here, since they are what makes
-        the windows share one file. Every other argument of the writer is reachable, including ones added
-        to it later. Settings not given fall back to writeEnergySystemModelToNetCDF's own defaults; only
-        used if writeNetCDFOutput or resume is True.
+        xarrayIO.writeEnergySystemModelToNetCDF for every window written to the full_windows file
+        (e.g. optSumOutputLevel, includeShadowPrices, shadowPriceConstraintStr). outputFilePath,
+        overwriteExisting and groupPrefix are already determined by this function and must not be
+        repeated here, since they are what makes the windows share one file. Every other argument of the
+        writer is reachable, including ones added to it later. Of these settings, the realized file uses
+        optSumOutputLevel only; includeShadowPrices is refused for netCDFOutputMode 'realized'. Settings
+        not given fall back to writeEnergySystemModelToNetCDF's own defaults; only used if
+        writeNetCDFOutput or resume is True.
 
         .. note::
             includeShadowPrices=True currently fails inside writeEnergySystemModelToNetCDF itself, for
@@ -935,12 +979,35 @@ def rollingHorizonOptimization(
         |br| * the default value is None
     :type netCDFOutputSettings: dict or None
 
+    :param netCDFOutputMode: what is written to netCDF if writeNetCDFOutput or resume is True.
+
+        (a) 'realized': the realized pathway, to the realized file
+            "{scenario_name}_rollingHorizon_realized.nc", in the layout writeEnergySystemModelToNetCDF
+            writes for a single model (Input, Parameters, Results/{year}/...), which is what
+            postprocessing of a regular pathway model reads. Every year of the pathway is held once, taken
+            from the window responsible for it (see "Reading the results"); Input and Parameters are the
+            ones of esM. The file is rebuilt by every call. Its NPVcontribution rows are discounted onto
+            the first year of their own window, its NPVcontributionRH rows onto the first year of the
+            pathway. It holds no PerformanceSummary.
+        (b) 'full_windows': the full model (input and output) of every window, to the full_windows file
+            "{scenario_name}_rollingHorizon_full_windows.nc", one group per window keyed by its start
+            year. The years the windows overlap in appear in several groups. If resume is False, this file
+            is cleared at the start of the call so that a fresh run never mixes with stale groups from an
+            earlier, unrelated run. This is the file resume continues from.
+        (c) 'both': the realized and the full_windows file.
+
+        |br| * the default value is 'realized'
+    :type netCDFOutputMode: string
+
     :param resume: states if an interrupted run should be continued instead of started over (implies
-        writeNetCDFOutput). Before optimizing a window, its group in the shared netCDF file is checked for;
+        writeNetCDFOutput). Before optimizing a window, its group in the full_windows file is checked for;
         if present, the window is loaded from there instead of being rebuilt and re-solved, subject to the
-        cache safety rules described above. Unlike the resume=False case, the file is never cleared up
-        front, since the whole point is to keep prior windows' groups around. Requires resultExportPath and
-        scenario_name to be set.
+        cache safety rules described above. Unlike the resume=False case, the full_windows file is never
+        cleared up front, since the whole point is to keep prior windows' groups around. Requires
+        netCDFOutputMode 'full_windows' or 'both', since only the full_windows file holds what a window is
+        continued from. Only a run that wrote the full_windows file can be resumed, so a run that may need
+        resuming has to be started with resume=True already; without a full_windows file yet, it simply
+        solves every window. Requires resultExportPath and scenario_name to be set.
         |br| * the default value is False
     :type resume: boolean
 
@@ -976,6 +1043,27 @@ def rollingHorizonOptimization(
         raise ValueError(
             "scenario_name must be set if writeExcelOutput, writeNetCDFOutput or resume is True."
         )
+
+    if netCDFOutputMode not in ("realized", "full_windows", "both"):
+        raise ValueError(
+            "netCDFOutputMode must be 'realized', 'full_windows' or 'both', "
+            f"not {netCDFOutputMode!r}."
+        )
+    if resume and netCDFOutputMode == "realized":
+        raise ValueError(
+            "resume=True continues from the full model of every window, which "
+            "netCDFOutputMode='realized' does not write. Use netCDFOutputMode='both' "
+            "or 'full_windows'."
+        )
+    if netCDFOutputMode == "realized" and (netCDFOutputSettings or {}).get(
+        "includeShadowPrices"
+    ):
+        raise ValueError(
+            "includeShadowPrices cannot be written with netCDFOutputMode='realized'. "
+            "Use 'full_windows' or 'both' to write them to the full_windows file."
+        )
+    writesFullWindows = saveNetCDF and netCDFOutputMode != "realized"
+    writesRealized = saveNetCDF and netCDFOutputMode != "full_windows"
 
     tsaSettings = timeSeriesAggregationSettings or {}
     optimizeSettings = _checkedSettings("optimizeSettings", optimizeSettings)
@@ -1058,20 +1146,32 @@ def rollingHorizonOptimization(
         else esM.startYear
     )
 
-    # all intervals share a single netCDF file, one group per interval (keyed by
-    # its start year). A fresh (non-resumed) run starts from a clean file so it
-    # never mixes with stale groups left over from an earlier, unrelated run;
-    # a resumed run leaves the file untouched so prior intervals' groups survive.
-    netCDFPath = None
+    # The full_windows file holds one group per window (keyed by its start year) and is what
+    # resume continues from: a fresh (non-resumed) run starts from a clean file so it never
+    # mixes with stale groups left over from an earlier, unrelated run, a resumed run leaves
+    # it untouched so prior intervals' groups survive. The realized file is rebuilt by every
+    # call, starting from the input of the whole pathway.
+    fullWindowsPath, realizedPath = None, None
     if saveNetCDF:
-        netCDFPath = Path(resultExportPath) / f"{scenario_name}_rollingHorizon.nc"
-        if not resume and netCDFPath.is_file():
+        fullWindowsPath = (
+            Path(resultExportPath) / f"{scenario_name}_rollingHorizon_full_windows.nc"
+        )
+        realizedPath = (
+            Path(resultExportPath) / f"{scenario_name}_rollingHorizon_realized.nc"
+        )
+        if writesFullWindows and not resume and fullWindowsPath.is_file():
             warnings.warn(
-                f"{netCDFPath} already exists and is deleted, so that the results of "
+                f"{fullWindowsPath} already exists and is deleted, so that the results of "
                 "this run do not mix with the ones of an earlier run. Set resume=True "
                 "to continue that run instead."
             )
-            netCDFPath.unlink()
+            fullWindowsPath.unlink()
+        if writesRealized:
+            writeDatasetsToNetCDF(
+                convertOptimizationInputToDatasets(esM),
+                str(realizedPath),
+                removeExisting=True,
+            )
 
     utils.output("Starting rolling horizon optimization.", esM.verboseLogLevel, 0)
 
@@ -1105,13 +1205,13 @@ def rollingHorizonOptimization(
             stockCommissioningThreshold,
         )
 
-        # 2. resume this interval from its own group of the shared netCDF file, if that
+        # 2. resume this interval from its own group of the full_windows file, if that
         # group exists and may still be trusted
         groupPrefix = str(rollingHorizonYears[0])
         rollingHorizonEsm = None
-        if cacheIsUsable and _cachedGroupExists(netCDFPath, groupPrefix):
+        if cacheIsUsable and _cachedGroupExists(fullWindowsPath, groupPrefix):
             rollingHorizonEsm = _loadCachedInterval(
-                netCDFPath,
+                fullWindowsPath,
                 groupPrefix,
                 rollingHorizonYears,
                 numberOfInvestmentPeriodsForRollingHorizon,
@@ -1141,12 +1241,24 @@ def rollingHorizonOptimization(
                 **optimizeSettings,
             )
 
-            # 4. export optimization summaries
-            if saveNetCDF:
+            # 4. write the window to the full_windows file
+            if writesFullWindows:
                 _exportIntervalToNetCDF(
-                    rollingHorizonEsm, netCDFPath, groupPrefix, netCDFOutputSettings
+                    rollingHorizonEsm,
+                    fullWindowsPath,
+                    groupPrefix,
+                    netCDFOutputSettings,
                 )
 
+        # 5. export the years this interval is responsible for, from a freshly solved
+        # window and a loaded one alike
+        if writesRealized:
+            _exportIntervalToRealizedNetCDF(
+                rollingHorizonEsm,
+                _exportYearsOfInterval(rollingHorizonYears, rollingHorizonIntervals),
+                realizedPath,
+                netCDFOutputSettings.get("optSumOutputLevel", 0),
+            )
         if writeExcelOutput:
             _exportIntervalToExcel(
                 rollingHorizonEsm,
@@ -1157,7 +1269,7 @@ def rollingHorizonOptimization(
                 excelOutputSettings,
             )
 
-        # 5. save esM's
+        # 6. save esM's
         esM_results[rollingHorizonYears[0]] = rollingHorizonEsm
 
         utils.output(
