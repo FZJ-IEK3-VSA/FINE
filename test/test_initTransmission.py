@@ -4,8 +4,14 @@ import numpy as np
 import pytest
 
 
-def _create_delayed_transmission_esM(timeDelay=1, losses=0):
-    """Create a two-location system whose demand can only be met via transmission."""
+def _create_delayed_transmission_esM(
+    timeDelay=1,
+    losses=0,
+    cyclicTimeDelay=True,
+    supplyAtA=(10, 0, 0, 0),
+    demandAtB=(0, 10, 0, 0),
+):
+    """Create a two-location system whose demand at B can only be met via transmission from A."""
     esM = fn.EnergySystemModel(
         locations={"A", "B"},
         commodities={"commodity"},
@@ -21,7 +27,7 @@ def _create_delayed_transmission_esM(timeDelay=1, losses=0):
             name="supply",
             commodity="commodity",
             hasCapacityVariable=False,
-            operationRateMax=pd.DataFrame({"A": [10, 0, 0, 0], "B": [0, 0, 0, 0]}),
+            operationRateMax=pd.DataFrame({"A": list(supplyAtA), "B": [0, 0, 0, 0]}),
         )
     )
     esM.add(
@@ -31,7 +37,7 @@ def _create_delayed_transmission_esM(timeDelay=1, losses=0):
             commodity="commodity",
             hasCapacityVariable=False,
             operationRateFix=pd.DataFrame(
-                {"A": [0, 0, 0, 0], "B": [0, 10 * (1 - losses), 0, 0]}
+                {"A": [0, 0, 0, 0], "B": [d * (1 - losses) for d in demandAtB]}
             ),
         )
     )
@@ -44,35 +50,63 @@ def _create_delayed_transmission_esM(timeDelay=1, losses=0):
             losses=losses,
             distances=1,
             timeDelay=timeDelay,
+            cyclicTimeDelay=cyclicTimeDelay,
             hasCapacityVariable=False,
+            opexPerOperation=1,
             locationalEligibility=eligibility,
         )
     )
     return esM
 
 
-def test_transmission_time_delay_shifts_arrival_and_applies_losses():
-    esM = _create_delayed_transmission_esM(losses=0.1)
+def _operation(esM):
+    # With a single investment period the optimum is a DataFrame with time steps as columns
+    return esM.componentModelingDict["TransmissionModel"].operationVariablesOptimum
+
+
+@pytest.mark.parametrize("cyclicTimeDelay", [True, False])
+def test_transmission_time_delay_shifts_arrival_and_applies_losses(cyclicTimeDelay):
+    esM = _create_delayed_transmission_esM(losses=0.1, cyclicTimeDelay=cyclicTimeDelay)
     esM.optimize(solver="glpk")
 
-    # With a single investment period the optimum is a DataFrame with time steps as columns
-    operation = esM.componentModelingDict["TransmissionModel"].operationVariablesOptimum
+    operation = _operation(esM)
     assert operation.loc[("shipment", "A", "B"), 0] == pytest.approx(10)
-    assert operation.loc[("shipment", "A", "B"), 1] == pytest.approx(0)
+    assert operation.loc[("shipment", "A", "B"), 1:].sum() == pytest.approx(0)
+
+
+def test_transmission_time_delay_cyclic_horizon_wraps_around():
+    # Supply at A only in the last time step, demand at B only in the first one:
+    # only feasible if the shipment leaving at t=3 arrives at t=0 of the (cyclic) horizon.
+    esM = _create_delayed_transmission_esM(
+        supplyAtA=(0, 0, 0, 10), demandAtB=(10, 0, 0, 0)
+    )
+    esM.optimize(solver="glpk")
+
+    operation = _operation(esM)
+    assert operation.loc[("shipment", "A", "B"), 3] == pytest.approx(10)
+    assert operation.loc[("shipment", "A", "B"), :2].sum() == pytest.approx(0)
+
+
+def test_transmission_time_delay_cyclic_horizon_has_no_boundary_constraint():
+    esM = _create_delayed_transmission_esM()
+    esM.declareOptimizationProblem()
+    assert not hasattr(esM.pyM, "ConstrTimeDelay_trans")
 
 
 def test_transmission_time_delay_closes_horizon():
-    esM = _create_delayed_transmission_esM()
+    esM = _create_delayed_transmission_esM(cyclicTimeDelay=False)
     esM.declareOptimizationProblem()
 
     constraint = esM.pyM.ConstrTimeDelay_trans["A_B", "shipment", 0, 0, 3]
     assert constraint.lower() == 0
     assert constraint.upper() == 0
+    # Dispatches arriving within the horizon remain unconstrained
+    assert ("A_B", "shipment", 0, 0, 2) not in esM.pyM.ConstrTimeDelay_trans
 
 
 def test_transmission_time_delay_accepts_connection_specific_dataframe():
     timeDelay = pd.DataFrame([[0, 1], [2, 0]], index=["A", "B"], columns=["A", "B"])
-    esM = _create_delayed_transmission_esM(timeDelay=timeDelay)
+    esM = _create_delayed_transmission_esM(timeDelay=timeDelay, cyclicTimeDelay=False)
     transmission = esM.getComponent("shipment")
 
     assert transmission.timeDelay["A_B"] == 2
@@ -81,6 +115,20 @@ def test_transmission_time_delay_accepts_connection_specific_dataframe():
     esM.declareOptimizationProblem()
     assert esM.pyM.ConstrTimeDelay_trans["A_B", "shipment", 0, 0, 2].upper() == 0
     assert esM.pyM.ConstrTimeDelay_trans["B_A", "shipment", 0, 0, 3].upper() == 0
+
+
+def test_transmission_cyclicTimeDelay_is_validated():
+    with pytest.raises(TypeError, match="cyclicTimeDelay"):
+        _create_delayed_transmission_esM(cyclicTimeDelay="yes")
+
+
+def test_transmission_time_delay_survives_dict_export_and_import():
+    esM = _create_delayed_transmission_esM(timeDelay=2, cyclicTimeDelay=False)
+    esmDict, compDict = fn.dictIO.exportToDict(esM)
+    transmission = fn.dictIO.importFromDict(esmDict, compDict).getComponent("shipment")
+
+    assert transmission.timeDelay["A_B"] == 2
+    assert transmission.cyclicTimeDelay is False
 
 
 @pytest.mark.parametrize(
@@ -101,9 +149,9 @@ def test_transmission_time_delay_is_validated(timeDelay, exception):
 
 
 def test_transmission_time_delay_accepts_numpy_integer():
-    transmission = _create_delayed_transmission_esM(
-        timeDelay=np.int64(2)
-    ).getComponent("shipment")
+    transmission = _create_delayed_transmission_esM(timeDelay=np.int64(2)).getComponent(
+        "shipment"
+    )
     assert transmission.timeDelay["A_B"] == 2
     assert transmission.timeDelay["B_A"] == 2
 

@@ -4,6 +4,7 @@ import warnings
 from fine.component import Component, ComponentModel
 from fine.enums import ComponentAbbreviation, CostType, Dimension, FncType, VarType
 from fine import utils
+import numpy as np
 import pyomo.environ as pyomo
 import pandas as pd
 
@@ -19,6 +20,7 @@ class Transmission(Component):
         losses=0,
         distances=None,
         timeDelay=0,
+        cyclicTimeDelay=True,
         hasCapacityVariable=True,
         capacityVariableDomain="continuous",
         capacityPerPlantUnit=1,
@@ -85,15 +87,38 @@ class Transmission(Component):
             column indices of the DataFrame have to equal the in the energy system model specified locations.
 
         :param timeDelay: transit time between dispatch and arrival, measured in model time steps. A commodity
-            dispatched at time step ``t`` arrives at its destination at ``t + timeDelay``. The delay can be a
-            single non-negative integer applied to every connection or a Pandas DataFrame with a distinct
-            non-negative integer for every directed connection, analogous to ``distances``. The DataFrame columns
-            denote origins and its rows denote destinations. The default of 0
-            preserves instantaneous transmission. Delayed transmission is currently incompatible with time series
-            aggregation and spatial aggregation. The modeled horizon is closed: no commodity is initially in transit and dispatches that
-            would arrive after the final time step are prohibited.
+            dispatched at time step ``t`` arrives at its destination at ``t + timeDelay``; in between, it is in
+            transit on the connection (e.g. on a ship or truck). The delay can be a single non-negative integer
+            applied to every connection or a Pandas DataFrame with a distinct non-negative integer for every
+            directed connection, analogous to ``distances``: the DataFrame columns denote origins and its rows
+            denote destinations. Losses are applied on arrival. How dispatches near the end of the modeled
+            horizon are treated is set by ``cyclicTimeDelay``.
+
+            .. note::
+                Delayed transmission is currently incompatible with time series aggregation and spatial
+                aggregation. Choose the temporal resolution so that the delays are integer multiples of the
+                time step length.
+
+            |br| * the default value is 0 (instantaneous transmission)
         :type timeDelay: non-negative integer, strictly smaller than the number of modeled time steps, or Pandas
             DataFrame with locations as row and column indices and non-negative integer entries
+
+        :param cyclicTimeDelay: states how the boundaries of the modeled horizon are treated for delayed
+            transmission (only relevant if ``timeDelay`` > 0).
+
+            * True (cyclic horizon): the horizon wraps around, i.e. a commodity dispatched at time step ``t``
+              arrives at ``(t + timeDelay) mod T`` with T being the number of time steps. A shipment leaving at the
+              end of the year thus arrives at the beginning of the year. This represents a steady-state
+              (representative) year, consistent with the cyclic state of charge of Storage components: the amount
+              in transit at the start of the horizon is determined by the optimization and equals the amount in
+              transit at its end.
+            * False (closed horizon): no commodity is in transit at the start of the horizon, so nothing arrives
+              within the first ``timeDelay`` time steps, and dispatches that would arrive after the final time
+              step are prohibited. This is suited for modeling a single, self-contained time span, but creates
+              boundary effects at the start and end of the horizon.
+
+            |br| * the default value is True
+        :type cyclicTimeDelay: boolean
 
         :param operationRateMax: if specified, indicates a maximum operation rate for all possible connections
             (both directions) of the transmission component at each time step, if required also for each investment period, by a positive float. If
@@ -324,7 +349,7 @@ class Transmission(Component):
         if isinstance(timeDelay, numbers.Integral) and not isinstance(timeDelay, bool):
             # Normalize numpy integers, which preprocess2dimData does not handle.
             timeDelay = int(timeDelay)
-        elif not isinstance(timeDelay, (pd.DataFrame, pd.Series)):
+        elif not isinstance(timeDelay, pd.DataFrame | pd.Series):
             # A connection-indexed Series is passed when a component is re-created (e.g. by
             # updateComponent, dict/xarray import or spatial aggregation).
             raise TypeError(
@@ -340,6 +365,12 @@ class Transmission(Component):
         self.timeDelay = utils.checkAndSetTransmissionTimeDelay(
             self.timeDelay, self.locationalEligibility, esM
         )
+        if not isinstance(cyclicTimeDelay, bool | np.bool_):
+            raise TypeError("cyclicTimeDelay must be a boolean.")
+        self.cyclicTimeDelay = bool(cyclicTimeDelay)
+        # Length T of the modeled horizon, needed to wrap delayed arrivals around for a cyclic horizon
+        # (delayed transmission is only supported with full temporal resolution)
+        self._numberOfTimeSteps = esM.numberOfTimeSteps
         self.distances = utils.preprocess2dimData(
             distances, self._mapC, locationalEligibility=self.locationalEligibility
         )
@@ -785,17 +816,45 @@ class TransmissionModel(ComponentModel):
         )
         self.timeDelayConstraint(pyM, esM)
 
+    @staticmethod
+    def _getDispatchTimeStep(comp, connection, t):
+        """Return the time step at which the commodity arriving at time step t over the connection was dispatched.
+
+        For a cyclic horizon (comp.cyclicTimeDelay is True), the dispatch time step wraps around the end of the
+        horizon. For a closed horizon, None is returned if the dispatch would lie before the start of the horizon,
+        i.e. nothing arrives within the first timeDelay time steps.
+        """
+        delay = comp.timeDelay[connection]
+        if comp.cyclicTimeDelay:
+            return (t - delay) % comp._numberOfTimeSteps
+        return t - delay if t >= delay else None
+
     def timeDelayConstraint(self, pyM, esM):
-        """Prohibit dispatches whose delayed arrival would be outside the modeled horizon."""
-        if not any(comp.timeDelay.any() for comp in self.componentsDict.values()):
+        r"""Declare the closed horizon constraint for delayed transmission (only for components with
+        cyclicTimeDelay=False): dispatches whose arrival would lie after the final time step are prohibited.
+
+        .. math::
+            op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t} = 0 \quad \forall t \geq T - \Delta t_{(loc_{in},loc_{out})}
+
+        For a cyclic horizon, no constraint is needed since these dispatches arrive at the beginning of the horizon.
+        """
+        if not any(
+            comp.timeDelay.any() and not comp.cyclicTimeDelay
+            for comp in self.componentsDict.values()
+        ):
             return
 
         opVar = getattr(pyM, "op_" + self.abbrvName)
         opVarSet = getattr(pyM, "operationVarSet_" + self.abbrvName)
 
         def timeDelayConstraint(pyM, loc, compName, ip, p, t):
-            delay = self.componentsDict[compName].timeDelay[loc]
-            if delay and t >= len(esM.timeStepsPerPeriod) - delay:
+            comp = self.componentsDict[compName]
+            delay = comp.timeDelay[loc]
+            if (
+                not comp.cyclicTimeDelay
+                and delay
+                and t >= len(esM.timeStepsPerPeriod) - delay
+            ):
                 return opVar[loc, compName, ip, p, t] == 0
             return pyomo.Constraint.Skip
 
@@ -841,13 +900,19 @@ class TransmissionModel(ComponentModel):
             :nowrap:
 
             \\begin{eqnarray*}
-            \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}: loc_{in}=loc, \\\\ t \\geq \\Delta t_{(loc_{in},loc_{out})}}}{ \\sum } \\left(1-\\eta_{(loc_{in},loc_{out})} \\cdot I_{(loc_{in},loc_{out})} \\right) \\cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t-\\Delta t_{(loc_{in},loc_{out})}} \\\\
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}: loc_{in}=loc}}{ \\sum } \\left(1-\\eta_{(loc_{in},loc_{out})} \\cdot I_{(loc_{in},loc_{out})} \\right) \\cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,\\tau(t)} \\\\
                 & - & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}:loc_{out}=loc}}{ \\sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
             \\end{eqnarray*}
 
-        Here, :math:`\\Delta t_{(loc_{in},loc_{out})}` denotes the connection-specific timeDelay in time steps.
-        Arrivals of dispatches made before the start of the horizon (:math:`t < \\Delta t`) are omitted, i.e. no
-        commodity is initially in transit.
+        Here, :math:`\\tau(t)` is the dispatch time step of the commodity arriving at :math:`t`, with
+        :math:`\\Delta t = \\Delta t_{(loc_{in},loc_{out})}` the connection-specific timeDelay and :math:`T`
+        the number of time steps:
+
+        * cyclic horizon (cyclicTimeDelay=True): :math:`\\tau(t) = (t - \\Delta t) \\bmod T`
+        * closed horizon (cyclicTimeDelay=False): :math:`\\tau(t) = t - \\Delta t`; for :math:`t < \\Delta t`,
+          nothing arrives and the term is omitted.
+
+        Without a time delay (:math:`\\Delta t = 0`), :math:`\\tau(t) = t`, i.e. transmission is instantaneous.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = (
@@ -855,23 +920,25 @@ class TransmissionModel(ComponentModel):
             getattr(pyM, "operationVarDictIn_" + abbrvName),
         )
         opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
+        # Dispatch time step of the commodity arriving at t for every incoming connection
+        # (None if nothing arrives at t for a closed horizon)
+        dispatchTimeSteps = {
+            (loc_, compName): self._getDispatchTimeStep(
+                compDict[compName], loc_ + "_" + loc, t
+            )
+            for loc_ in opVarDictIn[ip][loc].keys()
+            for compName in opVarDictIn[ip][loc][loc_]
+            if commod == compDict[compName].commodity
+        }
         return sum(
-            opVar[
-                loc_ + "_" + loc,
-                compName,
-                ip,
-                p,
-                t - compDict[compName].timeDelay[loc_ + "_" + loc],
-            ]
+            opVar[loc_ + "_" + loc, compName, ip, p, tDispatch]
             * (
                 1
                 - compDict[compName].losses[loc_ + "_" + loc]
                 * compDict[compName].distances[loc_ + "_" + loc]
             )
-            for loc_ in opVarDictIn[ip][loc].keys()
-            for compName in opVarDictIn[ip][loc][loc_]
-            if commod == compDict[compName].commodity
-            and t >= compDict[compName].timeDelay[loc_ + "_" + loc]
+            for (loc_, compName), tDispatch in dispatchTimeSteps.items()
+            if tDispatch is not None
         ) - sum(
             opVar[loc + "_" + loc_, compName, ip, p, t]
             for loc_ in opVarDictOut[ip][loc].keys()
