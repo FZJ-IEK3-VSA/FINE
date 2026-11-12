@@ -79,9 +79,19 @@ def test_single_time_step_and_full_grid():
     )
 
 
+def test_integers():
+    ints = _sparse_series([range(4), LOCS, LOCS], ["time", "space", "space_2"], 0.5)
+    ints = (ints * 1000).astype("int64")
+    result = _check(ints, block_bytes=100)
+    assert isinstance(result.data, da.Array) and result.dtype == np.float64
+    full = _sparse_series([range(4), LOCS], ["time", "space"], 1.1)
+    result = _check((full * 1000).astype("int64"))
+    assert result.dtype == np.int64
+
+
 def test_fallback():
-    ints = _sparse_series([range(4), LOCS], ["time", "space"], 0.5).astype(int)
-    result = _check(ints)
+    bools = _sparse_series([range(4), LOCS], ["time", "space"], 0.5) > 0
+    result = _check(bools)
     assert not isinstance(result.data, da.Array)
     flat = pd.Series([1.0, 2.0], index=pd.Index(["a", "b"], name="space"))
     _check(flat)

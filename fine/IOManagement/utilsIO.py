@@ -60,7 +60,9 @@ def lazySeriesToXarray(series, block_dim="time", block_bytes=128 * 2**20):
     ``block_bytes``.
 
     For a Series without MultiIndex, with a non-unique index or with values
-    that are not floats it returns the result of from_series unchanged.
+    that are not numbers (float or integer) it returns the result of
+    from_series unchanged. Integers become float64 if the grid has missing
+    values, as in from_series.
 
     :param series: Series to convert
     :type series: pd.Series
@@ -85,7 +87,7 @@ def lazySeriesToXarray(series, block_dim="time", block_bytes=128 * 2**20):
     index = series.index
     if (
         not isinstance(index, pd.MultiIndex)
-        or not np.issubdtype(series.dtype, np.floating)
+        or series.dtype.kind not in "fiu"
         or not index.is_unique
         or len(series) == 0
     ):
