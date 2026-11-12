@@ -293,6 +293,25 @@ def _normalize_values(long_table):
     return normalized
 
 
+def _drop_one_sided_zero_cells(actual, expected, key_columns):
+    """Remove frame cells that exist in only one table and are zero or empty."""
+    actual_keys = pd.MultiIndex.from_frame(actual[key_columns])
+    expected_keys = pd.MultiIndex.from_frame(expected[key_columns])
+    atol = GOLDEN_TOLERANCE["frame"]["atol"]
+
+    def keep(table, keys, other_keys):
+        numbers = pd.to_numeric(table["value"], errors="coerce").to_numpy()
+        zero_or_empty = (table["value"].to_numpy() == "") | (np.abs(numbers) <= atol)
+        one_sided = ~keys.isin(other_keys)
+        drop = one_sided & (table["kind"].to_numpy() == "frame") & zero_or_empty
+        return table[~drop].reset_index(drop=True)
+
+    return (
+        keep(actual, actual_keys, expected_keys),
+        keep(expected, expected_keys, actual_keys),
+    )
+
+
 def _assert_long_tables_match(actual, expected, golden_file_name):
     """Compare two golden long tables, with numeric tolerance on the values."""
     assert list(actual.columns) == list(expected.columns), (
@@ -306,6 +325,12 @@ def _assert_long_tables_match(actual, expected, golden_file_name):
         for name in actual.columns
         if name not in GOLDEN_METADATA_COLUMNS + ["value"]
     ]
+
+    # getOptimizationSummary(outputLevel=2) drops only rows that are exactly
+    # zero. Solvers such as GLPK leave round-off values (about 1e-14) instead of
+    # zero, which keeps such rows. Ignore frame cells that exist on one side only
+    # if they are zero within the frame tolerance.
+    actual, expected = _drop_one_sided_zero_cells(actual, expected, key_columns)
 
     actual_keys = pd.MultiIndex.from_frame(actual[key_columns])
     expected_keys = pd.MultiIndex.from_frame(expected[key_columns])
