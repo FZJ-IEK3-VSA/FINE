@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pandas as pd
 import pyomo.environ as pyomo
 import pytest
+from pyomo.opt import SolverStatus, TerminationCondition
 from pyomo.repn import generate_standard_repn
 
 import fine as fn
@@ -18,6 +19,9 @@ from fine.expansionModules import fine_mga as mga
 from fine.utils import ImplementedSolvers
 
 SLACK = 0.1
+
+# persistent=True works with Gurobi only
+requires_gurobi = pytest.mark.requires_solver("gurobi")
 
 MAX_WIND = {
     "name": "max wind",
@@ -449,8 +453,11 @@ def test_runMGA_results(mga_run):
     _, optimum, results = mga_run
     assert list(results) == ["costOptimal", "min wind", "max wind", "max import"]
     assert results["costOptimal"]["cost"] == pytest.approx(optimum)
+    # The cost-optimal solution of the optimized model is reused, not solved again
+    assert results["costOptimal"]["status"] == "reused"
     for name in ["min wind", "max wind", "max import"]:
-        assert {"cost", "mgaObjective", "summary"} <= set(results[name]), name
+        assert {"cost", "status", "mgaObjective", "summary"} <= set(results[name]), name
+        assert results[name]["status"] == "optimal", name
 
 
 def test_runMGA_cost_within_slack(mga_run):
@@ -493,7 +500,10 @@ def test_runMGA_zero_slack_keeps_optimal_cost():
     assert results["min wind"]["cost"] == pytest.approx(optimum, rel=1e-6)
 
 
-def test_runMGA_time_series_aggregation():
+@pytest.mark.parametrize(
+    "persistent", [False, pytest.param(True, marks=requires_gurobi)]
+)
+def test_runMGA_time_series_aggregation(persistent):
     # Three periods in two typical periods, so the typical periods occur differently often
     esM = build_esM()
     esM.aggregateTemporally(n_clusters=2, period_duration=2, segments=None)
@@ -504,7 +514,9 @@ def test_runMGA_time_series_aggregation():
     optimum = esM.pyM.Obj()
     assert sorted(esM.periodOccurrences[0]) == [1, 2]
 
-    results = run_mga(esM, [MAX_IMPORT], timeSeriesAggregation=True)
+    results = run_mga(
+        esM, [MAX_IMPORT], timeSeriesAggregation=True, persistent=persistent
+    )
 
     # The operation of the typical periods is weighted with their occurrences, so the
     # objective is the annual operation
@@ -555,16 +567,18 @@ def test_runMGA_start_year():
     assert list(results) == ["costOptimal", "max wind"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="a second runMGA call takes the MGA objective of the first call as the cost",
-)
 def test_runMGA_twice():
+    # The second call must restore FINE's cost objective instead of taking the MGA
+    # objective of the first call as the cost
     esM = build_optimized_esM()
     optimum = esM.pyM.Obj()
-    run_mga(esM, [MAX_WIND])
-    results = run_mga(esM, [MAX_WIND])
-    assert results["costOptimal"]["cost"] == pytest.approx(optimum)
+    first = run_mga(esM, [MAX_WIND])
+    second = run_mga(esM, [MAX_WIND])
+    assert second["costOptimal"]["cost"] == pytest.approx(optimum)
+    assert second["max wind"]["cost"] == pytest.approx(first["max wind"]["cost"])
+    assert second["max wind"]["mgaObjective"] == pytest.approx(
+        first["max wind"]["mgaObjective"]
+    )
 
 
 @pytest.mark.xfail(
@@ -576,15 +590,15 @@ def test_runMGA_duplicate_objective_names():
         run_mga(esM, [MAX_WIND, dict(MAX_WIND, sense="min")])
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AttributeError,
-    reason="an unoptimized model fails with an AttributeError on esM.pyM = None",
-)
-def test_runMGA_requires_optimized_model():
-    esM = build_esM()
-    with pytest.raises(TypeError):
-        run_mga(esM, [MAX_WIND])
+def test_runMGA_unoptimized_model(mga_run):
+    # An undeclared model is declared and solved cost-optimally by runMGA itself
+    _, optimum, expected = mga_run
+    results = run_mga(build_esM(), [MAX_WIND], timeSeriesAggregation=False)
+    assert results["costOptimal"]["cost"] == pytest.approx(optimum)
+    assert results["max wind"]["cost"] == pytest.approx(expected["max wind"]["cost"])
+    assert results["max wind"]["mgaObjective"] == pytest.approx(
+        expected["max wind"]["mgaObjective"]
+    )
 
 
 @pytest.mark.xfail(
@@ -596,6 +610,279 @@ def test_runMGA_negative_slack():
     esM = build_optimized_esM()
     with pytest.raises(ValueError):
         run_mga(esM, [MAX_WIND], slack=-0.1)
+
+
+################################################################################
+#                       Cost-optimal start and optimalCost                     #
+################################################################################
+
+
+def count_solves(monkeypatch):
+    """Count the solves that go through esM.optimize (persistent solves bypass it)."""
+    solves = []
+    original = fn.EnergySystemModel._runOptimization
+
+    def _runOptimization(self, *args, **kwargs):
+        solves.append(1)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(fn.EnergySystemModel, "_runOptimization", _runOptimization)
+    return solves
+
+
+@pytest.mark.parametrize(
+    "persistent", [False, pytest.param(True, marks=requires_gurobi)]
+)
+def test_runMGA_declared_model(mga_run, persistent):
+    # A declared but not solved model is solved cost-optimally by runMGA itself
+    _, optimum, expected = mga_run
+    esM = build_esM()
+    esM.declareOptimizationProblem(timeSeriesAggregation=False)
+    results = run_mga(
+        esM, [MAX_WIND], timeSeriesAggregation=False, persistent=persistent
+    )
+    assert results["costOptimal"]["cost"] == pytest.approx(optimum)
+    assert results["costOptimal"]["status"] == "optimal"
+    assert results["costOptimal"]["summary"] is not None
+    assert results["max wind"]["mgaObjective"] == pytest.approx(
+        expected["max wind"]["mgaObjective"]
+    )
+
+
+def test_runMGA_optimalCost(mga_run, monkeypatch):
+    _, optimum, expected = mga_run
+    esM = build_optimized_esM()
+    solves = count_solves(monkeypatch)
+
+    results = run_mga(esM, [MAX_WIND], optimalCost=optimum)
+
+    # Only the alternative is solved; the cost-optimal entry holds the given value
+    assert len(solves) == 1
+    assert results["costOptimal"] == {
+        "cost": optimum,
+        "status": "provided",
+        "summary": None,
+    }
+    assert results["max wind"]["mgaObjective"] == pytest.approx(
+        expected["max wind"]["mgaObjective"]
+    )
+
+
+def test_runMGA_optimalCost_sets_bound():
+    # The cost constraint is built from the given value, not from the solved optimum
+    esM = build_optimized_esM()
+    optimum = esM.pyM.Obj()
+    results = run_mga(esM, [MAX_IMPORT], optimalCost=1.2 * optimum, slack=0)
+    assert pyomo.value(esM.pyM.mgaCostConstraint.upper) == pytest.approx(1.2 * optimum)
+    # With slack 0 and the solved optimum the cost could not rise
+    assert optimum * (1 + 1e-6) < results["max import"]["cost"]
+    assert results["max import"]["cost"] <= 1.2 * optimum * (1 + 1e-6)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="without persistent=True an undeclared model is solved cost-optimally "
+    "although optimalCost is given",
+)
+def test_runMGA_optimalCost_skips_cost_optimal_solve(mga_run, monkeypatch):
+    _, optimum, _ = mga_run
+    solves = count_solves(monkeypatch)
+    run_mga(build_esM(), [MAX_WIND], optimalCost=optimum, timeSeriesAggregation=False)
+    assert len(solves) == 1
+
+
+################################################################################
+#                            Persistent Gurobi solver                          #
+################################################################################
+
+
+@requires_gurobi
+def test_runMGA_persistent_matches_default(mga_run):
+    # Same alternatives as the mga_run fixture, solved with the persistent solver
+    _, optimum, expected = mga_run
+    esM = build_optimized_esM()
+    results = run_mga(esM, [MIN_WIND, MAX_WIND, MAX_IMPORT], persistent=True)
+
+    assert list(results) == list(expected)
+    assert results["costOptimal"]["cost"] == pytest.approx(optimum)
+    assert results["costOptimal"]["status"] == "reused"
+    for name in ["min wind", "max wind", "max import"]:
+        result = results[name]
+        assert result["status"] == "optimal", name
+        assert result["mgaObjective"] == pytest.approx(
+            expected[name]["mgaObjective"]
+        ), name
+        assert result["cost"] <= optimum * (1 + SLACK) * (1 + 1e-6), name
+    # The summaries are post-processed from the persistent solve
+    for name in ["min wind", "max wind"]:
+        assert summary_value(
+            results[name]["summary"], "SourceSinkModel", "Wind", "capacity"
+        ) == pytest.approx(results[name]["mgaObjective"]), name
+    assert esM.solverSpecs["solver"] == "gurobi_persistent"
+
+
+@requires_gurobi
+def test_runMGA_persistent_unoptimized_model(mga_run, monkeypatch):
+    # An undeclared model is declared and also solved cost-optimally with the
+    # persistent solver, so esM.optimize is never called
+    _, optimum, expected = mga_run
+    solves = count_solves(monkeypatch)
+    results = run_mga(build_esM(), [MAX_WIND], persistent=True)
+    assert solves == []
+    assert results["costOptimal"]["cost"] == pytest.approx(optimum)
+    assert results["costOptimal"]["status"] == "optimal"
+    assert results["max wind"]["mgaObjective"] == pytest.approx(
+        expected["max wind"]["mgaObjective"]
+    )
+
+
+@requires_gurobi
+def test_runMGA_persistent_twice(mga_run):
+    _, optimum, expected = mga_run
+    esM = build_optimized_esM()
+    run_mga(esM, [MAX_WIND], persistent=True)
+    results = run_mga(esM, [MAX_WIND], persistent=True)
+    assert results["costOptimal"]["cost"] == pytest.approx(optimum)
+    assert results["max wind"]["mgaObjective"] == pytest.approx(
+        expected["max wind"]["mgaObjective"]
+    )
+
+
+@requires_gurobi
+def test_runMGA_persistent_infeasible_status():
+    # An infeasible alternative is reported by its status instead of silently
+    esM = build_optimized_esM()
+    results = run_mga(esM, [MAX_WIND], slack=-0.1, persistent=True)
+    assert results["max wind"]["status"].startswith("gurobi status ")
+
+
+@requires_gurobi
+def test_runMGA_persistent_writes_solverModelFile(tmp_path):
+    gurobipy = pytest.importorskip("gurobipy")
+    esM = build_optimized_esM()
+    optimum = esM.pyM.Obj()
+    modelFile = tmp_path / "model.mps"
+    run_mga(esM, [MAX_WIND], persistent=True, solverModelFile=str(modelFile))
+
+    # The file holds the cost-optimal model as transferred to Gurobi
+    with gurobipy.Env(params={"OutputFlag": 0}) as env:
+        model = gurobipy.read(str(modelFile), env)
+        model.optimize()
+        assert model.ObjVal == pytest.approx(optimum)
+        model.dispose()
+
+
+@requires_gurobi
+def test_runMGA_persistent_solver_options(tmp_path, monkeypatch):
+    # The optimize arguments are passed on to the persistent solver
+    created = []
+    create = mga._createPersistentSolver
+
+    def _createPersistentSolver(*args, **kwargs):
+        created.append(create(*args, **kwargs))
+        return created[-1]
+
+    monkeypatch.setattr(mga, "_createPersistentSolver", _createPersistentSolver)
+    # A relative name: Pyomo's option string parsing drops the backslashes of a
+    # Windows path, in esM.optimize as well
+    monkeypatch.chdir(tmp_path)
+    run_mga(
+        build_optimized_esM(),
+        [MAX_WIND],
+        persistent=True,
+        threads=1,
+        timeLimit=100,
+        logFileName="gurobi.log",
+    )
+    (opt,) = created
+    assert opt.options["Threads"] == 1
+    assert opt.options["timelimit"] == 100
+    assert (tmp_path / "gurobi.log").stat().st_size > 0
+
+
+def test_runMGA_solverModelFile_requires_persistent(tmp_path):
+    esM = build_optimized_esM()
+    with pytest.raises(ValueError, match="persistent=True"):
+        run_mga(esM, [MAX_WIND], solverModelFile=str(tmp_path / "model.mps"))
+
+
+def test_runMGA_persistent_requires_gurobi():
+    esM = build_optimized_esM()
+    with pytest.raises(ValueError, match="gurobi"):
+        run_mga(esM, [MAX_WIND], persistent=True, solver="glpk")
+
+
+def test_runMGA_persistent_unknown_optimize_argument():
+    esM = build_optimized_esM()
+    with pytest.raises(TypeError, match="unknownArgument"):
+        run_mga(esM, [MAX_WIND], persistent=True, unknownArgument=1)
+
+
+class SuboptimalGurobi:
+    """Persistent Gurobi solver that reports every solve as SUBOPTIMAL (status 13).
+
+    This is what Gurobi reports when its barrier stalls close to the optimum. The
+    real solve is optimal, so a loaded solution is the correct one.
+    """
+
+    class _Model:
+        Status = 13
+
+        def __init__(self, model):
+            self._model = model
+
+        def __getattr__(self, name):
+            return getattr(self._model, name)
+
+    def __init__(self, opt):
+        self._opt = opt
+
+    def __getattr__(self, name):
+        return getattr(self._opt, name)
+
+    @property
+    def _solver_model(self):
+        return self._Model(self._opt._solver_model)
+
+    def solve(self, *args, **kwargs):
+        """Solve and report the result as Pyomo translates Gurobi's SUBOPTIMAL status."""
+        solverInfo = self._opt.solve(*args, **kwargs)
+        solverInfo.solver.status = SolverStatus.warning
+        solverInfo.solver.termination_condition = TerminationCondition.other
+        return solverInfo
+
+
+@pytest.fixture
+def suboptimal_gurobi(monkeypatch):
+    create = mga._createPersistentSolver
+    monkeypatch.setattr(
+        mga,
+        "_createPersistentSolver",
+        lambda *args, **kwargs: SuboptimalGurobi(create(*args, **kwargs)),
+    )
+
+
+@requires_gurobi
+def test_runMGA_persistent_accepts_suboptimal(mga_run, suboptimal_gurobi):
+    _, _, expected = mga_run
+    esM = build_optimized_esM()
+    results = run_mga(esM, [MAX_WIND], persistent=True)
+
+    # The solution is loaded and post-processed despite the SUBOPTIMAL status
+    result = results["max wind"]
+    assert result["status"].startswith("suboptimal (accepted")
+    assert result["mgaObjective"] == pytest.approx(expected["max wind"]["mgaObjective"])
+    assert summary_value(
+        result["summary"], "SourceSinkModel", "Wind", "capacity"
+    ) == pytest.approx(expected["max wind"]["mgaObjective"])
+
+
+@requires_gurobi
+def test_runMGA_persistent_rejects_suboptimal(suboptimal_gurobi):
+    esM = build_optimized_esM()
+    results = run_mga(esM, [MAX_WIND], persistent=True, acceptSuboptimal=False)
+    # The solution is not loaded, which the status makes visible
+    assert results["max wind"]["status"] == "suboptimal"
 
 
 ################################################################################
