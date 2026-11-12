@@ -76,5 +76,5 @@ jobs:
 
       - name: Run tests with ${{ matrix.label }}
         run: |
-          mamba run --name test_env pytest -n 3 -vv -rs
+          mamba run --name test_env pytest -n 3 --dist worksteal -vv -rs
           if ($LASTEXITCODE -ne 0) { throw "Tests failed with solver ${{ matrix.solver }}" }
