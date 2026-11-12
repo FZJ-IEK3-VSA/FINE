@@ -21,6 +21,63 @@ sys.path.append(
 from getData import getData
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "requires_solver(name): run the test only if name is the selected solver",
+    )
+    config.addinivalue_line(
+        "markers",
+        "multi_solver: the test deliberately uses solvers other than the selected one",
+    )
+
+
+def pytest_report_header(config):
+    solver = ImplementedSolvers.STANDARD_SOLVER.value
+    if ImplementedSolvers.solver_from_environment():
+        return f"FINE solver: {solver} (selected explicitly, no fallback)"
+    return f"FINE solver: {solver} (automatic detection)"
+
+
+def pytest_collection_modifyitems(config, items):
+    solver = ImplementedSolvers.STANDARD_SOLVER.value
+    for item in items:
+        marker = item.get_closest_marker("requires_solver")
+        if marker is not None and marker.args[0] != solver:
+            item.add_marker(
+                pytest.mark.skip(
+                    reason=f"requires solver {marker.args[0]}, selected is {solver}"
+                )
+            )
+
+
+@pytest.fixture(autouse=True)
+def check_used_solver(request, monkeypatch):
+    """Fail a test if a model is solved with a solver other than the selected one.
+
+    Only active if a solver is selected via FINE_SOLVER. Tests
+    marked with multi_solver are exempt.
+    """
+    selected = ImplementedSolvers.solver_from_environment()
+    if not selected or request.node.get_closest_marker("multi_solver"):
+        return
+
+    original_runOptimization = fn.EnergySystemModel._runOptimization
+
+    def _runOptimization(self, *args, **kwargs):
+        used, solver_info = original_runOptimization(self, *args, **kwargs)
+        if used != selected:
+            pytest.fail(
+                f"The model was solved with '{used}', but '{selected}' is the "
+                "selected solver. Use ImplementedSolvers.STANDARD_SOLVER instead "
+                "of a fixed solver, or mark the test with requires_solver or "
+                "multi_solver."
+            )
+        return used, solver_info
+
+    monkeypatch.setattr(fn.EnergySystemModel, "_runOptimization", _runOptimization)
+
+
 @pytest.fixture(scope="session")
 def get_data_fixture():
     return getData()
@@ -122,8 +179,8 @@ def minimal_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -269,8 +326,8 @@ def single_node_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -371,129 +428,6 @@ def esM_init():
 
 
 @pytest.fixture(scope="function")
-def test_esM_for_spagat(esM_init, get_data_fixture):
-    """Simpler version of multi_node_test_esM_init.
-    Makes spagat tests faster.
-    """
-    data = deepcopy(get_data_fixture)
-
-    # Create an energy system model instance
-    esM = esM_init
-
-    # onshore wind
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Wind (onshore)",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            operationRateMax=data["Wind (onshore), operationRateMax"],
-            capacityMax=data["Wind (onshore), capacityMax"],
-            investPerCapacity=1.1,
-            opexPerCapacity=1.1 * 0.02,
-            interestRate=0.08,
-            economicLifetime=20,
-        )
-    )
-
-    # CO2 from environment
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="CO2 from environment",
-            commodity="CO2",
-            hasCapacityVariable=False,
-            balanceLimitID="CO2 limit",
-        )
-    )
-
-    # Electrolyzers
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="Electroylzers",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
-            hasCapacityVariable=True,
-            investPerCapacity=0.5,
-            opexPerCapacity=0.5 * 0.025,
-            interestRate=0.08,
-            economicLifetime=10,
-        )
-    )
-
-    # Pumped hydro storage
-    esM.add(
-        fn.Storage(
-            esM=esM,
-            name="Pumped hydro storage",
-            commodity="electricity",
-            chargeEfficiency=0.88,
-            dischargeEfficiency=0.88,
-            hasCapacityVariable=True,
-            selfDischarge=1 - (1 - 0.00375) ** (1 / (30 * 24)),
-            chargeRate=0.16,
-            dischargeRate=0.12,
-            capacityFix=data["Pumped hydro storage, capacityFix"],
-            investPerCapacity=0,
-            opexPerCapacity=0.000153,
-            opexPerChargeOperation=1e-6,
-            opexPerDischargeOperation=1e-6,
-        )
-    )
-
-    # DC cables
-    esM.add(
-        fn.Transmission(
-            esM=esM,
-            name="DC cables",
-            commodity="electricity",
-            losses=data["DC cables, losses"],
-            distances=data["DC cables, distances"],
-            hasCapacityVariable=True,
-            capacityFix=data["DC cables, capacityFix"],
-        )
-    )
-
-    # Hydrogen sinks
-    FCEV_penetration = 0.5
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="Hydrogen demand",
-            commodity="hydrogen",
-            hasCapacityVariable=False,
-            operationRateFix=data["Hydrogen demand, operationRateFix"]
-            * FCEV_penetration,
-        )
-    )
-
-    ### Lithium ion batteries
-    esM.add(
-        fn.Storage(
-            esM=esM,
-            name="Li-ion batteries",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            chargeEfficiency=0.95,
-            cyclicLifetime=10000,
-            dischargeEfficiency=0.95,
-            selfDischarge=1 - (1 - 0.03) ** (1 / (30 * 24)),
-            chargeRate=1,
-            dischargeRate=1,
-            doPreciseTsaModeling=False,
-            investPerCapacity=0.151,
-            opexPerCapacity=0.002,
-            interestRate=0.08,
-            economicLifetime=22,
-            opexPerChargeOperation=0.0001,
-        )
-    )
-
-    return esM
-
-
-@pytest.fixture(scope="function")
 def multi_node_test_esM_init(get_data_fixture):
     data = deepcopy(get_data_fixture)
 
@@ -588,7 +522,7 @@ def multi_node_test_esM_init(get_data_fixture):
             interestRate=0.08,
             economicLifetime=20,
             opexPerOperation=0.005,
-            commodityCostTimeSeries=offshore_cost_time_series,
+            commodityCost=offshore_cost_time_series,
         )
     )
 
@@ -637,7 +571,7 @@ def multi_node_test_esM_init(get_data_fixture):
             name="Natural gas purchase",
             commodity="methane",
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Natural Gas, commodityCostTimeSeries"],
+            commodityCost=data["Natural Gas, commodityCostTimeSeries"],
         )
     )
 
@@ -649,7 +583,7 @@ def multi_node_test_esM_init(get_data_fixture):
             commodity="biogas",
             operationRateMax=data["Biogas, operationRateMax"],
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Biogas, commodityCostTimeSeries"],
+            commodityCost=data["Biogas, commodityCostTimeSeries"],
         )
     )
 
@@ -1343,7 +1277,9 @@ def balanceLimitConstraint_test_esM():
 
 
 @pytest.fixture(scope="function")
-def perfectForesight_test_esM():
+def perfectForesight_test_esM(request):
+    # annuityPerpetuity can be set via indirect parametrization, default False
+    annuityPerpetuity = getattr(request, "param", False)
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},
@@ -1360,6 +1296,7 @@ def perfectForesight_test_esM():
         startYear=2020,
         lengthUnit="km",
         verboseLogLevel=2,
+        annuityPerpetuity=annuityPerpetuity,
     )
 
     PVoperationRateMax = pd.DataFrame(

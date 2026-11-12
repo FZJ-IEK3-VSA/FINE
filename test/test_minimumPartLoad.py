@@ -153,7 +153,7 @@ def test_minimumPartLoad():
             name="Natural gas purchase",
             commodity="methane",
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data_cost_df,
+            commodityCost=data_cost_df,
         )
     )
 

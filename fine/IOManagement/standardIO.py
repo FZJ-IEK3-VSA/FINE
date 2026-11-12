@@ -5,7 +5,6 @@ import pandas as pd
 import datetime
 import time
 import warnings
-from functools import wraps
 import logging
 import matplotlib.patches as mpatches
 
@@ -23,34 +22,13 @@ try:
     import geopandas as gpd
 except ImportError:
     warnings.warn(
-        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
+        "The package geopandas is not installed. Plotting locations cannot be used without it."
     )
 
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     warnings.warn("Matplotlib.pyplot could not be imported.")
-
-
-def timer(func):
-    """Track the time taken by a function (wrapper).
-
-    :param func: Function
-
-    .. note:: Usage as a decorator before a function -> @timer
-    """
-
-    @wraps(func)  # Required to get documentation for functions using this decorator
-    def f(*args, **kwargs):
-        before = time.perf_counter()
-        rv = func(*args, **kwargs)
-        after = time.perf_counter()
-        logger.debug(
-            "elapsed time for %s: %.2f minutes", func.__name__, (after - before) / 60
-        )
-        return rv
-
-    return f
 
 
 def writeOptimizationOutputToExcel(

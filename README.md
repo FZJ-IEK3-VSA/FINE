@@ -44,7 +44,6 @@ ETHOS.FINE was the [JuRSE Code of the Month for February 2026](https://www.fz-ju
 - Component library covering sources and sinks, conversion, storage and transmission
 - Cost-optimal design and operation against technical and environmental constraints
 - Temporal complexity reduction via typical periods, including an interconnected storage formulation
-- Spatial and technology aggregation to cut model size
 - Transformation pathways with perfect foresight, stochastic optimization and partload behaviour
 - Model setup from Excel and reproducible storage of inputs and results as netCDF
 
@@ -158,8 +157,6 @@ A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/example
   - The application cases of ETHOS.FINE are not limited. This application shows how to model the water supply system.
 - [06_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/06_NetCDF_to_save_and_set_up_model_instance)
   - This example shows how to save the input and optimized results of an energy system Model instance to netCDF files to allow reproducibility.
-- [07_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/07_Spatial_and_technology_aggregation)
-  - These two examples show how to reduce the model complexity. Model regions can be aggregated to reduce the number of regions (spatial aggregation). Input parameters are automatically adapted. Furthermore, technologies can be aggregated to reduce complexity, e.g. reducing the number of different PV components (technology aggregation). Input parameters are automatically adapted.
 - [08_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/08_Stochastic_Optimization)
   - In this application, a stochastic optimization is performed. It is possible to perform the optimization of an energy system model with different input parameter sets to receive a more robust solution.
 - [09_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/09_PerfectForesight)
@@ -201,6 +198,37 @@ sure to use it before contributing to the code base with
 ruff check --config=pyproject.toml
 ruff format --diff --config=pyproject.toml
 ```
+
+### Running the tests
+
+Run the test suite from the repository root with
+
+```bash
+pytest -n auto
+```
+
+By default, the tests use the automatically detected standard solver (GUROBI if a full licence is available, otherwise HiGHS). To run the complete suite with a specific solver, without fallback to another solver, set the environment variable `FINE_SOLVER`:
+
+```bash
+FINE_SOLVER=gurobi pytest -n auto
+FINE_SOLVER=highs pytest -n auto
+FINE_SOLVER=glpk pytest -n auto
+```
+
+The solver in use is shown in the header of the test output (`FINE solver: ...`). If the selected solver is not available, pytest stops with an error. If a test solves a model with a different solver than the selected one, it fails. Therefore, use `ImplementedSolvers.STANDARD_SOLVER.value` in tests instead of a fixed solver. Two markers cover the exceptions:
+
+- `@pytest.mark.requires_solver("gurobi")`: the test only runs if the given solver is selected, and is skipped otherwise. Use it only if the test cannot run with the other solvers.
+- `@pytest.mark.multi_solver`: the test deliberately uses solvers other than the selected one, for example to compare their results.
+
+Current solver-specific tests:
+
+| Test | Marker | Reason |
+|------|--------|--------|
+| `test/test_QPinvest.py` | `requires_solver("gurobi")` | Quadratic objective, which neither the HiGHS interface of ETHOS.FINE nor GLPK supports |
+| `test/test_performanceSummary.py` | `requires_solver("gurobi")` | The performance summary is parsed from the GUROBI log file |
+| `test/test_miniSystem.py` | `multi_solver` | Compares the results of GUROBI, HiGHS and GLPK |
+
+For every push to `develop`, the workflow [Test all solvers](https://github.com/FZJ-IEK3-VSA/FINE/blob/develop/.github/workflows/test_pull_request_solvers.yml) runs the complete suite separately with each solver, in the jobs `Tests (Gurobi)`, `Tests (HiGHS)` and `Tests (GLPK)`.
 
 ## License
 
