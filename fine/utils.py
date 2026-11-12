@@ -5404,8 +5404,6 @@ def runInfeasibilityPrechecks(esM, checks=INFEASIBILITY_PRECHECKS, raiseError=Tr
     :return: description of every detected problem, empty if all checks passed
     :rtype: list of strings
     """
-    isEnergySystemModelInstance(esM)
-
     problems = []
     _PERIOD_DATA_CACHES.append({})
     try:
