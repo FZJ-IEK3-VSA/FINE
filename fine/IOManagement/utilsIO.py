@@ -277,7 +277,7 @@ def addDFVariablesToXarray(
             multi_index_dataframe.index.set_names("time", level=0, inplace=True)
             multi_index_dataframe.index.set_names("space", level=1, inplace=True)
 
-            if classname in ["Transmission", "LinearOptimalPowerFlow"]:
+            if classname in ["Transmission", "LinearOptimalPowerFlow", "AsymmetricTransmission"]:
                 # use _mapC to split via location names
                 space_index = multi_index_dataframe.index.get_level_values("space")
                 time_index = multi_index_dataframe.index.get_level_values("time")
@@ -382,7 +382,7 @@ def addSeriesVariablesToXarray(xr_ds, component_dict, series_iteration_dict, loc
             for item in key_list:
                 data = data[item]
 
-            if classname in ["Transmission", "LinearOptimalPowerFlow"]:
+            if classname in ["Transmission", "LinearOptimalPowerFlow", "AsymmetricTransmission"]:
                 df = transform1dSeriesto2dDataFrame(data, locations)
                 multi_index_dataframe = df.stack()
                 multi_index_dataframe.index.set_names(
@@ -1316,7 +1316,7 @@ def processComponentDict(component_dict, locations, _mapC_dict):
                     
                 elif isinstance(parameter_value, pd.DataFrame):
                     
-                    if classname in ["Transmission", "LinearOptimalPowerFlow"]:
+                    if classname in ["Transmission", "LinearOptimalPowerFlow", "AsymmetricTransmission"]:
                         mi_df = parameter_value.stack()
                         if set(parameter_value.index.to_list()).issubset(set(locations)):            
                             mi_df.index.set_names("space", level=0, inplace=True)
@@ -1349,7 +1349,7 @@ def processComponentDict(component_dict, locations, _mapC_dict):
                     component_dict_mod[classname][component][parameter_name] = mi_df
                     
                 elif isinstance(parameter_value, pd.Series):
-                    if classname in ["Transmission", "LinearOptimalPowerFlow"]:
+                    if classname in ["Transmission", "LinearOptimalPowerFlow", "AsymmetricTransmission"]:
                         df = transform1dSeriesto2dDataFrame(parameter_value, locations)
                         mi_df = df.stack()
                         mi_df.index.set_names(
