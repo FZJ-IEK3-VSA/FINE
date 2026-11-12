@@ -431,8 +431,8 @@ def _propagateDeficits(data, label, numberOfSteps, supply, required, problems):
                 problems.append(
                     f"{label}: the joint demand of {requiredValue:.4g} for the "
                     f"commodity '{commodity}' in the locations {sorted(island)} "
-                    f"exceeds the supply of {supply[key]:.4g} and no component "
-                    "produces this commodity."
+                    f"exceeds the supply of {supply[key]:.4g} and no conversion "
+                    "component produces this commodity."
                 )
             else:
                 if capacity * numberOfSteps + _TOL < deficit:

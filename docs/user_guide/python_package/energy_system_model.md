@@ -17,8 +17,8 @@ and the commodity and locations concerned:
 
 ```text
 The infeasibility pre-checks detected that the model cannot be solved:
-  - checkJointInputDemandAggregated: Total time horizon: the joint demand of 11.43 for the commodity 'electricity' in the locations ['Region1', 'Region2', 'Region3'] exceeds the supply of 10 and no component produces this commodity.
-  - checkJointInputDemandPerTimeStep: Time step 3: the joint demand of 7.143 for the commodity 'electricity' in the locations ['Region1', 'Region2', 'Region3'] exceeds the supply of 4.85 and no component produces this commodity.
+  - checkJointInputDemandAggregated: Total time horizon: the joint demand of 11.43 for the commodity 'electricity' in the locations ['Region1', 'Region2', 'Region3'] exceeds the supply of 10 and no conversion component produces this commodity.
+  - checkJointInputDemandPerTimeStep: Time step 3: the joint demand of 7.143 for the commodity 'electricity' in the locations ['Region1', 'Region2', 'Region3'] exceeds the supply of 4.85 and no conversion component produces this commodity.
 
 The pre-checks can be deactivated by setting 'runInfeasibilityPrechecks' to False.
 ```
