@@ -381,6 +381,120 @@ def generateIterationDicts(component_dict, investmentPeriods):
     return df_iteration_dict, series_iteration_dict, constants_iteration_dict
 
 
+def _stackTimeSeries(data):
+    """Stack a time series DataFrame (time x locations) of a component into a
+    Series indexed by (time, space), as addDFVariablesToXarray stores it: NaN
+    entries are dropped by stack, a "Period" level is dropped."""
+    stacked = data.stack()
+    if "Period" in stacked.index.names:
+        stacked = stacked.droplevel(0)
+    stacked.index.set_names("time", level=0, inplace=True)
+    stacked.index.set_names("space", level=1, inplace=True)
+    return stacked
+
+
+def _add1dimTimeSeriesToXarray(xr_ds, df_dict, variable_description, add_to_xarray):
+    """Add a time series variable of components with one location dimension to
+    the datasets of these components.
+
+    Gives the same datasets as stacking every component (_stackTimeSeries),
+    concatenating them into one Series indexed by (component, time, space)
+    and converting that with sort_index().to_xarray() (add_to_xarray), but
+    without that Series: for a large model it has about 200 million entries,
+    and to_xarray, the sort and the concatenation needed about 19 GB for it
+    (mostly the hash table of the uniqueness check of its MultiIndex).
+
+    The grid is the same: the components with at least one entry, the sorted
+    union of their time steps and of their locations, the dtype pandas gives
+    the concatenation, promoted for missing values as in from_series. Each
+    component's part of it is filled from its own stacked Series and then
+    goes through the same sel/squeeze/reset_coords as before. Variables this
+    is not written for (non-numeric values, a duplicate (time, space) entry,
+    another number of index levels) use add_to_xarray.
+
+    :param df_dict: {"<class>; <component>": time series DataFrame}
+    :param add_to_xarray: the previous way, called with the stacked Series
+    """
+    from xarray.core import dtypes as xrdtypes
+
+    def fallback():
+        stacked = {key: _stackTimeSeries(data) for key, data in df_dict.items()}
+        return add_to_xarray(xr_ds, stacked, variable_description)
+
+    # Pass 1: coordinates, number of entries, dtype
+    time_values, space_values, proxies = [], [], {}
+    entries = 0
+    for key, data in df_dict.items():
+        stacked = _stackTimeSeries(data)
+        index = stacked.index
+        if (
+            index.nlevels != 2
+            or stacked.dtype.kind not in "fiu"
+            or not index.is_unique
+        ):
+            return fallback()
+        # as many rows as needed for pd.concat to find the same dtype: it
+        # depends on the dtypes and on which Series are empty
+        proxies[key] = stacked.iloc[: min(len(stacked), 1)]
+        if len(stacked) == 0:
+            continue
+        entries += len(stacked)
+        time_values.append(index.get_level_values(0).unique())
+        space_values.append(index.get_level_values(1).unique())
+    components = sorted(key for key in df_dict if len(proxies[key]) > 0)
+    if not components:
+        return fallback()
+    dtype = pd.concat(proxies).dtype
+    if dtype.kind not in "fiu":
+        return fallback()
+
+    def sorted_union(indexes, name):
+        union = indexes[0]
+        for other in indexes[1:]:
+            union = union.append(other)
+        return union.unique().sort_values().rename(name)
+
+    times = sorted_union(time_values, "time")
+    spaces = sorted_union(space_values, "space")
+    if entries < len(components) * len(times) * len(spaces):
+        dtype, fill_value = xrdtypes.maybe_promote(dtype)
+    else:
+        fill_value = 0
+
+    # Pass 2: one component at a time
+    name = f"ts_{variable_description}"
+    for key in components:
+        stacked = _stackTimeSeries(df_dict[key])
+        values = np.full((1, len(times), len(spaces)), fill_value, dtype)
+        values[
+            0,
+            times.get_indexer(stacked.index.get_level_values(0)),
+            spaces.get_indexer(stacked.index.get_level_values(1)),
+        ] = stacked.to_numpy()
+        del stacked
+        # assigned to an empty Dataset as before: the coordinates come
+        # first in the variable order (the order of the netCDF variables)
+        ds_component = xr.Dataset()
+        ds_component[name] = xr.DataArray(
+            values,
+            coords={"component": [key], "time": times, "space": spaces},
+            dims=("component", "time", "space"),
+        )
+        this_class, this_comp = key.split("; ")[0], key.split("; ")[1]
+        this_ds_component = (
+            ds_component.sel(component=key)
+            .squeeze()
+            .reset_coords(names=["component"], drop=True)
+        )
+        try:
+            xr_ds[this_class][this_comp] = xr.merge(
+                [xr_ds[this_class][this_comp], this_ds_component]
+            )
+        except Exception:
+            pass
+    return xr_ds
+
+
 def addDFVariablesToXarray(
     xr_ds, component_dict, df_iteration_dict, _mapC_dict, locations
 ):
@@ -427,21 +541,16 @@ def addDFVariablesToXarray(
             else:
                 data = component_dict[classname][component][variable_description]
 
-            multi_index_dataframe = data.stack()
-            if "Period" in multi_index_dataframe.index.names:
-                multi_index_dataframe = multi_index_dataframe.droplevel(0)
-
-            multi_index_dataframe.index.set_names("time", level=0, inplace=True)
-            multi_index_dataframe.index.set_names("space", level=1, inplace=True)
-
             if classname in ["Transmission", "LinearOptimalPowerFlow"]:
+                multi_index_dataframe = _stackTimeSeries(data)
                 # use _mapC to split via location names
                 multi_index_dataframe.index = _splitJoinedLocations(
                     multi_index_dataframe.index, _mapC_dict[component]
                 )
                 df_dict_3dim[df_description] = multi_index_dataframe
             else:
-                df_dict[df_description] = multi_index_dataframe
+                # stacked one component at a time in _add1dimTimeSeriesToXarray
+                df_dict[df_description] = data
 
         def add_to_xarray(xr_ds, df_dict, variable_description, lazy=False):
             df_variable = pd.concat(df_dict)
@@ -480,7 +589,9 @@ def addDFVariablesToXarray(
 
         # check if there is data
         if len(df_dict) > 0:
-            xr_ds = add_to_xarray(xr_ds, df_dict, variable_description)
+            xr_ds = _add1dimTimeSeriesToXarray(
+                xr_ds, df_dict, variable_description, add_to_xarray
+            )
         if len(df_dict_3dim) > 0:
             xr_ds = add_to_xarray(
                 xr_ds, df_dict_3dim, variable_description, lazy=True
