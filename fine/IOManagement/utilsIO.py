@@ -1108,7 +1108,13 @@ def convertToXarray(component_dict):
                 if "space" not in value.index.names:
                     value = value.rename_axis(["space"] * value.index.nlevels)
                 # Handle pandas Series using xarray's built-in method
-                data_vars[key] = xr.DataArray.from_series(value)
+                if {"time", "space", "space_2"}.issubset(value.index.names):
+                    # same as from_series, but the grid over all pairs of
+                    # locations (mostly NaN) is only filled block by block
+                    # while it is written
+                    data_vars[key] = lazySeriesToXarray(value)
+                else:
+                    data_vars[key] = xr.DataArray.from_series(value)
             elif isinstance(value, pd.DataFrame):
                 # TODO: check why we have dataframes all of a sudden here!
                 data_vars[key] = xr.DataArray.from_series(value.rename_axis("space",axis=1).rename_axis("time",axis=0).stack())
