@@ -42,6 +42,126 @@ def _splitJoinedLocations(index, mapC):
     )
 
 
+def lazySeriesToXarray(series, block_dim="time", block_bytes=128 * 2**20):
+    """Return ``xr.DataArray.from_series(series)`` with lazily filled values.
+
+    from_series spreads a Series with a MultiIndex over the full grid of its
+    index levels and fills the missing combinations with NaN. For the time
+    series of transmission components, indexed by (time, space, space_2), that
+    grid covers all pairs of locations although only the connected ones have
+    values (e.g. 8760 x 174 x 174 = 2.1 GB per array, 99 % NaN).
+
+    This function returns the same DataArray (same dims, coordinates, name,
+    dtype and values), but as a dask array: each block of the grid is filled
+    from the Series values only when it is computed, e.g. by to_netcdf or
+    to_zarr. In memory it keeps only the Series values and their positions.
+    The blocks are cut along ``block_dim`` (size 1 along the dims before it,
+    whole along the dims after it) so that a block has at most about
+    ``block_bytes``.
+
+    For a Series without MultiIndex, with a non-unique index or with values
+    that are not floats it returns the result of from_series unchanged.
+
+    :param series: Series to convert
+    :type series: pd.Series
+
+    :param block_dim: name of the index level the blocks are cut along; the
+        first level if the index has no level of this name
+    :type block_dim: str
+
+    :param block_bytes: upper bound of the bytes of one block (a block has at
+        least one element along block_dim)
+    :type block_bytes: int
+
+    :return: DataArray as from xr.DataArray.from_series(series)
+    """
+    import math
+    import uuid
+
+    import dask.array as da
+    from dask.highlevelgraph import HighLevelGraph
+    from xarray.core import dtypes as xrdtypes
+
+    index = series.index
+    if (
+        not isinstance(index, pd.MultiIndex)
+        or not np.issubdtype(series.dtype, np.floating)
+        or not index.is_unique
+        or len(series) == 0
+    ):
+        return xr.DataArray.from_series(series)
+
+    # Coordinates exactly as from_series makes them: from_dataframe without
+    # columns returns the Dataset with the index coordinates only.
+    coords = xr.Dataset.from_dataframe(pd.DataFrame(index=index)).coords
+    dims = tuple(
+        name if name is not None else f"level_{n}"
+        for n, name in enumerate(index.names)
+    )
+    # from_dataframe drops unused levels; codes refer to those levels
+    index = index.remove_unused_levels()
+    shape = tuple(len(level) for level in index.levels)
+    if tuple(coords.sizes[dim] for dim in dims) != shape:
+        return xr.DataArray.from_series(series)
+
+    values = np.asarray(series.values)
+    if math.prod(shape) > len(values):
+        dtype, fill_value = xrdtypes.maybe_promote(values.dtype)
+    else:
+        dtype, fill_value = values.dtype, 0
+    values = values.astype(dtype, copy=False)
+    codes = [np.asarray(c, dtype=np.int64) for c in index.codes]
+
+    axis = dims.index(block_dim) if block_dim in dims else 0
+    row_bytes = math.prod(shape[axis + 1 :]) * np.dtype(dtype).itemsize
+    step = max(1, min(shape[axis], block_bytes // max(row_bytes, 1)))
+    chunks = (
+        tuple((1,) * n for n in shape[:axis])
+        + (tuple(min(step, shape[axis] - s) for s in range(0, shape[axis], step)),)
+        + tuple((n,) for n in shape[axis + 1 :])
+    )
+    nblocks = [len(c) for c in chunks[: axis + 1]]
+
+    # number of the block each value belongs to, values sorted by it
+    block_codes = codes[:axis] + [codes[axis] // step]
+    block_id = np.ravel_multi_index(block_codes, nblocks)
+    order = np.argsort(block_id, kind="stable")
+    block_id = block_id[order]
+    values = values[order]
+    codes = [c[order] for c in codes]
+    starts = np.searchsorted(block_id, np.arange(math.prod(nblocks) + 1))
+
+    def fill_block(block_index, block_shape):
+        n = np.ravel_multi_index(block_index, nblocks)
+        sl = slice(starts[n], starts[n + 1])
+        data = np.full(block_shape, fill_value, dtype)
+        position = [c[sl] for c in codes[:axis]]
+        position = [p - b for p, b in zip(position, block_index[:axis])]
+        position.append(codes[axis][sl] - block_index[axis] * step)
+        position += [c[sl] for c in codes[axis + 1 :]]
+        data[tuple(position)] = values[sl]
+        return data
+
+    name = f"lazy-series-{uuid.uuid4().hex}"
+    graph = {}
+    for block_index in np.ndindex(*nblocks):
+        block_index = tuple(int(i) for i in block_index)
+        block_shape = tuple(chunks[i][block_index[i]] for i in range(axis + 1))
+        block_shape += shape[axis + 1 :]
+        key = (name,) + block_index + (0,) * (len(shape) - axis - 1)
+        graph[key] = (fill_block, block_index, block_shape)
+    array = da.Array(
+        HighLevelGraph.from_collections(name, graph, dependencies=[]),
+        name,
+        chunks,
+        dtype=dtype,
+    )
+    result = xr.DataArray(array, coords=coords, dims=dims)
+    # (name=None in the constructor would take the name of the dask array)
+    result.name = series.name
+    return result
+
+
 def getFromDict(dataDict, mapList):
     """Get value from a dict by a list, which contains the dict keys.
 
