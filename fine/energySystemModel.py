@@ -708,6 +708,25 @@ class EnergySystemModel:
         df = self.componentModelingDict[modelingClass]._optSummary[ip].dropna(how="all")
         return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
 
+    def _raiseIfTimeDelayed(self, aggregationName):
+        """Raise a ValueError if a transmission component has a positive timeDelay.
+
+        Delayed transmission is not yet supported by the temporal and spatial aggregation: typical periods break
+        the chronology the delay relies on, and averaging the delays of merged connections yields non-integer
+        (and, due to unconnected region pairs, underestimated) delays.
+
+        :param aggregationName: name of the aggregation used in the error message
+        :type aggregationName: string
+        """
+        for mdl in self.componentModelingDict.values():
+            for comp in mdl.componentsDict.values():
+                timeDelay = getattr(comp, "timeDelay", None)
+                if timeDelay is not None and timeDelay.any():
+                    raise ValueError(
+                        f"Transmission component '{comp.name}' has a positive timeDelay, which is not "
+                        f"compatible with {aggregationName}."
+                    )
+
     def aggregateSpatially(
         self,
         shapefile,
@@ -868,6 +887,8 @@ class EnergySystemModel:
 
         :returns: Aggregated esM instance
         """
+        self._raiseIfTimeDelayed("spatial aggregation")
+
         # STEP 1. Obtain xr dataset from esM
         xr_dataset = xrIO.convertOptimizationInputToDatasets(
             self, useProcessedValues=True
@@ -997,6 +1018,9 @@ class EnergySystemModel:
                 )
 
         """
+        # Fail before the (potentially expensive) clustering if delayed transmission is modeled
+        self._raiseIfTimeDelayed("time series aggregation")
+
         # The number of time steps per period shapes the temporal structure of the model itself, so the period
         # length is expressed in time steps here rather than left to ETHOS.TSAM.
         numberOfTimeStepsPerPeriod = (

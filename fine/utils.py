@@ -346,6 +346,11 @@ def checkAndSetTransmissionLosses(losses, distances, locationalEligibility):
 def checkAndSetTransmissionTimeDelay(timeDelay, locationalEligibility, esM):
     """Validate and format transmission delays for all eligible connections."""
     timeDelay = checkConnectionIndex(timeDelay, locationalEligibility)
+    try:
+        # Empty Series (e.g. no connections left after spatial aggregation) have object dtype
+        timeDelay = timeDelay.astype(float)
+    except (TypeError, ValueError):
+        raise ValueError("The timeDelay parameter contains non-numeric values.")
     if timeDelay.isnull().any() or not np.isfinite(timeDelay).all():
         raise ValueError("The timeDelay parameter contains values which are not finite.")
     if (timeDelay < 0).any():

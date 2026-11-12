@@ -1,3 +1,4 @@
+import numbers
 import warnings
 
 from fine.component import Component, ComponentModel
@@ -89,7 +90,7 @@ class Transmission(Component):
             non-negative integer for every directed connection, analogous to ``distances``. The DataFrame columns
             denote origins and its rows denote destinations. The default of 0
             preserves instantaneous transmission. Delayed transmission is currently incompatible with time series
-            aggregation. The modeled horizon is closed: no commodity is initially in transit and dispatches that
+            aggregation and spatial aggregation. The modeled horizon is closed: no commodity is initially in transit and dispatches that
             would arrive after the final time step are prohibited.
         :type timeDelay: non-negative integer, strictly smaller than the number of modeled time steps, or Pandas
             DataFrame with locations as row and column indices and non-negative integer entries
@@ -320,10 +321,17 @@ class Transmission(Component):
             commodity,
             esM.commodityUnitsDict[commodity],
         )
-        if not isinstance(timeDelay, int) and not isinstance(timeDelay, pd.DataFrame):
+        if isinstance(timeDelay, numbers.Integral) and not isinstance(timeDelay, bool):
+            # Normalize numpy integers, which preprocess2dimData does not handle.
+            timeDelay = int(timeDelay)
+        elif not isinstance(timeDelay, (pd.DataFrame, pd.Series)):
+            # A connection-indexed Series is passed when a component is re-created (e.g. by
+            # updateComponent, dict/xarray import or spatial aggregation).
             raise TypeError(
                 "timeDelay must be a non-negative integer or a pandas DataFrame."
             )
+        # Restrict the mapping to eligible connections: self._mapC also contains connections whose
+        # eligibility is 0, which would fail the index check in checkAndSetTransmissionTimeDelay.
         self.timeDelay = utils.preprocess2dimData(
             timeDelay,
             {loc: self._mapC[loc] for loc in self.locationalEligibility.index},
@@ -833,9 +841,13 @@ class TransmissionModel(ComponentModel):
             :nowrap:
 
             \\begin{eqnarray*}
-            \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}: loc_{in}=loc}}{ \\sum } \\left(1-\\eta_{(loc_{in},loc_{out})} \\cdot I_{(loc_{in},loc_{out})} \\right) \\cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t-\\Delta t} \\\\
+            \\text{C}^{comp,comm}_{loc,ip,p,t} = & & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}: loc_{in}=loc, \\\\ t \\geq \\Delta t_{(loc_{in},loc_{out})}}}{ \\sum } \\left(1-\\eta_{(loc_{in},loc_{out})} \\cdot I_{(loc_{in},loc_{out})} \\right) \\cdot op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t-\\Delta t_{(loc_{in},loc_{out})}} \\\\
                 & - & \\underset{\\substack{(loc_{in},loc_{out}) \\in \\ \\mathcal{L}^{tans}:loc_{out}=loc}}{ \\sum } op^{comp,op}_{(loc_{in},loc_{out}),ip,p,t}
             \\end{eqnarray*}
+
+        Here, :math:`\\Delta t_{(loc_{in},loc_{out})}` denotes the connection-specific timeDelay in time steps.
+        Arrivals of dispatches made before the start of the horizon (:math:`t < \\Delta t`) are omitted, i.e. no
+        commodity is initially in transit.
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar, opVarDictIn = (

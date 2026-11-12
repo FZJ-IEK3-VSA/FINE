@@ -55,9 +55,8 @@ def test_transmission_time_delay_shifts_arrival_and_applies_losses():
     esM = _create_delayed_transmission_esM(losses=0.1)
     esM.optimize(solver="glpk")
 
-    operation = esM.componentModelingDict[
-        "TransmissionModel"
-    ].operationVariablesOptimum[esM.investmentPeriodNames[0]]
+    # With a single investment period the optimum is a DataFrame with time steps as columns
+    operation = esM.componentModelingDict["TransmissionModel"].operationVariablesOptimum
     assert operation.loc[("shipment", "A", "B"), 0] == pytest.approx(10)
     assert operation.loc[("shipment", "A", "B"), 1] == pytest.approx(0)
 
@@ -99,6 +98,32 @@ def test_transmission_time_delay_accepts_connection_specific_dataframe():
 def test_transmission_time_delay_is_validated(timeDelay, exception):
     with pytest.raises(exception, match="timeDelay"):
         _create_delayed_transmission_esM(timeDelay=timeDelay)
+
+
+def test_transmission_time_delay_accepts_numpy_integer():
+    transmission = _create_delayed_transmission_esM(
+        timeDelay=np.int64(2)
+    ).getComponent("shipment")
+    assert transmission.timeDelay["A_B"] == 2
+    assert transmission.timeDelay["B_A"] == 2
+
+
+def test_transmission_time_delay_rejects_bool():
+    with pytest.raises(TypeError, match="timeDelay"):
+        _create_delayed_transmission_esM(timeDelay=True)
+
+
+def test_transmission_time_delay_rejects_temporal_aggregation_early():
+    esM = _create_delayed_transmission_esM()
+    with pytest.raises(ValueError, match="timeDelay.*time series aggregation"):
+        esM.aggregateTemporally(n_clusters=2, period_duration=2, segments=None)
+
+
+def test_transmission_time_delay_rejects_spatial_aggregation():
+    # The check runs before the shapefile is read, so no real shapefile is needed
+    esM = _create_delayed_transmission_esM()
+    with pytest.raises(ValueError, match="timeDelay.*spatial aggregation"):
+        esM.aggregateSpatially(shapefile="not_read.shp")
 
 
 def test_transmission_time_delay_rejects_time_series_aggregation():
