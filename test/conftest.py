@@ -427,9 +427,19 @@ def esM_init():
     )
 
 
+#: Time horizon of the multi-node test model in hours. The input data of the
+#: multi-region example covers a full year (8760 hourly values). The tests use
+#: only the first 30 days, because writing and reading the hourly results of a
+#: full year (in Excel and netCDF) made these tests the slowest of the suite.
+MULTI_NODE_NUMBER_OF_TIME_STEPS = 30 * 24
+
+
 @pytest.fixture(scope="function")
 def multi_node_test_esM_init(get_data_fixture):
     data = deepcopy(get_data_fixture)
+    for key, value in data.items():
+        if isinstance(value, (pd.DataFrame, pd.Series)) and len(value) == 8760:
+            data[key] = value.iloc[:MULTI_NODE_NUMBER_OF_TIME_STEPS]
 
     # 2. Create an energy system model instance
     locations = {
@@ -460,7 +470,7 @@ def multi_node_test_esM_init(get_data_fixture):
     esM = fn.EnergySystemModel(
         locations=locations,
         commodities=commodities,
-        numberOfTimeSteps=8760,
+        numberOfTimeSteps=MULTI_NODE_NUMBER_OF_TIME_STEPS,
         commodityUnitsDict=commodityUnitDict,
         hoursPerTimeStep=1,
         costUnit="1e9 Euro",
