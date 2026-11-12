@@ -764,7 +764,7 @@ class EnergySystemModel:
                 + f"(from '{self.investmentPeriodNames}')"
             )
 
-        # adjust columns name and remove "space" or "space_2" in case it exists
+        # adjust columns name and remove "locationOut" (or "space_2" in older files) in case it exists
         self.componentModelingDict[modelingClass]._optSummary[ip].columns.name = None
 
         if outputLevel == 0:

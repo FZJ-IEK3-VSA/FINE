@@ -192,7 +192,7 @@ def test_output_esm_to_netcdf_and_back_perfectForesight(perfectForesight_test_es
     esm_original_pf.optimize()
 
     xrIO.writeEnergySystemModelToNetCDF(
-        esm_original_pf, outputFilePath="test_esM_pf.nc"
+        esm_original_pf, outputFilePath="test_esM_pf.nc", overwriteExisting=True
     )
     esm_pf_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM_pf.nc")
 
@@ -231,7 +231,9 @@ def test_capacityFix_subset(multi_node_test_esM_init):
     )
 
     fileName = "test_cdf_error.nc"
-    xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=fileName)
+    xrIO.writeEnergySystemModelToNetCDF(
+        esM, outputFilePath=fileName, overwriteExisting=True
+    )
     _ = xrIO.readNetCDFtoEnergySystemModel(filePath=fileName)
 
     Path("test_cdf_error.nc").unlink()
@@ -310,7 +312,7 @@ def test_saving_clustered_timeseries_to_xarray(perfectForesight_test_esM):
     path_to_output_file = Path(__file__).parent.joinpath("test_esM_pf.nc")
     path_to_output_file_str = str(path_to_output_file)
     xrIO.writeEnergySystemModelToNetCDF(
-        esm_original_pf, outputFilePath=path_to_output_file_str
+        esm_original_pf, outputFilePath=path_to_output_file_str, overwriteExisting=True
     )
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original_pf)
     assert "ts_aggregatedOperationRateMax" in esm_datasets["Input"]["Source"]["PV"]
@@ -353,5 +355,66 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
         .dropna(how="all")
     )
     xrRes.columns.name = None
+    # the results datasets use "locationIn", the optimization summary "LocationIn"
+    xrRes.index.name = "LocationIn"
 
     assert_frame_equal(optSum, xrRes, check_dtype=False)
+
+#TODO: Check how the data sets are written in develop branch. 
+# Following tests are required to test changes in the naming. 
+
+def test_results_location_dimension_names(minimal_test_esM):
+    """1dim components use the dimension "location", 2dim components use
+    "locationIn"/"locationOut" in the results datasets."""
+    esM = deepcopy(minimal_test_esM)
+    esM.optimize()
+    xr_dss = xrIO.convertOptimizationOutputToDatasets(esM)
+    results = xr_dss["Results"][esM.investmentPeriodNames[0]]
+
+    source = results["SourceSinkModel"]["Electricity market"]
+    assert "location" in source.dims
+    assert "space" not in source.dims
+    assert set(source["operationVariablesOptimum"].dims) == {"time", "location"}
+
+    pipelines = results["TransmissionModel"]["Pipelines"]
+    assert {"locationIn", "locationOut"} <= set(pipelines.dims)
+    assert not {"space", "space_2"} & set(pipelines.dims)
+    assert set(pipelines["operationVariablesOptimum"].dims) == {
+        "time",
+        "locationIn",
+        "locationOut",
+    }
+
+
+def test_results_with_legacy_dimension_names(minimal_test_esM):
+    """Results datasets written with the old dimension names "space"/"space_2"
+    can still be read."""
+    esm_original = deepcopy(minimal_test_esM)
+    esm_original.optimize()
+    esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
+
+    # simulate datasets of an older FINE version
+    for ip, models in esm_datasets["Results"].items():
+        for model, comps in models.items():
+            for comp, ds in comps.items():
+                if "locationOut" in ds.dims:
+                    comps[comp] = ds.rename(
+                        {"locationIn": "space", "locationOut": "space_2"}
+                    )
+                else:
+                    comps[comp] = ds.rename({"location": "space"})
+    legacy_results = esm_datasets["Results"]
+
+    esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_datasets)
+
+    compare_esm_outputs(esm_original, esm_from_datasets)
+    for mdl in esm_original.componentModelingDict.keys():
+        compare_dicts(
+            esm_original.componentModelingDict[mdl].getOptimalValues(),
+            esm_from_datasets.componentModelingDict[mdl].getOptimalValues(),
+        )
+    # the passed datasets are not modified
+    pipelines = legacy_results[esm_original.investmentPeriodNames[0]][
+        "TransmissionModel"
+    ]["Pipelines"]
+    assert {"space", "space_2"} <= set(pipelines.dims)

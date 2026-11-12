@@ -2803,13 +2803,11 @@ def checkAndSetCommodityConversionFactor(comp, esM):
         return commodTypes
 
     def isLocationSeries(series):
+        # A location series is indexed by (a subset of) the locations of the esM,
+        # whereas a time series is indexed by time steps.
         if not isinstance(series, pd.Series):
             return False
-        try:
-            checkRegionalIndex(esM, series.copy(), comp.locationalEligibility)
-            return True
-        except ValueError:
-            return False
+        return set(series.index) <= set(esM.locations)
 
     if comp.isIpDepending or comp.isCommisDepending:
         commodTypesList = []

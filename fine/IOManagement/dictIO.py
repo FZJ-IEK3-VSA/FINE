@@ -43,11 +43,10 @@ def exportToDict(esM, useProcessedValues=False, useTSAvalues=False):
     # Loop over all props
     for arg in inputkwargs.args:
         if arg != "self":
-            _data = getattr(esM, arg)
-            if isinstance(_data, pd.DataFrame):
-                if not "Eligibility" in arg:
-                    _data = _data.astype(str) # prevent errors when saving to netcdf becaue of mixed data types
-            esmDict[arg] = _data
+            # NOTE: DataFrames with mixed data types (e.g. balanceLimit) are converted
+            # to strings when the datasets are written (see xarrayIO.processDataset and
+            # xarrayIO.writeDatasetsToNetCDF), not here, to keep the original data types.
+            esmDict[arg] = getattr(esM, arg)
 
     compDict = utilsIO.PowerDict()
     # Loop over all component models
