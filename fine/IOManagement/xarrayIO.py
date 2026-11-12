@@ -463,6 +463,12 @@ def convertDatasetsToEnergySystemModel(datasets):
     """Take dictionary of xarray datasets (with esM instance data) and convert
     it to an esM instance.
 
+    Input variables that contain only NaN were not set and are skipped,
+    except entries of nested parameters, such as the entry of an
+    investment period in ``capacityFix``: FINE expects such dicts to contain
+    every investment period, so these entries are kept. Dimensionless entries
+    are restored as None, regional entries as series of NaN.
+
     :param datasets: The xarray datasets holding all data required to set up an esM instance.
     :type datasets: Dict[xr.Dataset]
 
@@ -481,7 +487,10 @@ def convertDatasetsToEnergySystemModel(datasets):
     for model, comps in datasets["Input"].items():
         for component_name, comp_xr in comps.items():
             for variable, comp_var_xr in comp_xr.data_vars.items():
-                if not pd.isnull(comp_var_xr.values).all():  # Skip if all are NAs
+                # Skip variables that contain only NaN, except entries of nested
+                # parameters (e.g. "1d_capacityFix.2028" for investment period
+                # 2028): FINE expects these dicts to contain every investment period
+                if not pd.isnull(comp_var_xr.values).all() or "." in variable:
                     component = f"{model}; {component_name}"
 
                     # STEP 4 (i). Set regional time series (region, time)

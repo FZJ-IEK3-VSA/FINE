@@ -515,7 +515,9 @@ def add2dVariableToDict(
     # NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other
     # attributes. Removing 0 values ensures the match. If all are 0s, empty series is fed in, leading to error.
     # Therefore, if series is empty, the variable is not added.
-    series = series[series > 0]
+    # NaN values are kept: the writer fills location pairs without a connection with 0, so NaN can only
+    # come from a connection whose value was NaN, e.g. an investment period in which capacityFix is not set.
+    series = series[(series > 0) | series.isna()]
 
     if not len(series.index) == 0:
         class_name = component.split("; ")[0]
@@ -604,7 +606,11 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
         key_list = getKeyHierarchyOfNestedDict(variable)
         key_list[0] = key_list[0][3:]
 
-        setInDict(component_dict[class_name][comp_name], key_list, var_value.item())
+        # NaN is restored as None: the writer writes unset entries of nested
+        # parameters as None, which NetCDF stores as NaN
+        value = None if pd.isnull(var_value) else var_value.item()
+
+        setInDict(component_dict[class_name][comp_name], key_list, value)
 
     return component_dict
 
