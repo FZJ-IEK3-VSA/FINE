@@ -473,7 +473,9 @@ def test_location_specific_timeseries_conversion_factors_dataframe():
     np.testing.assert_almost_equal(full.at[(0, 1), "Loc2"], 0.9)
 
     # --- Optimize ---
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
 
     op = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs(
         "Electrolyzers_LocTsCcf"
@@ -590,7 +592,9 @@ def test_location_specific_timeseries_conversion_factors_with_tsa():
     )
 
     # --- Optimize with TSA ---
-    esM.optimize(timeSeriesAggregation=True, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=True, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
 
     # Get electricity market operation (this is total electricity supplied)
     df_src = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
@@ -739,7 +743,9 @@ def test_location_specific_timeseries_conversion_factors_dataframe_pf():
     np.testing.assert_almost_equal(full_ip0.at[(0, 3), "ElectrolyzerLocation"], 0.8)
     np.testing.assert_almost_equal(full_ip0.at[(0, 1), "IndustryLocation"], 0.9)
 
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
 
     op_dict = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum
 
@@ -818,7 +824,9 @@ def test_location_specific_constant_conversion_factors_series():
     np.testing.assert_almost_equal(processed.loc["Loc2"], 1.0)
 
     # Optimize (no TSA)
-    esM.optimize(timeSeriesAggregation=False, solver="glpk")
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
 
     op = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs(
         "Electrolyzers_LocCcf_Const"

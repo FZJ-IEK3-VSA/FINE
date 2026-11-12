@@ -10,5 +10,5 @@ structure (modules and classes, with their functions and variables).
 - [Subclasses](subclasses.md) — Specialized component formulations extending the standard components with additional behavior, such as dynamic operation, part-load modeling, and linear optimal power flow (LOPF) representations.
 - [Expansion Modules](expansion_modules.md) — Additional modules for extended optimization features.
 - [Output Manager](output_manager.md) — Tools for reading, writing and visualizing results.
-- [Aggregations](aggregations.md) — Time series and spatial aggregation methods.
+- [Aggregations](aggregations.md) — Time series aggregation methods.
 

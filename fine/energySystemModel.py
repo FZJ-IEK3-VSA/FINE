@@ -20,14 +20,12 @@ from tsam import ClusterConfig, ExtremeConfig, SegmentConfig
 
 from fine import utils
 from fine.utils import ImplementedSolvers
-from fine.aggregations.spatialAggregation import manager as spagat
 
 # Deprecation shim, removed together with the ETHOS.TSAM 3.x keywords.
 from fine.aggregations.temporalAggregation.deprecatedKeywords import (
     translateDeprecatedKeywords,
 )
 from fine.component import Component, ComponentModel
-from fine.IOManagement import xarrayIO as xrIO
 
 #: The clustering :meth:`EnergySystemModel.aggregateTemporally` uses unless told
 #: otherwise. It is the clustering the removed ETHOS.TSAM 3.x signature defaulted
@@ -775,185 +773,6 @@ class EnergySystemModel:
             warnings.warn("Invalid input. An outputLevel parameter of 2 is assumed.")
         df = self.componentModelingDict[modelingClass]._optSummary[ip].dropna(how="all")
         return df.loc[((df != 0) & (~df.isnull())).any(axis=1)]
-
-    def aggregateSpatially(
-        self,
-        shapefile,
-        grouping_mode="parameter_based",
-        n_groups=3,
-        distance_threshold=None,
-        aggregatedResultsPath=None,
-        **kwargs,
-    ):
-        """Spatially clusters the data of all components considered in the Energy System Model (esM) instance
-        and returns a new esM instance with the aggregated data.
-
-        :param shapefile: Either the path to the shapefile or the read-in shapefile
-        :type shapefile: string, GeoDataFrame
-
-        **Default arguments:**
-
-        :param grouping_mode: Defines how to spatially group the regions.
-            Refer to grouping.py for more information.
-            |br| * the default value is 'parameter_based'
-        :type grouping_mode: string, Options: 'string_based', 'distance_based', 'parameter_based'
-
-        :param n_groups: The number of region groups to be formed from the original region set.
-            This parameter is irrelevant if `grouping_mode` is 'string_based'.
-            |br| * the default value is 3
-        :type n_groups: strictly positive integer, None
-
-        :param distance_threshold: The distance threshold at or above which regions will not be aggregated into one.
-            |br| * the default value is None. If not None, n_groups must be None
-        :type distance_threshold: float
-
-        :param aggregatedResultsPath: Indicates path to which the aggregated results should be saved.
-            If None, results are not saved.
-            |br| * the default value is None
-        :type aggregatedResultsPath: string, None
-
-        **Additional keyword arguments that can be passed via kwargs:**
-
-        :param geom_col_name: The geometry column name in `shapefile`
-            |br| * the default value is 'geometry'
-        :type geom_col_name: string
-
-        :param geom_id_col_name: The column in `shapefile` consisting geom IDs
-            |br| * the default value is 'index'
-        :type geom_id_col_name: string
-
-        :param separator: Relevant only if `grouping_mode` is 'string_based'.
-            The character or string in the region IDs that defines where the ID should be split.
-            E.g.: region IDs -> ['01_es', '02_es'] and separator='_', then IDs are split at _
-            and the last part ('es') is taken as the group ID
-            |br| * the default value is None
-        :type separator: string
-
-        :param position: Relevant only if `grouping_mode` is 'string_based'.
-            Used to define the position(s) of the region IDs where the split should happen.
-            An int i would mean the part from 0 to i is taken as the group ID. A tuple (i,j) would mean
-            the part i to j is taken at the group ID.
-
-            .. note:: either `separator` or `position` must be passed in order to perform string_based_grouping
-
-            |br| * the default value is None
-        :type position: integer/tuple
-
-        :param weights: Relevant only if `grouping_mode` is 'parameter_based'.
-            Through the `weights` dictionary, one can assign weights to variable-component pairs. When calculating
-            distance corresponding to each variable-component pair, these specified weights are
-            considered, otherwise taken as 1.
-
-            It must be in one of the formats:
-
-            - If you want to specify weights for particular variables and particular corresponding components:
-
-                { 'components' : Dict[<component_name>, <weight>}], 'variables' : List[<variable_name>] }
-
-            - If you want to specify weights for particular variables, but all corresponding components:
-
-                { 'components' : {'all' : <weight>}, 'variables' : List[<variable_name>] }
-
-            - If you want to specify weights for all variables, but particular corresponding components:
-
-                { 'components' : Dict[<component_name>, <weight>}], 'variables' : 'all' }
-
-            <weight> can be of type integer/float
-
-            |br| * the default value is None
-        :type weights: dictionary
-
-        :param aggregation_method: Relevant only if `grouping_mode` is 'parameter_based'.
-            The clustering method that should be used to group the regions. Options:
-
-                - 'kmedoids_contiguity':
-                    kmedoids clustering with added contiguity constraint.
-                    Refer to :mod:`fine.aggregations.spatialAggregation.kMedoidsContiguity` for more info
-                - 'hierarchical':
-                    sklearn's agglomerative clustering with complete linkage, with a connectivity matrix to ensure contiguity.
-                    Refer to Sklearn docs for more info: https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
-
-            |br| * the default value is 'kmedoids_contiguity'
-        :type aggregation_method: string, Options: 'kmedoids_contiguity', 'hierarchical'
-
-        :param solver: Relevant only if `grouping_mode` is 'parameter_based' and `aggregation_method` is 'kmedoids_contiguity'
-            The optimization solver to be chosen.
-            |br| * the default value is 'gurobi'
-        :type solver: string, Options: 'gurobi', 'highs', 'glpk'
-
-        :param aggregation_function_dict: Contains information regarding the mode of aggregation for each individual variable.
-
-            - Possibilities: mean, weighted mean, sum, bool (boolean OR).
-            - Format of the dictionary
-
-                - {<variable_name>: (<mode_of_aggregation>, <weights>),
-                  <variable_name>: (<mode_of_aggregation>, None)}.
-
-                <weights> is required only if <mode_of_aggregation> is
-                'weighted mean'. The name of the variable that should act as weights should be provided. Can be None otherwise.
-
-            A default dictionary is considered with the following corresponding modes.
-            If `aggregation_function_dict` is passed, this default dictionary is updated.
-
-            | {"operationRateMax": ("weighted mean", "capacityMax"),
-            | "operationRateFix": ("sum", None),
-            | "processedLocationalEligibility": ("bool", None),
-            | "capacityMax": ("sum", None),
-            | "investPerCapacity": ("mean", None),
-            | "investIfBuilt": ("bool", None),
-            | "opexPerOperation": ("mean", None),
-            | "opexPerCapacity": ("mean", None),
-            | "opexIfBuilt": ("bool", None),
-            | "interestRate": ("mean", None),
-            | "economicLifetime": ("mean", None),
-            | "capacityFix": ("sum", None),
-            | "losses": ("mean", None),
-            | "distances": ("mean", None),
-            | "commodityCost": ("mean", None),
-            | "commodityRevenue": ("mean", None),
-            | "opexPerChargeOperation": ("mean", None),
-            | "opexPerDischargeOperation": ("mean", None),
-            | "QPcostScale": ("sum", None),
-            | "technicalLifetime": ("mean", None)}
-
-        :type aggregation_function_dict: dictionary
-
-        :param aggregated_shp_name: Name to be given to the saved shapefiles after aggregation
-            |br| * the default value is 'aggregated_regions'
-        :type aggregated_shp_name: string
-
-        :param crs: Coordinate reference system (crs) in which to save the shapefiles
-            |br| * the default value is 3035
-        :type crs: integer
-
-        :param crs: Coordinate reference system (crs) in which to save the shapefiles
-            |br| * the default value is 3035
-        :type crs: integer
-
-        :param aggregated_xr_filename: Name to be given to the saved netCDF file containing aggregated esM data
-            |br| * the default value is 'aggregated_xr_dataset.nc'
-        :type aggregated_xr_filename: string
-
-        :returns: Aggregated esM instance
-        """
-        # STEP 1. Obtain xr dataset from esM
-        xr_dataset = xrIO.convertOptimizationInputToDatasets(
-            self, useProcessedValues=True
-        )
-
-        # STEP 2. Perform spatial aggregation
-        aggregated_xr_dataset = spagat.perform_spatial_aggregation(
-            xr_dataset,
-            shapefile,
-            grouping_mode,
-            n_groups,
-            distance_threshold,
-            aggregatedResultsPath,
-            **kwargs,
-        )
-
-        # STEP 3. Obtain aggregated esM
-        return xrIO.convertDatasetsToEnergySystemModel(aggregated_xr_dataset)
 
     @translateDeprecatedKeywords
     def aggregateTemporally(
@@ -2102,8 +1921,9 @@ class EnergySystemModel:
         :type threads: positive integer
 
         :param solver: specifies which solver should solve the optimization problem (which of course has to be
-            installed on the machine on which the model is run).
-            |br| * the default value is 'gurobi'
+            installed on the machine on which the model is run). If not specified, ImplementedSolvers.STANDARD_SOLVER
+            is used.
+            |br| * the default value is 'None'
         :type solver: string
 
         :param timeLimit: if not specified as None, indicates the maximum solve time of the optimization problem
