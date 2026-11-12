@@ -515,8 +515,8 @@ def add2dVariableToDict(
     # NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other
     # attributes. Removing 0 values ensures the match. If all are 0s, empty series is fed in, leading to error.
     # Therefore, if series is empty, the variable is not added.
-    # NaN values are kept: the writer fills location pairs without a connection with 0, so NaN can only
-    # come from a connection whose value was NaN, e.g. an investment period in which capacityFix is not set.
+    # NaN values are kept: the writer fills location pairs without a connection with 0, so NaN only
+    # appears for a connection with a NaN value, e.g. in an investment period without capacityFix.
     series = series[(series > 0) | series.isna()]
 
     if not len(series.index) == 0:
