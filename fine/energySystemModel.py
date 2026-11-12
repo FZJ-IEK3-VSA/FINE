@@ -18,7 +18,7 @@ from pyomo.contrib.appsi.solvers import Highs
 import tsam
 from tsam import ClusterConfig, ExtremeConfig, SegmentConfig
 
-from fine import utils
+from fine import infeasibilityPrechecks, utils
 from fine.utils import ImplementedSolvers
 
 # Deprecation shim, removed together with the ETHOS.TSAM 3.x keywords.
@@ -1696,6 +1696,7 @@ class EnergySystemModel:
         timeSeriesAggregation=False,
         relaxIsBuiltBinary=False,
         relevanceThreshold=None,
+        runInfeasibilityPrechecks=True,
     ):
         """Declare the optimization problem belonging to the specified energy system for which a pyomo concrete model
         instance is built and filled with.
@@ -1723,6 +1724,13 @@ class EnergySystemModel:
         :param relevanceThreshold: Force operation parameters to be 0 if values are below the relevance threshold.
             |br| * the default value is None
         :type relevanceThreshold: float (>=0) or None
+
+        :param runInfeasibilityPrechecks: states if the model should be checked for setups
+            which are provably infeasible before the optimization problem is declared.
+            A detected problem raises a ValueError. The checks are skipped if
+            timeSeriesAggregation is True.
+            |br| * the default value is True
+        :type runInfeasibilityPrechecks: boolean
         """
         # Get starting time of the optimization to, later on, obtain the total run time of the optimize function call
         timeStart = time.time()
@@ -1737,6 +1745,22 @@ class EnergySystemModel:
             segmentation = self.segmentation
         else:
             segmentation = False
+
+        ################################################################################################################
+        #                                         Run feasibility pre-check                                            #
+        ################################################################################################################
+
+        # Detect provably infeasible model setups before building the problem. The
+        # checks evaluate the full time series, so they do not apply to an aggregation.
+        if runInfeasibilityPrechecks and timeSeriesAggregation:
+            utils.output(
+                "The infeasibility pre-checks are skipped because time series "
+                "aggregation is used.",
+                self.verboseLogLevel,
+                0,
+            )
+        elif runInfeasibilityPrechecks:
+            infeasibilityPrechecks.runInfeasibilityPrechecks(self)
 
         ################################################################################################################
         #                           Initialize mathematical model (ConcreteModel) instance                             #
@@ -1852,6 +1876,7 @@ class EnergySystemModel:
         warmstart=False,
         relevanceThreshold=None,
         includePerformanceSummary=False,
+        runInfeasibilityPrechecks=True,
     ):
         """Optimize the specified energy system for which a pyomo ConcreteModel instance is built or called upon.
         A pyomo instance is optimized with the specified inputs, and the optimization results are further
@@ -1939,6 +1964,13 @@ class EnergySystemModel:
             |br| * the default value is False
         :type includePerformanceSummary: boolean
 
+        :param runInfeasibilityPrechecks: states if the model should be checked for setups
+            which are provably infeasible before the optimization problem is declared.
+            A detected problem raises a ValueError. The checks are skipped if
+            timeSeriesAggregation is True.
+            |br| * the default value is True
+        :type runInfeasibilityPrechecks: boolean
+
         Last edited: November 16, 2023
         |br| @author: FINE Developer Team (FZJ IEK-3)
         """
@@ -1954,6 +1986,7 @@ class EnergySystemModel:
             warmstart,
             relevanceThreshold,
             includePerformanceSummary,
+            runInfeasibilityPrechecks,
         )
         solver, solver_info = self._runOptimization(
             logFileName,
@@ -1982,6 +2015,7 @@ class EnergySystemModel:
         warmstart,
         relevanceThreshold,
         includePerformanceSummary,
+        runInfeasibilityPrechecks,
     ):
         """Prepare the optimization run of the optimize function.
 
@@ -2005,6 +2039,7 @@ class EnergySystemModel:
                 timeSeriesAggregation=timeSeriesAggregation,
                 relaxIsBuiltBinary=relaxIsBuiltBinary,
                 relevanceThreshold=relevanceThreshold,
+                runInfeasibilityPrechecks=runInfeasibilityPrechecks,
             )
         elif self.pyM is None:
             raise TypeError(
