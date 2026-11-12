@@ -313,7 +313,10 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=0):
                         df.name = variable
                         df.index.rename(["space", "space_2", "time"], inplace=True)
                         df.index = df.index.reorder_levels([2, 0, 1])
-                        xr_da = df.to_xarray()
+                        # same as df.to_xarray(), but the full grid over all
+                        # pairs of locations (mostly NaN) is only filled block
+                        # by block while it is written
+                        xr_da = utilsIO.lazySeriesToXarray(df)
                         xr_dss[ip][name][component] = xr.merge(
                             [xr_dss[ip][name][component], xr_da]
                         )
@@ -443,6 +446,68 @@ def processDataset(datasets):
     
     return datasets
     
+def _alignDaskWithNetCDFChunks(dataset, compression_settings, block_bytes=512 * 2**20):
+    """Rechunk the dask variables of dataset so that every dask block covers
+    whole chunks of the netCDF (HDF5) variable it is written to.
+
+    to_netcdf writes a dask variable block by block. A block that covers only
+    part of an HDF5 chunk makes the library read, decompress, change and
+    compress that chunk again for every block that touches it, which made
+    writing several times slower. The HDF5 chunk shape is the netCDF library's
+    default for the variable (no chunksizes are given); it is read here from a
+    variable of the same shape created in a file in memory. The blocks are
+    whole along all dimensions but the first and a multiple of the HDF5 chunk
+    along the first, with at most about block_bytes (at least one HDF5 chunk).
+    The written file is the same; only the order of the writes changes.
+    """
+    import dask.array as da
+    import netCDF4
+    import uuid
+
+    variables = [
+        name
+        for name, variable in dataset.data_vars.items()
+        if isinstance(variable.data, da.Array)
+        and variable.ndim > 0
+        and variable.dtype.kind in "fiub"
+    ]
+    if not variables:
+        return dataset
+    nc = netCDF4.Dataset(
+        f"chunking-{uuid.uuid4().hex}.nc", "w", diskless=True, persist=False
+    )
+    try:
+        rechunked = {}
+        for name in variables:
+            variable = dataset[name]
+            dims = []
+            for dim, size in zip(variable.dims, variable.shape):
+                dim_name = f"{dim}-{name}"
+                nc.createDimension(dim_name, size)
+                dims.append(dim_name)
+            nc_variable = nc.createVariable(
+                f"v-{name}", variable.dtype, dims, **compression_settings
+            )
+            chunking = nc_variable.chunking()
+            if chunking == "contiguous":
+                first = variable.shape[0]
+            else:
+                row_bytes = variable.dtype.itemsize * int(
+                    np.prod(variable.shape[1:], dtype=np.int64)
+                )
+                per_chunk = chunking[0] * max(row_bytes, 1)
+                first = chunking[0] * max(1, block_bytes // per_chunk)
+            rechunked[name] = variable.chunk(
+                {
+                    dim: (first if i == 0 else -1)
+                    for i, dim in enumerate(variable.dims)
+                }
+            )
+    finally:
+        nc.close()
+    return dataset.assign(rechunked)
+
+
 def writeDatasetsToNetCDFfolder(
     data_dict,
     base_path="my_esm",
@@ -485,6 +550,7 @@ def writeDatasetsToNetCDFfolder(
     def save_dataset(args):
         """Helper function for parallel saving"""
         filepath, dataset, compression_settings = args
+        dataset = _alignDaskWithNetCDFChunks(dataset, compression_settings)
         dataset.to_netcdf(filepath, encoding={
             var: compression_settings for var in dataset.data_vars
         }, mode=mode)
@@ -1793,7 +1859,28 @@ def _make_datasets_lazy(data_dict, chunks="auto", _path=(), release=False):
     elif isinstance(data_dict, xr.Dataset):
         try:
             token = "/".join(_path) if _path else None
-            return data_dict.chunk(chunks, token=token)
+            # Variables that are already dask arrays (lazySeriesToXarray) get
+            # the chunks chunk() gives an in-memory array of the same shape:
+            # chunk() would otherwise keep their (possibly uneven) blocks in
+            # mind, and the written store would differ in chunking or be
+            # rejected by zarr.
+            import dask.array as da
+
+            lazy = [
+                name
+                for name, variable in data_dict.data_vars.items()
+                if isinstance(variable.data, da.Array)
+            ]
+            chunked = data_dict.chunk(chunks, token=token)
+            if chunks == "auto":
+                for name in lazy:
+                    variable = data_dict[name]
+                    target = da.core.normalize_chunks(
+                        "auto", variable.shape, dtype=variable.dtype
+                    )
+                    # (assigning an existing name keeps the variable order)
+                    chunked[name] = variable.copy(data=variable.data.rechunk(target))
+            return chunked
         except Exception as e:
             print(f"Error chunking dataset: {e}")
             return data_dict
