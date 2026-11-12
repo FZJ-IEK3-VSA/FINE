@@ -8,9 +8,13 @@ from pathlib import Path
 
 import pytest
 import xarray as xr
-import zarr
 
 import fine.IOManagement.xarrayIO as xrIO
+
+# zarr (and dask, which is needed for chunking) are optional dependencies of FINE.
+# Skip the zarr tests if they are not installed.
+zarr = pytest.importorskip("zarr")
+pytest.importorskip("dask")
 
 ZARR_MAJOR = int(zarr.__version__.split(".")[0])
 
