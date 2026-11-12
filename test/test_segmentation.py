@@ -61,9 +61,9 @@ def test_aggregation_zero_columns_do_not_affect_result(single_node_test_esM):
             solver=ImplementedSolvers.STANDARD_SOLVER.value,
         )
 
-        assert esM_base.pyM.Obj() == pytest.approx(esM_with_zero.pyM.Obj()), (
-            f"segmentation={segmentation}: objective differs when zero columns are present"
-        )
+        assert (
+            esM_base.pyM.Obj() == pytest.approx(esM_with_zero.pyM.Obj())
+        ), f"segmentation={segmentation}: objective differs when zero columns are present"
 
 
 def test_segmentation(minimal_test_esM):

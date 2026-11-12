@@ -352,7 +352,9 @@ def checkAndSetTransmissionTimeDelay(timeDelay, locationalEligibility, esM):
     except (TypeError, ValueError):
         raise ValueError("The timeDelay parameter contains non-numeric values.")
     if timeDelay.isnull().any() or not np.isfinite(timeDelay).all():
-        raise ValueError("The timeDelay parameter contains values which are not finite.")
+        raise ValueError(
+            "The timeDelay parameter contains values which are not finite."
+        )
     if (timeDelay < 0).any():
         raise ValueError("timeDelay values must be non-negative integers.")
     if not np.equal(timeDelay, np.floor(timeDelay)).all():

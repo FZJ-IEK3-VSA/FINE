@@ -144,9 +144,9 @@ def test_getResultSummaryDict_agrees_with_the_optimization_summary(minimal_test_
             for prop, (series, unit) in properties.items():
                 if (component, prop, unit) not in summary.index:
                     # rows that are entirely absent are not written to the summary
-                    assert series.isna().all(), (
-                        f"{name}/{component}/{prop} has values but no summary row"
-                    )
+                    assert (
+                        series.isna().all()
+                    ), f"{name}/{component}/{prop} has values but no summary row"
                     continue
                 expected = summary.loc[(component, prop, unit)]
                 if model.dimension == "2dim":
@@ -155,13 +155,13 @@ def test_getResultSummaryDict_agrees_with_the_optimization_summary(minimal_test_
                     got = series.loc[location]
                     want = expected.loc[location]
                     if pd.isna(got) or pd.isna(want):
-                        assert pd.isna(got) and pd.isna(want), (
-                            f"{name}/{component}/{prop}@{location} NaN mismatch"
-                        )
+                        assert pd.isna(got) and pd.isna(
+                            want
+                        ), f"{name}/{component}/{prop}@{location} NaN mismatch"
                     else:
-                        assert float(got) == pytest.approx(float(want)), (
-                            f"{name}/{component}/{prop}@{location}"
-                        )
+                        assert float(got) == pytest.approx(
+                            float(want)
+                        ), f"{name}/{component}/{prop}@{location}"
                     checked += 1
 
         # Check the opposite direction too: a nonempty summary row must not disappear from
@@ -170,9 +170,9 @@ def test_getResultSummaryDict_agrees_with_the_optimization_summary(minimal_test_
             if row.isna().all():
                 continue
             component, prop, unit = index[:3]
-            assert prop in resultDict[component], (
-                f"{name}/{component}/{prop} exists in the summary but not the accessor"
-            )
+            assert (
+                prop in resultDict[component]
+            ), f"{name}/{component}/{prop} exists in the summary but not the accessor"
             assert resultDict[component][prop][1] == unit
         assert checked > 0, f"nothing compared for {name}"
 
@@ -215,9 +215,9 @@ def test_getResultSummaryDict_drops_absent_2dim_rows(minimal_test_esM):
 
     assert "capacity" in properties
     for absent in ("isBuilt", "capexIfBuilt", "opexIfBuilt"):
-        assert absent not in properties, (
-            f"{absent} should be dropped for a 2-dim component"
-        )
+        assert (
+            absent not in properties
+        ), f"{absent} should be dropped for a 2-dim component"
 
 
 def test_registerExtraSummaryRows_are_reported_by_the_summary_dict(minimal_test_esM):

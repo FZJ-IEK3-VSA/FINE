@@ -145,6 +145,6 @@ def test_cyclic_lifetime_constraint_multi_ip(cyclic_lifetime_esM):
             f"total_charge={total_charge:.6f} > limit={limit:.6f}"
         )
 
-    assert total_commis > 0, (
-        "No battery capacity commissioned — constraint check vacuous"
-    )
+    assert (
+        total_commis > 0
+    ), "No battery capacity commissioned — constraint check vacuous"

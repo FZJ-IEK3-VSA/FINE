@@ -310,9 +310,9 @@ def _assert_long_tables_match(actual, expected, golden_file_name):
     actual_keys = pd.MultiIndex.from_frame(actual[key_columns])
     expected_keys = pd.MultiIndex.from_frame(expected[key_columns])
 
-    assert not actual_keys.has_duplicates, (
-        f"{golden_file_name}: the actual result holds duplicate keys."
-    )
+    assert (
+        not actual_keys.has_duplicates
+    ), f"{golden_file_name}: the actual result holds duplicate keys."
 
     missing = expected_keys.difference(actual_keys)
     extra = actual_keys.difference(expected_keys)
@@ -887,15 +887,15 @@ def test_coordinates(multi_node_test_esM_optimized):
 
     required_coord_1dim = {"location", "time"}
     xrRes = xrds["Results"][0]["SourceSinkModel"]["Wind (onshore)"]
-    assert set(xrRes.coords) == required_coord_1dim, (
-        f"Expected {required_coord_1dim}; got {set(xrRes.coords)}."
-    )
+    assert (
+        set(xrRes.coords) == required_coord_1dim
+    ), f"Expected {required_coord_1dim}; got {set(xrRes.coords)}."
 
     required_coord_2dim = {"locationIn", "locationOut", "time"}
     xrRes = xrds["Results"][0]["TransmissionModel"]["Pipelines (biogas)"]
-    assert set(xrRes.coords) == required_coord_2dim, (
-        f"Expected {required_coord_2dim}; got {set(xrRes.coords)}"
-    )
+    assert (
+        set(xrRes.coords) == required_coord_2dim
+    ), f"Expected {required_coord_2dim}; got {set(xrRes.coords)}"
 
 
 def test_shadow_price_data_exists_in_xarray(multi_node_test_esM_optimized):
