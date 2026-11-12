@@ -607,7 +607,7 @@ class Sink(Source):
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
             balanceLimitID=balanceLimitID,
-            componentLimitID = componentLimitID,
+            componentLimitID=componentLimitID,
             pathwayBalanceLimitID=pathwayBalanceLimitID,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
@@ -815,8 +815,8 @@ class SourceSinkModel(ComponentModel):
     def getComponentLimitContribution(
         self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type
     ):
-        """
-        Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
+        """Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
+
         Sum of the operation time series of a SourceSink component is used as the componentLimit contribution:
 
         - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
@@ -896,9 +896,8 @@ class SourceSinkModel(ComponentModel):
                 )
             if isinstance(balance, int) or isinstance(balance, float):
                 return None
-            else:
-                return balance
-        elif type == "capacity":
+            return balance
+        if type == "capacity":
             capVar = getattr(pyM, "cap_" + abbrvName)
             balance = sum(
                 capVar[loc, compName, ip]
@@ -908,9 +907,8 @@ class SourceSinkModel(ComponentModel):
             )
             if isinstance(balance, int) or isinstance(balance, float):
                 return None
-            else:
-                return balance
-        elif type == "commissioning":
+            return balance
+        if type == "commissioning":
             commisVar = getattr(pyM, "commis_" + abbrvName)
             if isinstance(ip, tuple):
                 start_ip, end_ip = ip
@@ -935,12 +933,10 @@ class SourceSinkModel(ComponentModel):
                 )
             if isinstance(balance, int) or isinstance(balance, float):
                 return None
-            else:
-                return balance
-        else:
-            raise ValueError(
-                "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
-            )
+            return balance
+        raise ValueError(
+            "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
+        )
 
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, timeSeriesAggregation, loc, componentNames

@@ -1,4 +1,5 @@
 from copy import deepcopy
+import shutil
 from pathlib import Path
 import pytest
 
@@ -130,25 +131,23 @@ def test_esm_output_to_dataset_and_back(minimal_test_esM):
             esm_from_datasets.componentModelingDict[mdl].getOptimalValues(),
         )
 
+
 def test_esm_output_to_netcdf_folder_and_back(minimal_test_esM):
-    import os
-    from pathlib import Path
-    import shutil
     esm_original = deepcopy(minimal_test_esM)
     esm_original.optimize()
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)
     # current folder path
-    _base_path = Path(__file__).parent
-    base_path = os.path.join(_base_path, "test_esM")
+    base_path = str(Path(__file__).parent / "test_esM")
     xrIO.writeDatasetsToNetCDFfolder(esm_datasets, base_path=base_path, parallel=False)
     esm_from_datasets = xrIO.readNetCDFfolderToDatasets(base_path=base_path)
     esm_from_datasets = xrIO.convertDatasetsToEnergySystemModel(esm_from_datasets)
 
     compare_esm_inputs(esm_original, esm_from_datasets)
     compare_esm_outputs(esm_original, esm_from_datasets)
-    
+
     # remove test folder (not empty)
     shutil.rmtree(base_path)
+
 
 def test_input_esm_to_netcdf_and_back(minimal_test_esM):
     """Write an esM to netCDF, then load the esM from this file. Compare if both
@@ -360,12 +359,15 @@ def test_operation_export_to_xarray(multi_node_test_esM_init):
 
     assert_frame_equal(optSum, xrRes, check_dtype=False)
 
-#TODO: Check how the data sets are written in develop branch. 
-# Following tests are required to test changes in the naming. 
+
+# TODO: Check how the data sets are written in develop branch.
+# Following tests are required to test changes in the naming.
+
 
 def test_results_location_dimension_names(minimal_test_esM):
     """1dim components use the dimension "location", 2dim components use
-    "locationIn"/"locationOut" in the results datasets."""
+    "locationIn"/"locationOut" in the results datasets.
+    """
     esM = deepcopy(minimal_test_esM)
     esM.optimize()
     xr_dss = xrIO.convertOptimizationOutputToDatasets(esM)
@@ -388,7 +390,8 @@ def test_results_location_dimension_names(minimal_test_esM):
 
 def test_results_with_legacy_dimension_names(minimal_test_esM):
     """Results datasets written with the old dimension names "space"/"space_2"
-    can still be read."""
+    can still be read.
+    """
     esm_original = deepcopy(minimal_test_esM)
     esm_original.optimize()
     esm_datasets = xrIO.writeEnergySystemModelToDatasets(esm_original)

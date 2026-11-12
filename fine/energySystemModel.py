@@ -10,6 +10,7 @@ import pandas as pd
 import psutil
 import pyomo.environ as pyomo
 from pyomo import opt
+from pyomo.opt import ProblemFormat
 from tsam.timeseriesaggregation import TimeSeriesAggregation
 
 from fine import utils
@@ -569,7 +570,8 @@ class EnergySystemModel:
         if (
             hasattr(component, "commodity")
             and component.commodity in self.pooledCommodities
-            and component.__class__.__name__ in ("Transmission", "AsymmetricTransmission")
+            and component.__class__.__name__
+            in ("Transmission", "AsymmetricTransmission")
         ):
             raise ValueError(
                 f"Commodity '{component.commodity}' is pooled. "
@@ -973,6 +975,13 @@ class EnergySystemModel:
         self.aggregateTemporally(*args, **kwargs)
 
     def build_time_series_data(self, ip):
+        """Collect the time series data of all components for the time series aggregation.
+
+        :param ip: investment period
+        :type ip: int
+
+        :return: time series data and weights of the time series
+        """
         timeSeriesData, weightDict = [], {}
         for mdlName, mdl in self.componentModelingDict.items():
             for compName, comp in mdl.componentsDict.items():
@@ -1004,7 +1013,6 @@ class EnergySystemModel:
         weightDict = {k: v for k, v in weightDict.items() if k not in zero_data_cols}
 
         return timeSeriesData, weightDict, zero_data_cols
-
 
     def aggregateTemporally(
         self,
@@ -1439,8 +1447,9 @@ class EnergySystemModel:
         )
 
     def declareComponentBalanceLimitConstraints(self, pyM, timeSeriesAggregation):
-        """
-        input:
+        """Declare the componentLimit constraints.
+
+        Input:
         ComponentLimitEligibility
         ComponentLimit -> pd.DataFrame
         componentLimit
@@ -1454,25 +1463,32 @@ class EnergySystemModel:
                     # Get Components per balance limit
                     componentsOfommodityLimit = {}
                     for mdl_type, mdl in self.componentModelingDict.items():
-                        if mdl_type in ["SourceSinkModel", "StorageModel","TransmissionModel","ConversionModel", "AsymmetricTransmissionModel"]:
+                        if mdl_type in [
+                            "SourceSinkModel",
+                            "StorageModel",
+                            "TransmissionModel",
+                            "ConversionModel",
+                            "AsymmetricTransmissionModel",
+                        ]:
                             for compName, comp in mdl.componentsDict.items():
                                 if comp.componentLimitID is not None:
                                     if componentLimitID in comp.componentLimitID:
                                         componentsOfommodityLimit.setdefault(
                                             componentLimitID, []
                                         ).append(compName)
-                    componentsOfComponentLimit[
-                        componentLimitID
-                    ] = componentsOfommodityLimit
+                    componentsOfComponentLimit[componentLimitID] = (
+                        componentsOfommodityLimit
+                    )
 
             # share bounds express a fraction of the eligible total (variable RHS)
             shareBounds = ("shareMax", "shareMin")
 
             def _limitExpr(locs, componentNames, ip, ipEnd, type, commodity, ID):
-                """Summed componentLimit contribution (pyomo expression or constant) of
+                """Return the summed componentLimit contribution (pyomo expression or constant) of
                 ``componentNames`` over the locations ``locs`` for one (range of)
                 investment period(s). Shared by the absolute (lower/upper/fixed) and the
-                share (shareMax/shareMin) constraints."""
+                share (shareMax/shareMin) constraints.
+                """
                 # a non-null ipEnd marks a range of investment periods (perfect foresight)
                 if pd.notna(ipEnd):
                     ip = (ip, ipEnd)
@@ -1485,7 +1501,7 @@ class EnergySystemModel:
                     isTransmission = "TransmissionModel" in mdlBases
                     isConversion = "ConversionModel" in mdlBases
                     if isTransmission and (type == "operation"):
-                        #TODO: fix when capacity is used. currently not working!
+                        # TODO: fix when capacity is used. currently not working!
                         _balanceList = [
                             mdl.getComponentLimitContribution(
                                 esM=self,
@@ -1500,34 +1516,35 @@ class EnergySystemModel:
                     elif isTransmission and (type == "capacity"):
                         # skip if none of the components is of class TransmissionModel
                         # check if intersection of mdl.componentsDict.keys() and componentNames is empty
-                        if not set(mdl.componentsDict.keys()).intersection(set(componentNames)):
+                        if not set(mdl.componentsDict.keys()).intersection(
+                            set(componentNames)
+                        ):
                             _balanceList = [None]
+                        elif "total" in ID:
+                            _balanceList = [
+                                mdl.getComponentLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                    ip=ip,
+                                    loc=loc,
+                                    componentNames=componentNames,
+                                    type=type,
+                                )
+                                for loc in locs
+                            ]
                         else:
-                            if "total" in ID:
-                                _balanceList = [
-                                    mdl.getComponentLimitContribution(
-                                        esM=self,
-                                        pyM=pyM,
-                                        timeSeriesAggregation=timeSeriesAggregation,
-                                        ip=ip,
-                                        loc=loc,
-                                        componentNames=componentNames,
-                                        type=type,
-                                    )
-                                    for loc in locs
-                                ]
-                            else:
-                                _balanceList = [
-                                    mdl.getComponentLimitContribution(
-                                        esM=self,
-                                        pyM=pyM,
-                                        timeSeriesAggregation=timeSeriesAggregation,
-                                        ip=ip,
-                                        loc=locs,
-                                        componentNames=componentNames,
-                                        type=type,
-                                    )
-                                ]
+                            _balanceList = [
+                                mdl.getComponentLimitContribution(
+                                    esM=self,
+                                    pyM=pyM,
+                                    timeSeriesAggregation=timeSeriesAggregation,
+                                    ip=ip,
+                                    loc=locs,
+                                    componentNames=componentNames,
+                                    type=type,
+                                )
+                            ]
                     elif isConversion:
                         _balanceList = [
                             mdl.getComponentLimitContribution(
@@ -1562,7 +1579,8 @@ class EnergySystemModel:
                 """Bucket the eligible locations ``locs`` of share-limited ``ID`` into
                 groups. If a grouping column exists for ``ID`` the regions are bucketed by
                 their group label (e.g. country code); otherwise (or for regions without a
-                label) each region is its own group (per-region)."""
+                label) each region is its own group (per-region).
+                """
                 grouping = self.processedComponentLimitGrouping
                 if grouping is not None and ID in grouping.columns:
                     groups = {}
@@ -1582,8 +1600,10 @@ class EnergySystemModel:
             if self.processedComponentLimit is not None:
                 for balanceLimitID, data in self.processedComponentLimit.iterrows():
                     # check if balanceLimitID is in processedComponentLimitEligibility
-                    if balanceLimitID in self.processedComponentLimitEligibility.columns:
-
+                    if (
+                        balanceLimitID
+                        in self.processedComponentLimitEligibility.columns
+                    ):
                         # check which region is affected
                         _elig = self.processedComponentLimitEligibility.loc[
                             :, balanceLimitID
@@ -1628,7 +1648,10 @@ class EnergySystemModel:
                                 ),
                                 [componentsOfComponentLimit[balanceLimitID], locs],
                             )
-                    elif balanceLimitID in self.processedComponentLimitEligibility2dim.columns:
+                    elif (
+                        balanceLimitID
+                        in self.processedComponentLimitEligibility2dim.columns
+                    ):
                         _elig = self.processedComponentLimitEligibility2dim.loc[
                             :, balanceLimitID
                         ]
@@ -1651,7 +1674,9 @@ class EnergySystemModel:
             setattr(pyM, "yearlyComponentLimitDict", yearlyComponentLimitDict)
             setattr(pyM, "componentShareLimitDict", componentShareLimitDict)
 
-            def yearlyComponentLimitConstraint(pyM, ID, ip, ipEnd, bound, type, value, commodity):
+            def yearlyComponentLimitConstraint(
+                pyM, ID, ip, ipEnd, bound, type, value, commodity
+            ):
                 # yearly restriction
                 componentNames, locs = yearlyComponentLimitDict[
                     (ID, ip, ipEnd, bound, type, value, commodity)
@@ -1665,10 +1690,11 @@ class EnergySystemModel:
                 # Check whether we want to consider an upper or lower bound.
                 if bound == "lower":
                     return balanceSum >= value
-                elif bound == "upper":
+                if bound == "upper":
                     return balanceSum <= value
-                elif bound == "fixed":
+                if bound == "fixed":
                     return balanceSum == value
+                raise ValueError(f"Unknown bound '{bound}' of componentLimit '{ID}'.")
 
             pyM.yearlyComponentLimitConstraint = pyomo.Constraint(
                 pyM.yearlyComponentLimitDict.keys(),
@@ -1694,8 +1720,9 @@ class EnergySystemModel:
                 )
                 if bound == "shareMax":
                     return regional <= value * total
-                elif bound == "shareMin":
+                if bound == "shareMin":
                     return regional >= value * total
+                raise ValueError(f"Unknown bound '{bound}' of componentLimit '{ID}'.")
 
             pyM.componentShareLimitConstraint = pyomo.Constraint(
                 pyM.componentShareLimitDict.keys(),
@@ -1729,7 +1756,11 @@ class EnergySystemModel:
             # Get Components per balance limit
             componentsOfBalanceLimit = {}
             for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type in ("SourceSinkModel", "TransmissionModel", "AsymmetricTransmissionModel"):
+                if mdl_type in (
+                    "SourceSinkModel",
+                    "TransmissionModel",
+                    "AsymmetricTransmissionModel",
+                ):
                     for compName, comp in mdl.componentsDict.items():
                         if comp.balanceLimitID is not None:
                             componentsOfBalanceLimit.setdefault(
@@ -1787,7 +1818,14 @@ class EnergySystemModel:
                         ],
                     )
                     for mdl_type, mdl in self.componentModelingDict.items()
-                    if (mdl_type in ("SourceSinkModel", "TransmissionModel", "AsymmetricTransmissionModel"))
+                    if (
+                        mdl_type
+                        in (
+                            "SourceSinkModel",
+                            "TransmissionModel",
+                            "AsymmetricTransmissionModel",
+                        )
+                    )
                 )
                 # Check whether we want to consider an upper or lower bound.
                 if lowerBound == 0:
@@ -1804,7 +1842,11 @@ class EnergySystemModel:
             # Get Components per balance limit
             componentsOfBalanceLimit = {}
             for mdl_type, mdl in self.componentModelingDict.items():
-                if mdl_type in ("SourceSinkModel", "TransmissionModel", "AsymmetricTransmissionModel"):
+                if mdl_type in (
+                    "SourceSinkModel",
+                    "TransmissionModel",
+                    "AsymmetricTransmissionModel",
+                ):
                     for compName, comp in mdl.componentsDict.items():
                         if comp.pathwayBalanceLimitID is not None:
                             componentsOfBalanceLimit.setdefault(
@@ -1857,7 +1899,14 @@ class EnergySystemModel:
                     )
                     for mdl_type, mdl in self.componentModelingDict.items()
                     for _ip in self.investmentPeriods
-                    if (mdl_type in ("SourceSinkModel", "TransmissionModel", "AsymmetricTransmissionModel"))
+                    if (
+                        mdl_type
+                        in (
+                            "SourceSinkModel",
+                            "TransmissionModel",
+                            "AsymmetricTransmissionModel",
+                        )
+                    )
                 )
                 value = self.processedPathwayBalanceLimit.loc[ID, loc]
                 lowerBound = self.processedPathwayBalanceLimit.loc[ID, "lowerBound"]
@@ -2479,18 +2528,14 @@ class EnergySystemModel:
         ################################################################################################################
         #                                  Solve the specified optimization problem                                    #
         ################################################################################################################
-        
+
         if self.LP_savepath is not None:
             # save the LP file to the specified path
-            if not os.path.exists(self.LP_savepath):
-                os.makedirs(self.LP_savepath)
-            LP_file_path = os.path.join(self.LP_savepath, "model.lp")
-            utils.output(
-                "Saving LP file to: " + LP_file_path, self.verbose, 0
-            )
-            from pyomo.opt import ProblemFormat
-            self.pyM.write(LP_file_path, format=ProblemFormat.cpxlp)
+            Path(self.LP_savepath).mkdir(parents=True, exist_ok=True)
+            LP_file_path = str(Path(self.LP_savepath) / "model.lp")
+            utils.output("Saving LP file to: " + LP_file_path, self.verbose, 0)
 
+            self.pyM.write(LP_file_path, format=ProblemFormat.cpxlp)
 
         # Set which solver should solve the specified optimization problem
         if solver == "gurobi" and importlib.util.find_spec("gurobipy"):

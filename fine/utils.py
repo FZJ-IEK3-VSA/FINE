@@ -1596,7 +1596,6 @@ def checkAndSetComponentLimit(
     _componentLimitEligibility2dim = componentLimitEligibility2dim
     _componentLimitGrouping = componentLimitGrouping
 
-
     if _componentLimit is not None:
         if not type(_componentLimit) == pd.DataFrame:
             raise TypeError(
@@ -1619,22 +1618,24 @@ def checkAndSetComponentLimit(
                 "componentLimit 'ipEnd' column is missing. Assuming first investment period."
             )
             _componentLimit["ipEnd"] = None
-        
+
         # translate ip and ipEnd to internal IPs using self.investmentPeriodNames, and self.investmentPeriods if not None
         ip_map = {esM.investmentPeriodNames[ip]: ip for ip in esM.investmentPeriods}
         ip_map[None] = None
-        
+
         # check that ip and ipEnd values are valid investment period names
         if not all((ip is None or ip in ip_map.keys()) for ip in _componentLimit["ip"]):
             raise ValueError(
                 "componentLimit 'ip' column contains invalid investment period names"
             )
 
-        if not all((ip is None or ip in ip_map.keys()) for ip in _componentLimit["ipEnd"]):
+        if not all(
+            (ip is None or ip in ip_map.keys()) for ip in _componentLimit["ipEnd"]
+        ):
             raise ValueError(
                 "componentLimit 'ipEnd' column contains invalid investment period names"
             )
-        
+
         _componentLimit["ip"] = _componentLimit["ip"].map(ip_map)
         _componentLimit["ipEnd"] = _componentLimit["ipEnd"].map(ip_map)
 
@@ -1684,9 +1685,9 @@ def checkAndSetComponentLimit(
         processedComponentLimit = _componentLimit
         processedComponentLimitEligibility = _componentLimitEligibility
     else:
-        processedComponentLimit= None
+        processedComponentLimit = None
         processedComponentLimitEligibility = None
-    
+
     if _componentLimitEligibility2dim is not None:
         if not type(_componentLimitEligibility2dim) == pd.DataFrame:
             raise TypeError(
@@ -2902,14 +2903,14 @@ def checkAndSetCommodityConversionFactor(comp, esM):
                 _factor = _commodityConversionFactors[commod]
                 if isinstance(_factor, pd.Series):
                     if isLocationSeries(_factor):
-                        processedCommodityConversionFactor[newKeyName][
-                            commod
-                        ] = checkRegionalIndex(
-                            esM, _factor.copy(), comp.locationalEligibility
+                        processedCommodityConversionFactor[newKeyName][commod] = (
+                            checkRegionalIndex(
+                                esM, _factor.copy(), comp.locationalEligibility
+                            )
                         )
-                        preprocessedCommodityConversionFactor[newKeyName][
-                            commod
-                        ] = processedCommodityConversionFactor[newKeyName][commod]
+                        preprocessedCommodityConversionFactor[newKeyName][commod] = (
+                            processedCommodityConversionFactor[newKeyName][commod]
+                        )
                     else:
                         fullCommodityConversionFactor[newKeyName][commod] = (
                             checkAndSetTimeSeriesConversionFactors(

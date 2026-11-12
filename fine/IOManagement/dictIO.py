@@ -4,7 +4,6 @@ import fine as fn
 import pandas as pd
 from fine.IOManagement import utilsIO
 from fine.utils import buildFullTimeSeries
-import pandas as pd
 from fine import utils
 
 

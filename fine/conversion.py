@@ -344,7 +344,7 @@ class Conversion(Component):
         )
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
-        
+
         self.componentLimitID = componentLimitID
 
         self.rampUpMax = rampUpMax
@@ -1450,12 +1450,11 @@ class ConversionModel(ComponentModel):
             ),
         )
 
-
     def getComponentLimitContribution(
         self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type, commodity
     ):
-        """
-        Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
+        """Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
+
         Sum of the operation time series of a SourceSink component is used as the componentLimit contribution:
 
         - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
@@ -1491,14 +1490,12 @@ class ConversionModel(ComponentModel):
 
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
-        
+
         def getFactor(commodCommodityConversionFactors, loc, p, t):
             if isinstance(commodCommodityConversionFactors, (int, float)):
                 return commodCommodityConversionFactors
-            else:
-                return commodCommodityConversionFactors[loc][p, t]
+            return commodCommodityConversionFactors[loc][p, t]
 
-        
         if type == "operation":
             opVar = getattr(pyM, "op_" + abbrvName)
 
@@ -1565,9 +1562,8 @@ class ConversionModel(ComponentModel):
                 )
             if isinstance(balance, int) or isinstance(balance, float):
                 return None
-            else:
-                return balance
-        elif type == "capacity":
+            return balance
+        if type == "capacity":
             capVar = getattr(pyM, "cap_" + abbrvName)
             balance = sum(
                 capVar[loc, compName, ip]
@@ -1577,9 +1573,8 @@ class ConversionModel(ComponentModel):
             )
             if isinstance(balance, int) or isinstance(balance, float):
                 return None
-            else:
-                return balance
-        elif type == "commissioning":
+            return balance
+        if type == "commissioning":
             commisVar = getattr(pyM, "commis_" + abbrvName)
             if isinstance(ip, (list, tuple)):
                 start_ip, end_ip = ip
@@ -1604,13 +1599,10 @@ class ConversionModel(ComponentModel):
                 )
             if isinstance(balance, int) or isinstance(balance, float):
                 return None
-            else:
-                return balance
-        else:
-            raise ValueError(
-                "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
-            )
-
+            return balance
+        raise ValueError(
+            "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
+        )
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         r"""Get contribution to a commodity balance.

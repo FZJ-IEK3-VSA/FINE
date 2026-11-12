@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import fine as fn
+import fine.IOManagement.xarrayIO as xrIO
 import pyomo.environ as pyomo
 
 # first solver that is installed; the branch tests otherwise hard-code glpk
@@ -9,7 +10,6 @@ SOLVER = next(
     for s in ("glpk", "gurobi", "highs")
     if pyomo.SolverFactory(s).available(exception_flag=False)
 )
-
 
 
 def test_pooledCommodityBalanceConstraint():
@@ -86,9 +86,8 @@ def test_pooledCommodityBalanceConstraint():
 
 def test_pooledCommodities_netcdf_roundtrip(tmp_path):
     """The nested pooledCommodities dict survives writing to and reading from
-    netCDF, so a saved model with pooled commodities can be rebuilt."""
-    import fine.IOManagement.xarrayIO as xrIO
-
+    netCDF, so a saved model with pooled commodities can be rebuilt.
+    """
     pooled = {"hydrogen": {"pool1": ["A", "B"], "pool2": ["C"]}}
     esM = fn.EnergySystemModel(
         locations={"A", "B", "C"},
@@ -106,7 +105,9 @@ def test_pooledCommodities_netcdf_roundtrip(tmp_path):
             name="Demand",
             commodity="hydrogen",
             hasCapacityVariable=False,
-            operationRateFix=pd.DataFrame({"A": [1.0] * 4, "B": [1.0] * 4, "C": [0.0] * 4}),
+            operationRateFix=pd.DataFrame(
+                {"A": [1.0] * 4, "B": [1.0] * 4, "C": [0.0] * 4}
+            ),
         )
     )
     path = tmp_path / "pooled.nc"

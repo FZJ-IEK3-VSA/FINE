@@ -13,12 +13,11 @@ regions defined via ``componentLimitGrouping``.
 
 import fine as fn
 import pandas as pd
-import numpy as np
 import pytest
 
 
 def _share_componentLimit(ID, value, type, bound="shareMax"):
-    """A one-row componentLimit DataFrame for a single share-limited ID."""
+    """Return a one-row componentLimit DataFrame for a single share-limited ID."""
     return pd.DataFrame(
         {
             "value": [value],
@@ -32,7 +31,9 @@ def _share_componentLimit(ID, value, type, bound="shareMax"):
     )
 
 
-def _build_el_esM(locations, demandRegion, nhours=24, demand=100.0, **componentLimitKwargs):
+def _build_el_esM(
+    locations, demandRegion, nhours=24, demand=100.0, **componentLimitKwargs
+):
     """Tiny fully-connected electricity system used by the share-limit tests.
 
     One ``wind`` source is available in every region, demand sits in a single
@@ -94,7 +95,7 @@ def _wind_capacity_per_region(esM, locations):
 
 
 def test_componentShareLimit_operation_per_region():
-    """shareMax on operation, one constraint per region (no grouping)."""
+    """ShareMax on operation, one constraint per region (no grouping)."""
     locations = ["r0", "r1", "r2"]
     # r0 cheapest -> without the share bound everything would be produced in r0
     costPerRegion = pd.Series({"r0": 0.001, "r1": 0.002, "r2": 0.003})
@@ -137,7 +138,7 @@ def test_componentShareLimit_operation_per_region():
 
 
 def test_componentShareLimit_operation_grouped():
-    """shareMax on operation with a region->group mapping (per-country style)."""
+    """ShareMax on operation with a region->group mapping (per-country style)."""
     locations = ["r0", "r1", "r2", "r3"]
     costPerRegion = pd.Series({"r0": 0.001, "r1": 0.002, "r2": 0.003, "r3": 0.004})
     alpha = 0.6
@@ -148,9 +149,9 @@ def test_componentShareLimit_operation_grouped():
     )
     # two groups: A = {r0, r1}, B = {r2, r3}
     groups = {"r0": "A", "r1": "A", "r2": "B", "r3": "B"}
-    componentLimitGrouping = pd.DataFrame(
-        {"wind_share": pd.Series(groups)}
-    ).reindex(sorted(locations))
+    componentLimitGrouping = pd.DataFrame({"wind_share": pd.Series(groups)}).reindex(
+        sorted(locations)
+    )
 
     esM, locations = _build_el_esM(
         locations,
@@ -185,7 +186,7 @@ def test_componentShareLimit_operation_grouped():
 
 
 def test_componentShareLimit_capacity():
-    """shareMax on capacity, one constraint per region."""
+    """ShareMax on capacity, one constraint per region."""
     locations = ["r0", "r1", "r2"]
     alpha = 0.4
     # r0 cheapest capacity -> unconstrained, capacity concentrates in r0

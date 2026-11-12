@@ -877,12 +877,12 @@ class TransmissionModel(ComponentModel):
             for p in periods
             for t in timeSteps
         )
-    
+
     def getComponentLimitContribution(
         self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, type
     ):
-        """
-        Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
+        """Get contribution to componentLimitConstraint (Further read in EnergySystemModel).
+
         Sum of the operation time series of a SourceSink component is used as the componentLimit contribution:
 
         - If commodity is transferred out of region a negative sign is used.
@@ -917,13 +917,11 @@ class TransmissionModel(ComponentModel):
         :type type: string
 
         """
-        
         compDict, abbrvName = self.componentsDict, self.abbrvName
         capVar = getattr(pyM, "cap_" + abbrvName)
         opVar = getattr(pyM, "op_" + abbrvName)
         opVarDictIn = getattr(pyM, "operationVarDictIn_" + abbrvName)
         opVarDictOut = getattr(pyM, "operationVarDictOut_" + abbrvName)
-        
 
         if timeSeriesAggregation:
             periods = esM.typicalPeriods
@@ -944,56 +942,56 @@ class TransmissionModel(ComponentModel):
                     for idx, ip in enumerate(esM.investmentPeriods)
                     if start_ip <= ip <= end_ip
                 ]
-                for loc in loc_list:
+                for region in loc_list:
                     _aut = sum(
-                        opVar[loc_ + "_" + loc, compName, i, p, t]
+                        opVar[loc_ + "_" + region, compName, i, p, t]
                         * (
                             1
-                            - compDict[compName].losses[loc_ + "_" + loc]
-                            * compDict[compName].distances[loc_ + "_" + loc]
+                            - compDict[compName].losses[loc_ + "_" + region]
+                            * compDict[compName].distances[loc_ + "_" + region]
                         )
                         * esM.periodOccurrences[i][p]
                         for i in relevant_indices
-                        for loc_ in opVarDictIn[i][loc].keys()
+                        for loc_ in opVarDictIn[i][region].keys()
                         if loc_ not in loc_list
-                        for compName in opVarDictIn[i][loc][loc_]
+                        for compName in opVarDictIn[i][region][loc_]
                         if compName in componentNames
                         for p in periods
                         for t in timeSteps
                     ) - sum(
-                        opVar[loc + "_" + loc_, compName, i, p, t]
+                        opVar[region + "_" + loc_, compName, i, p, t]
                         * esM.periodOccurrences[i][p]
                         for i in relevant_indices
-                        for loc_ in opVarDictOut[i][loc].keys()
+                        for loc_ in opVarDictOut[i][region].keys()
                         if loc_ not in loc_list
-                        for compName in opVarDictOut[i][loc][loc_]
+                        for compName in opVarDictOut[i][region][loc_]
                         if compName in componentNames
                         for p in periods
                         for t in timeSteps
                     )
                     aut_list.append(_aut)
             else:
-                for loc in loc_list:
+                for region in loc_list:
                     _aut = sum(
-                        opVar[loc_ + "_" + loc, compName, ip, p, t]
+                        opVar[loc_ + "_" + region, compName, ip, p, t]
                         * (
                             1
-                            - compDict[compName].losses[loc_ + "_" + loc]
-                            * compDict[compName].distances[loc_ + "_" + loc]
+                            - compDict[compName].losses[loc_ + "_" + region]
+                            * compDict[compName].distances[loc_ + "_" + region]
                         )
                         * esM.periodOccurrences[ip][p]
-                        for loc_ in opVarDictIn[ip][loc].keys()
+                        for loc_ in opVarDictIn[ip][region].keys()
                         if loc_ not in loc_list
-                        for compName in opVarDictIn[ip][loc][loc_]
+                        for compName in opVarDictIn[ip][region][loc_]
                         if compName in componentNames
                         for p in periods
                         for t in timeSteps
                     ) - sum(
-                        opVar[loc + "_" + loc_, compName, ip, p, t]
+                        opVar[region + "_" + loc_, compName, ip, p, t]
                         * esM.periodOccurrences[ip][p]
-                        for loc_ in opVarDictOut[ip][loc].keys()
+                        for loc_ in opVarDictOut[ip][region].keys()
                         if loc_ not in loc_list
-                        for compName in opVarDictOut[ip][loc][loc_]
+                        for compName in opVarDictOut[ip][region][loc_]
                         if compName in componentNames
                         for p in periods
                         for t in timeSteps
@@ -1040,7 +1038,7 @@ class TransmissionModel(ComponentModel):
                 ]
             else:
                 relevant_indices = [ip]
-                
+
             if isinstance(loc[0], tuple):
                 # For a specific set of connections (loc0 <-> loc1)
                 aut_list = []
