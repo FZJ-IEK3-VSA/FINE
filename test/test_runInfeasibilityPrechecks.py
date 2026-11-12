@@ -1,4 +1,4 @@
-"""Tests for `fine.utils.runInfeasibilityPrechecks`.
+"""Tests for `fine.infeasibilityPrechecks.runInfeasibilityPrechecks`.
 
 The energy system model built in `_build_infeasible_esM` is taken from the
 example notebook that was used to manually validate the infeasibility
@@ -19,21 +19,29 @@ hydrogen pipeline capacities raised, which removes the shortage. It is
 used as a control case to guard against false positives.
 """
 
-import warnings
-
 import numpy as np
 import pandas as pd
 import pytest
 
+from tsam import ClusterConfig
+
 import fine as fn
-from fine.utils import (
-    checkBalanceLimits,  # NEU
-    checkCommodityReachability,
-    checkJointInputDemandAggregated,
-    checkJointInputDemandPerTimeStep,
-    checkTimeStepBalance,
-    runInfeasibilityPrechecks,
-)
+import fine.infeasibilityPrechecks
+from fine.infeasibilityPrechecks import runInfeasibilityPrechecks
+
+
+def _problems(esM, check):
+    """Return the problems which one pre-check reports, without its name."""
+    try:
+        runInfeasibilityPrechecks(esM)
+    except ValueError as error:
+        prefix = f"  - {check}: "
+        return [
+            line[len(prefix) :]
+            for line in str(error).splitlines()
+            if line.startswith(prefix)
+        ]
+    return []
 
 
 def _build_esm(windCapacityMax, transmissionCapacityMax):
@@ -198,31 +206,19 @@ def test_runInfeasibilityPrechecks_raises_for_infeasible_esM(infeasible_esM):
     assert "electricity" in message
 
 
-def test_runInfeasibilityPrechecks_raiseError_false_returns_problems(
-    infeasible_esM,
-):
-    """With raiseError=False, problems are returned instead of raised."""
-    problems = runInfeasibilityPrechecks(infeasible_esM, raiseError=False)
-
-    assert problems, "expected at least one detected problem"
-    assert any("checkJointInputDemandAggregated" in p for p in problems)
-    assert any("checkJointInputDemandPerTimeStep" in p for p in problems)
-
-
 def test_runInfeasibilityPrechecks_passes_for_feasible_esM(feasible_esM):
     """Control case: raising the capacities removes the infeasibility.
 
     Guards against false positives / an overly strict check.
     """
-    problems = runInfeasibilityPrechecks(feasible_esM, raiseError=False)
-    assert problems == []
+    runInfeasibilityPrechecks(feasible_esM)
 
 
 def test_runInfeasibilityPrechecks_single_check_reports_the_shortage(
     infeasible_esM,
 ):
     """The aggregated joint-input-demand check alone must already flag the model."""
-    problems = checkJointInputDemandAggregated(infeasible_esM)
+    problems = _problems(infeasible_esM, "checkJointInputDemandAggregated")
 
     assert len(problems) == 1
     assert "electricity" in problems[0]
@@ -248,7 +244,7 @@ def unreachable_flexible_input_esM():
     deliberately do not restrict a flexible conversion component by its
     inputs, because the input demand of a flexible conversion cannot be
     assigned to a single commodity (see the comment next to `isFlexible`
-    in `utils.py`). They therefore assume the boiler's heat output is
+    in `fine/infeasibilityPrechecks.py`). They therefore assume the boiler's heat output is
     available up to its capacity, regardless of whether gas or oil can
     actually be supplied. Only `checkCommodityReachability`, which is a
     purely structural/qualitative check, requires at least one of the two
@@ -304,7 +300,7 @@ def test_checkCommodityReachability_flags_unavailable_flexible_input(
     unreachable_flexible_input_esM,
 ):
     """CheckCommodityReachability alone must catch the missing fuel."""
-    problems = checkCommodityReachability(unreachable_flexible_input_esM)
+    problems = _problems(unreachable_flexible_input_esM, "checkCommodityReachability")
 
     assert len(problems) == 1
     assert "Heat demand" in problems[0]
@@ -326,9 +322,9 @@ def test_quantity_checks_miss_the_unavailable_flexible_input(
     a silent fix.
     """
     esM = unreachable_flexible_input_esM
-    assert checkJointInputDemandAggregated(esM) == []
-    assert checkJointInputDemandPerTimeStep(esM) == []
-    assert checkTimeStepBalance(esM) == []
+    assert _problems(esM, "checkJointInputDemandAggregated") == []
+    assert _problems(esM, "checkJointInputDemandPerTimeStep") == []
+    assert _problems(esM, "checkTimeStepBalance") == []
 
 
 def test_runInfeasibilityPrechecks_raises_via_reachability_for_flexible_input(
@@ -343,8 +339,8 @@ def test_runInfeasibilityPrechecks_raises_via_reachability_for_flexible_input(
 
 # ---------------------------------------------------------------------------
 # checkTimeStepBalance: catches a transport bottleneck on a path across an
-# intermediate location, which neither the per-location nor the per-island
-# balance condition (nor the joint-input-demand checks) can see.
+# intermediate location, which neither a per-location nor a per-island
+# balance (nor the joint-input-demand checks) can see.
 # ---------------------------------------------------------------------------
 
 
@@ -357,8 +353,8 @@ def chain_bottleneck_esM():
     connected island has enough pooled supply. But *all* electricity for
     both B and C must physically pass through the A-B link, whose capacity
     (3) is too small for the combined flow of 6. Only the network-wide
-    maximum-transportable-flow condition in `checkTimeStepBalance` (its
-    condition (c)) detects this; there is no Conversion component, so the
+    maximum transportable flow in `checkTimeStepBalance` detects this;
+    there is no Conversion component, so the
     joint-input-demand checks - which only look at conversion inputs - have
     nothing to check and stay silent.
     """
@@ -432,7 +428,7 @@ def test_checkTimeStepBalance_flags_bottleneck_on_intermediate_link(
     chain_bottleneck_esM,
 ):
     """CheckTimeStepBalance alone must catch the A-B bottleneck."""
-    problems = checkTimeStepBalance(chain_bottleneck_esM)
+    problems = _problems(chain_bottleneck_esM, "checkTimeStepBalance")
 
     assert len(problems) == 1
     assert "maximum transportable flow of 3" in problems[0]
@@ -447,9 +443,9 @@ def test_other_checks_miss_the_chain_bottleneck(chain_bottleneck_esM):
     once the shared A-B link is treated as a real network constraint.
     """
     esM = chain_bottleneck_esM
-    assert checkCommodityReachability(esM) == []
-    assert checkJointInputDemandAggregated(esM) == []
-    assert checkJointInputDemandPerTimeStep(esM) == []
+    assert _problems(esM, "checkCommodityReachability") == []
+    assert _problems(esM, "checkJointInputDemandAggregated") == []
+    assert _problems(esM, "checkJointInputDemandPerTimeStep") == []
 
 
 def test_runInfeasibilityPrechecks_raises_via_timestep_balance_for_bottleneck(
@@ -460,56 +456,6 @@ def test_runInfeasibilityPrechecks_raises_via_timestep_balance_for_bottleneck(
         runInfeasibilityPrechecks(chain_bottleneck_esM)
 
     assert "checkTimeStepBalance" in str(excinfo.value)
-
-
-# ---------------------------------------------------------------------------
-# runInfeasibilityPrechecks: a check that fails to run (e.g. because a
-# component holds unexpected data) must be skipped with a warning, not
-# crash the whole pre-check run or silently swallow the other checks.
-# ---------------------------------------------------------------------------
-
-
-def _brokenCheck(esM):
-    raise RuntimeError("unexpected component data")
-
-
-def test_runInfeasibilityPrechecks_skips_a_broken_check_with_warning(
-    unreachable_flexible_input_esM,
-):
-    """A check that raises is skipped, but other checks still run and count."""
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        with pytest.raises(ValueError) as excinfo:
-            runInfeasibilityPrechecks(
-                unreachable_flexible_input_esM,
-                checks=(_brokenCheck, checkCommodityReachability),
-            )
-
-    # The broken check must not crash the run, only warn ...
-    assert any(
-        "_brokenCheck" in str(w.message) and "skipped" in str(w.message) for w in caught
-    )
-    # ... and the still-working check must still be reflected in the result.
-    assert "checkCommodityReachability" in str(excinfo.value)
-
-
-def test_runInfeasibilityPrechecks_does_not_raise_if_only_check_is_broken():
-    """If the only requested check fails to run, no problems are found.
-
-    A broken check must never be misinterpreted as a detected problem -
-    `runInfeasibilityPrechecks` must not block an otherwise valid model
-    just because one check could not be evaluated.
-    """
-    esM = _build_esm(windCapacityMax=5, transmissionCapacityMax=5)
-
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        problems = runInfeasibilityPrechecks(
-            esM, checks=(_brokenCheck,), raiseError=False
-        )
-
-    assert problems == []
-    assert any("_brokenCheck" in str(w.message) for w in caught)
 
 
 # ---------------------------------------------------------------------------
@@ -567,11 +513,11 @@ def test_capacity_sink_without_lower_bound_is_no_false_positive():
     """
     esM = _build_capacity_sink_esM()
 
-    assert checkCommodityReachability(esM) == []
-    assert checkJointInputDemandAggregated(esM) == []
-    assert checkJointInputDemandPerTimeStep(esM) == []
-    assert checkTimeStepBalance(esM) == []
-    assert runInfeasibilityPrechecks(esM, raiseError=False) == []
+    assert _problems(esM, "checkCommodityReachability") == []
+    assert _problems(esM, "checkJointInputDemandAggregated") == []
+    assert _problems(esM, "checkJointInputDemandPerTimeStep") == []
+    assert _problems(esM, "checkTimeStepBalance") == []
+    runInfeasibilityPrechecks(esM)
 
 
 @pytest.mark.parametrize(
@@ -590,24 +536,21 @@ def test_capacity_sink_with_lower_bound_is_scaled_and_detected(boundKwargs):
     """
     esM = _build_capacity_sink_esM(**boundKwargs)
 
-    reachabilityProblems = checkCommodityReachability(esM)
+    reachabilityProblems = _problems(esM, "checkCommodityReachability")
     assert len(reachabilityProblems) == 1
     assert "Flexible hydrogen demand" in reachabilityProblems[0]
 
-    aggregatedProblems = checkJointInputDemandAggregated(esM)
+    aggregatedProblems = _problems(esM, "checkJointInputDemandAggregated")
     assert len(aggregatedProblems) == 1
     assert "joint demand of 6 for the commodity 'hydrogen'" in aggregatedProblems[0]
 
-    # NEU: checkTimeStepBalance muss den skalierten Bedarf je Zeitschritt melden
-    timeStepProblems = checkTimeStepBalance(esM)
-    assert any(
-        "Time step 0: the demand of 2 for the commodity 'hydrogen'" in p
-        for p in timeStepProblems
-    )
-    assert any(
-        "Time step 1: the demand of 4 for the commodity 'hydrogen'" in p
-        for p in timeStepProblems
-    )
+    # checkTimeStepBalance has to report the scaled demand per time step
+    timeStepProblems = _problems(esM, "checkTimeStepBalance")
+    assert len(timeStepProblems) == 2
+    assert timeStepProblems[0].startswith("Time step 0: the maximum transportable")
+    assert "total demand of 2." in timeStepProblems[0]
+    assert timeStepProblems[1].startswith("Time step 1: the maximum transportable")
+    assert "total demand of 4." in timeStepProblems[1]
 
     with pytest.raises(ValueError) as excinfo:
         runInfeasibilityPrechecks(esM)
@@ -673,12 +616,18 @@ def test_infeasibility_in_later_investment_period_is_detected():
     """A shortage which only occurs in 2025 must be reported for 2025 only."""
     esM = _build_pathway_esM(laterDemand=3)
 
-    aggregatedProblems = checkJointInputDemandAggregated(esM)
+    aggregatedProblems = _problems(esM, "checkJointInputDemandAggregated")
     assert len(aggregatedProblems) == 1
     assert aggregatedProblems[0].startswith("Investment period 2025:")
     assert "joint demand of 6" in aggregatedProblems[0]
 
-    problems = runInfeasibilityPrechecks(esM, raiseError=False)
+    with pytest.raises(ValueError) as excinfo:
+        runInfeasibilityPrechecks(esM)
+    problems = [
+        line[len("  - ") :]
+        for line in str(excinfo.value).splitlines()
+        if line.startswith("  - ")
+    ]
     assert problems
     assert all("Investment period 2025" in p for p in problems)
     assert not any("Investment period 2020" in p for p in problems)
@@ -689,7 +638,7 @@ def test_infeasibility_in_later_investment_period_is_detected():
 def test_feasible_pathway_is_no_false_positive():
     """Control case: the supply covers the demand in both periods."""
     esM = _build_pathway_esM(laterDemand=2)
-    assert runInfeasibilityPrechecks(esM, raiseError=False) == []
+    runInfeasibilityPrechecks(esM)
 
 
 # ---------------------------------------------------------------------------
@@ -774,7 +723,7 @@ def test_checkBalanceLimits_example_from_explanation(industryCapacityMin, isInfe
     With capacityMin=0.006 they are 104, which exceeds the limit of 100.
     """
     esM = _build_co2_limit_esM(industryCapacityMin)
-    problems = checkBalanceLimits(esM)
+    problems = _problems(esM, "checkBalanceLimits")
 
     if isInfeasible:
         assert len(problems) == 1
@@ -785,12 +734,16 @@ def test_checkBalanceLimits_example_from_explanation(industryCapacityMin, isInfe
         assert problems == []
 
 
-def _build_zero_limit_esM(balanceLimit, sinkHasCapacityVariable=False):
-    """CO2 is supplied freely and emitted by a sink carrying the limit ID."""
+def _build_zero_limit_esM(
+    balanceLimit, sinkHasCapacityVariable=False, numberOfTimeSteps=2
+):
+    """CO2 is supplied freely and emitted (1 per time step) by a sink carrying
+    the limit ID.
+    """
     esM = fn.EnergySystemModel(
         locations={"Region1"},
         commodities={"CO2"},
-        numberOfTimeSteps=2,
+        numberOfTimeSteps=numberOfTimeSteps,
         commodityUnitsDict={"CO2": "Mio. t CO2/h"},
         hoursPerTimeStep=1,
         costUnit="1e9 Euro",
@@ -805,7 +758,7 @@ def _build_zero_limit_esM(balanceLimit, sinkHasCapacityVariable=False):
             name="CO2 source",
             commodity="CO2",
             hasCapacityVariable=False,
-            operationRateMax=pd.DataFrame({"Region1": [5, 5]}),
+            operationRateMax=pd.DataFrame({"Region1": [5] * numberOfTimeSteps}),
         )
     )
 
@@ -823,7 +776,7 @@ def _build_zero_limit_esM(balanceLimit, sinkHasCapacityVariable=False):
             name="CO2 to environment",
             commodity="CO2",
             hasCapacityVariable=sinkHasCapacityVariable,
-            operationRateFix=pd.DataFrame({"Region1": [1.0, 1.0]}),
+            operationRateFix=pd.DataFrame({"Region1": [1.0] * numberOfTimeSteps}),
             balanceLimitID="CO2 limit",
             **sinkKwargs,
         )
@@ -856,5 +809,131 @@ def test_checkBalanceLimits_no_false_positive_for_flexible_sink():
     """A capacity-variable sink without capacityMin can be switched off."""
     esM = _build_zero_limit_esM(_net_zero_limit(), sinkHasCapacityVariable=True)
 
-    assert checkBalanceLimits(esM) == []
-    assert runInfeasibilityPrechecks(esM, raiseError=False) == []
+    assert _problems(esM, "checkBalanceLimits") == []
+    runInfeasibilityPrechecks(esM)
+
+
+@pytest.mark.parametrize(
+    "limit, isInfeasible", [(-48.0, False), (-47.0, True)], ids=["-48", "-47"]
+)
+def test_checkBalanceLimits_uses_the_plain_sum_for_less_than_a_year(
+    limit, isInfeasible
+):
+    """FINE compares the operation summed over the time horizon with the limit
+    as it is, also for less than a year: with 48 hourly time steps, the sink
+    emits 48 in total, so a limit of -48 is feasible and -47 is not.
+    """
+    balanceLimit = pd.DataFrame(
+        {"Total": [limit], "lowerBound": [1]}, index=["CO2 limit"]
+    )
+    esM = _build_zero_limit_esM(balanceLimit, numberOfTimeSteps=48)
+
+    problems = _problems(esM, "checkBalanceLimits")
+
+    if isInfeasible:
+        assert len(problems) == 1
+        assert "can reach at most -48" in problems[0]
+    else:
+        assert problems == []
+
+
+# ---------------------------------------------------------------------------
+# Time series aggregation: the pre-checks evaluate the full time series and
+# are therefore skipped for an aggregated model.
+# ---------------------------------------------------------------------------
+
+
+def test_prechecks_are_skipped_with_time_series_aggregation(
+    minimal_test_esM, monkeypatch
+):
+    calls = []
+    monkeypatch.setattr(
+        fine.infeasibilityPrechecks, "runInfeasibilityPrechecks", calls.append
+    )
+    esM = minimal_test_esM
+    esM.aggregateTemporally(
+        n_clusters=1,
+        period_duration=4 * esM.hoursPerTimeStep,
+        cluster=ClusterConfig(method="hierarchical", representation="mean"),
+        preserve_column_means=False,
+    )
+
+    esM.declareOptimizationProblem(timeSeriesAggregation=True)
+    assert calls == []
+
+    esM.declareOptimizationProblem(timeSeriesAggregation=False)
+    assert calls == [esM]
+
+
+# ---------------------------------------------------------------------------
+# Pooled commodities: the balance is enforced over each pool as a whole, so
+# the commodity can be moved freely between the locations of a pool.
+# ---------------------------------------------------------------------------
+
+
+def _build_pool_esM(purchaseMax, pool):
+    """Hydrogen is only bought at A and demanded at B (2) and C (3) per time
+    step. There is no transmission, hydrogen is pooled over the given locations.
+    """
+    esM = fn.EnergySystemModel(
+        locations={"A", "B", "C"},
+        commodities={"hydrogen"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"hydrogen": "GW"},
+        hoursPerTimeStep=1,
+        costUnit="EUR",
+        lengthUnit="km",
+        verboseLogLevel=0,
+        pooledCommodities={"hydrogen": {"pool": list(pool)}},
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Purchase",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateMax=pd.DataFrame(
+                {"A": [purchaseMax] * 2, "B": [0.0] * 2, "C": [0.0] * 2}
+            ),
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="hydrogen",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame(
+                {"A": [0.0] * 2, "B": [2.0] * 2, "C": [3.0] * 2}
+            ),
+        )
+    )
+    return esM
+
+
+def test_pool_covers_locations_without_own_supply():
+    """B and C have no supply of their own, but the pool as a whole is balanced."""
+    runInfeasibilityPrechecks(_build_pool_esM(purchaseMax=5, pool="ABC"))
+
+
+def test_pool_with_insufficient_supply_is_detected():
+    """The purchase of 4 per time step cannot cover the pooled demand of 5."""
+    esM = _build_pool_esM(purchaseMax=4, pool="ABC")
+
+    timeStepProblems = _problems(esM, "checkTimeStepBalance")
+    assert len(timeStepProblems) == 2
+    assert "maximum transportable flow of 4" in timeStepProblems[0]
+    assert "total demand of 5." in timeStepProblems[0]
+
+    aggregatedProblems = _problems(esM, "checkJointInputDemandAggregated")
+    assert len(aggregatedProblems) == 1
+    assert "joint demand of 10" in aggregatedProblems[0]
+    assert "['A', 'B', 'C']" in aggregatedProblems[0]
+
+
+def test_pooled_commodity_is_not_balanced_outside_of_its_pools():
+    """FINE balances a pooled commodity only within its pools, so the demand at
+    C, which belongs to no pool, does not have to be met. The optimization is
+    feasible, therefore the pre-checks must not raise either.
+    """
+    runInfeasibilityPrechecks(_build_pool_esM(purchaseMax=5, pool="AB"))

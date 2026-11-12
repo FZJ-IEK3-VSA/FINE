@@ -18,7 +18,7 @@ from pyomo.contrib.appsi.solvers import Highs
 import tsam
 from tsam import ClusterConfig, ExtremeConfig, SegmentConfig
 
-from fine import utils
+from fine import infeasibilityPrechecks, utils
 from fine.utils import ImplementedSolvers
 
 # Deprecation shim, removed together with the ETHOS.TSAM 3.x keywords.
@@ -1727,7 +1727,8 @@ class EnergySystemModel:
 
         :param runInfeasibilityPrechecks: states if the model should be checked for setups
             which are provably infeasible before the optimization problem is declared.
-            A detected problem raises a ValueError.
+            A detected problem raises a ValueError. The checks are skipped if
+            timeSeriesAggregation is True.
             |br| * the default value is True
         :type runInfeasibilityPrechecks: boolean
         """
@@ -1749,9 +1750,17 @@ class EnergySystemModel:
         #                                         Run feasibility pre-check                                            #
         ################################################################################################################
 
-        # Detect provably infeasible model setups before building the problem
-        if runInfeasibilityPrechecks:
-            utils.runInfeasibilityPrechecks(self)
+        # Detect provably infeasible model setups before building the problem. The
+        # checks evaluate the full time series, so they do not apply to an aggregation.
+        if runInfeasibilityPrechecks and timeSeriesAggregation:
+            utils.output(
+                "The infeasibility pre-checks are skipped because time series "
+                "aggregation is used.",
+                self.verboseLogLevel,
+                0,
+            )
+        elif runInfeasibilityPrechecks:
+            infeasibilityPrechecks.runInfeasibilityPrechecks(self)
 
         ################################################################################################################
         #                           Initialize mathematical model (ConcreteModel) instance                             #
@@ -1957,7 +1966,8 @@ class EnergySystemModel:
 
         :param runInfeasibilityPrechecks: states if the model should be checked for setups
             which are provably infeasible before the optimization problem is declared.
-            A detected problem raises a ValueError.
+            A detected problem raises a ValueError. The checks are skipped if
+            timeSeriesAggregation is True.
             |br| * the default value is True
         :type runInfeasibilityPrechecks: boolean
 
