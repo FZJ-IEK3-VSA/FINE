@@ -437,50 +437,87 @@ def runMGA(
 
     :param spec: states the parameters required for the MGA optimization.
 
-        E.g., User input (spec)
-        {
-            "slack": 0.10,                          # allowed cost increase (10 %)
-            "objectives": [                         # one entry = one alternative, if multiple alternatives are needed,
-                                                    # add multiple objectives with varying weights. Objectives should be
-                                                    # in the form of (a), (b), or (c) as shown.
-            # (a) user-defined variables
+        ``spec`` has two top-level keys:
+
+        - ``"slack"``: allowed relative cost increase over the cost-optimal
+          solution (e.g. ``0.10`` for 10 %).
+        - ``"objectives"``: a list of MGA objectives. Each entry describes one
+          alternative to generate; to generate several alternatives, add
+          several objectives (e.g. with varying weights). Every objective is
+          a dictionary with a ``"name"``, a ``"sense"`` (``"min"`` or
+          ``"max"``), and a ``"variableSelection"`` that selects which
+          variables make up the objective. Three selections are available,
+          shown below as examples (a), (b), and (c).
+
+        (a) ``"custom"`` (default) - objective built from explicitly listed
+        (component, variable) terms::
+
             {
                 "name": "max_wind",
-                "sense": "max",                     # "min" or "max"
-                "variableSelection": "custom",      # default
+                "sense": "max",
+                "variableSelection": "custom",
                 "terms": [
-                {"component": "Wind (onshore)", "variable": "capacity",  "weight": 1.0},
-                {"component": "PV",             "variable": "operation", "weight": 0.5,
-                "locations": ["region1"],          # optional, default: all
-                "investmentPeriods": [2030]},      # optional, default: all
+                    {"component": "Wind (onshore)", "variable": "capacity", "weight": 1.0},
+                    {
+                        "component": "PV",
+                        "variable": "operation",
+                        "weight": 0.5,
+                        "locations": ["region1"],        # optional, default: all
+                        "investmentPeriods": [2030],      # optional, default: all
+                    },
                 ],
-            },
-            # (b) all capacity variables of the model
+            }
+
+        (b) ``"allCapacity"`` - objective built from the capacity variable of
+        every component in the model::
+
             {
                 "name": "min_all_capacity",
                 "sense": "min",
                 "variableSelection": "allCapacity",
-                "defaultWeight": 1.0,                          # optional, default 1.0
-                "weights": {"PV": 2.0,                         # optional overrides:
-                            "Li-ion": {"capacity": 0.5}},      #   per component or per variable
-                "excludeComponents": ["Electricity demand"],   # optional
-            },
-            # (c) all capacity and all operation variables of the model
+                "defaultWeight": 1.0,                      # optional, default: 1.0
+                "weights": {                                # optional per-component/-variable overrides
+                    "PV": 2.0,
+                    "Li-ion": {"capacity": 0.5},
+                },
+                "excludeComponents": ["Electricity demand"],  # optional
+            }
+
+        (c) ``"allCapacityAndOperation"`` - objective built from the capacity
+        variable and the operation/charge/discharge variable of every
+        component in the model::
+
             {
                 "name": "min_all_cap_and_op",
                 "sense": "min",
                 "variableSelection": "allCapacityAndOperation",
-            },
-            ],
-        }
+            }
 
-        variables and their respective component classes must adhere to the following criteria
-        variable:   "capacity"  ->   (all modeling classes)
-                    "operation" ->   (SourceSink, Conversion, Transmission)
-                    "charge"    ->   (Storage)
-                    "discharge" ->   (Storage)
+        Putting it together, a full ``spec`` combining all three examples
+        looks like::
 
-            e.g., A storage component cannot have "operation" variable and only "charge" and/or "discharge"
+            spec = {
+                "slack": 0.10,
+                "objectives": [
+                    {...},  # (a), (b), or (c) as shown above
+                    {...},
+                    {...},
+                ],
+            }
+
+        Each ``variable`` must match the modeling class of its ``component``:
+
+        ========== ==============================================
+        variable    valid component classes
+        ========== ==============================================
+        "capacity"  all modeling classes
+        "operation" SourceSink, Conversion, Transmission
+        "charge"    Storage
+        "discharge" Storage
+        ========== ==============================================
+
+        E.g. a storage component has no "operation" variable, only "charge"
+        and/or "discharge".
 
     :type spec: dictionary
 
