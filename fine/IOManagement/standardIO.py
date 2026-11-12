@@ -14,7 +14,15 @@ import matplotlib.patches as mpatches
 abbreviatedClassName = {
     "ConversionDynamicModel": "ConvDyn",
     "ConversionPartLoad": "ConvPartLoad",
+    "AsymmetricTransmissionModel": "AsymTrans",
 }
+
+
+def _getAbbreviatedModelName(name):
+    """Return the (abbreviated) model name which is used as prefix of the excel sheet names."""
+    if name in abbreviatedClassName.keys():
+        return abbreviatedClassName[name]
+    return name[:-5]  # last 5 letters are "Model" and cut off
 
 
 try:
@@ -90,10 +98,7 @@ def writeOptimizationOutputToExcel(
         writer = pd.ExcelWriter(_outputFileName + ".xlsx")
 
         for name in esM.componentModelingDict.keys():
-            if name in abbreviatedClassName.keys():
-                abbreviatedName = abbreviatedClassName[name]
-            else:
-                abbreviatedName = name[:-5]  # last 5 letters are "Model" and cut off
+            abbreviatedName = _getAbbreviatedModelName(name)
 
             utils.output("\tProcessing " + name + " ...", esM.verbose, 0)
             oL = optSumOutputLevel
@@ -350,12 +355,13 @@ def readOptimizationOutputFromExcel(
         idColumns1dim = [0, 1, 2]
         idColumns2dim = [0, 1, 2, 3]
         idColumns = idColumns1dim if "1" in dim else idColumns2dim
+        abbreviatedName = _getAbbreviatedModelName(mdl)
         setattr(
             esM.componentModelingDict[mdl],
             "optSummary",
             pd.read_excel(
                 fileName,
-                sheet_name=mdl[0:-5] + "OptSummary_" + dim,
+                sheet_name=abbreviatedName + "OptSummary_" + dim,
                 index_col=idColumns,
                 engine=engine,
             ),
@@ -364,7 +370,7 @@ def readOptimizationOutputFromExcel(
         sheets += (
             sheet
             for sheet in file.sheet_names
-            if mdl[0:-5] in sheet and "optVar" in sheet
+            if sheet.startswith(abbreviatedName + "_") and "optVar" in sheet
         )
         if len(sheets) > 0:
             for sheet in sheets:

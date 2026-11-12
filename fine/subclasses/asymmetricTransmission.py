@@ -58,6 +58,7 @@ class AsymmetricTransmission(Transmission):
         floorTechnicalLifetime=True,
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
+        componentLimitID=None,
         stockCommissioning=None,
         pwlcfParameters=None,
     ):
@@ -103,6 +104,7 @@ class AsymmetricTransmission(Transmission):
             floorTechnicalLifetime=floorTechnicalLifetime,
             balanceLimitID=balanceLimitID,
             pathwayBalanceLimitID=pathwayBalanceLimitID,
+            componentLimitID=componentLimitID,
             stockCommissioning=stockCommissioning,
             pwlcfParameters=pwlcfParameters,
         )

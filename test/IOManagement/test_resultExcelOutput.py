@@ -93,6 +93,14 @@ def test_compareResults_longClassNames():
                     reactances=reactances,
                 )
             )
+        elif "AsymmetricTransmission" in str(possibleClass):
+            esM.add(
+                possibleClass(
+                    esM=esM,
+                    name=str(possibleClass),
+                    commodity="TestCom",
+                )
+            )
         else:
             raise NotImplementedError(
                 f"Test for class: {possibleClass} not implemented. If a new subclass is added, also add a possible abbreviation in case the name is too long for saving to excel."
