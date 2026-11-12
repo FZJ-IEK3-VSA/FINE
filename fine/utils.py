@@ -447,6 +447,22 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                 )
 
     for ip in esM.investmentPeriods:
+        # capacityMax has to be given for all eligible locations. (Missing locations are
+        # filled with 0 by checkAndSet, so this has to be checked beforehand.)
+        if (
+            comp.dimension == "1dim"
+            and locationalEligibility is not None
+            and isinstance(capacityMax[ip], pd.Series)
+        ):
+            eligibleLocations = locationalEligibility[locationalEligibility == 1].index
+            missingLocations = sorted(
+                set(eligibleLocations) - set(capacityMax[ip].index)
+            )
+            if missingLocations:
+                raise ValueError(
+                    "The locationalEligibility and capacityMax parameters indicate different eligibilities. "
+                    + f"capacityMax is missing for the eligible locations {missingLocations}."
+                )
         capacityMin[ip] = checkAndSet(capacityMin[ip], comp, esM)
         capacityMax[ip] = checkAndSet(capacityMax[ip], comp, esM)
         capacityFix[ip] = checkAndSet(capacityFix[ip], comp, esM)
@@ -480,9 +496,13 @@ def checkLocationSpecficDesignInputParams(comp, esM):
                         "CapacityFix values are provided for non-eligible locations."
                     )
             if capacityMax[ip] is not None:
+                # A capacityMax of 0 is consistent with both an eligible and a
+                # non-eligible location (see setLocationalEligibility: only NaN means
+                # "no data"). Only a positive capacityMax at a non-eligible location
+                # is a contradiction.
                 data = capacityMax[ip].copy()
                 data[data > 0] = 1
-                if (data != locationalEligibility).any():
+                if (data > locationalEligibility).any():
                     raise ValueError(
                         "The locationalEligibility and capacityMax parameters indicate different eligibilities."
                     )
