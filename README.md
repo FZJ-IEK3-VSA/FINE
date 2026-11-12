@@ -204,15 +204,17 @@ ruff format --diff --config=pyproject.toml
 Run the test suite from the repository root with
 
 ```bash
-pytest -n auto
+pytest -n auto --dist worksteal
 ```
+
+With `--dist worksteal`, a worker that has run out of tests takes queued tests from the other workers. The default scheduler of pytest-xdist fixes the share of each worker in advance and can leave the slowest tests queued on a single worker, which then runs alone while the others wait.
 
 By default, the tests use the automatically detected standard solver (GUROBI if a full licence is available, otherwise HiGHS). To run the complete suite with a specific solver, without fallback to another solver, set the environment variable `FINE_SOLVER`:
 
 ```bash
-FINE_SOLVER=gurobi pytest -n auto
-FINE_SOLVER=highs pytest -n auto
-FINE_SOLVER=glpk pytest -n auto
+FINE_SOLVER=gurobi pytest -n auto --dist worksteal
+FINE_SOLVER=highs pytest -n auto --dist worksteal
+FINE_SOLVER=glpk pytest -n auto --dist worksteal
 ```
 
 The solver in use is shown in the header of the test output (`FINE solver: ...`). If the selected solver is not available, pytest stops with an error. If a test solves a model with a different solver than the selected one, it fails. Therefore, use `ImplementedSolvers.STANDARD_SOLVER.value` in tests instead of a fixed solver. Two markers cover the exceptions:

@@ -30,7 +30,7 @@ jobs:
             library_version: ${{ matrix.dependencies.version }}
             dependency_position_env_file: ${{ matrix.dependencies.yaml_position }}
             library_name: ${{ matrix.dependencies.library_name }}
-            multiprocessing_pytest_string: "-n auto"
+            multiprocessing_pytest_string: "-n auto --dist worksteal"
             multiprocessing_example_string: "-n auto"
 
     filter-python-versions:
@@ -61,5 +61,5 @@ jobs:
             library_name: "python"
             library_version: ${{ matrix.python.version }}
             dependency_position_env_file: ${{ matrix.python.yaml_position }}
-            multiprocessing_pytest_string: "-n auto"
+            multiprocessing_pytest_string: "-n auto --dist worksteal"
             multiprocessing_example_string: "-n auto"
