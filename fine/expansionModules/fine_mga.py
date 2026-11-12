@@ -257,8 +257,6 @@ def writeExcel(esM, outputDir, fileStem, excelKwargs):
     return str(outputFileName) + ".xlsx"
 
 
-
-
 # --------------------------------------------------------------------------- #
 # Cost objective bookkeeping (shared by both solve paths)
 # --------------------------------------------------------------------------- #
@@ -305,9 +303,13 @@ optimizeDefaults = {
 
 def _optimizeSettings(optimizeKwargs):
     """Fill the esM.optimize keyword arguments with FINE's defaults."""
-    unknown = set(optimizeKwargs) - set(optimizeDefaults) - {"includePerformanceSummary"}
+    unknown = (
+        set(optimizeKwargs) - set(optimizeDefaults) - {"includePerformanceSummary"}
+    )
     if unknown:
-        raise TypeError(f"Unknown optimize arguments for persistent=True: {sorted(unknown)}")
+        raise TypeError(
+            f"Unknown optimize arguments for persistent=True: {sorted(unknown)}"
+        )
     settings = {**optimizeDefaults, **optimizeKwargs}
     settings.pop("includePerformanceSummary", None)
     if settings["solver"] != "gurobi":
@@ -360,7 +362,7 @@ def _solvePersistent(esM, opt, settings, label, acceptSuboptimal=True):
     """
     # stores the optimize settings in esM.solverSpecs, like esM.optimize does
     timeStart, _, _ = esM._prepareOptimization(
-        False,                                  # declaresOptimizationProblem
+        False,  # declaresOptimizationProblem
         settings["relaxIsBuiltBinary"],
         settings["timeSeriesAggregation"],
         settings["logFileName"],
@@ -370,32 +372,42 @@ def _solvePersistent(esM, opt, settings, label, acceptSuboptimal=True):
         settings["optimizationSpecs"],
         settings["warmstart"],
         settings["relevanceThreshold"],
-        False,                                  # includePerformanceSummary
+        False,  # includePerformanceSummary
     )
     print(f"  Solving ({label}, persistent Gurobi) ...", flush=True)
-    solverInfo = opt.solve(tee=True, warmstart=settings["warmstart"], load_solutions=False)
+    solverInfo = opt.solve(
+        tee=True, warmstart=settings["warmstart"], load_solutions=False
+    )
     esM.solverSpecs["solvetime"] = time.time() - timeStart
     esM.solverSpecs["solver"] = "gurobi_persistent"
 
     grbModel = opt._solver_model
-    grbStatus = grbModel.Status                 # 2 = OPTIMAL, 13 = SUBOPTIMAL
-    statusText = {2: "optimal", 13: "suboptimal"}.get(grbStatus, f"gurobi status {grbStatus}")
+    grbStatus = grbModel.Status  # 2 = OPTIMAL, 13 = SUBOPTIMAL
+    statusText = {2: "optimal", 13: "suboptimal"}.get(
+        grbStatus, f"gurobi status {grbStatus}"
+    )
 
     if grbStatus == 13 and acceptSuboptimal and grbModel.SolCount > 0:
         primal = grbModel.ObjVal
-        try:                                    # not available for every LP / Gurobi version
+        try:  # not available for every LP / Gurobi version
             dual = grbModel.ObjBound
             gapText = f"relative gap {abs(primal - dual) / max(abs(primal), 1e-10):.1e}"
         except Exception:
             gapText = "gap: see the last barrier iteration in the Gurobi log"
-        print(f"  WARNING: '{label}' ended SUBOPTIMAL (barrier stalled). Accepting the solution: "
-              f"objective {primal:.8g}, {gapText}.", flush=True)
+        print(
+            f"  WARNING: '{label}' ended SUBOPTIMAL (barrier stalled). Accepting the solution: "
+            f"objective {primal:.8g}, {gapText}.",
+            flush=True,
+        )
         solverInfo.solver.status = opt_SolverStatus.ok
         solverInfo.solver.termination_condition = opt_TerminationCondition.optimal
         statusText = f"suboptimal (accepted; {gapText})"
     elif grbStatus == 13:
-        print(f"  WARNING: '{label}' ended SUBOPTIMAL and acceptSuboptimal=False: "
-              "no solution loaded, the summaries keep the previous values.", flush=True)
+        print(
+            f"  WARNING: '{label}' ended SUBOPTIMAL and acceptSuboptimal=False: "
+            "no solution loaded, the summaries keep the previous values.",
+            flush=True,
+        )
 
     if solverInfo.solver.termination_condition == opt_TerminationCondition.optimal:
         opt.load_vars()
@@ -403,11 +415,14 @@ def _solvePersistent(esM, opt, settings, label, acceptSuboptimal=True):
         if dual is not None and isinstance(dual, pyo.Suffix) and dual.import_enabled():
             try:
                 opt.load_duals()
-            except Exception as e:              # duals are optional for the summaries
+            except Exception as e:  # duals are optional for the summaries
                 print(f"  Note: duals could not be loaded ({e}).", flush=True)
     else:
-        print(f"  WARNING: '{label}' did not solve ({statusText}); "
-              "the summaries keep the values of the previous solve.", flush=True)
+        print(
+            f"  WARNING: '{label}' did not solve ({statusText}); "
+            "the summaries keep the values of the previous solve.",
+            flush=True,
+        )
 
     esM._runPostprocessing(solverInfo, timeStart)
     esM.solverSpecs["mgaSolveStatus"] = statusText
@@ -651,16 +666,20 @@ def runMGA(
         providedCost = optimalCost
         costStatus = "provided"
         if providedCost is not None:
-            print(f"Using the provided cost-optimal value {providedCost:.6g} "
-                  "(cost-optimal solve skipped) ...", flush=True)
+            print(
+                f"Using the provided cost-optimal value {providedCost:.6g} "
+                "(cost-optimal solve skipped) ...",
+                flush=True,
+            )
         elif reuseCostOptimal:
             print("Accessing the cost-optimal solution ...", flush=True)
             costStatus = "reused"
         else:
             print("Solving the cost-optimal problem ...", flush=True)
             if persistent:
-                _, costStatus = _solvePersistent(esM, opt, settings, "cost-optimal",
-                                                 acceptSuboptimal)
+                _, costStatus = _solvePersistent(
+                    esM, opt, settings, "cost-optimal", acceptSuboptimal
+                )
             else:
                 esM.optimize(declaresOptimizationProblem=False, **optimizeKwargs)
                 costStatus = esM.solverSpecs.get("terminationCondition", "")
@@ -670,7 +689,9 @@ def runMGA(
             "costOptimal": {
                 "cost": optimalCost,
                 "status": costStatus,
-                "summary": None if providedCost is not None else _snapshot(esM, **summaryKwargs),
+                "summary": None
+                if providedCost is not None
+                else _snapshot(esM, **summaryKwargs),
             }
         }
         if save_mga_results_in_excel and providedCost is None:
@@ -694,8 +715,9 @@ def runMGA(
 
             if persistent:
                 opt.set_objective(esM.pyM.Obj)  # only the objective changes in Gurobi
-                _, status = _solvePersistent(esM, opt, settings, objSpec["name"],
-                                             acceptSuboptimal)
+                _, status = _solvePersistent(
+                    esM, opt, settings, objSpec["name"], acceptSuboptimal
+                )
             else:
                 print("  Solving MGA problem ...", flush=True)
                 esM.optimize(declaresOptimizationProblem=False, **optimizeKwargs)
@@ -716,7 +738,10 @@ def runMGA(
             }
             if save_mga_results_in_excel:
                 results[objSpec["name"]]["excelFile"] = writeExcel(
-                    esM, excelOutputDir, f"{excelFilePrefix}_{objSpec['name']}", excelKwargs
+                    esM,
+                    excelOutputDir,
+                    f"{excelFilePrefix}_{objSpec['name']}",
+                    excelKwargs,
                 )
             print(
                 f"Alternative '{objSpec['name']}' done ({time.perf_counter() - tObj:.1f} s).",
