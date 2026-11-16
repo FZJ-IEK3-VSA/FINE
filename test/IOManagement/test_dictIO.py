@@ -27,6 +27,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "materials",
                 "materialUnitsDict",
                 "initialMaterialCost",
+                "initialMaterialLimit",
             ),
             (
                 minimal_test_esM.locations,
@@ -47,6 +48,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.materials,
                 minimal_test_esM.materialUnitsDict,
                 minimal_test_esM.initialMaterialCost,
+                minimal_test_esM.initialMaterialLimit,
             ),
         )
     )
@@ -153,6 +155,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "materials",
                 "materialUnitsDict",
                 "initialMaterialCost",
+                "initialMaterialLimit",
             ),
             (
                 single_node_test_esM.locations,
@@ -173,6 +176,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.materials,
                 single_node_test_esM.materialUnitsDict,
                 single_node_test_esM.initialMaterialCost,
+                single_node_test_esM.initialMaterialLimit,
             ),
         )
     )
@@ -236,6 +240,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "materials",
                 "materialUnitsDict",
                 "initialMaterialCost",
+                "initialMaterialLimit",
             ),
             (
                 multi_node_test_esM_init.locations,
@@ -256,6 +261,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.materials,
                 multi_node_test_esM_init.materialUnitsDict,
                 multi_node_test_esM_init.initialMaterialCost,
+                multi_node_test_esM_init.initialMaterialLimit,
             ),
         )
     )

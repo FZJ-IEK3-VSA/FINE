@@ -48,6 +48,7 @@ class Storage(Component):
         commissioningMin=None,
         commissioningMax=None,
         commissioningFix=None,
+        globalCommissioningMax=None,
         isBuiltFix=None,
         investPerCapacity=0,
         investIfBuilt=0,
@@ -285,6 +286,7 @@ class Storage(Component):
             commissioningMin=commissioningMin,
             commissioningMax=commissioningMax,
             commissioningFix=commissioningFix,
+            globalCommissioningMax=globalCommissioningMax,
             isBuiltFix=isBuiltFix,
             investPerCapacity=investPerCapacity,
             investIfBuilt=investIfBuilt,
@@ -1659,6 +1661,7 @@ class StorageModel(ComponentModel):
         self.decommissioningConstraint(pyM, esM)
         self.stockCapacityConstraint(pyM, esM)
         self.stockCommissioningConstraint(pyM, esM)
+        self.globalCommissioningMax(pyM, esM)
         ################################################################################################################
         #                                      Declare time dependent constraints                                      #
         ################################################################################################################

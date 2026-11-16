@@ -91,6 +91,8 @@ class EnergySystemModel:
         initialMaterialCost=None,
         rollingHorizonStartYear=None,
         materialDemandSameInvestmentPeriod=False,
+        initialMaterialLimit=None,
+        initialMaterialPenalty=None,
     ):
         r"""Create an EnergySystemModel class instance.
 
@@ -397,6 +399,8 @@ class EnergySystemModel:
         )
 
         self.initialMaterialCost = initialMaterialCost or {}
+        self.initialMaterialLimit = initialMaterialLimit or {}
+        self.initialMaterialPenalty= initialMaterialPenalty or {}
 
         ################################################################################################################
         #                                        Component specific parameters                                         #
@@ -1754,6 +1758,38 @@ class EnergySystemModel:
             domain=pyomo.NonNegativeReals,
         )
 
+        def initialMaterialSupplyLimitConstraint(m, mat):
+            relevant_locations = [
+                loc for loc, material in m.initialMaterialSet if material == mat
+            ]
+
+            return (
+                sum(m.initialMaterialSupply[loc, mat] for loc in relevant_locations)
+                <= self.initialMaterialLimit[mat]
+            )
+
+        pyM.initialMaterialSupplyLimitConstraint = pyomo.Constraint(
+            self.initialMaterialLimit.keys(),
+            rule=initialMaterialSupplyLimitConstraint,
+        )
+
+        # --- Excess supply beyond the limit ---
+        penalty = getattr(self, "initialMaterialPenalty", None) or {}
+
+        pyM.initialMaterialExcessSet = pyomo.Set(
+            dimen=2,
+            initialize=(
+                (loc, mat)
+                for loc, mat in pyM.initialMaterialSet
+                if mat in penalty and mat in self.initialMaterialLimit
+            ),
+        )
+
+        pyM.initialMaterialExcess = pyomo.Var(
+            pyM.initialMaterialExcessSet,
+            domain=pyomo.NonNegativeReals,
+        )
+
     def declareMaterialDemandConstraints(self, pyM):
         r"""Declare material balance constraints (one constraint for each location, material, and investment period) summed over all components.
 
@@ -1824,7 +1860,13 @@ class EnergySystemModel:
 
             if ip == 0:
                 if (loc, mat) in m.initialMaterialSet:
-                    return m.initialMaterialSupply[loc, mat] == rhs
+                    initial_supply = m.initialMaterialSupply[loc, mat]
+
+                    # Penalized excess beyond the initial material limit
+                    if (loc, mat) in m.initialMaterialExcessSet:
+                        initial_supply = initial_supply + m.initialMaterialExcess[loc, mat]
+
+                    return initial_supply == rhs
 
                 if mat.endswith("_scrap"):
                     return rhs == 0
@@ -1841,7 +1883,7 @@ class EnergySystemModel:
                 if (loc, sinkName, previous_ip, p, t) in opVar
             )
 
-            print("LHS_demand", lhs)
+            #print("LHS_demand", lhs)
 
             return lhs == rhs
 
@@ -1906,7 +1948,7 @@ class EnergySystemModel:
                 for p, t in m.intraYearTimeSet
                 if (loc, scrap_source_name, ip, p, t) in opVar
             )
-            print("LHS_recovery", lhs)
+            #print("LHS_recovery", lhs)
 
             # RHS: sum of material recovery contributions from all components
             rhs = sum(
@@ -1914,8 +1956,8 @@ class EnergySystemModel:
                 for mdl in self.componentModelingDict.values()
                 if hasattr(mdl, "getMaterialRecoveryContribution")
             )
-            print("RHS_recovery", rhs)
-            print("Constraint:", scrap_source_name, "mat:", mat)
+            #print("RHS_recovery", rhs)
+            #print("Constraint:", scrap_source_name, "mat:", mat)
             return lhs == rhs
 
         pyM.materialScrapConstraint = pyomo.Constraint(
@@ -1992,12 +2034,21 @@ class EnergySystemModel:
                 for loc, mat in pyM.initialMaterialSet
             )
 
-            NPV += initial_material_costs
+            # Excess supply beyond the initial material limit:
+            # regular material cost plus penalty
+            initial_material_excess_costs = sum(
+                pyM.initialMaterialExcess[loc, mat]
+                * (self.initialMaterialCost[mat][loc] + self.initialMaterialPenalty[mat])
+                for loc, mat in pyM.initialMaterialExcessSet
+            )
+
+
+            NPV += initial_material_costs + initial_material_excess_costs
 
             if hasattr(self, "pwlcfModel"):
                 NPV += self.pwlcfModel.getObjectiveFunctionContribution(self, pyM)
 
-            print("Initial material costs:", initial_material_costs)
+            #print("Initial material costs:", initial_material_costs)
 
             return NPV
 
