@@ -6,7 +6,10 @@ mkdocs-jupyter for proper notebook → HTML conversion.
 
 import fnmatch
 import os
+import posixpath
+import re
 import shutil
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -34,17 +37,24 @@ COPY_EXTENSIONS = {
 }
 
 # For faster local previews, rendering can be limited to some notebooks, e.g.
-#   FINE_DOCS_NOTEBOOKS="Examples/_00_introduction/*" mkdocs serve
-# The value is one or more glob patterns relative to examples/, separated by ";".
+#   FINE_DOCS_NOTEBOOKS="Examples" mkdocs serve
+# The value is one or more folders or glob patterns relative to examples/,
+# separated by ";", e.g. "Examples;09_PerfectForesight" or "Examples/4*".
 # Unset (the default, e.g. on Read the Docs), all notebooks are rendered.
 NOTEBOOK_FILTER_ENV = "FINE_DOCS_NOTEBOOKS"
+
+
+def _matches(path: str, pattern: str) -> bool:
+    """Return whether a path matches a glob pattern or lies in the folder `pattern`."""
+    pattern = pattern.strip("/")
+    return fnmatch.fnmatch(path, pattern) or path.startswith(pattern + "/")
 
 
 def _isWanted(relPath: Path, patterns: list[str]) -> bool:
     """Return whether a file below examples/ should be staged for the build."""
     if relPath.suffix.lower() != ".ipynb" or not patterns:
         return True
-    return any(fnmatch.fnmatch(relPath.as_posix(), pattern) for pattern in patterns)
+    return any(_matches(relPath.as_posix(), pattern) for pattern in patterns)
 
 
 def on_pre_build(config) -> None:
@@ -102,6 +112,48 @@ def on_pre_build(config) -> None:
                 continue
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
+
+
+# href attributes with a relative target, i.e. no scheme ("https:", "mailto:"),
+# no absolute path and no pure anchor.
+_RELATIVE_HREF = re.compile(r'href="(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)([^"#?]+)([^"]*)"')
+
+
+def _isExampleNotebook(page) -> bool:
+    """Return whether a page is an example notebook staged by on_pre_build."""
+    src_path = page.file.src_path.replace("\\", "/")
+    return src_path.startswith("examples/") and src_path.endswith(".ipynb")
+
+
+def on_page_content(html, page, config, files):
+    """Make relative links in example notebooks work on the documentation site.
+
+    Notebooks link to each other by their file names (e.g. ``11_sources.ipynb``),
+    which works in Jupyter and on GitHub. MkDocs rewrites such links in Markdown
+    pages, but not in notebooks rendered by mkdocs-jupyter, so on the site they
+    would point to the copied ``.ipynb`` file, which the browser downloads.
+
+    A link to a notebook that is a page of the site is pointed at that page; all
+    other links are left as they are.
+    """
+    if not _isExampleNotebook(page):
+        return html
+
+    pageDir = posixpath.dirname(page.file.src_path.replace("\\", "/"))
+    pageUrlDir = posixpath.dirname(page.url)
+
+    def rewrite(match):
+        target, suffix = match.group(1), match.group(2)
+        srcPath = posixpath.normpath(
+            posixpath.join(pageDir, urllib.parse.unquote(target))
+        )
+        targetFile = files.get_file_from_path(srcPath)
+        if targetFile is not None and srcPath.endswith(".ipynb"):
+            relativeUrl = posixpath.relpath(targetFile.url, pageUrlDir or ".")
+            return f'href="{relativeUrl}{suffix}"'
+        return match.group(0)
+
+    return _RELATIVE_HREF.sub(rewrite, html)
 
 
 def on_page_context(context, page, config, nav):

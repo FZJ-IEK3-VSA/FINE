@@ -70,6 +70,8 @@ plugins:
           execute: false
           include_source: true
           allow_errors: true
+          # Use the (short) titles of the nav below instead of the first heading of each notebook
+          ignore_h1_titles: true
           # Notebook cells tagged "hide-output" (e.g. long solver logs) show their code but no output
           remove_tag_config:
               remove_all_outputs_tags:
@@ -183,12 +185,26 @@ nav:
 
     - Modular Examples:
           - Overview: examples/Examples/index.md
-          - "Basic Tutorial": examples/Examples/_00_introduction/_2_basic_tutorial.ipynb
-          - "Sources": examples/Examples/_00_introduction/_3_sources.ipynb
-          - "Sinks": examples/Examples/_00_introduction/_4_sinks.ipynb
-          - "Conversions": examples/Examples/_00_introduction/_5_conversions.ipynb
-          - "Storages": examples/Examples/_00_introduction/_6_storages.ipynb
-          - "Transmissions": examples/Examples/_00_introduction/_7_transmissions.ipynb
+          - "Basic Tutorial": examples/Examples/01_basic_tutorial.ipynb
+          - Component Types:
+                - "Sources": examples/Examples/11_sources.ipynb
+                - "Sinks": examples/Examples/12_sinks.ipynb
+                - "Conversions": examples/Examples/13_conversions.ipynb
+                - "Storages": examples/Examples/14_storages.ipynb
+                - "Transmissions": examples/Examples/15_transmissions.ipynb
+          - Limits:
+                - "Capacity Limits": examples/Examples/21_capacity_limits.ipynb
+                - "Operation Limits": examples/Examples/22_operation_limits.ipynb
+          - Optimization and Results:
+                - "Time Series Aggregation": examples/Examples/31_time_series_aggregation.ipynb
+                - "Solver Settings and Saving": examples/Examples/32_solver_settings_and_saving.ipynb
+                - "Results and Plots": examples/Examples/33_results_and_plots.ipynb
+          - Advanced Features:
+                - "Balance Limits": examples/Examples/41_balance_limits.ipynb
+                - "Investment Periods": examples/Examples/42_investment_periods.ipynb
+                - "Binary Decisions": examples/Examples/43_binary_decisions.ipynb
+                - "Power Plant Flexibility": examples/Examples/44_power_plant_flexibility.ipynb
+                - "Flexible Conversions": examples/Examples/45_flexible_conversions.ipynb
 
     - Integrated Software: integrated_software.md
     - Further Reading: further_reading.md
