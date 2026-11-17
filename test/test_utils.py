@@ -413,6 +413,47 @@ def test_stockExceedsCapacityMaxInStochasticModel():
         sourceEsM(stochasticModel=True, **kwargs)
 
 
+# a bound with more than 10 digits, which the stock checks round the stock to:
+# round(_MANY_DIGITS, 10) lies about 3e-11 above it
+_MANY_DIGITS = 0.152875923267609
+
+
+@pytest.mark.parametrize("bound", ["capacityMax", "capacityFix"])
+@pytest.mark.parametrize(
+    "stock, raises", [(_MANY_DIGITS, False), (_MANY_DIGITS + 1e-3, True)]
+)
+def test_stockOnABoundWithManyDigits(bound, stock, raises):
+    """Stock equal to a capacityMax/capacityFix with more digits than the stock is
+    rounded to (as a rolling-horizon window hands on capacity built up to a computed
+    potential) does not exceed it, while stock clearly above it still does.
+    """
+    kwargs = {bound: _MANY_DIGITS, "stockCommissioning": {2018: stock}}
+    if not raises:
+        sourceEsM(**kwargs)
+    else:
+        with pytest.raises(
+            ValueError, match=f"exceeds its {bound}|Mismatch between stock capacity"
+        ):
+            sourceEsM(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "stock, issueRegions", [(_MANY_DIGITS, []), (_MANY_DIGITS + 1e-3, ["R"])]
+)
+def test_checkCapacityDevelopmentWithStock_boundWithManyDigits(stock, issueRegions):
+    """The capacity development check rounds the stock like checkAndSetStock and must
+    not find stock equal to the bound above it either.
+    """
+    kwargs = capacityDevelopmentKwargs(
+        {0: _MANY_DIGITS, 1: _MANY_DIGITS}, stock={-1: stock}, lifetime=3
+    )
+    if not issueRegions:
+        utils.checkCapacityDevelopmentWithStock(**kwargs)
+    else:
+        with pytest.raises(ValueError, match="Mismatch between stock capacity"):
+            utils.checkCapacityDevelopmentWithStock(**kwargs)
+
+
 # --- Lead-time-widened CCF / interval-apportionment primitives (Step 6) ---
 # These primitives (Component.ipLeadTimeEconomicLifetime, Component.CCFLeadTime,
 # utils.getParametersForUnevenLifetimes(..., "ipLeadTimeEconomicLifetime", esM, ip))

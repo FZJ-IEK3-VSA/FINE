@@ -732,6 +732,26 @@ def checkAndSetInvestmentPeriodParameters(name, param, esM):
     return processedParam
 
 
+def stockExceedsBound(stock, bound):
+    """Return whether a stock capacity exceeds a capacityMax or capacityFix value.
+
+    The stock checks round the stock to 10 digits, which can lift a stock that equals
+    a bound with more digits just above it. A stock handed on from a solved model
+    (rolling horizon) can also exceed its bound by the solver's feasibility
+    tolerance. Both are tolerated, as in the commissioning bound checks.
+
+    :param stock: (rounded) stock capacity.
+    :type stock: float
+
+    :param bound: capacityMax or capacityFix value.
+    :type bound: float
+
+    :return: True if the stock exceeds the bound by more than 1e-6 * max(1, |bound|).
+    :rtype: bool
+    """
+    return stock > bound + 1e-6 * max(1.0, abs(bound))
+
+
 def checkCapacityDevelopmentWithStock(
     investmentPeriods,
     capacityMax,
@@ -806,14 +826,18 @@ def checkCapacityDevelopmentWithStock(
             for year in investmentPeriods:
                 stockYear = 0 if stochasticModel else year
                 if capacityMax[year] is not None:
-                    if stockCapacity.loc[stockYear, loc] > capacityMax[year][loc]:
+                    if stockExceedsBound(
+                        stockCapacity.loc[stockYear, loc], capacityMax[year][loc]
+                    ):
                         raise ValueError(
                             "Mismatch between stock capacity (by its "
                             + "commissioning and the technical lifetime) and "
                             + "capacityMax"
                         )
                 if capacityFix[year] is not None:
-                    if stockCapacity.loc[stockYear, loc] > capacityFix[year][loc]:
+                    if stockExceedsBound(
+                        stockCapacity.loc[stockYear, loc], capacityFix[year][loc]
+                    ):
                         raise ValueError(
                             "Mismatch between stock capacity (by its "
                             + "commissioning and the technical lifetime) and "
@@ -2781,13 +2805,13 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 installed_sum += round(stockCommissioning[year][loc], 10)
                 installed_sum = round(installed_sum, 10)
         if component.processedCapacityMax[0] is not None:
-            if installed_sum > component.processedCapacityMax[0][loc]:
+            if stockExceedsBound(installed_sum, component.processedCapacityMax[0][loc]):
                 raise ValueError(
                     f"The stock of {installed_sum} for '{component.name}' in region '{loc}' "
                     + f"exceeds its capacityMax of '{component.processedCapacityMax}' in the first year"
                 )
         if component.processedCapacityFix[0] is not None:
-            if installed_sum > component.processedCapacityFix[0][loc]:
+            if stockExceedsBound(installed_sum, component.processedCapacityFix[0][loc]):
                 raise ValueError(
                     f"The stock of '{component.name}' in region '{loc}' "
                     + f"exceeds its capacityFix of '{component.processedCapacityFix}' in the first year"

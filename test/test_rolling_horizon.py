@@ -604,6 +604,36 @@ def test_stock_accumulates_and_outdated_entries_are_dropped(rollingResults):
     assert 2020 not in stockOf(rollingResults, 2035, "PV")
 
 
+def test_capacity_built_up_to_a_capacity_max_with_many_digits_is_passed_on():
+    """A window that builds a source up to its capacityMax hands exactly that on as stock.
+    Rounded to 10 digits, a bound with more digits (a computed potential) lies just below
+    the stock, which the next window must not refuse as exceeding its capacityMax.
+    """
+    capacityMax = 0.152875923267609
+    esM = simplePathwayEsM(
+        3, sourceKwargs={"capacityMax": pd.Series({"PerfectLand": capacityMax})}
+    )
+    # covers the demand the source cannot, at a higher cost than the source
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Slack",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            opexPerOperation=1,
+        )
+    )
+    results = rollingHorizonOptimization(
+        esM=esM,
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    assert stockOf(results, 2025, "Src")[2020]["PerfectLand"] == pytest.approx(
+        capacityMax
+    )
+    assert srcCapacity(results, 2025, 2025) == pytest.approx(capacityMax)
+
+
 def test_a_component_that_builds_nothing_never_becomes_stock(rollingResults):
     """Commissioning below stockCommissioningThreshold is not carried over at all, so the
     priced-out backup source stays without stock in every window.
