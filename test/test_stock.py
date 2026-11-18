@@ -520,3 +520,92 @@ def test_stock():
         esM.pyM.commis_conv.get_values()[("ElectrolyzerLocation", "Electrolyzers", 0)],
         rtol=0.005,
     )
+
+
+# --- Transmission stock in a grid that is not fully meshed ----------------------
+
+_GRID_LOCATIONS = ["A", "B", "C"]
+
+
+def nonMeshedGridEsM(stockCommissioning):
+    """Three locations with a single line between A and B, which has a stock of 0.5."""
+    eligibility = pd.DataFrame(0, index=_GRID_LOCATIONS, columns=_GRID_LOCATIONS)
+    eligibility.loc["A", "B"] = eligibility.loc["B", "A"] = 1
+    esM = fn.EnergySystemModel(
+        locations=set(_GRID_LOCATIONS),
+        commodities={"el"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"el": "GW"},
+        hoursPerTimeStep=1,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        startYear=2030,
+        investmentPeriodInterval=10,
+        numberOfInvestmentPeriods=2,
+        verboseLogLevel=2,
+    )
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="Line",
+            commodity="el",
+            hasCapacityVariable=True,
+            locationalEligibility=eligibility,
+            distances=eligibility * 100.0,
+            investPerCapacity=0.01,
+            economicLifetime=40,
+            technicalLifetime=40,
+            stockCommissioning=stockCommissioning,
+        )
+    )
+    return esM
+
+
+_ALL_PAIRS = {
+    f"{loc1}_{loc2}": 0.5 if {loc1, loc2} == {"A", "B"} else 0.0
+    for loc1 in _GRID_LOCATIONS
+    for loc2 in _GRID_LOCATIONS
+    if loc1 != loc2
+}
+_MATRIX = pd.DataFrame(0.0, index=_GRID_LOCATIONS, columns=_GRID_LOCATIONS)
+_MATRIX.loc["A", "B"] = _MATRIX.loc["B", "A"] = 0.5
+
+
+@pytest.mark.parametrize(
+    "stock",
+    [pd.Series({"A_B": 0.5, "B_A": 0.5}), pd.Series(_ALL_PAIRS), _MATRIX],
+    ids=["connections", "all pairs", "matrix"],
+)
+def test_transmission_stock_in_a_grid_that_is_not_fully_meshed(stock):
+    """A 2-dim stock is indexed by the component's connections, like its technical
+    lifetime. It may be given for the connections only, for every ordered pair of
+    locations with zeros where there is no connection, or as a matrix.
+    """
+    esM = nonMeshedGridEsM({2020: stock})
+    line = esM.getComponent("Line")
+    assert sorted(line.processedStockCommissioning[-1].index) == ["A_B", "B_A"]
+    assert line.processedStockCommissioning[-1].to_dict() == {"A_B": 0.5, "B_A": 0.5}
+    assert line.stockCapacityStartYear.to_dict() == {"A_B": 0.5, "B_A": 0.5}
+
+    esM.optimize(
+        solver=ImplementedSolvers.STANDARD_SOLVER.value, timeSeriesAggregation=False
+    )
+    commissioning = esM.pyM.commis_trans.get_values()
+    assert commissioning[("A_B", "Line", -1)] == pytest.approx(0.5)
+    assert commissioning[("B_A", "Line", -1)] == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize(
+    "stock, message",
+    [
+        (pd.Series({"A_B": 0.5, "B_A": 0.5, "B_C": 1.0}), "where the component has no"),
+        (pd.Series({"A_B": 0.5, "A_D": 0.0}), "which are no pairs"),
+    ],
+    ids=["stock without a connection", "unknown pair"],
+)
+def test_transmission_stock_outside_the_connections_raises(stock, message):
+    """Stock on a pair of locations without a connection, or on a pair that is no pair
+    of locations of the model, cannot be placed anywhere.
+    """
+    with pytest.raises(ValueError, match=message):
+        nonMeshedGridEsM({2020: stock})

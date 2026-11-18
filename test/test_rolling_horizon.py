@@ -634,6 +634,75 @@ def test_capacity_built_up_to_a_capacity_max_with_many_digits_is_passed_on():
     assert srcCapacity(results, 2025, 2025) == pytest.approx(capacityMax)
 
 
+def test_a_line_in_a_grid_that_is_not_fully_meshed_is_passed_on():
+    """In a grid without a line between every pair of locations, the line a window builds
+    is passed on per connection and accepted by the next window as its stock.
+    """
+    locations = ["A", "B", "C"]
+    eligibility = pd.DataFrame(0, index=locations, columns=locations)
+    eligibility.loc["A", "B"] = eligibility.loc["B", "A"] = 1
+    esM = fn.EnergySystemModel(
+        locations=set(locations),
+        commodities={"el"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"el": "GW"},
+        hoursPerTimeStep=1,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        startYear=2030,
+        investmentPeriodInterval=10,
+        numberOfInvestmentPeriods=3,
+        verboseLogLevel=2,
+    )
+    # cheap generation in A and C, demand in B, which only the line from A reaches
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Gen",
+            commodity="el",
+            hasCapacityVariable=True,
+            investPerCapacity=pd.Series({"A": 0.1, "B": 5.0, "C": 0.1}),
+            economicLifetime=20,
+            technicalLifetime=20,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="el",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame({"A": [0.0, 0.0], "B": [1.0, 1.0], "C": 0.0}),
+        )
+    )
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="Line",
+            commodity="el",
+            hasCapacityVariable=True,
+            locationalEligibility=eligibility,
+            distances=eligibility * 100.0,
+            investPerCapacity=0.01,
+            economicLifetime=40,
+            technicalLifetime=40,
+        )
+    )
+    results = rollingHorizonOptimization(
+        esM=esM,
+        timeSeriesAggregation=False,
+        numberOfInvestmentPeriodsForRollingHorizon=2,
+    )
+    # a line has its capacity in both directions
+    lineStock = stockOf(results, 2040, "Line")[2030]
+    assert lineStock["A_B"] == pytest.approx(1)
+    assert lineStock["B_A"] == pytest.approx(1)
+    capacity = summaryValue(
+        results[2040], "TransmissionModel", "Line", "capacity", 2040
+    )
+    assert capacity.max() == pytest.approx(1)
+
+
 def test_a_component_that_builds_nothing_never_becomes_stock(rollingResults):
     """Commissioning below stockCommissioningThreshold is not carried over at all, so the
     priced-out backup source stays without stock in every window.

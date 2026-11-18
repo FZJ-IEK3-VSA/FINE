@@ -2717,7 +2717,12 @@ def checkAndSetStock(component, esM, stockCommissioning):
     if component.dimension == Dimension.ONE:
         regions = esM.locations
     if component.dimension == Dimension.TWO:
-        regions = [
+        # a 2-dim component exists on its connections only, which index all its
+        # parameters (technicalLifetime, capacityMax, lead times, ...). Its stock may
+        # be given for the connections or for every ordered pair of locations, with
+        # zeros where there is no connection; missing connections have no stock
+        regions = list(component.locationalEligibility.index)
+        allPairs = [
             loc1 + "_" + loc2
             for loc1 in esM.locations
             for loc2 in esM.locations
@@ -2745,13 +2750,22 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 data={list(esM.locations)[0]: yearly_stock}
             )
         elif isinstance(yearly_stock, pd.Series):
-            # series must have all locations as index and float/int for values
-
-            if not sorted(yearly_stock.index) == sorted(regions):
-                raise ValueError(
-                    f"Initialize the stock for all regions for the year '{year}'"
-                    + " even if its just 0"
-                )
+            # series must have all locations (1-dim) or pairs of locations (2-dim) as
+            # index and float/int for values
+            if component.dimension == Dimension.ONE:
+                if not sorted(yearly_stock.index) == sorted(regions):
+                    raise ValueError(
+                        f"Initialize the stock for all regions for the year '{year}'"
+                        + " even if its just 0"
+                    )
+            else:
+                unknownPairs = sorted(set(yearly_stock.index) - set(allPairs))
+                if unknownPairs:
+                    raise ValueError(
+                        f"The stock of '{component.name}' for the year '{year}' is "
+                        f"given for {unknownPairs}, which are no pairs 'loc1_loc2' of "
+                        "two different locations of the energy system model."
+                    )
             if any(
                 not isinstance(x, float)
                 and not isinstance(x, int)
@@ -2759,12 +2773,32 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 for x in yearly_stock.values
             ):
                 raise ValueError(f"Stock capacities in year '{year}' must be int/float")
+            if component.dimension == Dimension.TWO:
+                withoutConnection = sorted(
+                    pair
+                    for pair, value in yearly_stock.items()
+                    if pair not in regions and value != 0
+                )
+                if withoutConnection:
+                    raise ValueError(
+                        f"The stock of '{component.name}' for the year '{year}' is "
+                        f"nonzero for {withoutConnection}, where the component has no "
+                        "connection (see its locationalEligibility)."
+                    )
 
         else:
             raise TypeError(
                 "stockCommissioning must be a dict of keys for years and "
                 + "pd.Series with location as index and stock as value."
             )
+
+    if component.dimension == Dimension.TWO:
+        # index the stock by the connections, like every other parameter of the
+        # component (a new dict, the passed one is kept as the raw input)
+        stockCommissioning = {
+            year: yearly_stock.reindex(regions, fill_value=0)
+            for year, yearly_stock in stockCommissioning.items()
+        }
 
     def availabilityYear(year, loc):
         # stock still under construction becomes available after its lead time
@@ -2862,12 +2896,8 @@ def setStockCapacityStartYear(component, esM, dimension):
     if dimension == Dimension.ONE:
         regions = esM.locations
     elif dimension == Dimension.TWO:
-        regions = [
-            loc1 + "_" + loc2
-            for loc1 in esM.locations
-            for loc2 in esM.locations
-            if loc1 != loc2
-        ]
+        # the connections, which index the processed stock (see checkAndSetStock)
+        regions = list(component.locationalEligibility.index)
     if component.processedStockCommissioning is None:
         return pd.Series(index=regions, data=0)
 
