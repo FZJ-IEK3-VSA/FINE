@@ -1171,3 +1171,5 @@ def test_perfectForesight_variableConversions_operationLimitedByCommissioning():
     for (loc, compName, commisYear, *_), op in operation.items():
         assert op <= commis[loc, compName, commisYear] * esM.hoursPerTimeStep + 1e-6
 
+
+# %%
