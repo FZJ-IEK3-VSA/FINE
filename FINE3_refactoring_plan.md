@@ -13,6 +13,7 @@ It replaces the older "FINE Input Refactor Plan". Line numbers refer to that com
 - Every PR gets its own branch from `develop`, created only when the user asks for it. The branch holds only the code changes of the PR, never this plan. A PR that needs an unmerged PR branches from that PR's branch.
 - `develop` is merged into `fine_refactor` regularly so the line numbers in the plan stay current.
 - The plan and all notes, comments and PR texts are written in English.
+- PR descriptions give context, not just one sentence: a summary sentence, then short bullets for why (goal, issue), what changes (key design choices), how it was verified, and what is out of scope or follows later. They do not refer to this plan or its PR numbers; other PRs are referenced by their GitHub number. Commit messages stay short.
 - The plan is not followed blindly. Before and during every PR, check whether each planned step still makes sense against the current code (e.g. paths that no longer exist, helpers placed where only one test uses them, scope that contradicts the minimal-footprint rule) and raise every doubt with the user before implementing it.
 
 ### Status
@@ -21,11 +22,11 @@ Values for "Status": open, in progress, in review, merged. The last two columns 
 
 | PR | Status | GitHub | Plan reviewed before | Plan reviewed after |
 |---|---|---|---|---|
-| 1 | in review | #884 | 2026-11-10 | – |
+| 1 | merged | #884 | 2026-11-10 | – |
 | 2 | in review | #886 | 2026-11-10 | – |
-| 3 | in review | #885 | 2026-11-10 | – |
-| 4 | open | – | – | – |
-| 5 | open | – | – | – |
+| 3 | merged | #885 | 2026-11-10 | – |
+| 4 | in review | #887 | 2026-11-10 | – |
+| 5 | in review | #888 | 2026-11-10 | – |
 | 6 | open | – | – | – |
 | 7 | open | – | – | – |
 | 8 | open | – | – | – |
@@ -63,7 +64,7 @@ Values for "Status": open, in progress, in review, merged. The last two columns 
 
 ### Stop rule
 
-If an LP file changes up to and including block C: do not continue, investigate the cause and report it. The reference is not regenerated. The only exceptions are the PRs where the plan explicitly foresees regenerating it (follow-up PR to PR 16, PR 21).
+If a model reference of PR 1 (the "LP files" in this plan) changes up to and including block C: do not continue, investigate the cause and report it. The reference is not regenerated. The only exceptions are the PRs where the plan explicitly foresees regenerating it (follow-up PR to PR 16, PR 21).
 
 ### Environment
 
@@ -248,11 +249,12 @@ C has the largest benefit and the largest effort. B and C together make E cheap.
 - **Fixtures:** `minimal_test_esM`, `single_node_test_esM`, `multi_node_test_esM_init`, `dsm_test_esM`, `balanceLimitConstraint_test_esM`, `perfectForesight_test_esM`.
 - **First step in the PR:** Clarify the stability of the LP output (symbolic names, ordering): write the same fixture twice and compare, measure the file size for `multi_node_test_esM_init`. If the output is not stable or too large, a substitute criterion is defined and recorded here before continuing. `fine/energySystemModel.py` does not write an LP file itself today; the export goes through Pyomo.
 - **Result of the first step (2026-11-10):**
-  - Within one process the LP output is byte-identical. Across processes it depended on `PYTHONHASHSEED` (order of rows and terms). Writing with `io_options={"symbolic_solver_labels": True, "file_determinism": 20}` makes it byte-identical across hash seeds; no numeric differences.
-  - `balanceLimitConstraint_test_esM` draws unseeded random data; the test calls `np.random.seed(0)` first. Its LP has 5.7 MB and is stored as `.lp.gz` (about 300 KB).
-  - `multi_node_test_esM_init` is dropped: 1.15 GB unaggregated (7 min); with time series aggregation still 19 MB and dependent on tsam's clustering (local tsam differs from the CI version, every tsam update would trigger the stop rule).
-  - References under `test/data/golden/lp/`, regenerated with `UPDATE_GOLDEN=1` as in `test/IOManagement/test_xarrayio.py`. `.gitignore` excludes them from its `*.lp` rule.
-- **Deviations (2026-11-10):** PR #884, branch `test/lp-snapshot-check`. Local evidence before the PR: the test passes under `PYTHONHASHSEED` 1–3 and fails when a coefficient is changed on purpose; the full suite runs in CI only.
+  - Within one process the LP output is byte-identical. Across processes it depended on `PYTHONHASHSEED` (order of rows and terms); `file_determinism=20` fixes that, but the LP text still depends on the Pyomo writer, and the CI min/max job also runs Pyomo 6.8.1.
+  - Chosen instead: a canonical model in `test/test_lpSnapshot.py`. Every variable (domain, bounds), constraint (bounds, coefficients from `generate_standard_repn`) and objective becomes one line; lines and terms are sorted; numbers have 12 significant digits. Independent of the LP writer, the set order and the last float digits.
+  - `balanceLimitConstraint_test_esM` draws unseeded random data; the test calls `np.random.seed(0)` first. Its reference is stored as `.txt.gz` (about 290 KB).
+  - `multi_node_test_esM_init` is dropped: 1.15 GB LP unaggregated (7 min); with time series aggregation still 19 MB and dependent on tsam's clustering (local tsam differs from the CI version, every tsam update would trigger the stop rule).
+  - References under `test/data/golden/lp/`, regenerated with `UPDATE_GOLDEN=1` as in `test/IOManagement/test_xarrayio.py`.
+- **Deviations (2026-11-10):** PR #884, branch `test/lp-snapshot-check`. The helper lives in the test file, not in `test/conftest.py`, because only this test uses it. Local evidence: passes under `PYTHONHASHSEED` 1 and 2 and with Pyomo 6.8.1 (references made with 6.10.1); fails when `investPerCapacity` in `minimal_test_esM` is changed from 500 to 501. The full suite runs in CI only.
 - **Note:** `test/data/golden/` already holds a golden mechanism for results (`test/IOManagement/test_xarrayio.py`). Align the location of the LP references with it.
 - **Acceptance:** passes on `develop`; fails when a coefficient is changed on purpose.
 - **Needs:** nothing.
@@ -300,7 +302,27 @@ Order: PR 7 first, then 6, 8 and 9, PR 10 last. The reason is calls across PR bo
 - PR 8 calls PR 7: `checkLocationSpecficDesignInputParams` → `checkRegionalIndex`
 - PR 10 calls PR 7 and 8: `checkAndSetCommodityConversionFactor` → `checkRegionalIndex`, `checkAndSetTimeSeriesConversionFactors`; `checkAndSetMaintenanceParameters` → `processBoundParams`
 
-To clarify before PR 7: one worked before/after example of a signature as a pattern, and whether `esM.verboseLogLevel` is passed through as an argument (five functions read it).
+Pattern (decision 3, 2026-11-10): the system data a function reads from `esM` become keyword-only arguments after the existing ones; callers pass them by name. Example:
+
+```python
+# before
+def checkAndSetInvestmentPeriodTimeSeries(esM, name, data, locationalEligibility, dimension=Dimension.ONE): ...
+utils.checkAndSetInvestmentPeriodTimeSeries(esM, name, data, elig)
+
+# after
+def checkAndSetInvestmentPeriodTimeSeries(
+    name, data, locationalEligibility, dimension=Dimension.ONE, *,
+    locations, investmentPeriodNames, numberOfTimeSteps,
+): ...
+utils.checkAndSetInvestmentPeriodTimeSeries(
+    name, data, elig,
+    locations=esM.locations,
+    investmentPeriodNames=esM.investmentPeriodNames,
+    numberOfTimeSteps=esM.numberOfTimeSteps,
+)
+```
+
+`verboseLogLevel` is passed as a keyword-only argument in the same way; behaviour stays unchanged. On `develop` 8e02b9d3 three functions read it, all in PR 8 and 9: `checkAndSetDistances`, `checkLocationSpecficDesignInputParams`, `checkDesignVariableModelingParameters` (the earlier count of five was wrong).
 
 #### PR 5 – `feat(utils): add structured input error`
 
@@ -510,7 +532,6 @@ The branch was read completely (six areas, every statement cross-checked, nothin
 
 | No. | Decision | Due before |
 |---|---|---|
-| 3 | Pattern signature for pure check functions; handling of `verboseLogLevel` | PR 7 |
 | 4 | Model-wide part of `checkLocationSpecficDesignInputParams` (shared potential): where does it go? | PR 8 |
 | 5 | Scope of the piecewise linear cost function (`utilsPWLCF.py`) | PR 10 |
 | 6 | Time series in the frozen object: accept the proposal from PR 11? | PR 11 |
@@ -531,7 +552,9 @@ The branch was read completely (six areas, every statement cross-checked, nothin
 - Negative tests (PR 2) assert today's exception type and break on purpose in PR 11–15.
 - PR 3: the example notebook 07 is removed. `geopandas` stays for plotting. spagat is removed without a warning release.
 - If an LP file changes, work stops and the cause is investigated (section 0).
-- Decision 1 (PR 1): the LP files are compared byte-exactly, written with `file_determinism=20`. `multi_node_test_esM_init` is dropped from the snapshot set; `balanceLimitConstraint_test_esM` is stored gzip-compressed.
+- Decision 1 (PR 1): the models are compared in a canonical form (sorted lines, 12 significant digits) instead of as LP files, so Pyomo versions do not matter. `multi_node_test_esM_init` is dropped from the snapshot set; `balanceLimitConstraint_test_esM` is stored gzip-compressed.
+- Decision 3 (block B): system data become keyword-only arguments; `verboseLogLevel` is passed the same way (pattern in block B).
+- PR 4: `useProcessedValues` is removed without a warning release, like spagat.
 
 ## 11. Not verified
 
