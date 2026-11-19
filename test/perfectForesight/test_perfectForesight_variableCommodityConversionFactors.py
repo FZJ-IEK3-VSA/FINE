@@ -1112,4 +1112,62 @@ def test_perfectForesight_variableConversions_fullLoadHoursMin(
                 assert output_yearly_full_load_hours_min >= fullLoadHoursMin
 
 
-# %%
+def test_perfectForesight_variableConversions_operationLimitedByCommissioning():
+    # without any operationRate, operation per commissioning year must not exceed its capacity
+    esM = fn.EnergySystemModel(
+        locations={"loc"},
+        commodities={"electricity", "methane"},
+        commodityUnitsDict={"electricity": "GW_el", "methane": "GW_CH4"},
+        numberOfTimeSteps=1,
+        hoursPerTimeStep=8760,
+        costUnit="1e9 Euro",
+        startYear=2030,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=5,
+        verboseLogLevel=2,
+    )
+    esM.add(
+        fn.Sink(
+            esM,
+            name="Electricity demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame({"loc": [5 * 8760]}),
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM,
+            name="Methane import",
+            commodity="methane",
+            hasCapacityVariable=False,
+            commodityCost=1e-5,
+        )
+    )
+    old = {"electricity": 1, "methane": -2.5}
+    new = {"electricity": 1, "methane": -2.0}
+    esM.add(
+        fn.Conversion(
+            esM,
+            name="Gas turbine",
+            hasCapacityVariable=True,
+            physicalUnit="GW_el",
+            commodityConversionFactors={
+                (2025, 2030): old,
+                (2025, 2035): old,
+                (2030, 2030): new,
+                (2030, 2035): new,
+                (2035, 2035): new,
+            },
+            stockCommissioning={2025: pd.Series({"loc": 5.0})},
+            investPerCapacity=1,
+            economicLifetime=20,
+        )
+    )
+    esM.optimize()
+
+    commis = esM.pyM.commis_conv.get_values()
+    operation = esM.pyM.op_commis_conv.get_values()
+    for (loc, compName, commisYear, *_), op in operation.items():
+        assert op <= commis[loc, compName, commisYear] * esM.hoursPerTimeStep + 1e-6
+
