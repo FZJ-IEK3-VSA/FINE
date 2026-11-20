@@ -781,9 +781,9 @@ class ConversionModel(ComponentModel):
                 (loc, compName, commis, ip)
                 for loc, compName, commis, ip in varSet
                 if compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateMax) is None
-                and getattr(compDict[compName], rateFix) is None
-                and getattr(compDict[compName], rateMin) is None
+                and getattr(compDict[compName], rateMax)[ip] is None
+                and getattr(compDict[compName], rateFix)[ip] is None
+                and getattr(compDict[compName], rateMin)[ip] is None
                 and compDict[compName].isCommisDepending
             )
 
