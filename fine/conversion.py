@@ -13,6 +13,22 @@ import pandas as pd
 import pyomo.environ as pyomo
 
 
+def conversionFactorValue(commodCommodityConversionFactors, loc, p, t):
+    """Get one commodity conversion factor at a location and time step.
+
+    A processed conversion factor is a number, a pd.Series per location, a
+    pd.DataFrame indexed by (period, time step) with one column per location,
+    or a nested mapping per location and (period, time step).
+    """
+    if isinstance(commodCommodityConversionFactors, int | float):
+        return commodCommodityConversionFactors
+    if isinstance(commodCommodityConversionFactors, pd.Series):
+        return commodCommodityConversionFactors.loc[loc]
+    if isinstance(commodCommodityConversionFactors, pd.DataFrame):
+        return float(commodCommodityConversionFactors.at[(p, t), loc])
+    return commodCommodityConversionFactors[loc][p, t]
+
+
 class Conversion(Component):
     """A Conversion component converts commodities into each other."""
 
@@ -1543,10 +1559,10 @@ class ConversionModel(ComponentModel):
         """Get the contribution of this component class to a componentLimit.
 
         See :func:`EnergySystemModel.declareComponentLimitConstraints` for the
-        constraint the contribution enters. The annual operation is signed:
-
-        - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
-        - A Sink contributes with a negative sign. Example: Sale of electricity
+        constraint the contribution enters. Without a commodity, the annual
+        operation is counted in the physical unit of the component. With a
+        commodity, it is multiplied by that commodity's conversion factor, so an
+        input commodity (negative factor) contributes with a negative sign.
 
         :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
         :type esM: esM - EnergySystemModel class instance
@@ -1581,75 +1597,23 @@ class ConversionModel(ComponentModel):
         """
         compDict, abbrvName = self.componentsDict, self.abbrvName
 
-        def getFactor(commodCommodityConversionFactors, loc, p, t):
-            if isinstance(commodCommodityConversionFactors, (int, float)):
-                return commodCommodityConversionFactors
-            return commodCommodityConversionFactors[loc][p, t]
-
         if limitType == "operation":
-            opVar = getattr(pyM, "op_" + abbrvName)
-
-            if timeSeriesAggregation:
-                periods = esM.typicalPeriods
-                if esM.segmentation:
-                    timeSteps = esM.segmentsPerPeriod
-                else:
-                    timeSteps = esM.timeStepsPerPeriod
-            else:
-                periods = esM.periods
-                timeSteps = esM.totalTimeSteps
-
             if isinstance(ip, (list, tuple)):
                 start_ip, end_ip = ip
                 relevant_indices = [
-                    idx
-                    for idx, ip in enumerate(esM.investmentPeriods)
-                    if start_ip <= ip <= end_ip
+                    _ip for _ip in esM.investmentPeriods if start_ip <= _ip <= end_ip
                 ]
-                balance = sum(
-                    opVar[loc, compName, i, p, t]
-                    * (
-                        getFactor(
-                            compDict[compName].processedCommodityConversionFactors[i][
-                                commodity
-                            ],
-                            loc,
-                            p,
-                            t,
-                        )
-                        if commodity not in ["None", None]
-                        else 1
-                    )
-                    * esM.periodOccurrences[i][p]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                    for i in relevant_indices
-                    for p in periods
-                    for t in timeSteps
-                )
             else:
-                balance = sum(
-                    opVar[loc, compName, ip, p, t]
-                    * (
-                        getFactor(
-                            compDict[compName].processedCommodityConversionFactors[ip][
-                                commodity
-                            ],
-                            loc,
-                            p,
-                            t,
-                        )
-                        if commodity not in ["None", None]
-                        else 1
-                    )
-                    * esM.periodOccurrences[ip][p]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                    for p in periods
-                    for t in timeSteps
+                relevant_indices = [ip]
+            balance = sum(
+                self._componentLimitOperation(
+                    esM, pyM, timeSeriesAggregation, i, loc, compName, commodity
                 )
+                for compName in compDict.keys()
+                if compName in componentNames
+                and compDict[compName].processedLocationalEligibility[loc] == 1
+                for i in relevant_indices
+            )
             if isinstance(balance, int) or isinstance(balance, float):
                 return None
             return balance
@@ -1694,6 +1658,76 @@ class ConversionModel(ComponentModel):
             "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
         )
 
+    def _componentLimitOperation(
+        self, esM, pyM, timeSeriesAggregation, ip, loc, compName, commodity
+    ):
+        """Annual operation of one conversion component for a componentLimit.
+
+        Without a commodity, the operation is counted in the physical unit of the
+        component. With a commodity, it is counted in that commodity, as the
+        commodity balance counts it: through the conversion factor of the
+        commodity, the commissioning year dependent operation or the flexible
+        operation. A component that does not convert the commodity contributes 0.
+        """
+        comp = self.componentsDict[compName]
+        abbrvName = self.abbrvName
+        if timeSeriesAggregation:
+            periods = esM.typicalPeriods
+            timeSteps = (
+                esM.segmentsPerPeriod if esM.segmentation else esM.timeStepsPerPeriod
+            )
+        else:
+            periods = esM.periods
+            timeSteps = esM.totalTimeSteps
+
+        def annual(term):
+            return sum(
+                term(p, t) * esM.periodOccurrences[ip][p]
+                for p in periods
+                for t in timeSteps
+            )
+
+        opVar = getattr(pyM, "op_" + abbrvName)
+        if commodity in ["None", None]:
+            return annual(lambda p, t: opVar[loc, compName, ip, p, t])
+
+        ccf = comp.processedCommodityConversionFactors
+        if comp.isCommisDepending:
+            opCommisVar = getattr(pyM, "op_commis_" + abbrvName)
+            return sum(
+                annual(
+                    lambda p, t, commis=commis: opCommisVar[
+                        loc, compName, commis, ip, p, t
+                    ]
+                    * conversionFactorValue(ccf[(commis, ip)][commodity], loc, p, t)
+                )
+                for (commis, _ip) in ccf
+                if _ip == ip and commodity in ccf[(commis, ip)]
+            )
+
+        contribution = 0
+        if commodity in ccf[ip]:
+            contribution += annual(
+                lambda p, t: opVar[loc, compName, ip, p, t]
+                * conversionFactorValue(ccf[ip][commodity], loc, p, t)
+            )
+        if comp.flexibleConversion:
+            opVarFlex = getattr(pyM, "op_flex_" + abbrvName)
+            flexGroupSet = getattr(pyM, "operationFlexGroupSet_" + abbrvName)
+            for group in {
+                index[3]
+                for index in flexGroupSet
+                if index[0] == loc and index[1] == compName and index[2] == ip
+            }:
+                if commodity in ccf[ip][group]:
+                    contribution += annual(
+                        lambda p, t, group=group: opVarFlex[
+                            loc, compName, ip, group, commodity, p, t
+                        ]
+                        * conversionFactorValue(ccf[ip][group][commodity], loc, p, t)
+                    )
+        return contribution
+
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         r"""Get contribution to a commodity balance.
 
@@ -1708,14 +1742,7 @@ class ConversionModel(ComponentModel):
         opCommisVar = getattr(pyM, "op_commis_" + abbrvName)
         opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
 
-        def getFactor(commodCommodityConversionFactors, loc, p, t):
-            if isinstance(commodCommodityConversionFactors, int | float):
-                return commodCommodityConversionFactors
-            if isinstance(commodCommodityConversionFactors, pd.Series):
-                return commodCommodityConversionFactors.loc[loc]
-            if isinstance(commodCommodityConversionFactors, pd.DataFrame):
-                return float(commodCommodityConversionFactors.at[(p, t), loc])
-            return commodCommodityConversionFactors[loc][p, t]
+        getFactor = conversionFactorValue
 
         # 1.a get balance for components, which do not have commodity conversions varying with the commissioning year
         # prepare data
