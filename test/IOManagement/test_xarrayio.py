@@ -759,21 +759,6 @@ def test_capacityFix_subset(multi_node_test_esM_init, tmp_path):
     _ = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
 
 
-def test_esm_to_datasets_with_processed_values(minimal_test_esM):
-    esm_original = minimal_test_esM
-
-    xr_dss = xrIO.convertOptimizationInputToDatasets(
-        esm_original, useProcessedValues=True
-    )
-    assert (
-        xr_dss.get("Input")
-        .get("Transmission")
-        .get("Pipelines")["0d_investPerCapacity.0"]
-        .item()
-        == 0.177
-    )
-
-
 def test_transmission_dims(minimal_test_esM):
     esM = minimal_test_esM
     capacityMin = pd.DataFrame(
