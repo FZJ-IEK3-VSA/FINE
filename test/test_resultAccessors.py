@@ -24,11 +24,10 @@ def _optimize(esM):
 
 
 def test_requireRawResults_raises_before_the_model_is_optimized(minimal_test_esM):
-    """The raw results exist only after optimize(); asking earlier must explain that.
+    """Asking for raw results before optimize() must explain how to get them.
 
-    An EnergySystemModel read back from netCDF is in exactly this state (the reader
-    restores the summary and the optimum attributes but not the raw results), so the
-    error has to name the remedy instead of surfacing as an AttributeError.
+    The error has to name the remedy (optimize, or load an optimized model) instead of
+    surfacing as an AttributeError.
     """
     model = minimal_test_esM.componentModelingDict["ConversionModel"]
     assert model._rawResults == {}

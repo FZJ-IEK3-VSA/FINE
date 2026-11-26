@@ -721,7 +721,8 @@ def test_input_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
 def test_output_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     """Optimize an esM, write it to  netCDF, then load the esM from this file.
     Compare if both esMs are identical. Inputs are compared with exportToDict,
-    outputs are compared with optimizationSummary.
+    outputs are compared with optimizationSummary and with the result export, which
+    reads the raw results dict that the reader rebuilds.
     """
     test_esM = str(tmp_path / "test_esM.nc")
 
@@ -734,6 +735,10 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
 
     compare_esm_inputs(esm_original, esm_from_netcdf)
     compare_esm_outputs(esm_original, esm_from_netcdf)
+    assert_nested_xarray_dict_matches(
+        xrIO.convertOptimizationOutputToDatasets(esm_from_netcdf)["Results"],
+        xrIO.convertOptimizationOutputToDatasets(esm_original)["Results"],
+    )
 
 
 def test_optSumOutputLevel_is_deprecated(minimal_test_esM):

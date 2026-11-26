@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import xarray as xr
 from pathlib import Path
 import fine as fn
 import fine.IOManagement.xarrayIO as xrIO
@@ -108,6 +109,18 @@ def test_etl_NPV():
             )
             # the unit is exported as the variable's attribute, as for every summary row
             assert ds[prop].attrs[prop] == expected.index[-1]
+
+    # A model read back from these datasets must export the same results, including the
+    # etl rows, which only reach the export if the reader registers them again (#786).
+    reexport = xrIO.convertOptimizationOutputToDatasets(
+        xrIO.convertDatasetsToEnergySystemModel(xrds)
+    )["Results"]
+    for ipName in esM.investmentPeriodNames:
+        expected = xrds["Results"][ipName]["SourceSinkModel"]["PV"]
+        actual = reexport[ipName]["SourceSinkModel"]["PV"]
+        xr.testing.assert_allclose(actual, expected)
+        for prop in expected.data_vars:
+            assert actual[prop].attrs == expected[prop].attrs
 
     esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath="test_esM_etl.nc")
     Path("test_esM_etl.nc").unlink()
