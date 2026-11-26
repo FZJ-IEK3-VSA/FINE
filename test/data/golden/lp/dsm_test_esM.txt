@@ -1,0 +1,113 @@
+con commodityBalanceConstraint[location,electricity,0,0,0]: 0 <= 1 op_srcSnk[location,back-up,0,0,0] 1 op_srcSnk[location,cheap,0,0,0] 1 op_srcSnk[location,expensive,0,0,0] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,10]: 0 <= 1 op_srcSnk[location,back-up,0,0,10] 1 op_srcSnk[location,cheap,0,0,10] 1 op_srcSnk[location,expensive,0,0,10] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,11]: 0 <= 1 op_srcSnk[location,back-up,0,0,11] 1 op_srcSnk[location,cheap,0,0,11] 1 op_srcSnk[location,expensive,0,0,11] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,12]: 0 <= 1 op_srcSnk[location,back-up,0,0,12] 1 op_srcSnk[location,cheap,0,0,12] 1 op_srcSnk[location,expensive,0,0,12] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,13]: 0 <= 1 op_srcSnk[location,back-up,0,0,13] 1 op_srcSnk[location,cheap,0,0,13] 1 op_srcSnk[location,expensive,0,0,13] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,14]: 0 <= 1 op_srcSnk[location,back-up,0,0,14] 1 op_srcSnk[location,cheap,0,0,14] 1 op_srcSnk[location,expensive,0,0,14] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,15]: 0 <= 1 op_srcSnk[location,back-up,0,0,15] 1 op_srcSnk[location,cheap,0,0,15] 1 op_srcSnk[location,expensive,0,0,15] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,16]: 0 <= 1 op_srcSnk[location,back-up,0,0,16] 1 op_srcSnk[location,cheap,0,0,16] 1 op_srcSnk[location,expensive,0,0,16] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,17]: 0 <= 1 op_srcSnk[location,back-up,0,0,17] 1 op_srcSnk[location,cheap,0,0,17] 1 op_srcSnk[location,expensive,0,0,17] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,18]: 0 <= 1 op_srcSnk[location,back-up,0,0,18] 1 op_srcSnk[location,cheap,0,0,18] 1 op_srcSnk[location,expensive,0,0,18] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,19]: 0 <= 1 op_srcSnk[location,back-up,0,0,19] 1 op_srcSnk[location,cheap,0,0,19] 1 op_srcSnk[location,expensive,0,0,19] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,1]: 0 <= 1 op_srcSnk[location,back-up,0,0,1] 1 op_srcSnk[location,cheap,0,0,1] 1 op_srcSnk[location,expensive,0,0,1] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,20]: 0 <= 1 op_srcSnk[location,back-up,0,0,20] 1 op_srcSnk[location,cheap,0,0,20] 1 op_srcSnk[location,expensive,0,0,20] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,21]: 0 <= 1 op_srcSnk[location,back-up,0,0,21] 1 op_srcSnk[location,cheap,0,0,21] 1 op_srcSnk[location,expensive,0,0,21] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,22]: 0 <= 1 op_srcSnk[location,back-up,0,0,22] 1 op_srcSnk[location,cheap,0,0,22] 1 op_srcSnk[location,expensive,0,0,22] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,23]: 0 <= 1 op_srcSnk[location,back-up,0,0,23] 1 op_srcSnk[location,cheap,0,0,23] 1 op_srcSnk[location,expensive,0,0,23] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,24]: 0 <= 1 op_srcSnk[location,back-up,0,0,24] 1 op_srcSnk[location,cheap,0,0,24] 1 op_srcSnk[location,expensive,0,0,24] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,25]: 0 <= 1 op_srcSnk[location,back-up,0,0,25] 1 op_srcSnk[location,cheap,0,0,25] 1 op_srcSnk[location,expensive,0,0,25] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,26]: 0 <= 1 op_srcSnk[location,back-up,0,0,26] 1 op_srcSnk[location,cheap,0,0,26] 1 op_srcSnk[location,expensive,0,0,26] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,27]: 0 <= 1 op_srcSnk[location,back-up,0,0,27] 1 op_srcSnk[location,cheap,0,0,27] 1 op_srcSnk[location,expensive,0,0,27] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,2]: 0 <= 1 op_srcSnk[location,back-up,0,0,2] 1 op_srcSnk[location,cheap,0,0,2] 1 op_srcSnk[location,expensive,0,0,2] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,3]: 0 <= 1 op_srcSnk[location,back-up,0,0,3] 1 op_srcSnk[location,cheap,0,0,3] 1 op_srcSnk[location,expensive,0,0,3] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,4]: 0 <= 1 op_srcSnk[location,back-up,0,0,4] 1 op_srcSnk[location,cheap,0,0,4] 1 op_srcSnk[location,expensive,0,0,4] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,5]: 0 <= 1 op_srcSnk[location,back-up,0,0,5] 1 op_srcSnk[location,cheap,0,0,5] 1 op_srcSnk[location,expensive,0,0,5] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,6]: 0 <= 1 op_srcSnk[location,back-up,0,0,6] 1 op_srcSnk[location,cheap,0,0,6] 1 op_srcSnk[location,expensive,0,0,6] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,7]: 0 <= 1 op_srcSnk[location,back-up,0,0,7] 1 op_srcSnk[location,cheap,0,0,7] 1 op_srcSnk[location,expensive,0,0,7] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,8]: 0 <= 1 op_srcSnk[location,back-up,0,0,8] 1 op_srcSnk[location,cheap,0,0,8] 1 op_srcSnk[location,expensive,0,0,8] <= 0
+con commodityBalanceConstraint[location,electricity,0,0,9]: 0 <= 1 op_srcSnk[location,back-up,0,0,9] 1 op_srcSnk[location,cheap,0,0,9] 1 op_srcSnk[location,expensive,0,0,9] <= 0
+obj Obj minimize: 0 + 312857.142857 op_srcSnk[location,back-up,0,0,0] 312857.142857 op_srcSnk[location,back-up,0,0,10] 312857.142857 op_srcSnk[location,back-up,0,0,11] 312857.142857 op_srcSnk[location,back-up,0,0,12] 312857.142857 op_srcSnk[location,back-up,0,0,13] 312857.142857 op_srcSnk[location,back-up,0,0,14] 312857.142857 op_srcSnk[location,back-up,0,0,15] 312857.142857 op_srcSnk[location,back-up,0,0,16] 312857.142857 op_srcSnk[location,back-up,0,0,17] 312857.142857 op_srcSnk[location,back-up,0,0,18] 312857.142857 op_srcSnk[location,back-up,0,0,19] 312857.142857 op_srcSnk[location,back-up,0,0,1] 312857.142857 op_srcSnk[location,back-up,0,0,20] 312857.142857 op_srcSnk[location,back-up,0,0,21] 312857.142857 op_srcSnk[location,back-up,0,0,22] 312857.142857 op_srcSnk[location,back-up,0,0,23] 312857.142857 op_srcSnk[location,back-up,0,0,24] 312857.142857 op_srcSnk[location,back-up,0,0,25] 312857.142857 op_srcSnk[location,back-up,0,0,26] 312857.142857 op_srcSnk[location,back-up,0,0,27] 312857.142857 op_srcSnk[location,back-up,0,0,2] 312857.142857 op_srcSnk[location,back-up,0,0,3] 312857.142857 op_srcSnk[location,back-up,0,0,4] 312857.142857 op_srcSnk[location,back-up,0,0,5] 312857.142857 op_srcSnk[location,back-up,0,0,6] 312857.142857 op_srcSnk[location,back-up,0,0,7] 312857.142857 op_srcSnk[location,back-up,0,0,8] 312857.142857 op_srcSnk[location,back-up,0,0,9] 7821.42857143 op_srcSnk[location,cheap,0,0,0] 7821.42857143 op_srcSnk[location,cheap,0,0,10] 7821.42857143 op_srcSnk[location,cheap,0,0,11] 7821.42857143 op_srcSnk[location,cheap,0,0,12] 7821.42857143 op_srcSnk[location,cheap,0,0,13] 7821.42857143 op_srcSnk[location,cheap,0,0,14] 7821.42857143 op_srcSnk[location,cheap,0,0,15] 7821.42857143 op_srcSnk[location,cheap,0,0,16] 7821.42857143 op_srcSnk[location,cheap,0,0,17] 7821.42857143 op_srcSnk[location,cheap,0,0,18] 7821.42857143 op_srcSnk[location,cheap,0,0,19] 7821.42857143 op_srcSnk[location,cheap,0,0,1] 7821.42857143 op_srcSnk[location,cheap,0,0,20] 7821.42857143 op_srcSnk[location,cheap,0,0,21] 7821.42857143 op_srcSnk[location,cheap,0,0,22] 7821.42857143 op_srcSnk[location,cheap,0,0,23] 7821.42857143 op_srcSnk[location,cheap,0,0,24] 7821.42857143 op_srcSnk[location,cheap,0,0,25] 7821.42857143 op_srcSnk[location,cheap,0,0,26] 7821.42857143 op_srcSnk[location,cheap,0,0,27] 7821.42857143 op_srcSnk[location,cheap,0,0,2] 7821.42857143 op_srcSnk[location,cheap,0,0,3] 7821.42857143 op_srcSnk[location,cheap,0,0,4] 7821.42857143 op_srcSnk[location,cheap,0,0,5] 7821.42857143 op_srcSnk[location,cheap,0,0,6] 7821.42857143 op_srcSnk[location,cheap,0,0,7] 7821.42857143 op_srcSnk[location,cheap,0,0,8] 7821.42857143 op_srcSnk[location,cheap,0,0,9] 15642.8571429 op_srcSnk[location,expensive,0,0,0] 15642.8571429 op_srcSnk[location,expensive,0,0,10] 15642.8571429 op_srcSnk[location,expensive,0,0,11] 15642.8571429 op_srcSnk[location,expensive,0,0,12] 15642.8571429 op_srcSnk[location,expensive,0,0,13] 15642.8571429 op_srcSnk[location,expensive,0,0,14] 15642.8571429 op_srcSnk[location,expensive,0,0,15] 15642.8571429 op_srcSnk[location,expensive,0,0,16] 15642.8571429 op_srcSnk[location,expensive,0,0,17] 15642.8571429 op_srcSnk[location,expensive,0,0,18] 15642.8571429 op_srcSnk[location,expensive,0,0,19] 15642.8571429 op_srcSnk[location,expensive,0,0,1] 15642.8571429 op_srcSnk[location,expensive,0,0,20] 15642.8571429 op_srcSnk[location,expensive,0,0,21] 15642.8571429 op_srcSnk[location,expensive,0,0,22] 15642.8571429 op_srcSnk[location,expensive,0,0,23] 15642.8571429 op_srcSnk[location,expensive,0,0,24] 15642.8571429 op_srcSnk[location,expensive,0,0,25] 15642.8571429 op_srcSnk[location,expensive,0,0,26] 15642.8571429 op_srcSnk[location,expensive,0,0,27] 15642.8571429 op_srcSnk[location,expensive,0,0,2] 15642.8571429 op_srcSnk[location,expensive,0,0,3] 15642.8571429 op_srcSnk[location,expensive,0,0,4] 15642.8571429 op_srcSnk[location,expensive,0,0,5] 15642.8571429 op_srcSnk[location,expensive,0,0,6] 15642.8571429 op_srcSnk[location,expensive,0,0,7] 15642.8571429 op_srcSnk[location,expensive,0,0,8] 15642.8571429 op_srcSnk[location,expensive,0,0,9]
+var op_srcSnk[location,back-up,0,0,0] C 0 1000
+var op_srcSnk[location,back-up,0,0,10] C 0 1000
+var op_srcSnk[location,back-up,0,0,11] C 0 1000
+var op_srcSnk[location,back-up,0,0,12] C 0 1000
+var op_srcSnk[location,back-up,0,0,13] C 0 1000
+var op_srcSnk[location,back-up,0,0,14] C 0 1000
+var op_srcSnk[location,back-up,0,0,15] C 0 1000
+var op_srcSnk[location,back-up,0,0,16] C 0 1000
+var op_srcSnk[location,back-up,0,0,17] C 0 1000
+var op_srcSnk[location,back-up,0,0,18] C 0 1000
+var op_srcSnk[location,back-up,0,0,19] C 0 1000
+var op_srcSnk[location,back-up,0,0,1] C 0 1000
+var op_srcSnk[location,back-up,0,0,20] C 0 1000
+var op_srcSnk[location,back-up,0,0,21] C 0 1000
+var op_srcSnk[location,back-up,0,0,22] C 0 1000
+var op_srcSnk[location,back-up,0,0,23] C 0 1000
+var op_srcSnk[location,back-up,0,0,24] C 0 1000
+var op_srcSnk[location,back-up,0,0,25] C 0 1000
+var op_srcSnk[location,back-up,0,0,26] C 0 1000
+var op_srcSnk[location,back-up,0,0,27] C 0 1000
+var op_srcSnk[location,back-up,0,0,2] C 0 1000
+var op_srcSnk[location,back-up,0,0,3] C 0 1000
+var op_srcSnk[location,back-up,0,0,4] C 0 1000
+var op_srcSnk[location,back-up,0,0,5] C 0 1000
+var op_srcSnk[location,back-up,0,0,6] C 0 1000
+var op_srcSnk[location,back-up,0,0,7] C 0 1000
+var op_srcSnk[location,back-up,0,0,8] C 0 1000
+var op_srcSnk[location,back-up,0,0,9] C 0 1000
+var op_srcSnk[location,cheap,0,0,0] C 0 100
+var op_srcSnk[location,cheap,0,0,10] C 0 100
+var op_srcSnk[location,cheap,0,0,11] C 0 100
+var op_srcSnk[location,cheap,0,0,12] C 0 100
+var op_srcSnk[location,cheap,0,0,13] C 0 100
+var op_srcSnk[location,cheap,0,0,14] C 0 100
+var op_srcSnk[location,cheap,0,0,15] C 0 100
+var op_srcSnk[location,cheap,0,0,16] C 0 100
+var op_srcSnk[location,cheap,0,0,17] C 0 100
+var op_srcSnk[location,cheap,0,0,18] C 0 100
+var op_srcSnk[location,cheap,0,0,19] C 0 100
+var op_srcSnk[location,cheap,0,0,1] C 0 100
+var op_srcSnk[location,cheap,0,0,20] C 0 100
+var op_srcSnk[location,cheap,0,0,21] C 0 100
+var op_srcSnk[location,cheap,0,0,22] C 0 100
+var op_srcSnk[location,cheap,0,0,23] C 0 100
+var op_srcSnk[location,cheap,0,0,24] C 0 100
+var op_srcSnk[location,cheap,0,0,25] C 0 100
+var op_srcSnk[location,cheap,0,0,26] C 0 100
+var op_srcSnk[location,cheap,0,0,27] C 0 100
+var op_srcSnk[location,cheap,0,0,2] C 0 100
+var op_srcSnk[location,cheap,0,0,3] C 0 100
+var op_srcSnk[location,cheap,0,0,4] C 0 100
+var op_srcSnk[location,cheap,0,0,5] C 0 100
+var op_srcSnk[location,cheap,0,0,6] C 0 100
+var op_srcSnk[location,cheap,0,0,7] C 0 100
+var op_srcSnk[location,cheap,0,0,8] C 0 100
+var op_srcSnk[location,cheap,0,0,9] C 0 100
+var op_srcSnk[location,expensive,0,0,0] C 0 20
+var op_srcSnk[location,expensive,0,0,10] C 0 20
+var op_srcSnk[location,expensive,0,0,11] C 0 20
+var op_srcSnk[location,expensive,0,0,12] C 0 20
+var op_srcSnk[location,expensive,0,0,13] C 0 20
+var op_srcSnk[location,expensive,0,0,14] C 0 20
+var op_srcSnk[location,expensive,0,0,15] C 0 20
+var op_srcSnk[location,expensive,0,0,16] C 0 20
+var op_srcSnk[location,expensive,0,0,17] C 0 20
+var op_srcSnk[location,expensive,0,0,18] C 0 20
+var op_srcSnk[location,expensive,0,0,19] C 0 20
+var op_srcSnk[location,expensive,0,0,1] C 0 20
+var op_srcSnk[location,expensive,0,0,20] C 0 20
+var op_srcSnk[location,expensive,0,0,21] C 0 20
+var op_srcSnk[location,expensive,0,0,22] C 0 20
+var op_srcSnk[location,expensive,0,0,23] C 0 20
+var op_srcSnk[location,expensive,0,0,24] C 0 20
+var op_srcSnk[location,expensive,0,0,25] C 0 20
+var op_srcSnk[location,expensive,0,0,26] C 0 20
+var op_srcSnk[location,expensive,0,0,27] C 0 20
+var op_srcSnk[location,expensive,0,0,2] C 0 20
+var op_srcSnk[location,expensive,0,0,3] C 0 20
+var op_srcSnk[location,expensive,0,0,4] C 0 20
+var op_srcSnk[location,expensive,0,0,5] C 0 20
+var op_srcSnk[location,expensive,0,0,6] C 0 20
+var op_srcSnk[location,expensive,0,0,7] C 0 20
+var op_srcSnk[location,expensive,0,0,8] C 0 20
+var op_srcSnk[location,expensive,0,0,9] C 0 20
