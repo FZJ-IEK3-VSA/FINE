@@ -31,7 +31,7 @@ def addStepwiseSource(esM, name, commodity, costCurve, **kwargs):
 
     Constructs one :class:`fine.sourceSink.Source` per segment of ``costCurve``, each
     bounded by that segment's width (via ``operationRateMax``) and priced at that
-    segment's price (via ``commodityCost``/``commodityCostTimeSeries``). The segment
+    segment's price (via ``commodityCost``, constant or time series). The segment
     components are added to ``esM``; :func:`collapseStepwiseResults` finds them again
     from their ``f"{name}_segment{i}"`` names to re-aggregate their results.
 
@@ -89,10 +89,8 @@ def _addStepwiseComponent(esM, name, commodity, costCurve, isSource, **kwargs):
         )
 
     noSegments = len(widths) # width is list of floats or list of pd.Series, prices is list of floats or list of pd.Series
+    # commodityCost/commodityRevenue take both a constant and a time series price
     priceParam = "commodityCost" if isSource else "commodityRevenue"
-    priceTimeSeriesParam = (
-        "commodityCostTimeSeries" if isSource else "commodityRevenueTimeSeries"
-    )
     componentClass = Source if isSource else Sink
 
     segmentNames = []
@@ -115,7 +113,7 @@ def _addStepwiseComponent(esM, name, commodity, costCurve, isSource, **kwargs):
                     {loc: widthSeries.to_numpy() for loc in esM.locations},
                     index=widthSeries.index,
                 )
-            segmentKwargs[priceTimeSeriesParam] = pd.DataFrame(
+            segmentKwargs[priceParam] = pd.DataFrame(
                 {loc: priceSeries.to_numpy() for loc in esM.locations},
                 index=priceSeries.index,
             )
