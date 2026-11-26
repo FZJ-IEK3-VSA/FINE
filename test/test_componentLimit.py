@@ -583,3 +583,23 @@ def test_componentLimit_accepts_connections_only():
     )
     assert esM.processedComponentLimit is not None
     assert esM.processedComponentLimitEligibility is None
+
+
+def test_componentLimit_accepts_rows_with_and_without_ipEnd():
+    """Rows with and without a range may be mixed in one componentLimit.
+
+    A mixed ipEnd column becomes a float column with NaN, which has to be
+    read as "not set".
+    """
+    esM = _esMWithLimitInput(
+        limitRows={
+            "index": ["L", "L"],
+            "data": [
+                [1.0, "upper", "operation", None, 2020, None],
+                [1.0, "upper", "operation", None, 2020, 2030],
+            ],
+        }
+    )
+    ipEnd = esM.processedComponentLimit["ipEnd"]
+    assert pd.isna(ipEnd.iloc[0])
+    assert ipEnd.iloc[1] == 2

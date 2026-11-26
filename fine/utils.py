@@ -2031,12 +2031,13 @@ def checkAndSetComponentLimit(
 
     # an empty ip or ipEnd may arrive as None or, after a round trip through
     # a file, as NaN. Both mean "not set".
-    _componentLimit["ip"] = _componentLimit["ip"].where(
-        _componentLimit["ip"].notna(), None
-    )
-    _componentLimit["ipEnd"] = _componentLimit["ipEnd"].where(
-        _componentLimit["ipEnd"].notna(), None
-    )
+    # a float column keeps NaN even where None is inserted, so cast to object
+    for column in ("ip", "ipEnd"):
+        _componentLimit[column] = (
+            _componentLimit[column]
+            .astype(object)
+            .where(_componentLimit[column].notna(), None)
+        )
 
     missingIp = sorted(
         str(ID) for ID, ip in _componentLimit["ip"].items() if ip is None
