@@ -108,11 +108,9 @@ def convertPerformanceSummaryToDatasets(esM):  # noqa D103
 def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=None):
     """Take esM instance output and convert it into an xarray dataset.
 
-    The results are read from the raw results dict that ``esM.optimize()`` fills, so the esM
-    must have been optimized in this session. An esM read back from a netCDF file carries the
-    optimization summary but not that dict, and cannot be exported again without re-optimizing
-    (see :meth:`fine.component.ComponentModel._requireRawResults`). This limitation is
-    temporary: issue #786 reconstructs the raw results dict on netCDF load.
+    The results are read from the raw results dict that ``esM.optimize()`` fills. When an esM
+    is read from a netCDF file or datasets, :func:`convertDatasetsToEnergySystemModel` rebuilds
+    that dict from the stored results, so a loaded esM can be exported again.
 
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
@@ -127,8 +125,8 @@ def convertOptimizationOutputToDatasets(esM, optSumOutputLevel=None):
     :return: xr_ds - EnergySystemModel instance output data in xarray dataset format
     :rtype: xarray.dataset
 
-    :raises RuntimeError: if the esM holds no raw optimization results, e.g. because it was
-        read from a netCDF file instead of optimized. Tracked in issue #786.
+    :raises RuntimeError: if the esM holds no raw optimization results, i.e. it was neither
+        optimized nor read from a file that contains results.
     """
     _warnDeprecatedOptSumOutputLevel(optSumOutputLevel)
     # Create the netCDF file and the xr.Dataset dict for all ips and components
@@ -367,6 +365,45 @@ def writeDatasetsToNetCDF(
                         )
 
 
+def _registerLoadedExtraSummaryRows(esM, modelingClass, optSum):
+    """Register the loaded summary rows that the modeling class does not derive itself.
+
+    ``esM.optimize()`` registers the rows of expansion modules (the ``*_ETL``/``*_EOS`` rows of
+    the piecewise linear cost function) with ``registerExtraSummaryRows``; the result export
+    only writes rows registered that way. A loaded esM has these rows in its summary only, so
+    every 1-dim summary row that :meth:`getResultSummaryDict` does not already report is
+    registered here, with the unit stored in the file.
+
+    :param esM: the loaded EnergySystemModel; its raw results must already be rebuilt.
+    :param modelingClass: the modeling class whose rows are registered.
+    :param optSum: the loaded summary, ``{ip: DataFrame}`` with a
+        ``(Component, Property, Unit)`` index.
+    """
+    if modelingClass.dimension != Dimension.ONE:
+        return
+    for ip, summary in optSum.items():
+        if summary.empty or ip not in modelingClass._rawResults:
+            continue
+        reported = modelingClass.getResultSummaryDict(esM, ip)
+        rows = []
+        for prop in summary.index.get_level_values("Property").unique():
+            sub = summary.xs(prop, level="Property")
+            components = sub.index.get_level_values("Component")
+            extra = [prop not in reported.get(comp, {}) for comp in components]
+            if not any(extra):
+                continue
+            sub = sub[extra]
+            units = dict(
+                zip(
+                    sub.index.get_level_values("Component"),
+                    sub.index.get_level_values("Unit"),
+                )
+            )
+            frame = sub.droplevel("Unit").apply(pd.to_numeric)
+            rows.append((prop, frame, lambda comp, units=units: units[comp]))
+        modelingClass.registerExtraSummaryRows(ip, rows)
+
+
 def convertDatasetsToEnergySystemModel(datasets):
     """Take dictionary of xarray datasets (with esM instance data) and convert
     it to an esM instance.
@@ -447,6 +484,20 @@ def convertDatasetsToEnergySystemModel(datasets):
         for model, comps in datasets["Results"][startyear].items():
             componentModel = esM.componentModelingDict[model]
             optSum = {}
+            # Reconstruct the raw results dict (single source of truth for the summary and
+            # the export), driven generically by the modeling class' own
+            # _exportOptimumVarMap() instead of a hardcoded variable list, so a class adding
+            # its own variables there (e.g. LOPF's phaseAngle) is restored automatically.
+            exportMap = componentModel._exportOptimumVarMap()
+            timeDependentRawKeys = {
+                rawKey: (optName, dimension)
+                for rawKey, optName, timeDependent, dimension in exportMap
+                if timeDependent
+            }
+            # Design rows also have a 1-dim companion in _rawResults1dim.
+            designProps = {*DUPLICATE_OPTIMUM_SUMMARY_ROWS, "isBuilt"}
+            rawResultsDict = {}
+            rawResults1dimDict = {}
             operationVariablesOptimum_dict = {}
             capacityVariablesOptimum_dict = {}
             isBuiltVariablesOptimum_dict = {}
@@ -534,6 +585,55 @@ def convertDatasetsToEnergySystemModel(datasets):
                 optSum[int(ip)] = optSum_df
 
                 componentModel._optSummary = optSum
+
+                # Reconstruct _rawResults / _rawResults1dim for this investment period.
+                # Design rows and derived economics rows are always present in the summary
+                # (not skipped as "duplicate"); time-dependent variables (operation,
+                # charge/discharge, phaseAngle, part-load discretization, ...) are read
+                # from their own dedicated netCDF variable instead.
+                ipInt = int(ip)
+                rawResultsDict[ipInt] = {}
+                rawResults1dimDict[ipInt] = {}
+                isTwoDim = componentModel.dimension == Dimension.TWO
+                for prop in optSum_df.index.get_level_values("Property").unique():
+                    sub = optSum_df.xs(prop, level="Property")
+                    if "Unit" in sub.index.names:
+                        sub = sub.droplevel("Unit")
+                    sub = sub.dropna(axis=0, how="all").dropna(axis=1, how="all")
+                    if sub.empty:
+                        continue
+                    melted = utilsIO.meltConnectionColumns(sub) if isTwoDim else sub
+                    # The summary names the level "Component", optimize() names it
+                    # "component"; the public *VariablesOptimum frames must not differ
+                    # between an optimized and a loaded model.
+                    sub = sub.rename_axis(index={"Component": "component"})
+                    melted = melted.rename_axis(index={"Component": "component"})
+                    if prop in designProps:
+                        rawResultsDict[ipInt][prop] = sub
+                        rawResults1dimDict[ipInt][prop] = melted
+                    elif prop not in timeDependentRawKeys:
+                        rawResultsDict[ipInt][prop] = melted
+
+                for rawKey, (optName, dimension) in timeDependentRawKeys.items():
+                    datasetVarName = RENAMED_OPTIMUM_VARIABLES.get(optName, optName)
+                    subs = {}
+                    for component, comp_ds in datasets["Results"][ip][model].items():
+                        if datasetVarName not in comp_ds.data_vars:
+                            continue
+                        series = comp_ds[datasetVarName].to_dataframe()[datasetVarName]
+                        # The dataset spans every location (pair) of the component class;
+                        # an all-NaN row is a location (pair) the component does not
+                        # exist at. The raw frame has no row there, and keeping one would
+                        # turn the summed operation rows into 0 instead of NaN.
+                        subs[component] = series.unstack("time").dropna(how="all")
+                    if not subs:
+                        continue
+                    frame = pd.concat(subs, names=["component"])
+                    rawResultsDict[ipInt][rawKey] = frame
+                    if dimension == Dimension.TWO:
+                        rawResults1dimDict[ipInt][rawKey] = (
+                            utilsIO.mergeConnectionIndexLevels(frame)
+                        )
 
                 # read optimal Values (3 types exist)
                 operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
@@ -862,6 +962,9 @@ def convertDatasetsToEnergySystemModel(datasets):
             componentModel._stateOfChargeOperationVariablesOptimum = (
                 stateOfChargeOperationVariablesOptimum_dict
             )
+            componentModel._rawResults = rawResultsDict
+            componentModel._rawResults1dim = rawResults1dimDict
+            _registerLoadedExtraSummaryRows(esM, componentModel, optSum)
 
             # if only one investment period -> keep optimal values unchanged for end user
             def setFinalOptimalValues(esM, name):
@@ -901,6 +1004,10 @@ def writeEnergySystemModelToNetCDF(
 ):
     """Write energySystemModel (input and if exists, output) to netCDF file.
 
+    Results are written only if ``esM.objectiveValue`` is set, i.e. the esM was optimized in
+    this session. An esM read from a netCDF file keeps ``objectiveValue = None``, so only its
+    input is written; use :func:`convertOptimizationOutputToDatasets` to export its results.
+
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
 
@@ -934,10 +1041,6 @@ def writeEnergySystemModelToNetCDF(
     :return: Nested dictionary containing xr.Dataset with all result values
         for each component.
     :rtype: Dict[str, Dict[str, xr.Dataset]]
-
-    :raises RuntimeError: if the esM was optimized but holds no raw optimization results, see
-        :func:`convertOptimizationOutputToDatasets` and issue #786. An esM read back from
-        netCDF keeps ``objectiveValue = None``, so its results are skipped instead.
     """
     _warnDeprecatedOptSumOutputLevel(optSumOutputLevel)
 
@@ -975,6 +1078,10 @@ def writeEnergySystemModelToDatasets(
 ):
     """Convert esM instance (input and output) into a xarray dataset.
 
+    Results are written only if ``esM.objectiveValue`` is set, i.e. the esM was optimized in
+    this session. An esM read from a netCDF file keeps ``objectiveValue = None``, so only its
+    input is written; use :func:`convertOptimizationOutputToDatasets` to export its results.
+
     :param esM: EnergySystemModel instance in which the optimized model is held
     :type esM: EnergySystemModel instance
 
@@ -989,10 +1096,6 @@ def writeEnergySystemModelToDatasets(
     :return: xr_dss_results - esM instance (input and output) data in xarray
         dataset format
     :rtype: xr.DataSet
-
-    :raises RuntimeError: if the esM was optimized but holds no raw optimization results, see
-        :func:`convertOptimizationOutputToDatasets` and issue #786. An esM read back from
-        netCDF keeps ``objectiveValue = None``, so its results are skipped instead.
     """
     if esM.objectiveValue is not None:  # model was optimized
         xr_dss_output = convertOptimizationOutputToDatasets(esM)
