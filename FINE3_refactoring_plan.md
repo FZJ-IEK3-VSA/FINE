@@ -436,6 +436,7 @@ Results, expansion modules and I/O read the object directly instead of via the p
   - Diagonal is adjusted automatically (`:2296`); already warns today with `UserWarning`, only the warning class changes here
   - Zero capacities are discarded (`discard=True`, `:2264`; #122); silent today
   - Filling with 0 after `reindex` (`:239`, `:645`); silent today
+  - `Storage`: `chargeRate` / `dischargeRate` are ignored when `chargeOpRateMax`/`Fix` or `dischargeOpRateMax`/`Fix` are given (they only enter operation mode 1, whose set excludes components with a rate time series; `declareOpConstrSet1`). Warn if a rate other than the default 1 is set together with such a time series; silent today. The infeasibility pre-checks from #792 (open) must use the same effective rate: `_addStorage` bounds the discharge with `dischargeRate` only and ignores `dischargeOpRateMax`/`Fix`. Whatever decision 15 changes in the model must be changed in the pre-checks in the same PR
 - **To decide:** meaning of NaN in `capacityMax` (today "unbounded" or error).
 - **Warning class:** `FutureWarning`. Python does not show `DeprecationWarning` outside `__main__` by default.
 - **Acceptance:** one test per case for the warning; LP unchanged.
@@ -540,6 +541,7 @@ The branch was read completely (six areas, every statement cross-checked, nothin
 | 9 | `TypeError` or uniformly `InputValidationError` for input errors | PR 11 |
 | 10 | Meaning of NaN in `capacityMax` | PR 16 |
 | 11 | How long do the warnings from PR 16 run before they become errors? | PR 16 |
+| 15 | Storage rate plus rate time series: reject the combination, or multiply the time series by `chargeRate`/`dischargeRate` in operation modes 2 and 3 (changes results)? Pre-checks of #792 follow the same rule | follow-up of PR 16 |
 | 12 | Name `replaceComponent` | PR 19 |
 | 13 | Input form and keys for transmission connections | PR 21 |
 | 14 | Re-evaluate parameter bundles per function (section 3) | after block C |
