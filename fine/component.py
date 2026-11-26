@@ -3032,3 +3032,128 @@ class ComponentModel(ComponentEconomicsMixin, ComponentResultsMixin, metaclass=A
             if compDict[compName].sharedPotentialID == key
             and (loc, compName, ip) in capVarSet
         )
+
+    ####################################################################################################################
+    #                                      Contribution to a componentLimit                                            #
+    ####################################################################################################################
+
+    def carriesCommodity(self, compName, commodity):
+        """Return whether a component counts in a componentLimit restricted to a commodity.
+
+        :param compName: name of the component
+        :type compName: string
+
+        :param commodity: the commodity of the componentLimit row
+        :type commodity: string
+        """
+        return self.componentsDict[compName].commodity == commodity
+
+    def componentLimitMembers(self, componentNames, commodity):
+        """Return the components of this class that count in a componentLimit row.
+
+        :param componentNames: names of all components that carry the componentLimitID
+        :type componentNames: list of strings
+
+        :param commodity: the commodity of the row, or None
+        :type commodity: string or None
+        """
+        return [
+            compName
+            for compName in componentNames
+            if compName in self.componentsDict
+            and (commodity is None or self.carriesCommodity(compName, commodity))
+        ]
+
+    def getComponentLimitOperationTerms(
+        self, pyM, compName, loc, ip, p, t, limitType, commodity
+    ):
+        """Return the operation terms of one component for a componentLimit row.
+
+        The terms are the variables and coefficients of one time step at one
+        location, for limitType "operation" (unsigned activity) or "balance"
+        (signed commodity balance contribution). The specification is in the
+        mathematical description of the inter-component constraints.
+
+        :returns: list of (pyomo variable, coefficient) pairs
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not support componentLimit rows of type "
+            f"'{limitType}'."
+        )
+
+    def getComponentLimitContribution(
+        self,
+        esM,
+        pyM,
+        componentNames,
+        locations,
+        ips,
+        limitType,
+        commodity,
+        yearsPerPeriod,
+        overConnections,
+    ):
+        """Get the contribution of the components of this class to one componentLimit row.
+
+        :param componentNames: names of all components that carry the componentLimitID
+        :type componentNames: list of strings
+
+        :param locations: the eligible locations of the row, or its eligible
+            (locFrom, locTo) connections if overConnections is True
+        :type locations: list
+
+        :param ips: the internal investment periods the row is summed over
+        :type ips: list of int
+
+        :param limitType: "capacity", "commissioning", "operation" or "balance"
+        :type limitType: string
+
+        :param commodity: the commodity of the row, or None
+        :type commodity: string or None
+
+        :param yearsPerPeriod: factor applied to each annual operation, which is the
+            investmentPeriodInterval for a row over a range of investment periods
+            and 1 otherwise
+        :type yearsPerPeriod: float
+
+        :param overConnections: whether the row is summed over transmission
+            connections instead of locations
+        :type overConnections: bool
+
+        :returns: pyomo expression, or 0 if no variable of this class contributes
+        """
+        # only Transmission components live on connections
+        if overConnections:
+            return 0
+        members = self.componentLimitMembers(componentNames, commodity)
+        if not members:
+            return 0
+        abbrvName = self.abbrvName
+        if limitType in ("capacity", "commissioning"):
+            varName, setName = {
+                "capacity": ("cap_", "designDimensionVarSet_"),
+                "commissioning": ("commis_", "designCommisVarSet_"),
+            }[limitType]
+            varSet = getattr(pyM, setName + abbrvName, None)
+            if varSet is None:
+                return 0
+            var = getattr(pyM, varName + abbrvName)
+            return sum(
+                var[loc, compName, ip]
+                for compName in members
+                for loc in locations
+                for ip in ips
+                if (loc, compName, ip) in varSet
+            )
+        opVarSet = getattr(pyM, "operationVarSet_" + abbrvName)
+        return sum(
+            yearsPerPeriod * esM.periodOccurrences[ip][p] * coef * var
+            for compName in members
+            for loc in locations
+            for ip in ips
+            if (loc, compName, ip) in opVarSet
+            for p, t in pyM.intraYearTimeSet
+            for var, coef in self.getComponentLimitOperationTerms(
+                pyM, compName, loc, ip, p, t, limitType, commodity
+            )
+        )

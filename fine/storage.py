@@ -60,6 +60,7 @@ class Storage(Component):
         floorTechnicalLifetime=True,
         socOffsetDown=-1,
         socOffsetUp=-1,
+        componentLimitID=None,
         stockCommissioning=None,
         pwlcfParameters=None,
     ):
@@ -263,6 +264,13 @@ class Storage(Component):
             |br| * the default value is -1
         :type socOffsetUp: float
 
+
+        :param componentLimitID: ID(s) of the componentLimit(s) this component contributes to (out of the
+            componentLimits introduced in the esM). Unlike balanceLimitID, several IDs may be given, because a
+            component may be part of several component limits at once.
+            |br| * the default value is None
+        :type componentLimitID: None, string or list of strings
+
         """
         Component.__init__(
             self,
@@ -321,6 +329,7 @@ class Storage(Component):
         self.socOffsetUp = socOffsetUp
         self.socOffsetDown = socOffsetDown
         self.modelingClass = StorageModel
+        self.componentLimitID = utils.checkAndSetComponentLimitID(componentLimitID)
 
         self.fullStateOfChargeMin = utils.checkAndSetInvestmentPeriodTimeSeries(
             esM, name, self.stateOfChargeMin, locationalEligibility
@@ -1800,6 +1809,20 @@ class StorageModel(ComponentModel):
                 for comp in self.componentsDict.values()
             ]
         )
+
+    def getComponentLimitOperationTerms(
+        self, pyM, compName, loc, ip, p, t, limitType, commodity
+    ):
+        """Return the operation terms of one Storage for a componentLimit.
+
+        The operation is the discharge; the balance is discharge minus charge.
+        """
+        dischargeOp = getattr(pyM, "dischargeOp_" + self.abbrvName)
+        terms = [(dischargeOp[loc, compName, ip, p, t], 1)]
+        if limitType == "balance":
+            chargeOp = getattr(pyM, "chargeOp_" + self.abbrvName)
+            terms.append((chargeOp[loc, compName, ip, p, t], -1))
+        return terms
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         r"""Get contribution to a commodity balance.

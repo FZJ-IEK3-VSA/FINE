@@ -226,6 +226,34 @@ def test_check_and_set_cost_parameter_for_part_load_conversion_factors():
         ).equals(invalid_series_with_nan, index=esM.locations)
 
 
+def test_preprocess2dimData_drops_pairs_missing_from_data():
+    """A mapC pair that the data does not cover must not become a NaN row.
+
+    preprocess2dimData looks every mapC pair up in the given matrix. A pair the
+    matrix does not describe used to end up in the result as NaN, which later
+    reads as a value of 0 rather than as "no connection here".
+    """
+    data = pd.DataFrame(
+        [[0.0, 5.0, np.nan], [5.0, 0.0, 7.0], [np.nan, 7.0, 0.0]],
+        index=["R1", "R2", "R3"],
+        columns=["R1", "R2", "R3"],
+    )
+    mapC = {
+        "R1_R2": ("R1", "R2"),
+        "R2_R1": ("R2", "R1"),
+        "R2_R3": ("R2", "R3"),
+        "R3_R2": ("R3", "R2"),
+        # R1 and R3 are not connected, so the matrix has no value for them
+        "R1_R3": ("R1", "R3"),
+        "R3_R1": ("R3", "R1"),
+    }
+
+    result = utils.preprocess2dimData(data, mapC=mapC)
+
+    assert sorted(result.index) == ["R1_R2", "R2_R1", "R2_R3", "R3_R2"]
+    assert not result.isna().any()
+
+
 def positive_factor(x):
     """Return a positive value in the interval [0, 1]."""
     return 0.5 + x

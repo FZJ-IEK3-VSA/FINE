@@ -73,6 +73,33 @@ def checkAndSetBalanceLimitID(balanceLimitID):
     raise ValueError("The input argument needs to be a string or None.")
 
 
+def checkAndSetComponentLimitID(componentLimitID):
+    """Check the componentLimitID of a component and normalise it to a list.
+
+    Unlike balanceLimitID, a component may belong to several componentLimits at
+    once, so a list of IDs is allowed. A single string is accepted as a
+    convenience and wrapped in a list.
+
+    :param componentLimitID: componentLimitID(s) the component contributes to
+    :type componentLimitID: None, string or list of strings
+
+    :returns: None, or the IDs as a list of strings
+    :rtype: None or list of strings
+    """
+    if componentLimitID is None:
+        return None
+    if isinstance(componentLimitID, str):
+        return [componentLimitID]
+    if isinstance(componentLimitID, (list, tuple, set)):
+        componentLimitID = list(componentLimitID)
+        if all(isinstance(ID, str) for ID in componentLimitID):
+            return componentLimitID
+    raise ValueError(
+        "The componentLimitID input argument needs to be a string, a list of "
+        "strings or None."
+    )
+
+
 def checkCapacityOrCommissioningTransmission(df):
     """MISSING."""
     if isinstance(df, (pd.DataFrame, pd.Series, dict, float, int)):
@@ -1861,6 +1888,338 @@ def checkAndSetPathwayBalanceLimit(esM, pathwayBalanceLimit, locations):
     return processedPathwayBalanceLimit
 
 
+def checkAndSetComponentLimit(
+    esM,
+    componentLimit,
+    componentLimitEligibility,
+    componentLimitEligibility2dim,
+    componentLimitGrouping,
+    locations,
+):
+    """Check the componentLimit input arguments and return their processed form.
+
+    ``componentLimit`` is a pd.DataFrame indexed by componentLimitID. It needs the
+    columns "value", "bound", "type" and "commodity", and may carry "ip" and
+    "ipEnd" to restrict a row to one investment period or to a range of them.
+    ``componentLimitEligibility`` (indexed by location) and
+    ``componentLimitEligibility2dim`` (indexed by transmission connection) mark
+    with 0/1 which locations each ID is summed over.
+
+    :param esM: EnergySystemModel instance representing the energy system in which the
+        componentLimit should be modeled
+    :type esM: EnergySystemModel class instance
+
+    :param componentLimit: the componentLimit rows, or None
+    :type componentLimit: None or pd.DataFrame
+
+    :param componentLimitEligibility: 0/1 eligibility per location and componentLimitID, or None
+    :type componentLimitEligibility: None or pd.DataFrame
+
+    :param componentLimitEligibility2dim: 0/1 eligibility per transmission connection and
+        componentLimitID, or None
+    :type componentLimitEligibility2dim: None or pd.DataFrame
+
+    :param componentLimitGrouping: group label per location and componentLimitID, or None
+    :type componentLimitGrouping: None or pd.DataFrame
+
+    :param locations: locations of the energy system model
+    :type locations: set of strings
+
+    :returns: the processed componentLimit, componentLimitEligibility,
+        componentLimitEligibility2dim and componentLimitGrouping
+    :rtype: tuple of four elements, each None or pd.DataFrame
+    """
+    checkInvestmentPeriodParameters(
+        "componentLimit", componentLimit, esM.investmentPeriodNames
+    )
+    checkInvestmentPeriodParameters(
+        "componentLimitEligibility",
+        componentLimitEligibility,
+        esM.investmentPeriodNames,
+    )
+    checkInvestmentPeriodParameters(
+        "componentLimitGrouping",
+        componentLimitGrouping,
+        esM.investmentPeriodNames,
+    )
+
+    validBounds = ["lower", "upper", "fixed"]
+    validTypes = ["capacity", "commissioning", "operation", "balance"]
+
+    eligibilityFrames = (componentLimitEligibility, componentLimitEligibility2dim)
+    if componentLimit is None:
+        given = [
+            name
+            for name, value in (
+                ("componentLimitEligibility", componentLimitEligibility),
+                ("componentLimitEligibility2dim", componentLimitEligibility2dim),
+                ("componentLimitGrouping", componentLimitGrouping),
+            )
+            if value is not None
+        ]
+        if given:
+            raise ValueError(
+                f"{', '.join(given)} given without componentLimit. They only "
+                "describe the rows of a componentLimit."
+            )
+        return None, None, None, None
+    if all(frame is None for frame in eligibilityFrames):
+        raise ValueError(
+            "componentLimit needs componentLimitEligibility (locations), "
+            "componentLimitEligibility2dim (transmission connections) or both."
+        )
+
+    # copy, because the ip columns are mapped to internal indices below and the
+    # caller's DataFrame must not change under it. Without the copy a model
+    # cannot be rebuilt from its own exported dict.
+    _componentLimit = componentLimit.copy()
+
+    if not isinstance(_componentLimit, pd.DataFrame):
+        raise TypeError(
+            "The componentLimit input argument has to be a pandas.DataFrame."
+        )
+
+    required_columns = ["value", "bound", "type", "commodity"]
+    if not all(col in _componentLimit.columns for col in required_columns):
+        raise ValueError(
+            "componentLimit has to contain the columns 'value', 'bound', 'type', 'commodity'"
+        )
+
+    invalidBounds = sorted(set(_componentLimit["bound"]) - set(validBounds))
+    if invalidBounds:
+        raise ValueError(
+            f"componentLimit 'bound' column contains {invalidBounds}. "
+            f"Valid bounds are {validBounds}."
+        )
+
+    invalidTypes = sorted(set(_componentLimit["type"]) - set(validTypes))
+    if invalidTypes:
+        raise ValueError(
+            f"componentLimit 'type' column contains {invalidTypes}. "
+            f"Valid types are {validTypes}."
+        )
+
+    # the value has to be a finite number; a NaN would otherwise only fail
+    # when pyomo builds the constraint
+    values = pd.to_numeric(_componentLimit["value"], errors="coerce")
+    notFinite = sorted(
+        str(ID) for ID, value in values.items() if not np.isfinite(value)
+    )
+    if notFinite:
+        raise ValueError(
+            "componentLimit 'value' has to be a finite number. The "
+            f"componentLimitID(s) {notFinite} are not."
+        )
+    _componentLimit["value"] = values.astype(float)
+
+    # a commodity restricts the row to the components that carry it; an empty
+    # cell, also one that came back from a file as "None" or NaN, means none
+    _componentLimit["commodity"] = [
+        None if pd.isna(commodity) or commodity in ("None", "") else commodity
+        for commodity in _componentLimit["commodity"]
+    ]
+    unknownCommodities = sorted(
+        {
+            str(commodity)
+            for commodity in _componentLimit["commodity"]
+            if commodity is not None and commodity not in esM.commodities
+        }
+    )
+    if unknownCommodities:
+        raise ValueError(
+            "componentLimit 'commodity' column contains the commodities "
+            f"{unknownCommodities}, which are not commodities of the model."
+        )
+
+    if "ip" not in _componentLimit.columns:
+        warnings.warn(
+            "componentLimit 'ip' column is missing. Assuming the first investment "
+            "period for every row."
+        )
+        _componentLimit["ip"] = esM.investmentPeriodNames[0]
+    if "ipEnd" not in _componentLimit.columns:
+        warnings.warn(
+            "componentLimit 'ipEnd' column is missing. Every row applies to its "
+            "'ip' only, not to a range of investment periods."
+        )
+        _componentLimit["ipEnd"] = None
+
+    # translate ip and ipEnd to internal IPs using esM.investmentPeriodNames
+    ip_map = {esM.investmentPeriodNames[ip]: ip for ip in esM.investmentPeriods}
+    ip_map[None] = None
+
+    # an empty ip or ipEnd may arrive as None or, after a round trip through
+    # a file, as NaN. Both mean "not set".
+    # a float column keeps NaN even where None is inserted, so cast to object
+    for column in ("ip", "ipEnd"):
+        _componentLimit[column] = (
+            _componentLimit[column]
+            .astype(object)
+            .where(_componentLimit[column].notna(), None)
+        )
+
+    missingIp = sorted(
+        str(ID) for ID, ip in _componentLimit["ip"].items() if ip is None
+    )
+    if missingIp:
+        raise ValueError(
+            "componentLimit 'ip' has to name an investment period. It is empty "
+            f"for the componentLimitID(s) {missingIp}."
+        )
+
+    # check that ip and ipEnd values are valid investment period names
+    for column in ("ip", "ipEnd"):
+        invalid = sorted(
+            {
+                str(ip)
+                for ip in _componentLimit[column]
+                if ip is not None and ip not in ip_map
+            }
+        )
+        if invalid:
+            raise ValueError(
+                f"componentLimit '{column}' column contains the invalid "
+                f"investment period names {invalid}. Valid names are "
+                f"{esM.investmentPeriodNames}."
+            )
+
+    # from here on the columns hold internal investment period indices
+    _componentLimit["ip"] = _componentLimit["ip"].map(ip_map)
+    _componentLimit["ipEnd"] = _componentLimit["ipEnd"].map(ip_map)
+
+    isRange = _componentLimit["ipEnd"].notna()
+    reversedRange = sorted(
+        str(ID)
+        for ID, row in _componentLimit[isRange].iterrows()
+        if row["ipEnd"] < row["ip"]
+    )
+    if reversedRange:
+        raise ValueError(
+            "componentLimit 'ipEnd' lies before 'ip' for the componentLimitID(s) "
+            f"{reversedRange}."
+        )
+
+    # In a stochastic model the investment periods are alternative scenarios,
+    # not steps of a pathway, so summing over a range of them has no meaning.
+    if esM.stochasticModel and isRange.any():
+        raise ValueError(
+            "componentLimit rows cannot span a range of investment periods in a "
+            "stochastic model, because its investment periods are alternative "
+            "scenarios. Offending componentLimitID(s): "
+            f"{sorted(str(ID) for ID in _componentLimit[isRange].index)}."
+        )
+
+    # An installed capacity is a stock, so it cannot be summed over a range of
+    # investment periods. "commissioning" is the additive quantity and is the
+    # one to use with an ipEnd.
+    capacityRange = _componentLimit[(_componentLimit["type"] == "capacity") & isRange]
+    if not capacityRange.empty:
+        raise NotImplementedError(
+            "componentLimit rows with type='capacity' cannot span a range of "
+            "investment periods, because an installed capacity is a stock and "
+            "not an additive quantity. Use type='commissioning' for a range, or "
+            "leave 'ipEnd' empty. Offending componentLimitID(s): "
+            f"{sorted(capacityRange.index)}."
+        )
+
+    if componentLimitEligibility is not None:
+        if not isinstance(componentLimitEligibility, pd.DataFrame):
+            raise TypeError(
+                "The componentLimitEligibility input argument has to be a pandas.DataFrame."
+            )
+        if set(locations) != set(componentLimitEligibility.index):
+            raise ValueError(
+                "componentLimitEligibility does not have the same locations as the model"
+            )
+        if not componentLimitEligibility.isin([0, 1]).all().all():
+            raise ValueError(
+                "componentLimitEligibility has to contain only 0 and 1 as values"
+            )
+
+    if componentLimitEligibility2dim is not None:
+        if not isinstance(componentLimitEligibility2dim, pd.DataFrame):
+            raise TypeError(
+                "The componentLimitEligibility2dim input argument has to be a pandas.DataFrame."
+            )
+        # the index holds (locFrom, locTo) connections between model locations
+        connections = componentLimitEligibility2dim.index
+        invalidConnections = sorted(
+            str(connection)
+            for connection in connections
+            if not (
+                isinstance(connection, tuple)
+                and len(connection) == 2
+                and connection[0] in locations
+                and connection[1] in locations
+                and connection[0] != connection[1]
+            )
+        )
+        if invalidConnections:
+            raise ValueError(
+                "The index of componentLimitEligibility2dim has to hold "
+                "(locFrom, locTo) pairs of two different model locations, e.g. a "
+                "pd.MultiIndex. Invalid entries: "
+                f"{invalidConnections}."
+            )
+        if not componentLimitEligibility2dim.isin([0, 1]).all().all():
+            raise ValueError(
+                "componentLimitEligibility2dim has to contain only 0 and 1 as values"
+            )
+
+    # a balance is the net amount that enters a group of locations, so it is not
+    # defined for a set of connections
+    if componentLimitEligibility2dim is not None:
+        balanceOverConnections = sorted(
+            str(ID)
+            for ID, row in _componentLimit.iterrows()
+            if row["type"] == "balance" and ID in componentLimitEligibility2dim.columns
+        )
+        if balanceOverConnections:
+            raise ValueError(
+                "componentLimit rows with type='balance' are summed over locations "
+                "and cannot use componentLimitEligibility2dim. Offending "
+                f"componentLimitID(s): {balanceOverConnections}."
+            )
+
+    # every row has to name the locations or the connections it is summed over,
+    # in exactly one of the two eligibility frames
+    for ID in _componentLimit.index.unique():
+        framesWithID = [
+            frame
+            for frame in eligibilityFrames
+            if frame is not None and ID in frame.columns
+        ]
+        if len(framesWithID) != 1:
+            raise ValueError(
+                f"The componentLimitID '{ID}' has to be a column of exactly one of "
+                "componentLimitEligibility and componentLimitEligibility2dim. It is "
+                f"a column of {len(framesWithID)}."
+            )
+        if not (framesWithID[0][ID] == 1).any():
+            raise ValueError(
+                f"No location or connection is marked eligible for the "
+                f"componentLimitID '{ID}'."
+            )
+
+    if componentLimitGrouping is not None:
+        if not isinstance(componentLimitGrouping, pd.DataFrame):
+            raise TypeError(
+                "The componentLimitGrouping input argument has to be a pandas.DataFrame."
+            )
+        # the grouping maps every model location to a group label
+        if set(locations) != set(componentLimitGrouping.index):
+            raise ValueError(
+                "componentLimitGrouping does not have the same locations as the model"
+            )
+
+    return (
+        _componentLimit,
+        componentLimitEligibility,
+        componentLimitEligibility2dim,
+        componentLimitGrouping,
+    )
+
+
 def checkAndSetBalanceLimit(esM, balanceLimit, locations):
     """MISSING."""
     # balanceLimit has to be DataFrame with locations as columns or Dict per
@@ -2354,7 +2713,10 @@ def preprocess2dimData(data, mapC=None, locationalEligibility=None, discard=True
 
                 data_ = pd.Series(data_, index=index)
                 return data_.sort_index()
-            data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]])
+            # drop the pairs that mapC names but `data` does not cover. Without
+            # this they end up as NaN rows in the 2dim series, which later reads
+            # as a value of zero rather than as "no connection here".
+            data_ = pd.Series(mapC).apply(lambda loc: data[loc[0]][loc[1]]).dropna()
             return data_.sort_index()
         if isinstance(data, float) and locationalEligibility is not None:
             data_ = data * locationalEligibility

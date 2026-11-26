@@ -123,6 +123,7 @@ def _assert_model_snapshot(esM, reference_name, tmp_path):
         ("dsm_test_esM", "dsm_test_esM.txt"),
         ("balanceLimitConstraint_test_esM", "balanceLimitConstraint_test_esM.txt.gz"),
         ("perfectForesight_test_esM", "perfectForesight_test_esM.txt"),
+        ("componentLimit_test_esM", "componentLimit_test_esM.txt"),
     ],
 )
 def test_lp_snapshot(fixture_name, reference_name, request, tmp_path):

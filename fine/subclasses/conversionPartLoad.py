@@ -834,28 +834,44 @@ class ConversionPartLoadModel(ConversionModel):
         """
         return super().hasOpVariablesForLocationCommodity(esM, loc, commod)
 
-    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
-        """Get contribution to a commodity balance."""
+    def commodityBalanceTerms(self, pyM, commod, loc, ip, p, t, compNames=None):
+        """Get the terms of the contribution to a commodity balance.
+
+        :param compNames: restrict the terms to these components; None means all
+            components that operate at the location
+        :type compNames: None or collection of strings
+
+        :returns: list of (pyomo variable, coefficient) pairs
+        """
         compDict, abbrvName = self.componentsDict, self.abbrvName
         opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
         discretizationPointConVar = getattr(
             pyM, "discretizationPoint_" + self.abbrvName
         )
-
-        return sum(
-            sum(
-                discretizationPointConVar[loc, compName, discretStep, ip, p, t]
-                * compDict[compName].discretizedPartLoad[commod]["xSegments"][
-                    discretStep
-                ]
+        return [
+            (
+                discretizationPointConVar[loc, compName, discretStep, ip, p, t],
+                compDict[compName].discretizedPartLoad[commod]["xSegments"][discretStep]
                 * compDict[compName].discretizedPartLoad[commod]["ySegments"][
                     discretStep
-                ]
-                for discretStep in range(compDict[compName].nSegments + 1)
+                ],
             )
             for compName in opVarDict[ip][loc]
-            if commod in compDict[compName].discretizedPartLoad
+            if (compNames is None or compName in compNames)
+            and commod in compDict[compName].discretizedPartLoad
+            for discretStep in range(compDict[compName].nSegments + 1)
+        ]
+
+    def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
+        """Get contribution to a commodity balance."""
+        return sum(
+            var * coef
+            for var, coef in self.commodityBalanceTerms(pyM, commod, loc, ip, p, t)
         )
+
+    def carriesCommodity(self, compName, commodity):
+        """Return whether a part-load component converts a commodity."""
+        return commodity in self.componentsDict[compName].discretizedPartLoad
 
     def getObjectiveFunctionContribution(self, esM, pyM):
         """Get contribution to the objective function.

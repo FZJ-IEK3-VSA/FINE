@@ -48,6 +48,7 @@ class Transmission(Component):
         floorTechnicalLifetime=True,
         balanceLimitID=None,
         pathwayBalanceLimitID=None,
+        componentLimitID=None,
         stockCommissioning=None,
         pwlcfParameters=None,
     ):
@@ -145,6 +146,12 @@ class Transmission(Component):
         :param pathwayBalanceLimitID: similar to balanceLimitID just as restriction over the entire pathway.
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
+
+        :param componentLimitID: ID(s) of the componentLimit(s) this component contributes to (out of the
+            componentLimits introduced in the esM). Unlike balanceLimitID, several IDs may be given, because a
+            component may be part of several component limits at once.
+            |br| * the default value is None
+        :type componentLimitID: None, string or list of strings
         """
         self.capacityMax = utils.checkCapacityOrCommissioningTransmission(capacityMax)
         self.capacityMin = utils.checkCapacityOrCommissioningTransmission(capacityMin)
@@ -268,6 +275,7 @@ class Transmission(Component):
         self.technicalLifetime = utils.preprocess2dimData(technicalLifetime, self._mapC)
         self.balanceLimitID = balanceLimitID
         self.pathwayBalanceLimitID = pathwayBalanceLimitID
+        self.componentLimitID = utils.checkAndSetComponentLimitID(componentLimitID)
 
         Component.__init__(
             self,
@@ -888,6 +896,110 @@ class TransmissionModel(ComponentModel):
             if compName in componentNames
             for p in periods
             for t in timeSteps
+        )
+
+    def getComponentLimitContribution(
+        self,
+        esM,
+        pyM,
+        componentNames,
+        locations,
+        ips,
+        limitType,
+        commodity,
+        yearsPerPeriod,
+        overConnections,
+    ):
+        """Get the contribution of the Transmission components to one componentLimit row.
+
+        A line has one capacity for both directions. Its capacity enters as the
+        mean of the capacity variables of its two directions, which the model
+        keeps equal:
+
+        - over connections, every line named by a listed connection counts once,
+          whichever direction is listed;
+        - over locations, a line counts fully if both its ends are in the group
+          and half if one end is.
+
+        The operation is the flow sent on each listed directed connection, before
+        losses. The balance is the import into the group of locations after
+        losses minus the export out of it; flows inside the group do not count.
+
+        See :meth:`ComponentModel.getComponentLimitContribution` for the parameters.
+        """
+        members = self.componentLimitMembers(componentNames, commodity)
+        if not members:
+            return 0
+        if limitType == "operation" and not overConnections:
+            raise ValueError(
+                "A componentLimit row of type 'operation' with Transmission members "
+                f"({members}) has to be summed over connections, given in "
+                "componentLimitEligibility2dim. Use type 'balance' for the net "
+                "import into a group of locations."
+            )
+        compDict, abbrvName = self.componentsDict, self.abbrvName
+
+        def ends(connection, compName):
+            return compDict[compName]._mapC[connection]
+
+        if limitType in ("capacity", "commissioning"):
+            if overConnections:
+                lines = {frozenset(connection) for connection in locations}
+
+                def lineWeight(locFrom, locTo):
+                    return 1.0 if frozenset((locFrom, locTo)) in lines else 0.0
+
+            else:
+                group = set(locations)
+
+                def lineWeight(locFrom, locTo):
+                    return ((locFrom in group) + (locTo in group)) / 2
+
+            varName, setName = {
+                "capacity": ("cap_", "designDimensionVarSet_"),
+                "commissioning": ("commis_", "designCommisVarSet_"),
+            }[limitType]
+            var = getattr(pyM, varName + abbrvName)
+            # each direction carries half of the line
+            return sum(
+                0.5
+                * lineWeight(*ends(connection, compName))
+                * var[connection, compName, ip]
+                for connection, compName, ip in getattr(pyM, setName + abbrvName)
+                if compName in members
+                and ip in ips
+                and lineWeight(*ends(connection, compName)) > 0
+            )
+
+        opVar = getattr(pyM, "op_" + abbrvName)
+        if overConnections:
+            directed = {locFrom + "_" + locTo for locFrom, locTo in locations}
+
+            def flowCoefficient(connection, compName):
+                return 1.0 if connection in directed else 0.0
+
+        else:
+            group = set(locations)
+
+            def flowCoefficient(connection, compName):
+                locFrom, locTo = ends(connection, compName)
+                if locFrom not in group and locTo in group:
+                    comp = compDict[compName]
+                    return 1 - comp.losses[connection] * comp.distances[connection]
+                if locFrom in group and locTo not in group:
+                    return -1.0
+                return 0.0
+
+        return sum(
+            yearsPerPeriod
+            * esM.periodOccurrences[ip][p]
+            * flowCoefficient(connection, compName)
+            * opVar[connection, compName, ip, p, t]
+            for connection, compName, ip in getattr(pyM, "operationVarSet_" + abbrvName)
+            if compName in members
+            and ip in ips
+            and flowCoefficient(connection, compName) != 0
+            for p, t in pyM.intraYearTimeSet
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):

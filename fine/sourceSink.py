@@ -47,6 +47,7 @@ class Source(Component):
         yearlyFullLoadHoursMin=None,
         yearlyFullLoadHoursMax=None,
         balanceLimitID=None,
+        componentLimitID=None,
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
@@ -202,6 +203,12 @@ class Source(Component):
             |br| * the default value is None
         :type pathwayBalanceLimitID: string
 
+        :param componentLimitID: ID(s) of the componentLimit(s) this component contributes to (out of the
+            componentLimits introduced in the esM). Unlike balanceLimitID, several IDs may be given, because a
+            component may be part of several component limits at once.
+            |br| * the default value is None
+        :type componentLimitID: None, string or list of strings
+
         """
         # kwargs only accepts the deprecated keywords handled below
         unknownKwargs = set(kwargs) - {
@@ -254,6 +261,10 @@ class Source(Component):
             esM.commodityUnitsDict[commodity],
         )
         self.balanceLimitID = utils.checkAndSetBalanceLimitID(balanceLimitID)
+        # componentLimitID has its own validator, because a component may belong
+        # to several componentLimits at once while a balanceLimitID is a single
+        # string.
+        self.componentLimitID = utils.checkAndSetComponentLimitID(componentLimitID)
         self.pathwayBalanceLimitID = utils.checkAndSetBalanceLimitID(
             pathwayBalanceLimitID
         )
@@ -554,6 +565,7 @@ class Sink(Source):
         economicLifetime=10,
         technicalLifetime=None,
         balanceLimitID=None,
+        componentLimitID=None,
         pathwayBalanceLimitID=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
@@ -602,6 +614,7 @@ class Sink(Source):
             economicLifetime=economicLifetime,
             technicalLifetime=technicalLifetime,
             balanceLimitID=balanceLimitID,
+            componentLimitID=componentLimitID,
             pathwayBalanceLimitID=pathwayBalanceLimitID,
             stockCommissioning=stockCommissioning,
             floorTechnicalLifetime=floorTechnicalLifetime,
@@ -806,6 +819,18 @@ class SourceSinkModel(ComponentModel):
                 for comp in self.componentsDict.values()
             ]
         )
+
+    def getComponentLimitOperationTerms(
+        self, pyM, compName, loc, ip, p, t, limitType, commodity
+    ):
+        """Return the operation terms of one Source or Sink for a componentLimit.
+
+        The operation counts positive for both; in a balance a Sink counts with
+        its negative sign.
+        """
+        opVar = getattr(pyM, "op_" + self.abbrvName)
+        sign = self.componentsDict[compName].sign if limitType == "balance" else 1
+        return [(opVar[loc, compName, ip, p, t], sign)]
 
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, timeSeriesAggregation, loc, componentNames
