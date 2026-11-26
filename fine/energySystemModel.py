@@ -296,8 +296,11 @@ class EnergySystemModel:
 
             Required columns:
 
-            * "value": the bound, as a finite number in the unit of the limited quantity
-            * "bound": "lower", "upper" or "fixed"
+            * "value": the bound, as a finite number in the unit of the limited quantity; for "shareMax" and
+              "shareMin" a fraction between 0 and 1
+            * "bound": "lower", "upper" or "fixed" for an absolute bound; "shareMax" or "shareMin" to bound
+              each group of locations (see componentLimitGrouping) by the fraction "value" of the total over
+              all eligible locations. Share bounds are not allowed for type "balance" nor over connections.
             * "type": the limited quantity
 
               - "capacity": the installed capacity
@@ -354,8 +357,10 @@ class EnergySystemModel:
 
         :param componentLimitGrouping: maps every location to a group label (e.g. a country code) per
             componentLimitID. It is a pd.DataFrame whose index holds the locations of the model and whose columns
-            are componentLimitIDs. It is stored with the model and does not change the lower, upper or fixed
-            bounds above.
+            are componentLimitIDs. The share bounds "shareMax" and "shareMin" build one constraint per group, so
+            a grouping by country turns a share per location into a share per country. A location without a
+            label, and an ID without a column, is its own group. The grouping does not change the "lower",
+            "upper" or "fixed" bounds.
 
             |br| * the default value is None
         :type componentLimitGrouping: None or pd.DataFrame
@@ -1394,6 +1399,7 @@ class EnergySystemModel:
         )
 
         limitExpressions = {}
+        shareExpressions = {}
         for rowNumber, (componentLimitID, row) in enumerate(
             self.processedComponentLimit.iterrows()
         ):
@@ -1402,6 +1408,13 @@ class EnergySystemModel:
                 warnings.warn(
                     f"The componentLimitID '{componentLimitID}' is carried by no "
                     "component, so its row builds no constraint."
+                )
+                continue
+            if row["bound"] in utils.SHARE_BOUNDS:
+                shareExpressions.update(
+                    self._componentShareExpressions(
+                        pyM, componentLimitID, rowNumber, row, componentNames
+                    )
                 )
                 continue
             expression = self._componentLimitExpression(
@@ -1436,8 +1449,64 @@ class EnergySystemModel:
             list(limitExpressions), rule=componentLimitConstraint
         )
 
-    def _componentLimitExpression(self, pyM, componentLimitID, row, componentNames):
+        def componentShareLimitConstraint(pyM, componentLimitID, rowNumber, group):
+            return shareExpressions[(componentLimitID, rowNumber, group)]
+
+        pyM.componentShareLimitConstraint = pyomo.Constraint(
+            list(shareExpressions), rule=componentShareLimitConstraint
+        )
+
+    def _componentShareExpressions(
+        self, pyM, componentLimitID, rowNumber, row, componentNames
+    ):
+        """Build the constraints of one share row, one per group of locations.
+
+        Each group's quantity is bounded by the row's fraction of the quantity
+        over all eligible locations. The groups come from componentLimitGrouping;
+        without a column for the ID, and for a location without a label, each
+        location is its own group.
+
+        :returns: dict of (componentLimitID, rowNumber, group) to pyomo relation
+        """
+        total = self._componentLimitExpression(
+            pyM, componentLimitID, row, componentNames
+        )
+        if isinstance(total, (int, float)):
+            # no variable contributes anywhere, so every share holds
+            return {}
+        locations = self._eligibleComponentLimitLocations(componentLimitID)
+        grouping = self.processedComponentLimitGrouping
+        groups = {}
+        for loc in locations:
+            label = loc
+            if grouping is not None and componentLimitID in grouping.columns:
+                if pd.notna(grouping.loc[loc, componentLimitID]):
+                    label = grouping.loc[loc, componentLimitID]
+            groups.setdefault(label, []).append(loc)
+
+        relations = {}
+        for label, groupLocations in groups.items():
+            groupExpression = self._componentLimitExpression(
+                pyM, componentLimitID, row, componentNames, locations=groupLocations
+            )
+            if row["bound"] == "shareMax":
+                # a group without variable contributes 0, which never exceeds a share
+                if isinstance(groupExpression, (int, float)):
+                    continue
+                relation = groupExpression <= row["value"] * total
+            else:
+                relation = groupExpression >= row["value"] * total
+            relations[(componentLimitID, rowNumber, label)] = relation
+        return relations
+
+    def _componentLimitExpression(
+        self, pyM, componentLimitID, row, componentNames, locations=None
+    ):
         """Sum the contributions of all component classes to one componentLimit row.
+
+        :param locations: the locations to sum over; None means all locations or
+            connections eligible for the componentLimitID
+        :type locations: None or list
 
         :returns: pyomo expression, or 0 if no variable contributes
         """
@@ -1454,7 +1523,8 @@ class EnergySystemModel:
             self.processedComponentLimitEligibility2dim is not None
             and componentLimitID in self.processedComponentLimitEligibility2dim.columns
         )
-        locations = self._eligibleComponentLimitLocations(componentLimitID)
+        if locations is None:
+            locations = self._eligibleComponentLimitLocations(componentLimitID)
         return sum(
             mdl.getComponentLimitContribution(
                 esM=self,

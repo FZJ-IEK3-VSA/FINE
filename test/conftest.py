@@ -1399,7 +1399,7 @@ COMPONENT_LIMIT_LOCATIONS = ["R1", "R2", "R3"]
 
 
 def _componentLimitTestEsM(
-    componentLimit, eligibility=None, eligibility2dim=None, members=None
+    componentLimit, eligibility=None, eligibility2dim=None, members=None, grouping=None
 ):
     """Build a small model with one component of every class for componentLimit tests.
 
@@ -1432,6 +1432,7 @@ def _componentLimitTestEsM(
         componentLimit=componentLimit,
         componentLimitEligibility=eligibility,
         componentLimitEligibility2dim=eligibility2dim,
+        componentLimitGrouping=grouping,
     )
     esM.add(
         fn.Source(

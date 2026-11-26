@@ -73,6 +73,11 @@ def checkAndSetBalanceLimitID(balanceLimitID):
     raise ValueError("The input argument needs to be a string or None.")
 
 
+# componentLimit bounds whose right-hand side is a fraction of the eligible
+# total, and therefore itself a decision variable, rather than a fixed number
+SHARE_BOUNDS = ("shareMax", "shareMin")
+
+
 def checkAndSetComponentLimitID(componentLimitID):
     """Check the componentLimitID of a component and normalise it to a list.
 
@@ -1943,7 +1948,9 @@ def checkAndSetComponentLimit(
         esM.investmentPeriodNames,
     )
 
-    validBounds = ["lower", "upper", "fixed"]
+    # "lower"/"upper"/"fixed" compare against a fixed number; "shareMax"/"shareMin"
+    # compare against a fraction of the eligible total
+    validBounds = ["lower", "upper", "fixed", *SHARE_BOUNDS]
     validTypes = ["capacity", "commissioning", "operation", "balance"]
 
     eligibilityFrames = (componentLimitEligibility, componentLimitEligibility2dim)
@@ -2179,6 +2186,41 @@ def checkAndSetComponentLimit(
                 "componentLimit rows with type='balance' are summed over locations "
                 "and cannot use componentLimitEligibility2dim. Offending "
                 f"componentLimitID(s): {balanceOverConnections}."
+            )
+
+    shareRows = _componentLimit[_componentLimit["bound"].isin(SHARE_BOUNDS)]
+    # the share is a fraction, so anything outside [0, 1] is either vacuous or
+    # forces the group to zero, and is far more likely a typo
+    outOfRange = sorted(
+        str(ID) for ID, row in shareRows.iterrows() if not 0 <= row["value"] <= 1
+    )
+    if outOfRange:
+        raise ValueError(
+            "A share bound ('shareMax'/'shareMin') takes a fraction between 0 and 1. "
+            f"The componentLimitID(s) {outOfRange} are outside that range."
+        )
+    # a share of a signed sum has no meaning: the total can be 0 or negative
+    shareOfBalance = sorted(
+        str(ID) for ID, row in shareRows.iterrows() if row["type"] == "balance"
+    )
+    if shareOfBalance:
+        raise ValueError(
+            "Share bounds ('shareMax'/'shareMin') are not defined for type='balance', "
+            "whose total is signed. Offending componentLimitID(s): "
+            f"{shareOfBalance}."
+        )
+    # a share bounds groups of locations; connections have no groups
+    if componentLimitEligibility2dim is not None:
+        shareOverConnections = sorted(
+            str(ID)
+            for ID in shareRows.index
+            if ID in componentLimitEligibility2dim.columns
+        )
+        if shareOverConnections:
+            raise ValueError(
+                "Share bounds ('shareMax'/'shareMin') are summed over groups of "
+                "locations and cannot use componentLimitEligibility2dim. Offending "
+                f"componentLimitID(s): {shareOverConnections}."
             )
 
     # every row has to name the locations or the connections it is summed over,

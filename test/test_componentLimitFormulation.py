@@ -55,7 +55,8 @@ def _limitConstraints(esM, ID="L"):
     """Return (lower, upper, coefficients) of every componentLimit constraint of ID."""
     constraints = []
     for con in esM.pyM.component_data_objects(pyomo.Constraint, active=True):
-        if "omponentLimit" not in con.parent_component().name:
+        name = con.parent_component().name
+        if "omponentLimit" not in name and "omponentShareLimit" not in name:
             continue
         index = con.index()
         if (index[0] if isinstance(index, tuple) else index) != ID:
@@ -467,3 +468,85 @@ def test_componentLimit_rejected_when_created(
                 locs=entries if kind == "locs" else None,
                 connections=entries if kind == "connections" else None,
             )
+
+
+def _shareConstraints(esM):
+    """Return {group: (lower, upper, coefficients)} of the share constraints of "L"."""
+    constraints = {}
+    for con in esM.pyM.componentShareLimitConstraint.values():
+        repn = generate_standard_repn(con.body, compute_values=True)
+        coefficients = {
+            var.name: coef for var, coef in zip(repn.linear_vars, repn.linear_coefs)
+        }
+        constant = pyomo.value(repn.constant)
+        lower = None if con.lower is None else pyomo.value(con.lower) - constant
+        upper = None if con.upper is None else pyomo.value(con.upper) - constant
+        constraints[con.index()[2]] = (lower, upper, coefficients)
+    return constraints
+
+
+def _normalised(lower, upper, coefficients):
+    """Scale a one-sided constraint to the form  terms <= 0."""
+    sign = 1 if lower is None else -1
+    bound = upper if lower is None else lower
+    assert bound == pytest.approx(0)
+    return {name: pytest.approx(sign * coef) for name, coef in coefficients.items()}
+
+
+def test_componentShareLimit_per_location(componentLimit_esM_factory):
+    """shareMax: each location holds at most the share of the eligible total."""
+    esM = _declare(
+        _build(
+            componentLimit_esM_factory,
+            _limitRow("capacity", value=0.4, bound="shareMax"),
+            ["Src"],
+            locs=["R1", "R2"],
+        )
+    )
+    constraints = _shareConstraints(esM)
+    assert set(constraints) == {"R1", "R2"}
+    # cap[R1] <= 0.4 * (cap[R1] + cap[R2])
+    assert _normalised(*constraints["R1"]) == {
+        "cap_srcSnk[R1,Src,0]": 0.6,
+        "cap_srcSnk[R2,Src,0]": -0.4,
+    }
+
+
+def test_componentShareLimit_grouped(componentLimit_esM_factory):
+    """With a grouping, the share bounds each group instead of each location."""
+    grouping = pd.DataFrame({"L": ["A", "A", "B"]}, index=LOCATIONS)
+    esM = _declare(
+        componentLimit_esM_factory(
+            _limitRow("capacity", value=0.7, bound="shareMax"),
+            pd.DataFrame(1, index=LOCATIONS, columns=["L"]),
+            members={"Conv": ["L"]},
+            grouping=grouping,
+        )
+    )
+    constraints = _shareConstraints(esM)
+    assert set(constraints) == {"A", "B"}
+    # cap[R1] + cap[R2] <= 0.7 * (cap[R1] + cap[R2] + cap[R3])
+    assert _normalised(*constraints["A"]) == {
+        "cap_conv[R1,Conv,0]": 0.3,
+        "cap_conv[R2,Conv,0]": 0.3,
+        "cap_conv[R3,Conv,0]": -0.7,
+    }
+
+
+def test_componentShareMin_group_without_variable(componentLimit_esM_factory):
+    """A shareMin group that cannot contribute forces the total to 0."""
+    esM = _declare(
+        _build(
+            componentLimit_esM_factory,
+            _limitRow("capacity", value=0.3, bound="shareMin"),
+            ["Src"],
+            # Src is not eligible in R3
+            locs=["R1", "R2", "R3"],
+        )
+    )
+    constraints = _shareConstraints(esM)
+    # 0 >= 0.3 * (cap[R1] + cap[R2])
+    assert _normalised(*constraints["R3"]) == {
+        "cap_srcSnk[R1,Src,0]": 0.3,
+        "cap_srcSnk[R2,Src,0]": 0.3,
+    }

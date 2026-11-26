@@ -218,6 +218,28 @@ A `"balance"` row is summed over locations only. Without $\text{commodity}$, eac
 *Storage* and *Transmission* component counts in its own commodity; a *Conversion* component then
 cannot be a member, because its balance exists only per commodity.
 
+### Share bounds
+
+The bounds `"shareMax"` and `"shareMin"` bound a share instead of an absolute amount, for example to
+keep a technology from concentrating in one region. The eligible locations $\mathcal{L}^\text{j}$ are
+split into groups $\mathcal{G}$: by the labels in the column of $\text{j}$ in
+$\text{componentLimitGrouping}$, or, without such a column, one group per location. A location without a
+label forms its own group. Each group builds one constraint
+
+$$
+\sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} E^\text{type}_\text{c,G} ~\lesseqgtr~
+\text{value} \cdot \sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} E^\text{type}_\text{c,j}~,
+$$
+
+where $E^\text{type}_\text{c,G}$ is the contribution of component $\text{c}$ over the locations of the
+group, $\lesseqgtr$ is $\leq$ for `"shareMax"` and $\geq$ for `"shareMin"`, and $\text{value}$ is a
+fraction between 0 and 1. A share is only meaningful for quantities that are never negative, so share
+bounds are allowed for the types `"capacity"`, `"commissioning"` and `"operation"`, not for
+`"balance"`, and only over locations.
+
+A group to which no variable contributes has nothing to bound under `"shareMax"`. Under `"shareMin"` it
+still builds its constraint, which then requires the total to be 0.
+
 ### Rejected rows
 
 A row is rejected with an error if
