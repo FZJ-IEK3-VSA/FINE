@@ -623,7 +623,6 @@ class SourceSinkModel(ComponentModel):
         super().__init__()
         self.abbrvName = ComponentAbbreviation.SOURCE_SINK
         self.dimension = Dimension.ONE
-        self._operationVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -948,8 +947,7 @@ class SourceSinkModel(ComponentModel):
     def _extractSubclassRawResults(self, esM, pyM, rawResults):
         """Extract the source/sink specific raw solved ``operation`` variable.
 
-        Adds ``operation`` to ``rawResults`` and populates
-        ``self._operationVariablesOptimum``.
+        Adds ``operation`` to ``rawResults``.
         """
         super()._extractSubclassRawResults(esM, pyM, rawResults)
         opVar = getattr(pyM, "op_" + self.abbrvName)
@@ -963,7 +961,6 @@ class SourceSinkModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._operationVariablesOptimum[ipName] = optVal
             rawResults[ipName]["operation"] = optVal
 
     def _deriveSubclassEconomics(self, esM, pyM, rawResults):
@@ -1198,25 +1195,3 @@ class SourceSinkModel(ComponentModel):
             ("commodCosts", results_ip.get("commodCosts"), perA),
             ("commodRevenues", results_ip.get("commodRevenues"), perA),
         ]
-
-    def getOptimalValues(self, name="all", ip=0):
-        """Return optimal values of the components.
-
-        :param name: name of the variables of which the optimal values should be returned:
-
-            * 'capacityVariables',
-            * 'isBuiltVariables',
-            * '_operationVariablesOptimum',
-            * 'all' or another input: all variables are returned.
-
-        |br| * the default value is 'all'
-        :type name: string
-
-        :param ip: investment period
-            |br| * the default value is 0
-        :type ip: int
-
-        :returns: a dictionary with the optimal values of the components
-        :rtype: dict
-        """
-        return super().getOptimalValues(name, ip=ip)

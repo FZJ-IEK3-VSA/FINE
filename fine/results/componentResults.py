@@ -57,6 +57,49 @@ DESIGN_COST_ARGUMENTS = {
 }
 
 
+class OptimumView:
+    """Read-only public ``*VariablesOptimum`` name of a modeling class.
+
+    The optimal values are stored only in the raw results dict (``_rawResults``). The name
+    is looked up in the class's :meth:`~ComponentResultsMixin._exportOptimumVarMap`, so that
+    map is the only list of a class's optimum variables and of their raw results keys.
+
+    For a single investment period the frame itself is returned, otherwise a dict keyed by
+    investment period name. Reading the name raises ``AttributeError`` if the class has no
+    such variable or holds no results for it (before ``optimize()``), as the plain
+    attribute that this property replaces did.
+    """
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        rawKey = next(
+            (raw for raw, opt, _, _ in obj._exportOptimumVarMap() if opt == self.name),
+            None,
+        )
+        rawResults = obj._rawResults
+        values = {
+            ip: results[rawKey]
+            for ip, results in rawResults.items()
+            if rawKey is not None and rawKey in results
+        }
+        if not values:
+            raise AttributeError(
+                f"'{type(obj).__name__}' holds no optimal values for '{self.name}'."
+            )
+        if len(rawResults) == 1:
+            return next(iter(values.values()))
+        return values
+
+    def __set__(self, obj, value):
+        raise AttributeError(
+            f"'{self.name}' is read from the raw optimization results and cannot be set."
+        )
+
+
 class ComponentResultsMixin:
     """Result extraction, optimization summary and result accessors of a component model.
 
@@ -67,19 +110,26 @@ class ComponentResultsMixin:
     :meth:`fine.energySystemModel.EnergySystemModel.optimize` runs:
     :meth:`extractRawResults`, :meth:`deriveEconomics` and
     :meth:`buildOptimizationSummary`.
+
+    The public ``*VariablesOptimum`` names are :class:`OptimumView` properties that read
+    ``_rawResults``; subclasses declare their own next to their
+    :meth:`_exportOptimumVarMap` entries.
     """
+
+    capacityVariablesOptimum = OptimumView()
+    isBuiltVariablesOptimum = OptimumView()
+    operationVariablesOptimum = OptimumView()
+    commissioningVariablesOptimum = OptimumView()
+    decommissioningVariablesOptimum = OptimumView()
 
     def __init__(self):
         """Initialize the result state; empty until the model is solved."""
         super().__init__()
-        self._capacityVariablesOptimum = {}
-        self._commissioningVariablesOptimum = {}
-        self._decommissioningVariablesOptimum = {}
-        self._isBuiltVariablesOptimum = {}
         self._optSummary = {}
-        # Raw results dict: the single source of truth for the summary and the xarray/netCDF
-        # result export. Filled by extractRawResults/deriveEconomics during optimize().
-        # Empty until the model is solved.
+        # Raw results dict: the only storage of the optimal values, and the source of the
+        # summary, the result export and the public *VariablesOptimum properties. Filled by
+        # extractRawResults/deriveEconomics during optimize(), or rebuilt by the netCDF
+        # reader. Empty until the model is solved.
         self._rawResults = {}
         self._rawResults1dim = {}
         # Additional summary rows contributed by expansion modules that run after
@@ -96,9 +146,6 @@ class ComponentResultsMixin:
         deliberately performs *no* economics calculations, big-M warnings or summary
         assembly. Subclass specific variables (e.g. operation, charge/discharge, state of
         charge) are added through the overridable :meth:`_extractSubclassRawResults` hook.
-
-        The existing ``self._*VariablesOptimum`` attributes are populated from the extracted
-        values so that the public getter behavior is preserved.
 
         **Required arguments**
 
@@ -119,12 +166,12 @@ class ComponentResultsMixin:
         commisVar = getattr(esM.pyM, "commis_" + abbrvName)
         decommisVar = getattr(esM.pyM, "decommis_" + abbrvName)
 
-        # mapping of dict key -> (pyomo variable, attribute populated from it)
+        # raw results key -> pyomo variable
         designVars = [
-            ("capacity", capVar, self._capacityVariablesOptimum),
-            ("commissioning", commisVar, self._commissioningVariablesOptimum),
-            ("decommissioning", decommisVar, self._decommissioningVariablesOptimum),
-            ("isBuilt", binVar, self._isBuiltVariablesOptimum),
+            ("capacity", capVar),
+            ("commissioning", commisVar),
+            ("decommissioning", decommisVar),
+            ("isBuilt", binVar),
         ]
 
         rawResults = {}
@@ -136,7 +183,7 @@ class ComponentResultsMixin:
             ipName = esM.investmentPeriodNames[ip]
             rawResults[ipName] = {}
             self._rawResults1dim[ipName] = {}
-            for varName, pyomoVar, optimumAttr in designVars:
+            for varName, pyomoVar in designVars:
                 values = pyomoVar.get_values()
                 optVal = utils.formatOptimizationOutput(
                     values, VarType.DESIGN, Dimension.ONE, ip
@@ -144,14 +191,9 @@ class ComponentResultsMixin:
                 optVal_ = utils.formatOptimizationOutput(
                     values, VarType.DESIGN, self.dimension, ip, compDict=compDict
                 )
-                # NOTE (aliasing invariant): the ``self._*VariablesOptimum`` attribute and the
-                # raw results dict deliberately share the *same* frame object (avoids doubling
-                # the memory of the optima). ``self._rawResults`` is the single source of truth,
-                # so these frames must be treated as immutable after optimization: never mutate
-                # a ``*VariablesOptimum`` frame in place, or the summary/export read from
-                # ``_rawResults`` would silently see the mutation. Readers copy before returning
-                # (see :meth:`getResultOptimalValues` / :meth:`getResultSummaryDict`).
-                optimumAttr[ipName] = optVal_
+                # The public *VariablesOptimum properties return these frame objects
+                # themselves, so treat them as immutable after optimization: mutating one
+                # in place would change the summary and the export as well.
                 rawResults[ipName][varName] = optVal_
                 self._rawResults1dim[ipName][varName] = optVal
 
@@ -162,9 +204,8 @@ class ComponentResultsMixin:
     def _extractSubclassRawResults(self, esM, pyM, rawResults):
         """Extract subclass specific raw variables (overridable hook).
 
-        Subclasses add their variables (e.g. ``operation``) to ``rawResults`` in place and
-        populate their own ``self._*VariablesOptimum`` attributes. The base implementation
-        does nothing.
+        Subclasses add their variables (e.g. ``operation``) to ``rawResults`` in place. The
+        base implementation does nothing.
 
         :param esM: EnergySystemModel instance.
         :type esM: EnergySystemModel instance
@@ -444,54 +485,26 @@ class ComponentResultsMixin:
         )
         self._optSummary = self._buildSubclassOptimizationSummary(esM, optSummaryBasic)
 
-    def _convertOptimalValueNames(self, esM):
-        """Rename the internal ``_*VariablesOptimum``/``_optSummary`` attributes to their
-        public names (e.g. ``_capacityVariablesOptimum`` -> ``capacityVariablesOptimum``).
+    def _publishOptimizationSummary(self, esM):
+        """Set the public ``optSummary`` from ``self._optSummary``.
 
         For a perfect-foresight run the per-investment-period dict is kept as is; for a
         single-year optimization it is unwrapped to the one dataframe it contains, so that
         models built before the multi-investment-period support was added keep working.
+        The ``*VariablesOptimum`` names need no such step: they are :class:`OptimumView`
+        properties that read ``self._rawResults``.
 
         Called by :meth:`fine.energySystemModel.EnergySystemModel.optimize` once per
         modeling class, after :meth:`buildOptimizationSummary` has set ``self._optSummary``.
-        It is driven from there rather than from the modeling classes themselves so that a
-        class overriding a phase of the result pipeline cannot omit it.
 
         :param esM: EnergySystemModel instance representing the energy system in which the
             components are modeled.
         :type esM: EnergySystemModel instance
         """
-        optimalValueParameters = [
-            "_optSummary",
-            "_stateOfChargeOperationVariablesOptimum",
-            "_chargeOperationVariablesOptimum",
-            "_dischargeOperationVariablesOptimum",
-            "_phaseAngleVariablesOptimum",
-            "_operationVariablesOptimum",
-            "_discretizationPointVariablesOptimum",
-            "_discretizationSegmentConVariablesOptimum",
-            "_discretizationSegmentBinVariablesOptimum",
-            "_capacityVariablesOptimum",
-            "_isBuiltVariablesOptimum",
-            "_commissioningVariablesOptimum",
-            "_decommissioningVariablesOptimum",
-            "_maintenanceActiveVariablesOptimum",
-        ]
-
-        for key in optimalValueParameters:
-            if key not in self.__dict__:
-                continue
-            # strip only the leading underscore; key.replace("_", "") would also drop
-            # underscores inside a name
-            publicName = key[1:]
-            if esM.numberOfInvestmentPeriods == 1:
-                setattr(
-                    self,
-                    publicName,
-                    getattr(self, key)[esM.investmentPeriodNames[0]],
-                )
-            else:
-                setattr(self, publicName, getattr(self, key))
+        if esM.numberOfInvestmentPeriods == 1:
+            self.optSummary = self._optSummary[esM.investmentPeriodNames[0]]
+        else:
+            self.optSummary = self._optSummary
 
     def _connectionLocationMap(self, esM):
         """Return the ``"locIn_locOut" -> (locIn, locOut)`` map for 2-dim connections.
@@ -556,15 +569,12 @@ class ComponentResultsMixin:
     def getOptimalValues(self, name="all", ip=0):
         """Return optimal values of the components.
 
-        :param name: name of the variables of which the optimal values should be returned:
-
-            * 'capacityVariablesOptimum',
-            * 'isBuiltVariablesOptimum',
-            * 'operationVariablesOptimum',
-            * 'commissioningVariablesOptimum'
-            * 'decommissioningVariablesOptimum'
-            * 'all' or another input: all variables are returned.
-
+        :param name: name of the variable whose optimal values should be returned, e.g.
+            'capacityVariablesOptimum', 'isBuiltVariablesOptimum',
+            'operationVariablesOptimum', 'commissioningVariablesOptimum' or
+            'decommissioningVariablesOptimum'; subclasses add their own (see
+            :meth:`_exportOptimumVarMap`). For 'all' or any other input, all variables
+            are returned.
         :type name: string
 
         The returned frames carry named axes: the index is ``component`` and ``location``
@@ -573,35 +583,29 @@ class ComponentResultsMixin:
         unnamed (e.g. ``reset_index()`` producing ``level_0``/``level_1`` columns) has to
         be adapted.
 
-        :param ip: investment period of transformation path analysis.
+        :param ip: investment period name.
             |br| * the default value is 0
         :type ip: int
 
-        :returns: a dictionary with the optimal values of the components
+        :returns: for a single variable ``{"values", "timeDependent", "dimension"}``; for
+            all variables a dict of those, keyed by variable name. A variable the model did
+            not produce results for (e.g. the maintenance variable of a model without
+            maintenance) is left out.
         :rtype: dict
         """
-        timeDependentMapping = {
-            "capacityVariablesOptimum": False,
-            "isBuiltVariablesOptimum": False,
-            "operationVariablesOptimum": True,
-            "commissioningVariablesOptimum": False,
-            "decommissioningVariablesOptimum": False,
-        }
-
-        if name in timeDependentMapping:
-            return {
-                "values": getattr(self, f"_{name}")[ip],
-                "timeDependent": timeDependentMapping[name],
-                "dimension": self.dimension,
+        results_ip = self._requireRawResults(ip)
+        entries = {
+            optName: {
+                "values": results_ip[rawKey],
+                "timeDependent": timeDependent,
+                "dimension": dimension,
             }
-        return {
-            valName: {
-                "values": getattr(self, f"_{valName}")[ip],
-                "timeDependent": timeDependentMapping[valName],
-                "dimension": self.dimension,
-            }
-            for valName in timeDependentMapping
+            for rawKey, optName, timeDependent, dimension in self._exportOptimumVarMap()
+            if rawKey in results_ip
         }
+        if name in entries:
+            return entries[name]
+        return entries
 
     # ------------------------------------------------------------------
     # Results-dict accessors used by the xarray/netCDF export. They read the raw results
@@ -638,7 +642,12 @@ class ComponentResultsMixin:
         return self._rawResults[ip]
 
     def _exportOptimumVarMap(self):
-        """Map raw result keys to the optimum variable names used by the export.
+        """Map raw result keys to the public optimum variable names.
+
+        This list is the only place where a modeling class names its optimum variables:
+        :meth:`getOptimalValues`, the :class:`OptimumView` properties and the result export
+        all read it. A subclass that adds a variable extends this list and declares an
+        :class:`OptimumView` property of the same name.
 
         Each entry carries an explicit ``dimension`` so a variable can be shaped
         independently of the component's own dimension (e.g. the LOPF phase angle is
@@ -646,7 +655,7 @@ class ComponentResultsMixin:
         variables (see :meth:`fine.storage.StorageModel._exportOptimumVarMap`).
 
         :return: list of ``(rawResultsKey, optimumVariableName, timeDependent, dimension)``
-            tuples in the same order/meaning as :meth:`getOptimalValues`.
+            tuples, in the order :meth:`getOptimalValues` returns them.
         :rtype: list
         """
         d = self.dimension
@@ -662,10 +671,9 @@ class ComponentResultsMixin:
         """Return the design/operation optima for the export, read from ``self._rawResults``.
 
         Per component, each optimum variable is shaped into a ``Series`` ready for
-        ``.to_xarray()`` (same structure / dimension names the export produced before). The
-        values are the exact same frame objects the optimum attributes hold (both are populated
-        from the same object in :meth:`extractRawResults`), so the export output is unchanged.
-        These optima carry no unit, so the entries pair the series with ``None``.
+        ``.to_xarray()`` (same structure / dimension names the export produced before), from
+        the same frames that :meth:`getOptimalValues` and the ``*VariablesOptimum`` properties
+        return. These optima carry no unit, so the entries pair the series with ``None``.
 
         :param ip: investment period name (key into ``self._rawResults``).
         :type ip: string

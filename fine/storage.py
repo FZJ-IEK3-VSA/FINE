@@ -1,4 +1,5 @@
 from fine.component import Component, ComponentModel
+from fine.results.componentResults import OptimumView
 from fine.enums import ComponentAbbreviation, CostType, Dimension, FncType, VarType
 from fine import utils
 import pyomo.environ as pyomo
@@ -594,14 +595,15 @@ class StorageModel(ComponentModel):
     The StorageModel class inherits from the ComponentModel class.
     """
 
+    chargeOperationVariablesOptimum = OptimumView()
+    dischargeOperationVariablesOptimum = OptimumView()
+    stateOfChargeOperationVariablesOptimum = OptimumView()
+
     def __init__(self):
         """Create a StorageModel class instance."""
         super().__init__()
         self.abbrvName = ComponentAbbreviation.STORAGE
         self.dimension = Dimension.ONE
-        self._chargeOperationVariablesOptimum = {}
-        self._dischargeOperationVariablesOptimum = {}
-        self._stateOfChargeOperationVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -1910,7 +1912,7 @@ class StorageModel(ComponentModel):
         """Extract the storage specific raw solved operation variables.
 
         Adds ``chargeOperation``, ``dischargeOperation`` and ``stateOfChargeOperation`` to
-        ``rawResults`` and populates the corresponding ``self._*VariablesOptimum`` attributes.
+        ``rawResults``.
         The state of charge is reconstructed for both the non-TSA and the TSA/segmentation
         cases.
         """
@@ -1932,7 +1934,6 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._chargeOperationVariablesOptimum[ipName] = optVal_charge
             rawResults[ipName]["chargeOperation"] = optVal_charge
 
             # discharge operation
@@ -1944,7 +1945,6 @@ class StorageModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._dischargeOperationVariablesOptimum[ipName] = optVal_discharge
             rawResults[ipName]["dischargeOperation"] = optVal_discharge
 
             # state of charge
@@ -2026,7 +2026,6 @@ class StorageModel(ComponentModel):
                     )
                 else:
                     optVal = None
-            self._stateOfChargeOperationVariablesOptimum[ipName] = optVal
             rawResults[ipName]["stateOfChargeOperation"] = optVal
 
     def _deriveSubclassEconomics(self, esM, pyM, rawResults):
@@ -2216,15 +2215,12 @@ class StorageModel(ComponentModel):
             # discharging (uses the charge aggregation's component index).
             chargeSum = framesByProp.get("operationCharge")
             if chargeSum is not None:
+                results_ip = self._rawResults[ipName]
                 for compName in chargeSum.index:
                     simultaneousChargeDischarge = (
                         utils.checkSimultaneousChargeDischarge(
-                            tsCharge=self._chargeOperationVariablesOptimum[ipName].loc[
-                                compName
-                            ],
-                            tsDischarge=self._dischargeOperationVariablesOptimum[
-                                ipName
-                            ].loc[compName],
+                            tsCharge=results_ip["chargeOperation"].loc[compName],
+                            tsDischarge=results_ip["dischargeOperation"].loc[compName],
                         )
                     )
                     if simultaneousChargeDischarge:
@@ -2235,7 +2231,7 @@ class StorageModel(ComponentModel):
                             )
 
             # State of charge variables are extracted by _extractSubclassRawResults
-            # (self._stateOfChargeOperationVariablesOptimum) and are not part of the summary.
+            # (raw results key "stateOfChargeOperation") and are not part of the summary.
 
             # Append optimization summaries
             optSummaryBasic_frame = optSummaryBasic[esM.investmentPeriodNames[ip]]
@@ -2324,54 +2320,3 @@ class StorageModel(ComponentModel):
             ),
             ("opexDischarge", results_ip.get("opexDischarge"), perA),
         ]
-
-    def getOptimalValues(self, name="all", ip=0):  # noqa: PLR0911
-        """Return optimal values of the components.
-
-        :param name: name of the variables of which the optimal values should be returned:
-
-            * 'capacityVariables',
-            * 'isBuiltVariables',
-            * 'chargeOperationVariablesOptimum',
-            * 'dischargeOperationVariablesOptimum',
-            * 'stateOfChargeOperationVariablesOptimum',
-            * 'all' or another input: all variables are returned.
-
-            For optimizations with several years also following values should be returned:
-            * '_commissioningVariablesOptimum'
-            * '_decommissioningVariablesOptimum'
-
-        |br| * the default value is 'all'
-        :type name: string
-
-        :param ip: investment period
-            |br| * the default value is 0
-        :type ip: int
-
-        :returns: a dictionary with the optimal values of the components
-        :rtype: dict
-        """
-        timeDependentMapping = {
-            "capacityVariablesOptimum": False,
-            "commissioningVariablesOptimum": False,
-            "decommissioningVariablesOptimum": False,
-            "isBuiltVariablesOptimum": False,
-            "chargeOperationVariablesOptimum": True,
-            "dischargeOperationVariablesOptimum": True,
-            "stateOfChargeOperationVariablesOptimum": True,
-        }
-
-        if name in timeDependentMapping:
-            return {
-                "values": getattr(self, f"_{name}")[ip],
-                "timeDependent": timeDependentMapping[name],
-                "dimension": self.dimension,
-            }
-        return {
-            valName: {
-                "values": getattr(self, f"_{valName}")[ip],
-                "timeDependent": timeDependentMapping[valName],
-                "dimension": self.dimension,
-            }
-            for valName in timeDependentMapping
-        }

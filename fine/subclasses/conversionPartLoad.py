@@ -1,5 +1,6 @@
 from fine.conversion import Conversion, ConversionModel
 from fine.enums import ComponentAbbreviation, Dimension, VarType
+from fine.results.componentResults import OptimumView
 from fine.utils import checkDataFrameConversionFactor, checkCallableConversionFactor
 from fine import utils
 import pyomo.environ as pyomo
@@ -375,14 +376,14 @@ class ConversionPartLoadModel(ConversionModel):
     The ConversionPartLoad class inherits from the ConversionModel class.
     """
 
+    discretizationPointVariablesOptimum = OptimumView()
+    discretizationSegmentConVariablesOptimum = OptimumView()
+    discretizationSegmentBinVariablesOptimum = OptimumView()
+
     def __init__(self):
         super().__init__()
         self.abbrvName = ComponentAbbreviation.PART_LOAD
         self.dimension = Dimension.ONE
-        self._operationVariablesOptimum = {}
-        self._discretizationPointVariablesOptimum = {}
-        self._discretizationSegmentConVariablesOptimum = {}
-        self._discretizationSegmentBinVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -872,8 +873,7 @@ class ConversionPartLoadModel(ConversionModel):
         """Extract the part-load specific raw solved discretization variables.
 
         Chains the Conversion hook (operation) and adds the discretization point / segment
-        continuous / segment binary variables to ``rawResults`` while populating the
-        corresponding ``self._*VariablesOptimum`` attributes.
+        continuous / segment binary variables to ``rawResults``.
         """
         super()._extractSubclassRawResults(esM, pyM, rawResults)
         abbrvName = self.abbrvName
@@ -881,23 +881,20 @@ class ConversionPartLoadModel(ConversionModel):
             (
                 "discretizationPoint",
                 getattr(pyM, "discretizationPoint_" + abbrvName),
-                self._discretizationPointVariablesOptimum,
             ),
             (
                 "discretizationSegmentCon",
                 getattr(pyM, "discretizationSegmentCon_" + abbrvName),
-                self._discretizationSegmentConVariablesOptimum,
             ),
             (
                 "discretizationSegmentBin",
                 getattr(pyM, "discretizationSegmentBin_" + abbrvName),
-                self._discretizationSegmentBinVariablesOptimum,
             ),
         ]
 
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
-            for varName, pyomoVar, optimumAttr in discretizationVars:
+            for varName, pyomoVar in discretizationVars:
                 optVal_ = utils.formatOptimizationOutput(
                     pyomoVar.get_values(),
                     VarType.OPERATION,
@@ -906,7 +903,6 @@ class ConversionPartLoadModel(ConversionModel):
                     esM.periodsOrder[ip],
                     esM=esM,
                 )
-                optimumAttr[ipName] = optVal_
                 rawResults[ipName][varName] = optVal_
 
     def _exportOptimumVarMap(self):
@@ -931,55 +927,3 @@ class ConversionPartLoadModel(ConversionModel):
                 d,
             ),
         ]
-
-    def getOptimalValues(self, name="all", ip=0):
-        """Return optimal values of the components.
-
-        :param name: name of the variables of which the optimal values should be returned:
-
-            * 'capacityVariablesOptimum',
-            * 'isBuiltVariablesOptimum',
-            * 'operationVariablesOptimum',
-            * 'commissioningVariablesOptimum',
-            * 'decommissioningVariablesOptimum',
-            * 'discretizationPointVariablesOptimum',
-            * 'discretizationSegmentConVariablesOptimum',
-            * 'discretizationSegmentBinVariablesOptimum',
-            * 'all' or another input: all variables are returned.
-
-        |br| * the default value is 'all'
-        :type name: string
-
-        :param ip: investment period
-        |br| * the default value is 0
-        :type ip: int
-
-        :returns: a dictionary with the optimal values of the components
-        :rtype: dict
-        """
-        discretizationNames = (
-            "discretizationPointVariablesOptimum",
-            "discretizationSegmentConVariablesOptimum",
-            "discretizationSegmentBinVariablesOptimum",
-        )
-        if name in discretizationNames:
-            return {
-                "values": getattr(self, f"_{name}")[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-
-        result = super().getOptimalValues(name, ip=ip)
-        # a single conversion variable was requested and returned by the base class
-        if name != "all" and "values" in result:
-            return result
-        discretizationEntries = {
-            valName: {
-                "values": getattr(self, f"_{valName}")[ip],
-                "timeDependent": True,
-                "dimension": self.dimension,
-            }
-            for valName in discretizationNames
-        }
-        result.update(discretizationEntries)
-        return result

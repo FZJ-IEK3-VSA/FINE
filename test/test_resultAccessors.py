@@ -13,6 +13,7 @@ import pytest
 
 import fine.subclasses.conversionPartLoad as partload_module
 import fine.subclasses.lopf as lopf_module
+from fine.storage import StorageModel
 from fine.utils import ImplementedSolvers
 
 
@@ -52,10 +53,9 @@ def test_requireRawResults_raises_for_an_unknown_investment_period(minimal_test_
 
 
 def test_getResultOptimalValues_returns_the_solved_optimum_frames(minimal_test_esM):
-    """The accessor must hand back the very values stored in the optimum attributes.
+    """The accessor must hand back the values the public optimum properties return.
 
-    ``extractRawResults`` puts the same frame object into ``_rawResults`` and into the
-    ``_*VariablesOptimum`` attribute, so the two must agree value for value.
+    Both read the same frames in ``_rawResults``, so they must agree value for value.
     """
     esM, ip = _optimize(minimal_test_esM)
     model = esM.componentModelingDict["ConversionModel"]
@@ -64,14 +64,14 @@ def test_getResultOptimalValues_returns_the_solved_optimum_frames(minimal_test_e
 
     capacity, unit = values["capacityVariablesOptimum"]
     assert unit is None, "optimum values carry no unit"
-    expected = model._capacityVariablesOptimum[ip].loc["Electrolyzers"]
+    expected = model.capacityVariablesOptimum.loc["Electrolyzers"]
     np.testing.assert_allclose(
         capacity.sort_index().values, expected.sort_index().values
     )
 
     operation, _ = values["operationVariablesOptimum"]
     assert operation.index.names == ["time", "location"]
-    expected_operation = model._operationVariablesOptimum[ip].loc["Electrolyzers"]
+    expected_operation = model.operationVariablesOptimum.loc["Electrolyzers"]
     assert operation.sum() == pytest.approx(expected_operation.values.sum())
 
 
@@ -291,22 +291,21 @@ def test_registerExtraSummaryRows_is_refused_for_2dim_models(minimal_test_esM):
 
 
 def test_public_optimum_names_are_set_for_every_modeling_class(minimal_test_esM):
-    """optimize() must publish the internal ``_*`` attributes under their public names.
+    """Every modeling class must offer its public result names after optimize().
 
-    The renaming is driven from EnergySystemModel.optimize, so it applies to every
-    modeling class, whichever phase of the result pipeline it overrides. A single-year
-    model is unwrapped to the one dataframe it holds.
+    ``optSummary`` is published by EnergySystemModel.optimize for every modeling class,
+    whichever phase of the result pipeline it overrides; the ``*VariablesOptimum`` names
+    are properties that read ``_rawResults``. A single-year model is unwrapped to the one
+    dataframe it holds.
     """
     esM, ip = _optimize(minimal_test_esM)
 
     for name in esM.componentModelingDict:
         model = esM.componentModelingDict[name]
         assert isinstance(model.optSummary, pd.DataFrame), name
-        # the public name exists for every internal one the class actually holds; the
-        # value is None where the variable does not apply (a source without a capacity
-        # variable has no capacity optimum)
-        for internal in ("_capacityVariablesOptimum", "_commissioningVariablesOptimum"):
-            public = internal[1:]
+        # the value is None where the variable does not apply (a source without a
+        # capacity variable has no capacity optimum)
+        for public in ("capacityVariablesOptimum", "commissioningVariablesOptimum"):
             assert hasattr(model, public), f"{name}.{public}"
             assert getattr(model, public) is None or isinstance(
                 getattr(model, public), pd.DataFrame
@@ -384,27 +383,11 @@ def test_getOptimalValues_covers_the_subclass_variables_of_every_class():
     lopf = lopf_module.LOPFModel()
     partload = partload_module.ConversionPartLoadModel()
 
-    # patch in empty optimum dicts so getOptimalValues can be called without a solve
-    for model, extra in (
-        (lopf, ["_phaseAngleVariablesOptimum"]),
-        (
-            partload,
-            [
-                "_discretizationPointVariablesOptimum",
-                "_discretizationSegmentConVariablesOptimum",
-                "_discretizationSegmentBinVariablesOptimum",
-            ],
-        ),
-    ):
-        for attr in [
-            "_capacityVariablesOptimum",
-            "_isBuiltVariablesOptimum",
-            "_operationVariablesOptimum",
-            "_commissioningVariablesOptimum",
-            "_decommissioningVariablesOptimum",
-            *extra,
-        ]:
-            setattr(model, attr, {0: pd.DataFrame()})
+    # patch in empty raw results so getOptimalValues can be called without a solve
+    for model in (lopf, partload):
+        model._rawResults = {
+            0: {rawKey: pd.DataFrame() for rawKey, *_ in model._exportOptimumVarMap()}
+        }
 
     assert design <= set(lopf.getOptimalValues("all", ip=0))
     assert "phaseAngleVariablesOptimum" in lopf.getOptimalValues("all", ip=0)
@@ -429,14 +412,44 @@ def test_getOptimalValues_covers_the_subclass_variables_of_every_class():
 def test_named_base_optimum_does_not_require_subclass_results():
     """A base result remains independently accessible when subclass results are absent.
 
-    This occurs, for example, on models restored by the current netCDF reader, which
-    reconstructs the standard design/operation optima but not LOPF phase angles or part-load
-    discretization variables.
+    getOptimalValues reports only the variables present in the raw results, so asking for
+    one of them must not depend on the subclass variables.
     """
     for model in (lopf_module.LOPFModel(), partload_module.ConversionPartLoadModel()):
-        model._capacityVariablesOptimum = {0: pd.DataFrame()}
+        model._rawResults = {0: {"capacity": pd.DataFrame()}}
 
         result = model.getOptimalValues("capacityVariablesOptimum", ip=0)
 
         assert "values" in result
         assert isinstance(result["values"], pd.DataFrame)
+
+
+def test_optimum_properties_read_the_raw_results(perfectForesight_test_esM):
+    """The public ``*VariablesOptimum`` names are read-only views of ``_rawResults``.
+
+    With several investment periods they return a dict keyed by investment period; the
+    single-period case is covered by every test reading a public name. A name the class
+    has no variable for raises AttributeError, as the missing attribute did.
+    """
+    esM = perfectForesight_test_esM
+    model = esM.componentModelingDict["SourceSinkModel"]
+    assert not hasattr(model, "capacityVariablesOptimum"), (
+        "no results before optimize()"
+    )
+
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+
+    capacity = model.capacityVariablesOptimum
+    assert set(capacity) == set(esM.investmentPeriodNames)
+    for ip in esM.investmentPeriodNames:
+        assert capacity[ip] is model._rawResults[ip]["capacity"]
+
+    with pytest.raises(AttributeError, match="cannot be set"):
+        model.capacityVariablesOptimum = {}
+
+    # the raw results key alone is not enough: a storage has no plain operation variable
+    storage = StorageModel()
+    storage._rawResults = {0: {"operation": pd.DataFrame()}}
+    assert not hasattr(storage, "operationVariablesOptimum")

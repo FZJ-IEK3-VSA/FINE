@@ -523,8 +523,6 @@ class TransmissionModel(ComponentModel):
         super().__init__()
         self.abbrvName = ComponentAbbreviation.TRANSMISSION
         self.dimension = Dimension.TWO
-        self._operationVariablesOptimum = {}
-        self._isBuiltVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -948,8 +946,8 @@ class TransmissionModel(ComponentModel):
     def _extractSubclassRawResults(self, esM, pyM, rawResults):
         """Extract the transmission specific raw solved ``operation`` variable.
 
-        The operation is 2-dimensional. The 2-dim frame is stored in ``rawResults`` and in
-        ``self._operationVariablesOptimum``; the 1-dim companion (used by the summary
+        The operation is 2-dimensional. The 2-dim frame is stored in ``rawResults``; the 1-dim
+        companion (used by the summary
         assembly) is stored in ``self._rawResults1dim``.
         """
         super()._extractSubclassRawResults(esM, pyM, rawResults)
@@ -975,7 +973,6 @@ class TransmissionModel(ComponentModel):
                 compDict=compDict,
                 esM=esM,
             )
-            self._operationVariablesOptimum[ipName] = optVal_
             rawResults[ipName]["operation"] = optVal_
             self._rawResults1dim[ipName]["operation"] = optVal
 

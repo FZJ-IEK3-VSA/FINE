@@ -2283,11 +2283,7 @@ class EnergySystemModel:
 
             # iterate over investment periods, to get yearly results
             for key, mdl in self.componentModelingDict.items():
-                if not isinstance(mdl._capacityVariablesOptimum, dict):
-                    mdl._capacityVariablesOptimum = {}
                 __t = time.time()
-                # if _capacityVariablesOptimum is not a dict, convert to dict
-                # (if single year system is optimized several times)
 
                 # Result pipeline: read the solved variables, derive the economics from
                 # them and assemble the summary as a view of both. The phases are driven
@@ -2296,10 +2292,9 @@ class EnergySystemModel:
                 mdl.extractRawResults(self, self.pyM)
                 mdl.deriveEconomics(self, self.pyM)
                 mdl.buildOptimizationSummary(self)
-                # Rename the internal _*VariablesOptimum/_optSummary attributes to their
-                # public names. This is driven from here, once per modeling class, so that
-                # it cannot be forgotten by a modeling class.
-                mdl._convertOptimalValueNames(self)
+                # Publish the summary as optSummary. This is driven from here, once per
+                # modeling class, so that it cannot be forgotten by a modeling class.
+                mdl._publishOptimizationSummary(self)
                 outputString = (
                     ("for {:" + w + "}").format(key + " ...")
                     + "(%.4f" % (time.time() - __t)
