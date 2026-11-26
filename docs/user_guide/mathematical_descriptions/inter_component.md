@@ -209,6 +209,11 @@ A *Transmission* component counts only lines that cross the boundary of $\mathca
 between two locations of $\mathcal{L}^\text{j}$ do not count, so a limit over all locations receives
 no contribution from *Transmission* components.
 
+For a pooled commodity, trade between the locations of a pool has no variables and does not count. A
+`"balance"` row over some locations of a pool therefore bounds their net production, which is the
+amount they supply to the rest of the pool (or draw from it, if negative). The types `"capacity"`,
+`"commissioning"` and `"operation"` count component variables only, which pooling does not change.
+
 A `"balance"` row is summed over locations only. Without $\text{commodity}$, each *Source*, *Sink*,
 *Storage* and *Transmission* component counts in its own commodity; a *Conversion* component then
 cannot be a member, because its balance exists only per commodity.
