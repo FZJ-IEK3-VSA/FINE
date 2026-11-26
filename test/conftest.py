@@ -1393,3 +1393,151 @@ def perfectForesight_test_esM(request):
     )
 
     return esM
+
+
+COMPONENT_LIMIT_LOCATIONS = ["R1", "R2", "R3"]
+
+
+def _componentLimitTestEsM(
+    componentLimit, eligibility=None, eligibility2dim=None, members=None, grouping=None
+):
+    """Build a small model with one component of every class for componentLimit tests.
+
+    Three regions, two investment periods (2020 and 2025, five years apart) and
+    two time steps of one hour. ``members`` maps a component name to the
+    componentLimitIDs it carries. The components are:
+
+    - "Src": electricity Source with a capacity variable, eligible in R1 and R2
+    - "Snk": electricity Sink without a capacity variable
+    - "Conv": Conversion with the factors electricity 1 and gas -2
+    - "Stor": electricity Storage
+    - "Line": electricity Transmission on every connection; losses of 0.001 per
+      km over 100 km, so 0.9 of a flow arrives
+    - "Gas": gas Source without a capacity variable
+    """
+    members = members or {}
+    locs = COMPONENT_LIMIT_LOCATIONS
+    esM = fn.EnergySystemModel(
+        locations=set(locs),
+        commodities={"electricity", "gas"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"electricity": r"kW$_{el}$", "gas": r"kW$_{gas}$"},
+        hoursPerTimeStep=1,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        startYear=2020,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=5,
+        componentLimit=componentLimit,
+        componentLimitEligibility=eligibility,
+        componentLimitEligibility2dim=eligibility2dim,
+        componentLimitGrouping=grouping,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Src",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            locationalEligibility=pd.Series({"R1": 1, "R2": 1, "R3": 0}),
+            investPerCapacity=1.0,
+            componentLimitID=members.get("Src"),
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Snk",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame(1.0, index=range(2), columns=locs),
+            componentLimitID=members.get("Snk"),
+        )
+    )
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Conv",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": 1, "gas": -2},
+            hasCapacityVariable=True,
+            investPerCapacity=1.0,
+            componentLimitID=members.get("Conv"),
+        )
+    )
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Stor",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=1.0,
+            componentLimitID=members.get("Stor"),
+        )
+    )
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="Line",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=1.0,
+            losses=0.001,
+            distances=pd.DataFrame(
+                [[0 if a == b else 100 for b in locs] for a in locs],
+                index=locs,
+                columns=locs,
+            ),
+            componentLimitID=members.get("Line"),
+        )
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Gas",
+            commodity="gas",
+            hasCapacityVariable=False,
+            commodityCost=1.0,
+            componentLimitID=members.get("Gas"),
+        )
+    )
+    return esM
+
+
+@pytest.fixture(scope="function")
+def componentLimit_esM_factory():
+    """Return the builder of the componentLimit test model."""
+    return _componentLimitTestEsM
+
+
+@pytest.fixture(scope="function")
+def componentLimit_test_esM():
+    """The componentLimit test model with limits whose meaning the specification keeps.
+
+    Its optimization model is stored as an LP snapshot, so that a refactoring of
+    the componentLimit code shows that these limits stay unchanged.
+    """
+    componentLimit = pd.DataFrame(
+        index=["capSrc", "comConv", "capStor", "opSrc"],
+        columns=["value", "bound", "type", "commodity", "ip", "ipEnd"],
+        data=[
+            [5.0, "upper", "capacity", None, 2020, None],
+            [3.0, "lower", "commissioning", None, 2020, 2025],
+            [2.0, "fixed", "capacity", None, 2025, None],
+            [8.0, "upper", "operation", None, 2025, None],
+        ],
+    )
+    eligibility = pd.DataFrame(
+        1, index=COMPONENT_LIMIT_LOCATIONS, columns=componentLimit.index
+    )
+    eligibility.loc["R3", "capSrc"] = 0
+    return _componentLimitTestEsM(
+        componentLimit,
+        eligibility,
+        members={
+            "Src": ["capSrc", "opSrc"],
+            "Conv": ["comConv"],
+            "Stor": ["capStor"],
+        },
+    )

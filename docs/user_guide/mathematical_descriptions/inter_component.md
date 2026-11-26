@@ -82,80 +82,182 @@ $$
 
 ## Component Limits
 
-A component limit bounds the summed capacity, commissioning or annual operation of a *group of components* over
-a *group of locations*. It answers questions such as "how much wind capacity may stand in these regions
-together" or "how much may these technologies produce in this year in total".
+A component limit bounds a quantity summed over a *group of components* and a *group of locations*. It
+answers questions such as "how much wind capacity may stand in these regions together", "how much may
+these power plants produce in this year" or "how much CO$_2$ may these regions emit over the whole
+pathway".
 
-A component joins a limit by naming the limit's identifier in its own parameter
-$\text{componentLimitID}_\text{c}$. Unlike $\text{balanceLimitID}_\text{c}$, this parameter takes a *list* of
-identifiers, so one component may belong to several limits at once.
+### Components and locations of a limit
 
-Let $\mathcal{J}^\text{ID}$ be the set of all component limit identifiers. For each
-$\text{j}\in\mathcal{J}^\text{ID}$ let
-
-$$
-\begin{aligned}
-    &\mathcal{C}^\text{j} = \left\{ \text{c} ~\vert~ \forall~ \text{c}\in\mathcal{C}:
-     \text{j}\in\text{componentLimitID}_\text{c} \right\}
-\end{aligned}
-$$
-
-be the components that carry the identifier, and let $\mathcal{L}^\text{j}$ be the locations marked eligible
-for it in $\text{componentLimitEligibility}$, or the connections marked eligible in
-$\text{componentLimitEligibility2dim}$. The component limit constraint is then, for every row of
-$\text{componentLimit}$ and its investment period $\text{ip}$,
+A component joins a limit by naming the limit's identifier in its parameter
+$\text{componentLimitID}_\text{c}$. The parameter takes a *list* of identifiers, so one component may
+belong to several limits. Let $\mathcal{J}$ be the set of all identifiers in the index of
+$\text{componentLimit}$. For each $\text{j}\in\mathcal{J}$,
 
 $$
-\begin{aligned}
-    &\sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} \sum\limits_{\text{l}~\in~\mathcal{L}^\text{j}}
-    E^\text{comp}_\text{c,l,ip} ~\lesseqgtr~ \text{value}_\text{j}~,
-\end{aligned}
+\mathcal{C}^\text{j} = \left\{ \text{c}\in\mathcal{C} ~\vert~ \text{j}\in\text{componentLimitID}_\text{c} \right\}
 $$
 
-where $\lesseqgtr$ is $\leq$, $\geq$ or $=$ for a $\text{bound}$ of `"upper"`, `"lower"` or `"fixed"`, and
-$E^\text{comp}$ is
+is the set of components that carry the identifier.
 
-- the installed capacity $k_\text{c,l,ip}$ for a $\text{type}$ of `"capacity"`,
-- the newly commissioned capacity for a $\text{type}$ of `"commissioning"`,
-- the annual operation for a $\text{type}$ of `"operation"`.
+A limit is summed either over locations or over transmission connections:
+
+- **Over locations.** $\mathcal{L}^\text{j}$ holds the locations marked with 1 for $\text{j}$ in
+  $\text{componentLimitEligibility}$.
+- **Over connections.** $\mathcal{A}^\text{j}$ holds the connections $(\text{l},\text{l}^*)$ marked
+  with 1 for $\text{j}$ in $\text{componentLimitEligibility2dim}$. A limit over connections includes
+  only *Transmission* components.
+
+An identifier must appear in exactly one of the two eligibility frames.
+
+### The limit constraint
+
+Each row of $\text{componentLimit}$ belongs to one identifier $\text{j}$ and builds one constraint
+
+$$
+\sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} E^\text{type}_\text{c,j} ~\lesseqgtr~ \text{value}~,
+$$
+
+where $\lesseqgtr$ is $\leq$, $\geq$ or $=$ for a $\text{bound}$ of `"upper"`, `"lower"` or `"fixed"`.
+$E^\text{type}_\text{c,j}$ is the contribution of component $\text{c}$ over the locations or
+connections of $\text{j}$. The column $\text{type}$ selects it from the four quantities below.
+
+The column $\text{commodity}$ restricts a limit to one commodity. If it is set, a component contributes
+only if it carries that commodity: a *Source*, *Sink*, *Storage* or *Transmission* component whose
+commodity is the given one, or a *Conversion* component whose conversion factors, flexible conversion
+groups or emission factors contain it. All other components of $\mathcal{C}^\text{j}$ contribute 0.
+
+### Investment periods
+
+A row applies to the investment period $\text{ip}$. If $\text{ipEnd}$ is set, the row applies to all
+investment periods from $\text{ip}$ to $\text{ipEnd}$ and the quantity is summed over them:
+
+- `"commissioning"` is summed as it is, because capacity is commissioned once per investment period.
+- `"operation"` and `"balance"` are annual quantities. Each investment period stands for
+  $\Delta^\text{ip}$ years, the $\text{investmentPeriodInterval}$ of the model, so its annual value is
+  multiplied by $\Delta^\text{ip}$. A row over a range therefore bounds the total over all years of the
+  range, as $\text{pathwayBalanceLimit}$ does.
+- `"capacity"` cannot span a range, because an installed capacity is a stock, not a quantity that adds
+  up over time.
+
+In a stochastic model the investment periods are alternative scenarios, not steps of a pathway, so no
+row may span a range there.
+
+### Annual quantities
+
+Operation variables $o_{\omega\text{,l,}\theta}$ hold the amount of one time step $\theta = (p,t)$.
+The annual amount of an operation variable is
+
+$$
+\bar{o}_{\omega\text{,l}} = \sum\limits_{(p,t)~\in~\Theta} \text{w}_p \cdot o_{\omega\text{,l,}(p,t)}~,
+$$
+
+where $\text{w}_p$ is the number of times period $p$ occurs in the year. Without time series
+aggregation, $\text{w}_p = 1$.
+
+### Type "capacity"
+
+$E^\text{cap}_\text{c,j}$ is the installed capacity $k_\text{c,l}$ in the investment period $\text{ip}$,
+in the capacity unit of the component (the energy capacity for *Storage* components):
+
+- *Source*, *Sink*, *Conversion*, *Storage*: $\sum_{\text{l}\in\mathcal{L}^\text{j}} k_\text{c,l}$.
+- *Transmission* over connections: the capacity of each line in $\mathcal{A}^\text{j}$. A line has one
+  capacity for both directions, so $(\text{l},\text{l}^*)$ and $(\text{l}^*,\text{l})$ name the same
+  line and it is counted once.
+- *Transmission* over locations: a line with both ends in $\mathcal{L}^\text{j}$ counts fully, a line
+  with one end in $\mathcal{L}^\text{j}$ counts half.
+
+### Type "commissioning"
+
+$E^\text{com}_\text{c,j}$ is the capacity newly commissioned in the investment period, counted over
+locations and lines exactly as `"capacity"`.
+
+### Type "operation"
+
+$E^\text{op}_\text{c,j}$ is the annual activity of the component. It is never negative, so a limit of
+this type cannot be satisfied by one component offsetting another:
+
+| Component | Annual activity |
+|---|---|
+| *Source* | the annual output $\sum_{\text{l}\in\mathcal{L}^\text{j}} \bar{o}_\text{c,l}$ |
+| *Sink* | the annual intake $\sum_{\text{l}\in\mathcal{L}^\text{j}} \bar{o}_\text{c,l}$ |
+| *Conversion* without $\text{commodity}$ | the annual operation in the physical unit of the component |
+| *Conversion* with $\text{commodity}$ | the annual amount of the commodity it produces or consumes, $\lvert\text{factor}\rvert \cdot$ operation |
+| *Storage* | the annual discharge |
+| *Transmission* over connections | the annual flow sent on each directed connection in $\mathcal{A}^\text{j}$, before losses |
+| *Transmission* over locations | not defined; such a row is rejected |
+
+For a *Conversion* component, the commodity amount follows the conversion factors in the same way as
+the commodity balance does, including conversion factors that depend on the commissioning year,
+flexible conversion groups and the emissions given by emission factors.
+
+### Type "balance"
+
+$E^\text{bal}_\text{c,j}$ is the signed annual amount of the commodity that the component adds to the
+locations $\mathcal{L}^\text{j}$. It is the commodity balance contribution $C_{\text{c,g,l,}\theta}$
+summed over the year:
+
+| Component | Annual contribution |
+|---|---|
+| *Source* | $+$ annual output |
+| *Sink* | $-$ annual intake |
+| *Conversion* | annual operation times the conversion factor of the commodity: positive for an output, negative for an input; emissions count as outputs |
+| *Storage* | annual discharge $-$ annual charge |
+| *Transmission* | annual import into $\mathcal{L}^\text{j}$ after losses $-$ annual export out of $\mathcal{L}^\text{j}$ |
+
+A *Transmission* component counts only lines that cross the boundary of $\mathcal{L}^\text{j}$. Flows
+between two locations of $\mathcal{L}^\text{j}$ do not count, so a limit over all locations receives
+no contribution from *Transmission* components.
+
+For a pooled commodity, trade between the locations of a pool has no variables and does not count. A
+`"balance"` row over some locations of a pool therefore bounds their net production, which is the
+amount they supply to the rest of the pool (or draw from it, if negative). The types `"capacity"`,
+`"commissioning"` and `"operation"` count component variables only, which pooling does not change.
+
+A `"balance"` row is summed over locations only. Without $\text{commodity}$, each *Source*, *Sink*,
+*Storage* and *Transmission* component counts in its own commodity; a *Conversion* component then
+cannot be a member, because its balance exists only per commodity.
 
 ### Share bounds
 
-The bounds `"shareMax"` and `"shareMin"` state a share of the eligible total instead of an absolute amount.
-They keep a technology from concentrating in one place. Let $\mathcal{G}$ be a group of eligible locations.
-The share constraint is then, for every group,
+The bounds `"shareMax"` and `"shareMin"` bound a share instead of an absolute amount, for example to
+keep a technology from concentrating in one region. The eligible locations $\mathcal{L}^\text{j}$ are
+split into groups $\mathcal{G}$: by the labels in the column of $\text{j}$ in
+$\text{componentLimitGrouping}$, or, without such a column, one group per location. A location without a
+label forms its own group. Each group builds one constraint
 
 $$
-\begin{aligned}
-    &\sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} \sum\limits_{\text{l}~\in~\mathcal{G}}
-    E^\text{comp}_\text{c,l,ip} ~\lesseqgtr~ \text{value}_\text{j} \cdot
-    \sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} \sum\limits_{\text{l}~\in~\mathcal{L}^\text{j}}
-    E^\text{comp}_\text{c,l,ip}~,
-\end{aligned}
+\sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} E^\text{type}_\text{c,G} ~\lesseqgtr~
+\text{value} \cdot \sum\limits_{\text{c}~\in~\mathcal{C}^\text{j}} E^\text{type}_\text{c,j}~,
 $$
 
-with $\leq$ for `"shareMax"` and $\geq$ for `"shareMin"`. Both sides are decision variables, so the bound is
-a ratio and not a fixed amount. $\text{value}_\text{j}$ is a fraction between 0 and 1.
+where $E^\text{type}_\text{c,G}$ is the contribution of component $\text{c}$ over the locations of the
+group, $\lesseqgtr$ is $\leq$ for `"shareMax"` and $\geq$ for `"shareMin"`, and $\text{value}$ is a
+fraction between 0 and 1. A share is only meaningful for quantities that are never negative, so share
+bounds are allowed for the types `"capacity"`, `"commissioning"` and `"operation"`, not for
+`"balance"`, and only over locations.
 
-The groups come from $\text{componentLimitGrouping}$, a table that maps every location to a group label per
-identifier. A grouping by country turns a per-region share into a per-country share. A location without a
-label, and an identifier without a column, is its own group. Share bounds are not available for transmission
-connections, because a share of a set of connections has no meaning.
+A group to which no variable contributes has nothing to bound under `"shareMax"`. Under `"shareMin"` it
+still builds its constraint, which then requires the total to be 0.
 
-A row may span a range of investment periods by setting $\text{ipEnd}$, in which case the sum also runs over
-the periods from $\text{ip}$ to $\text{ipEnd}$. A `"capacity"` row cannot do this, because an installed
-capacity is a stock and not an additive quantity; use `"commissioning"` there.
+### Rejected rows
 
-### Component limit or balance limit?
+A row is rejected with an error if
 
-The two constraints have similar names but bound different things.
+- its identifier appears in neither or in both eligibility frames, or no location or connection is
+  marked eligible for it,
+- its $\text{value}$ is not a finite number,
+- $\text{ipEnd}$ lies before $\text{ip}$, or a range is used where the type or the model does not
+  allow one (see above),
+- no variable contributes to it and 0 does not satisfy its bound (a `"lower"` bound above 0, an
+  `"upper"` bound below 0 or a `"fixed"` bound other than 0), because such a constraint cannot be
+  satisfied.
 
-| | $\text{balanceLimit}$ | $\text{componentLimit}$ |
-|---|---|---|
-| Bounded quantity | the signed commodity balance $E^\text{source} - E^\text{sink} + E^\text{imp} - E^\text{exp}$ | the capacity, commissioning or operation of a named set of components |
-| Component classes | Source, Sink and Transmission | Source, Sink, Storage, Conversion and Transmission |
-| Constraints produced | one per location, plus one for the total | one over the sum of all eligible locations |
-| Identifier per component | a single string | a list of strings |
+A row without contributing variable whose bound 0 satisfies builds no constraint. A row whose
+identifier no component carries builds no constraint and produces a warning.
 
-Use $\text{balanceLimit}$ for a commodity budget, such as a CO$_2$ cap or an import volume. Use
-$\text{componentLimit}$ for a cap on how much of a set of technologies may be built or run.
+### Component limit and balance limit
+
+A `"balance"` row reproduces a $\text{balanceLimit}$: a row per location reproduces the per-location
+limits, and a row over all locations reproduces the column "Total". A `"balance"` row over the range of
+all investment periods reproduces a $\text{pathwayBalanceLimit}$.

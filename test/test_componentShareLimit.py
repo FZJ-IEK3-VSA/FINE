@@ -244,20 +244,42 @@ def test_componentShareLimit_rejects_transmission():
         lengthUnit="km",
     )
     componentLimit = _share_componentLimit("grid_share", 0.4, "capacity")
-    componentLimitEligibility = pd.DataFrame(
-        1, index=sorted(locations), columns=["grid_share"]
-    )
     componentLimitEligibility2dim = pd.DataFrame(
-        1, index=["r0_r1", "r1_r0"], columns=["grid_share"]
+        1,
+        index=pd.MultiIndex.from_tuples([("r0", "r1"), ("r1", "r0")]),
+        columns=["grid_share"],
     )
-    with pytest.raises(ValueError, match="not supported for"):
+    with pytest.raises(ValueError, match="cannot use componentLimitEligibility2dim"):
         fn.utils.checkAndSetComponentLimit(
             esM,
             componentLimit,
-            componentLimitEligibility,
+            None,
             componentLimitEligibility2dim,
             None,
             esM.locations,
+        )
+
+
+def test_componentShareLimit_rejects_balance():
+    """A share of a signed balance has no meaning, so it is rejected."""
+    locations = ["r0", "r1"]
+    esM = fn.EnergySystemModel(
+        locations=set(locations),
+        commodities={"electricity"},
+        numberOfTimeSteps=24,
+        commodityUnitsDict={"electricity": r"MW$_{el}$"},
+        hoursPerTimeStep=1,
+        startYear=2020,
+        costUnit="1e6 Euro",
+        lengthUnit="km",
+    )
+    componentLimit = _share_componentLimit("bal_share", 0.4, "balance")
+    componentLimitEligibility = pd.DataFrame(
+        1, index=sorted(locations), columns=["bal_share"]
+    )
+    with pytest.raises(ValueError, match="type='balance'"):
+        fn.utils.checkAndSetComponentLimit(
+            esM, componentLimit, componentLimitEligibility, None, None, esM.locations
         )
 
 
