@@ -583,7 +583,7 @@ path0,path1,path2,path3,index0,index1,kind,dtype,index_names,col_name,col,value
 0,StorageModel,isBuiltVariablesOptimum,values,,,scalar,NoneType,,,,
 0,StorageModel,stateOfChargeOperationVariablesOptimum,dimension,,,scalar,Dimension,,,,1dim
 0,StorageModel,stateOfChargeOperationVariablesOptimum,timeDependent,,,scalar,bool,,,,True
-0,StorageModel,stateOfChargeOperationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=25x720 index=| columns= dtypes=float64
+0,StorageModel,stateOfChargeOperationVariablesOptimum,valuesSummary,,,scalar,str,,,,shape=25x720 index=component|location columns=time dtypes=float64
 0,TransmissionModel,capacityVariablesOptimum,dimension,,,scalar,Dimension,,,,2dim
 0,TransmissionModel,capacityVariablesOptimum,timeDependent,,,scalar,bool,,,,False
 0,TransmissionModel,capacityVariablesOptimum,values,DC cables,cluster_0,frame,float64,component|locationIn,locationOut,cluster_0,

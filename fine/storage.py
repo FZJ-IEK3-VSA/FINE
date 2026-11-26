@@ -2020,7 +2020,10 @@ class StorageModel(ComponentModel):
                                 .T
                             ).T
                         )
-                    optVal = pd.concat(data, axis=1, ignore_index=True)
+                    # Name the axes as formatOptimizationOutput does for every other optimum.
+                    optVal = pd.concat(data, axis=1, ignore_index=True).rename_axis(
+                        index=["component", "location"], columns="time"
+                    )
                 else:
                     optVal = None
             self._stateOfChargeOperationVariablesOptimum[ipName] = optVal
