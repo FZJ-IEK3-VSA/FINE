@@ -330,7 +330,9 @@ class EnergySystemModel:
 
         :param componentLimitEligibility: marks with 0 and 1 which regions each componentLimitID is summed over.
             It is a pd.DataFrame whose index holds the locations of the model and whose columns are
-            componentLimitIDs. An ID that appears in neither eligibility argument builds no constraint.
+            componentLimitIDs. Every componentLimitID has to be a column of exactly one of
+            componentLimitEligibility and componentLimitEligibility2dim, with at least one location or connection
+            marked 1.
 
             |br| * the default value is None
         :type componentLimitEligibility: None or pd.DataFrame
@@ -350,8 +352,7 @@ class EnergySystemModel:
             bounds above.
 
             |br| * the default value is None
-        :type componentLimitGrouping: None, pd.DataFrame or dictionary with investment periods years as keys and
-            pd.DataFrame as values
+        :type componentLimitGrouping: None or pd.DataFrame
 
         :param pathwayBalanceLimit: the pathway balance limit defines commodity balance (lower or upper bound) for the pathway.
             The structure is similar to the balanceLimit, however does without the temporal dependency per investment period.

@@ -467,3 +467,119 @@ def test_componentLimit_transmission_operation_on_connections():
     # R2 needs 40 over the four steps; the line may carry 15 of it
     operation = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
     assert np.isclose(operation.loc[("Backup", "R2")].sum(), 25.0)
+
+
+def _esMWithLimitInput(
+    limitRows=None, eligibility="default", eligibility2dim=None, grouping=None, **kw
+):
+    """Create a three-period, two-region esM with the given componentLimit input."""
+    columns = ["value", "bound", "type", "commodity", "ip", "ipEnd"]
+    componentLimit = (
+        None if limitRows is None else pd.DataFrame(**limitRows, columns=columns)
+    )
+    if isinstance(eligibility, str):
+        eligibility = pd.DataFrame(1, index=["R1", "R2"], columns=["L"])
+    return fn.EnergySystemModel(
+        locations={"R1", "R2"},
+        commodities={"electricity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"electricity": r"kW$_{el}$"},
+        hoursPerTimeStep=1,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        startYear=2020,
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=5,
+        componentLimit=componentLimit,
+        componentLimitEligibility=eligibility,
+        componentLimitEligibility2dim=eligibility2dim,
+        componentLimitGrouping=grouping,
+        **kw,
+    )
+
+
+def _row(value=1.0, bound="upper", typ="operation", ip=2020, ipEnd=None, ID="L"):
+    return {"index": [ID], "data": [[value, bound, typ, None, ip, ipEnd]]}
+
+
+_CONNECTIONS = pd.MultiIndex.from_tuples([("R1", "R2"), ("R2", "R1")])
+
+
+@pytest.mark.parametrize(
+    "kwargs, message",
+    [
+        ({"limitRows": _row(ip=2030, ipEnd=2020)}, "before 'ip'"),
+        ({"limitRows": _row(ip=None)}, "has to name an investment period"),
+        ({"limitRows": _row(value=np.nan)}, "finite number"),
+        ({"limitRows": _row(value="many")}, "finite number"),
+        (
+            {"limitRows": _row(ipEnd=2030), "stochasticModel": True},
+            "stochastic model",
+        ),
+        ({"limitRows": _row(), "eligibility": None}, "needs componentLimitEligibility"),
+        (
+            {
+                "limitRows": None,
+                "eligibility": None,
+                "eligibility2dim": pd.DataFrame(1, index=_CONNECTIONS, columns=["L"]),
+            },
+            "given without componentLimit",
+        ),
+        (
+            {
+                "limitRows": _row(),
+                "eligibility2dim": pd.DataFrame(1, index=_CONNECTIONS, columns=["L"]),
+            },
+            "exactly one",
+        ),
+        (
+            {"limitRows": _row(ID="other")},
+            "exactly one",
+        ),
+        (
+            {
+                "limitRows": _row(),
+                "eligibility": pd.DataFrame(0, index=["R1", "R2"], columns=["L"]),
+            },
+            "No location or connection",
+        ),
+        (
+            {
+                "limitRows": _row(),
+                "eligibility": None,
+                "eligibility2dim": pd.DataFrame(
+                    1, index=["R1_R2", "R2_R1"], columns=["L"]
+                ),
+            },
+            "pairs of two different model locations",
+        ),
+        (
+            {
+                "limitRows": _row(),
+                "eligibility": None,
+                "eligibility2dim": pd.DataFrame(
+                    1,
+                    index=pd.MultiIndex.from_tuples([("R1", "R3")]),
+                    columns=["L"],
+                ),
+            },
+            "pairs of two different model locations",
+        ),
+    ],
+)
+def test_componentLimit_input_checks(kwargs, message):
+    """Inputs the specification rejects raise an error when the esM is created."""
+    with pytest.raises(ValueError, match=message):
+        _esMWithLimitInput(**kwargs)
+
+
+def test_componentLimit_accepts_connections_only():
+    """A componentLimit may be summed over connections alone."""
+    esM = _esMWithLimitInput(
+        limitRows=_row(),
+        eligibility=None,
+        eligibility2dim=pd.DataFrame(1, index=_CONNECTIONS, columns=["L"]),
+    )
+    assert esM.processedComponentLimit is not None
+    assert esM.processedComponentLimitEligibility is None
