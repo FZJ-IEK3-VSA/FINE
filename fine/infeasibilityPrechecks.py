@@ -102,8 +102,8 @@ def _guaranteedCapacity(comp, ip):
     """Return the capacity which has to be installed at each eligible location.
 
     It is given by capacityFix, otherwise capacityMin, and in the first
-    investment period at least by the stock. With an isBuilt binary variable it
-    only counts where isBuiltFix is 1.
+    investment period at least by the stock which is not decommissioned in it.
+    With an isBuilt binary variable it only counts where isBuiltFix is 1.
     """
     locations = sorted(_eligible(comp))
     bound = _ipValue(comp.processedCapacityFix, ip)
@@ -113,9 +113,15 @@ def _guaranteedCapacity(comp, ip):
     if comp.hasIsBuiltBinaryVariable:
         guaranteed = guaranteed * (_toSeries(comp.isBuiltFix, locations) >= 1)
     if ip == 0 and isinstance(comp.stockCapacityStartYear, pd.Series):
-        guaranteed = np.maximum(
-            guaranteed, _toSeries(comp.stockCapacityStartYear, locations)
-        )
+        stock = _toSeries(comp.stockCapacityStartYear, locations)
+        if comp.processedStockCommissioning is not None:
+            # FINE decommissions the oldest stock in the first investment period
+            rounding = np.floor if comp.floorTechnicalLifetime else np.ceil
+            for loc in locations:
+                oldest = -int(rounding(comp.ipTechnicalLifetime[loc]))
+                if oldest in comp.processedStockCommissioning:
+                    stock[loc] -= comp.processedStockCommissioning[oldest].get(loc, 0.0)
+        guaranteed = np.maximum(guaranteed, stock)
     return guaranteed.replace(np.inf, 0.0)
 
 
@@ -132,6 +138,18 @@ def _guaranteedDemand(snk, ip, hoursPerTimeStep):
     return rate.mul(capacity * hoursPerTimeStep, axis=1)
 
 
+def _rateFactor(comp, ip, key):
+    """Return the factor by which operationRateFix or operationRateMax lets
+    the operation of a transmission edge exceed its capacity (at least 1).
+    """
+    rate = _timeSeries(comp, "OperationRateFix", ip)
+    if rate is None:
+        rate = _timeSeries(comp, "OperationRateMax", ip)
+    if rate is None or key not in rate.columns:
+        return 1.0
+    return max(1.0, float(rate[key].max()))
+
+
 def _edgeValue(data, edgeKey):
     """Return a scalar or edge-indexed transmission attribute at an edge."""
     if isinstance(data, pd.Series):
@@ -141,38 +159,56 @@ def _edgeValue(data, edgeKey):
 
 
 def _reduceFactor(value):
-    """Reduce a location- or time-dependent conversion factor to a number:
-    inputs to their smallest, outputs to their largest magnitude.
+    """Reduce a location- or time-dependent conversion factor to its largest
+    value: inputs to their smallest magnitude, outputs to their largest, and
+    a factor with both signs to an output.
     """
-    if not isinstance(value, (pd.Series, pd.DataFrame)):
-        return float(value)
     values = np.asarray(value, dtype=float).flatten()
     values = values[~np.isnan(values)]
-    if len(values) == 0:
-        return 0.0
-    largest = float(max(values, key=abs))
-    return float(min(values, key=abs)) if largest < 0 else largest
+    return float(values.max()) if len(values) else 0.0
 
 
 def _conversionFactors(comp, ip):
     """Return {commodity: factor} of a conversion and whether it is flexible.
 
-    The factors of all vintages which can operate in the investment period are
-    merged. The commodity groups of a flexible conversion are flattened, of its
-    inputs only one is required.
+    The vintages which can operate in the investment period are alternatives,
+    so a commodity is only an input if every vintage consumes it. The commodity
+    groups of a flexible conversion are flattened, of its inputs only one is
+    required; its emissions are outputs. A part-load conversion uses its
+    part-load curve instead of commodityConversionFactors.
     """
-    collected, isFlexible = defaultdict(list), False
+    if hasattr(comp, "discretizedPartLoad"):
+        return {
+            c: _reduceFactor(d["xSegments"] * d["ySegments"])
+            for c, d in comp.discretizedPartLoad.items()
+        }, False
+    emissionFactors = getattr(comp, "processedEmissionFactors", None) or {}
+    vintages, isFlexible = [], False
     for key, factors in comp.preprocessedCommodityConversionFactors.items():
         if key != ip and not (isinstance(key, tuple) and key[1] == ip):
             continue
+        vintage, emitted = {}, defaultdict(float)
         for commodity, value in factors.items():
             isFlexible |= isinstance(value, dict)
             group = value if isinstance(value, dict) else {commodity: value}
             for groupCommodity, groupValue in group.items():
-                collected[groupCommodity].append(_reduceFactor(groupValue))
-    reduced = {
-        c: _reduceFactor(pd.Series(v, dtype=float)) for c, v in collected.items()
-    }
+                vintage[groupCommodity] = max(
+                    vintage.get(groupCommodity, -np.inf), _reduceFactor(groupValue)
+                )
+            # FINE emits emissionFactor * |factor| per operation of a group member
+            for emission, perCommodity in emissionFactors.items():
+                amounts = [
+                    perCommodity[c] * _reduceFactor(np.abs(np.asarray(v, dtype=float)))
+                    for c, v in group.items()
+                    if c in perCommodity
+                ]
+                if amounts:
+                    emitted[emission] += max(amounts)
+        for emission, amount in emitted.items():
+            vintage[emission] = vintage.get(emission, 0.0) + amount
+        vintages.append(vintage)
+    commodities = {c for vintage in vintages for c in vintage}
+    reduced = {c: max(vintage.get(c, 0.0) for vintage in vintages) for c in commodities}
     return reduced, isFlexible
 
 
@@ -301,12 +337,18 @@ class _PeriodData:
     def _addStorage(self, comp):
         """Add the discharge bound; whether the storage was charged is not checked."""
         capacity = _upperCapacity(comp, self.ip)
+        # FINE replaces the dischargeRate bound by a given discharge time series
+        rate = _timeSeries(comp, "DischargeOpRateFix", self.ip)
+        if rate is None:
+            rate = _timeSeries(comp, "DischargeOpRateMax", self.ip)
         for loc in _eligible(comp):
-            bound = (
-                capacity.get(loc, np.inf)
-                * float(comp.dischargeRate or 1)
-                * self.hoursPerTimeStep
-            )
+            if rate is not None and loc in rate.columns:
+                factor = rate[loc].to_numpy(dtype=float)
+            else:
+                factor = float(comp.dischargeRate or 1)
+            bound = capacity.get(loc, np.inf) * self.hoursPerTimeStep
+            with np.errstate(invalid="ignore"):  # 0 * inf is 0
+                bound = np.where(factor == 0, 0.0, bound * factor)
             self.storage.append((comp.commodity, loc, bound))
 
     def _getTransmissionLinks(self):
@@ -324,6 +366,7 @@ class _PeriodData:
                 loss = _edgeValue(comp.losses, edge) * _edgeValue(comp.distances, edge)
                 flow = (
                     capacity.get(edge, np.inf)
+                    * _rateFactor(comp, self.ip, edge)
                     * self.hoursPerTimeStep
                     * max(0.0, 1.0 - loss)
                 )
@@ -377,11 +420,15 @@ class _PeriodData:
                 otherOutputs = {
                     c: f for c, f in producer.outputs.items() if c != commodity
                 }
-                targets = (
-                    producer.outputs[commodity],
-                    targetsOf(producer.inputs),
-                    targetsOf(otherOutputs),
-                )
+                outputTargets = targetsOf(otherOutputs)
+                # an output which cannot be credited to one group could later
+                # request the same input again, so the input is not passed on
+                if len(outputTargets) == len(otherOutputs):
+                    targets = (
+                        producer.outputs[commodity],
+                        targetsOf(producer.inputs),
+                        outputTargets,
+                    )
             self._producers[key] = (producers, capacity, targets)
         return self._producers[key]
 
@@ -514,9 +561,11 @@ def _checkJointInputDemandPerTimeStep(data):
 
 
 def _isClose(a, b):
-    """Elementwise equivalent of math.isclose with abs_tol=_TOL."""
+    """Elementwise equivalent of math.isclose with its default relative
+    tolerance only, so that small flows are not mistaken for convergence.
+    """
     with np.errstate(invalid="ignore"):
-        bound = np.maximum(1e-9 * np.maximum(np.abs(a), np.abs(b)), _TOL)
+        bound = 1e-9 * np.maximum(np.abs(a), np.abs(b))
         return (a == b) | (np.isfinite(a) & np.isfinite(b) & (np.abs(a - b) <= bound))
 
 
@@ -640,6 +689,9 @@ def _checkTimeStepBalance(data):
         isIterating &= ~hasConverged
         if not isIterating.any():
             break
+    # the output of time steps which have not converged is unknown
+    for key, value in conversionOutput.items():
+        conversionOutput[key] = np.where(isIterating, np.inf, value)
 
     totalLocalSupply = dict(localSupply)
     for key, value in conversionOutput.items():
@@ -723,8 +775,9 @@ def _balanceLimitContribution(comp, data):
         horizon = esM.numberOfTimeSteps * esM.hoursPerTimeStep
         maxChange = defaultdict(float)
         for edge in _eligible(comp):
+            maxFlow = capacity.get(edge, np.inf) * _rateFactor(comp, data.ip, edge)
             for loc in comp._mapC[edge]:
-                maxChange[loc] += _safeProduct(capacity.get(edge, np.inf), horizon)
+                maxChange[loc] += _safeProduct(maxFlow, horizon)
         return {loc: (-maxChange[loc], maxChange[loc]) for loc in esM.locations}
     return dict.fromkeys(esM.locations, (-np.inf, np.inf))
 

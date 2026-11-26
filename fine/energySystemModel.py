@@ -1728,7 +1728,7 @@ class EnergySystemModel:
         :param runInfeasibilityPrechecks: states if the model should be checked for setups
             which are provably infeasible before the optimization problem is declared.
             A detected problem raises a ValueError. The checks are skipped if
-            timeSeriesAggregation is True.
+            timeSeriesAggregation is True or a relevanceThreshold is given.
             |br| * the default value is True
         :type runInfeasibilityPrechecks: boolean
         """
@@ -1751,11 +1751,12 @@ class EnergySystemModel:
         ################################################################################################################
 
         # Detect provably infeasible model setups before building the problem. The
-        # checks evaluate the full time series, so they do not apply to an aggregation.
-        if runInfeasibilityPrechecks and timeSeriesAggregation:
+        # checks evaluate the full time series, so they do not apply to an aggregation
+        # or to operation rates which a relevanceThreshold sets to 0.
+        if runInfeasibilityPrechecks and (timeSeriesAggregation or relevanceThreshold):
             utils.output(
                 "The infeasibility pre-checks are skipped because time series "
-                "aggregation is used.",
+                "aggregation or a relevanceThreshold is used.",
                 self.verboseLogLevel,
                 0,
             )
@@ -1967,7 +1968,7 @@ class EnergySystemModel:
         :param runInfeasibilityPrechecks: states if the model should be checked for setups
             which are provably infeasible before the optimization problem is declared.
             A detected problem raises a ValueError. The checks are skipped if
-            timeSeriesAggregation is True.
+            timeSeriesAggregation is True or a relevanceThreshold is given.
             |br| * the default value is True
         :type runInfeasibilityPrechecks: boolean
 

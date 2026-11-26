@@ -63,7 +63,8 @@ The pre-checks do not consider:
   `checkCommodityReachability` requires one of their inputs to be available.
 
 With time series aggregation (`timeSeriesAggregation=True`), the pre-checks are skipped, because they evaluate the
-full time series and would not describe the aggregated model.
+full time series and would not describe the aggregated model. They are skipped as well if a `relevanceThreshold` is
+given, which sets small operation rates to zero.
 
 ### Disabling the pre-checks
 

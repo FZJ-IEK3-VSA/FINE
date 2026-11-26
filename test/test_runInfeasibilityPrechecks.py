@@ -982,3 +982,401 @@ def test_storage_discharge_efficiency_is_no_false_positive():
         )
     )
     runInfeasibilityPrechecks(esM)
+
+
+# ---------------------------------------------------------------------------
+# Feasible models which the pre-checks reported as infeasible before the fix.
+# Each one was solved to optimality without the pre-checks.
+# ---------------------------------------------------------------------------
+
+
+def _small_esM(commodities, locations=("A",), numberOfTimeSteps=2, **kwargs):
+    return fn.EnergySystemModel(
+        locations=set(locations),
+        commodities=set(commodities),
+        numberOfTimeSteps=numberOfTimeSteps,
+        commodityUnitsDict={c: "GW" for c in commodities},
+        hoursPerTimeStep=1,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+        **kwargs,
+    )
+
+
+def _profile(values, locations=("A",)):
+    return pd.DataFrame({loc: values for loc in locations})
+
+
+def test_prechecks_are_skipped_with_relevance_threshold(minimal_test_esM, monkeypatch):
+    """A relevanceThreshold sets small operation rates to 0, which the
+    pre-checks cannot see.
+    """
+    calls = []
+    monkeypatch.setattr(
+        fine.infeasibilityPrechecks, "runInfeasibilityPrechecks", calls.append
+    )
+    minimal_test_esM.declareOptimizationProblem(relevanceThreshold=0.1)
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "stockYear, isInfeasible", [(-10, False), (-5, True)], ids=["retired", "alive"]
+)
+def test_stock_decommissioned_in_first_period_is_not_guaranteed(
+    stockYear, isInfeasible
+):
+    """Stock which reaches its lifetime of 10 years at the start year is
+    decommissioned in the first investment period, younger stock is not.
+    """
+    esM = _small_esM(["electricity"])
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Plant",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            capacityMax=1,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            operationRateFix=_profile([1.0, 1.0]),
+            economicLifetime=10,
+            technicalLifetime=10,
+            stockCommissioning={stockYear: 5},
+        )
+    )
+    assert bool(_problems(esM, "checkTimeStepBalance")) == isInfeasible
+
+
+def test_storage_discharge_time_series_replaces_discharge_rate():
+    """FINE bounds the discharge by 10 * 0.5 instead of 10 * dischargeRate."""
+    esM = _small_esM(["electricity"], numberOfTimeSteps=4)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateMax=_profile([10.0, 0.0, 10.0, 0.0]),
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=_profile([0.0, 5.0, 0.0, 5.0]),
+        )
+    )
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Battery",
+            commodity="electricity",
+            capacityFix=10,
+            dischargeRate=0.1,
+            dischargeOpRateMax=_profile([0.0, 0.5, 0.0, 0.5]),
+        )
+    )
+    runInfeasibilityPrechecks(esM)
+
+
+def test_transmission_operation_rate_above_one():
+    """FINE bounds the transmission by 10 * 1.5, so the demand of 12 at B can
+    be met, also within the balance limit of at least 12 at B.
+    """
+    esM = _small_esM(
+        ["electricity"],
+        locations=("A", "B"),
+        balanceLimit=pd.DataFrame(
+            {"A": [None], "B": [24.0], "lowerBound": [1]}, index=["import"]
+        ),
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Plant",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            locationalEligibility=pd.Series({"A": 1, "B": 0}),
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame({"A": [0.0, 0.0], "B": [12.0, 12.0]}),
+        )
+    )
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="Line",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            capacityMax=10.0,
+            operationRateMax=pd.DataFrame({"A_B": [1.5, 1.5], "B_A": [1.5, 1.5]}),
+            balanceLimitID="import",
+        )
+    )
+    runInfeasibilityPrechecks(esM)
+
+
+def test_conversion_factor_with_location_dependent_sign():
+    """The conversion consumes X at A and produces it at B."""
+    esM = _small_esM(["F", "X"], locations=("A", "B"))
+    esM.add(fn.Source(esM=esM, name="F", commodity="F", hasCapacityVariable=False))
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Converter",
+            physicalUnit="GW",
+            commodityConversionFactors={
+                "F": -1,
+                "X": pd.Series({"A": -1.0, "B": 1.0}),
+            },
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="X",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame({"A": [0.0, 0.0], "B": [1.0, 1.0]}),
+        )
+    )
+    runInfeasibilityPrechecks(esM)
+
+
+def test_emissions_of_flexible_conversion_are_an_output():
+    """The CO2 which the gas plant emits feeds the methanation."""
+    esM = _small_esM(["gas", "h2", "electricity", "co2", "ch4"])
+    for commodity in ("gas", "h2"):
+        esM.add(
+            fn.Source(
+                esM=esM, name=commodity, commodity=commodity, hasCapacityVariable=False
+            )
+        )
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Plant",
+            physicalUnit="GW",
+            commodityConversionFactors={
+                "fuel": {"gas": -1, "h2": -1},
+                "electricity": 0.5,
+            },
+            emissionFactors={"co2": {"gas": 0.2}},
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM, name="Export", commodity="electricity", hasCapacityVariable=False
+        )
+    )
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Methanation",
+            physicalUnit="GW",
+            commodityConversionFactors={"co2": -1, "h2": -4, "ch4": 1},
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="ch4",
+            hasCapacityVariable=False,
+            operationRateFix=_profile([0.1, 0.1]),
+        )
+    )
+    runInfeasibilityPrechecks(esM)
+
+
+def test_part_load_conversion_uses_part_load_curve():
+    """The heat pump delivers 3 per capacity according to its part-load curve,
+    commodityConversionFactors only hold a placeholder.
+    """
+    esM = _small_esM(["electricity", "heat"])
+    esM.add(
+        fn.Source(
+            esM=esM, name="Grid", commodity="electricity", hasCapacityVariable=False
+        )
+    )
+    esM.add(
+        fn.ConversionPartLoad(
+            esM=esM,
+            name="Heat pump",
+            physicalUnit="GW",
+            commodityConversionFactors={"electricity": -1, "heat": 1},
+            commodityConversionFactorsPartLoad={
+                "electricity": -1,
+                "heat": lambda _: 3.0,
+            },
+            nSegments=2,
+            capacityFix=1,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="heat",
+            hasCapacityVariable=False,
+            operationRateFix=_profile([2.0, 2.0]),
+        )
+    )
+    runInfeasibilityPrechecks(esM)
+
+
+def test_commissioning_dependent_vintages_are_alternatives():
+    """The 2025 vintage runs on hydrogen only, so gas is not required in 2025."""
+    esM = _small_esM(
+        ["electricity", "gas", "h2"],
+        startYear=2020,
+        numberOfInvestmentPeriods=2,
+        investmentPeriodInterval=5,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Gas",
+            commodity="gas",
+            hasCapacityVariable=False,
+            operationRateMax={2020: _profile([5.0, 5.0]), 2025: _profile([0.0, 0.0])},
+        )
+    )
+    esM.add(fn.Source(esM=esM, name="H2", commodity="h2", hasCapacityVariable=False))
+    oldVintage = {"gas": -0.5, "h2": -0.5, "electricity": 1}
+    newVintage = {"h2": -1.0, "electricity": 1}
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Plant",
+            physicalUnit="GW",
+            commodityConversionFactors={
+                (2020, 2020): oldVintage,
+                (2020, 2025): oldVintage,
+                (2025, 2025): newVintage,
+            },
+            economicLifetime=10,
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=_profile([1.0, 1.0]),
+        )
+    )
+    runInfeasibilityPrechecks(esM)
+
+
+def test_co_producer_input_is_not_counted_twice():
+    """One operation of P at A covers the demand for both of its outputs, so
+    the F supply of 1 suffices. P can also operate at B, where its output Y
+    belongs to a separate group of locations.
+    """
+    esM = _small_esM(["F", "X", "Y"], locations=("A", "B"))
+    onlyA = pd.Series({"A": 1, "B": 0})
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="F",
+            commodity="F",
+            hasCapacityVariable=False,
+            locationalEligibility=onlyA,
+            operationRateMax=pd.DataFrame({"A": [1.0, 1.0], "B": [0.0, 0.0]}),
+        )
+    )
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="P",
+            physicalUnit="GW",
+            commodityConversionFactors={"F": -1, "X": 1, "Y": 1},
+        )
+    )
+    for commodity in ("F", "X"):
+        esM.add(
+            fn.Transmission(
+                esM=esM,
+                name=f"{commodity} line",
+                commodity=commodity,
+                hasCapacityVariable=False,
+            )
+        )
+    for commodity in ("X", "Y"):
+        esM.add(
+            fn.Sink(
+                esM=esM,
+                name=f"{commodity} demand",
+                commodity=commodity,
+                hasCapacityVariable=False,
+                locationalEligibility=onlyA,
+                operationRateFix=pd.DataFrame({"A": [1.0, 1.0], "B": [0.0, 0.0]}),
+            )
+        )
+    runInfeasibilityPrechecks(esM)
+
+
+def _chain_esM(numberOfConversions, supply, factor, demand):
+    """Build a chain of conversions A0 -> A1 -> ... -> An fed by a source of
+    A0, only the last one multiplies by factor.
+    """
+    commodities = [f"A{i}" for i in range(numberOfConversions + 1)]
+    esM = _small_esM(commodities)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Source",
+            commodity="A0",
+            hasCapacityVariable=False,
+            operationRateMax=_profile([supply, supply]),
+        )
+    )
+    for i in range(numberOfConversions):
+        esM.add(
+            fn.Conversion(
+                esM=esM,
+                name=f"C{i}",
+                physicalUnit="GW",
+                commodityConversionFactors={
+                    f"A{i}": -1,
+                    f"A{i + 1}": factor if i == numberOfConversions - 1 else 1,
+                },
+            )
+        )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity=commodities[-1],
+            hasCapacityVariable=False,
+            operationRateFix=_profile([demand, demand]),
+        )
+    )
+    return esM
+
+
+def test_small_intermediate_flow_is_no_convergence():
+    """The intermediate flow of 9e-7 times 3 covers the demand of 2.5e-6."""
+    runInfeasibilityPrechecks(_chain_esM(2, 9e-7, 3, 2.5e-6))
+
+
+def test_conversion_chain_longer_than_iteration_limit():
+    """The output of a chain of 51 conversions is not known after 50 iterations."""
+    runInfeasibilityPrechecks(_chain_esM(51, 1.0, 1, 1.0))
