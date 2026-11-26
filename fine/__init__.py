@@ -21,6 +21,7 @@ from .expansionModules.optimizeTSAmultiStage import (
     optimizeTSAmultiStage,
 )
 from .expansionModules.transformationPath import optimizeSimpleMyopic
+from .expansionModules.fine_mga import runMGA
 from .utils import ImplementedSolvers
 
 # Re-exported so that the ETHOS.TSAM 4.x aggregation can be configured without a
@@ -63,6 +64,7 @@ __all__ = [
     "utils",
     "xarrayIO",
     "xrIO",
+    "runMGA",
 ]
 
 ImplementedSolvers.set_standard_solver()
