@@ -12,24 +12,17 @@ from fine.IOManagement import dictIO, utilsIO
 logger = logging.getLogger(__name__)
 
 
-def convertOptimizationInputToDatasets(esM, useProcessedValues=False):
+def convertOptimizationInputToDatasets(esM):
     """Take esM instance input and convert it into xarray datasets.
 
     :param esM: EnergySystemModel instance in which the model is held
     :type esM: EnergySystemModel instance
 
-    **Default arguments:**
-
-        :param useProcessedValues: True if the raw values should be over-written by processed values, False otherwise.
-            A requirement for perfect-foresight and by extension for spatial and technology aggregations
-            |br| * the default value is False
-        :type useProcessedValues: bool
-
     :return: xr_ds - esM instance data in xarray dataset format
     :rtype: xarray.dataset
     """
     # STEP 1. Get the esm and component dicts
-    esm_dict, component_dict = dictIO.exportToDict(esM, useProcessedValues)
+    esm_dict, component_dict = dictIO.exportToDict(esM)
 
     # STEP 2. get _mapC for all transmission components
     _mapC_dict = {}
@@ -463,6 +456,12 @@ def convertDatasetsToEnergySystemModel(datasets):
     """Take dictionary of xarray datasets (with esM instance data) and convert
     it to an esM instance.
 
+    Input variables that contain only NaN are skipped. Entries of nested
+    parameters are kept, e.g. the entry of an investment period in
+    ``capacityFix``, because these dicts need an entry for every investment
+    period. Such entries become None if dimensionless and a series of NaN if
+    regional.
+
     :param datasets: The xarray datasets holding all data required to set up an esM instance.
     :type datasets: Dict[xr.Dataset]
 
@@ -481,7 +480,10 @@ def convertDatasetsToEnergySystemModel(datasets):
     for model, comps in datasets["Input"].items():
         for component_name, comp_xr in comps.items():
             for variable, comp_var_xr in comp_xr.data_vars.items():
-                if not pd.isnull(comp_var_xr.values).all():  # Skip if all are NAs
+                # Skip variables that contain only NaN, except entries of nested
+                # parameters (e.g. "1d_capacityFix.2028" for investment period
+                # 2028): FINE expects these dicts to contain every investment period
+                if not pd.isnull(comp_var_xr.values).all() or "." in variable:
                     component = f"{model}; {component_name}"
 
                     # STEP 4 (i). Set regional time series (region, time)

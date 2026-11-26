@@ -293,6 +293,25 @@ def _normalize_values(long_table):
     return normalized
 
 
+def _drop_one_sided_zero_cells(actual, expected, key_columns):
+    """Remove frame cells that exist in only one table and are zero or empty."""
+    actual_keys = pd.MultiIndex.from_frame(actual[key_columns])
+    expected_keys = pd.MultiIndex.from_frame(expected[key_columns])
+    atol = GOLDEN_TOLERANCE["frame"]["atol"]
+
+    def keep(table, keys, other_keys):
+        numbers = pd.to_numeric(table["value"], errors="coerce").to_numpy()
+        zero_or_empty = (table["value"].to_numpy() == "") | (np.abs(numbers) <= atol)
+        one_sided = ~keys.isin(other_keys)
+        drop = one_sided & (table["kind"].to_numpy() == "frame") & zero_or_empty
+        return table[~drop].reset_index(drop=True)
+
+    return (
+        keep(actual, actual_keys, expected_keys),
+        keep(expected, expected_keys, actual_keys),
+    )
+
+
 def _assert_long_tables_match(actual, expected, golden_file_name):
     """Compare two golden long tables, with numeric tolerance on the values."""
     assert list(actual.columns) == list(expected.columns), (
@@ -306,6 +325,12 @@ def _assert_long_tables_match(actual, expected, golden_file_name):
         for name in actual.columns
         if name not in GOLDEN_METADATA_COLUMNS + ["value"]
     ]
+
+    # getOptimizationSummary(outputLevel=2) drops only rows that are exactly
+    # zero. Solvers such as GLPK leave round-off values (about 1e-14) instead of
+    # zero, which keeps such rows. Ignore frame cells that exist on one side only
+    # if they are zero within the frame tolerance.
+    actual, expected = _drop_one_sided_zero_cells(actual, expected, key_columns)
 
     actual_keys = pd.MultiIndex.from_frame(actual[key_columns])
     expected_keys = pd.MultiIndex.from_frame(expected[key_columns])
@@ -757,6 +782,108 @@ def test_capacityFix_subset(multi_node_test_esM_init, tmp_path):
 
     xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=test_esM)
     _ = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
+
+
+_IP_YEARS = [2023, 2028, 2033]
+
+
+def _set_in_first_period_only(value, index):
+    """Series per investment period that is NaN in every period but the first."""
+    return {
+        year: Series(value if year == _IP_YEARS[0] else np.nan, index=index)
+        for year in _IP_YEARS
+    }
+
+
+@pytest.mark.parametrize("route", ["datasets", "netcdf"])
+@pytest.mark.parametrize(
+    "componentClass, locations, parameters",
+    [
+        # the example from issue #838; with a single region, the series are
+        # written as scalars
+        pytest.param(
+            fn.Source,
+            ["R1"],
+            {"capacityFix": _set_in_first_period_only(0.0, ["R1"])},
+            id="single-region-series-nan",
+        ),
+        pytest.param(
+            fn.Source,
+            ["R1", "R2"],
+            {"capacityMax": _set_in_first_period_only(5.0, ["R1", "R2"])},
+            id="series-nan",
+        ),
+        pytest.param(
+            fn.Source,
+            ["R1", "R2"],
+            {
+                "capacityMax": {2023: 5.0, 2028: None, 2033: None},
+                "operationRateMax": {
+                    2023: DataFrame(0.5, index=range(4), columns=["R1", "R2"]),
+                    2028: None,
+                    2033: None,
+                },
+            },
+            id="scalar-and-time-series-none",
+        ),
+        pytest.param(
+            fn.Transmission,
+            ["R1", "R2"],
+            {"capacityFix": _set_in_first_period_only(1.0, ["R1_R2", "R2_R1"])},
+            id="transmission-series-nan",
+        ),
+    ],
+)
+def test_ip_parameters_with_empty_periods_to_dataset_and_back(
+    componentClass, locations, parameters, route, tmp_path
+):
+    """Investment-period-dependent parameters that are not set (None or NaN) for
+    some investment periods keep an entry for every investment period when the
+    esM is converted to datasets (or NetCDF) and back (issue #838).
+    """
+    esM = fn.EnergySystemModel(
+        locations=set(locations),
+        commodities={"electricity"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={"electricity": "GW"},
+        hoursPerTimeStep=1,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        startYear=_IP_YEARS[0],
+        numberOfInvestmentPeriods=len(_IP_YEARS),
+        investmentPeriodInterval=_IP_YEARS[1] - _IP_YEARS[0],
+    )
+    esM.add(
+        componentClass(
+            esM=esM,
+            name="Component",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            **parameters,
+        )
+    )
+
+    if route == "datasets":
+        esM_new = xrIO.convertDatasetsToEnergySystemModel(
+            xrIO.writeEnergySystemModelToDatasets(esM)
+        )
+    else:
+        filePath = str(tmp_path / "esM.nc")
+        xrIO.writeEnergySystemModelToNetCDF(esM, outputFilePath=filePath)
+        esM_new = xrIO.readNetCDFtoEnergySystemModel(filePath=filePath)
+
+    # compare_esm_inputs() only compares the keys both dicts have, so check
+    # that no investment period is missing first
+    className = componentClass.__name__
+    _, compDict = exportToDict(esM)
+    _, compDict_new = exportToDict(esM_new)
+    for parameter in parameters:
+        assert (
+            compDict_new[className]["Component"][parameter].keys()
+            == compDict[className]["Component"][parameter].keys()
+        )
+    compare_esm_inputs(esM, esM_new)
 
 
 def test_esm_to_datasets_with_processed_values(minimal_test_esM):

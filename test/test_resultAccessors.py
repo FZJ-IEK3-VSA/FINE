@@ -13,10 +13,13 @@ import pytest
 
 import fine.subclasses.conversionPartLoad as partload_module
 import fine.subclasses.lopf as lopf_module
+from fine.utils import ImplementedSolvers
 
 
 def _optimize(esM):
-    esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
     return esM, esM.investmentPeriodNames[0]
 
 
@@ -325,7 +328,9 @@ def test_extra_summary_rows_are_cleared_by_a_new_optimization(minimal_test_esM):
     model.registerExtraSummaryRows(ip, [("knowledgeStock_ETL", frame, "[kW]")])
     assert "knowledgeStock_ETL" in model.getResultSummaryDict(esM, ip)["Electrolyzers"]
 
-    esM.optimize(timeSeriesAggregation=False, solver="gurobi")
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
 
     assert (
         "knowledgeStock_ETL" not in model.getResultSummaryDict(esM, ip)["Electrolyzers"]
