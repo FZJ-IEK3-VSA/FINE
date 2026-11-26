@@ -21,6 +21,63 @@ sys.path.append(
 from getData import getData
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "requires_solver(name): run the test only if name is the selected solver",
+    )
+    config.addinivalue_line(
+        "markers",
+        "multi_solver: the test deliberately uses solvers other than the selected one",
+    )
+
+
+def pytest_report_header(config):
+    solver = ImplementedSolvers.STANDARD_SOLVER.value
+    if ImplementedSolvers.solver_from_environment():
+        return f"FINE solver: {solver} (selected explicitly, no fallback)"
+    return f"FINE solver: {solver} (automatic detection)"
+
+
+def pytest_collection_modifyitems(config, items):
+    solver = ImplementedSolvers.STANDARD_SOLVER.value
+    for item in items:
+        marker = item.get_closest_marker("requires_solver")
+        if marker is not None and marker.args[0] != solver:
+            item.add_marker(
+                pytest.mark.skip(
+                    reason=f"requires solver {marker.args[0]}, selected is {solver}"
+                )
+            )
+
+
+@pytest.fixture(autouse=True)
+def check_used_solver(request, monkeypatch):
+    """Fail a test if a model is solved with a solver other than the selected one.
+
+    Only active if a solver is selected via FINE_SOLVER. Tests
+    marked with multi_solver are exempt.
+    """
+    selected = ImplementedSolvers.solver_from_environment()
+    if not selected or request.node.get_closest_marker("multi_solver"):
+        return
+
+    original_runOptimization = fn.EnergySystemModel._runOptimization
+
+    def _runOptimization(self, *args, **kwargs):
+        used, solver_info = original_runOptimization(self, *args, **kwargs)
+        if used != selected:
+            pytest.fail(
+                f"The model was solved with '{used}', but '{selected}' is the "
+                "selected solver. Use ImplementedSolvers.STANDARD_SOLVER instead "
+                "of a fixed solver, or mark the test with requires_solver or "
+                "multi_solver."
+            )
+        return used, solver_info
+
+    monkeypatch.setattr(fn.EnergySystemModel, "_runOptimization", _runOptimization)
+
+
 @pytest.fixture(scope="session")
 def get_data_fixture():
     return getData()
@@ -122,8 +179,8 @@ def minimal_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -269,8 +326,8 @@ def single_node_test_esM():
             commodity="electricity",
             hasCapacityVariable=False,
             operationRateMax=maxpurchase,
-            commodityCostTimeSeries=costs,
-            commodityRevenueTimeSeries=revenues,
+            commodityCost=costs,
+            commodityRevenue=revenues,
         )
     )  # eur/kWh
 
@@ -370,132 +427,19 @@ def esM_init():
     )
 
 
-@pytest.fixture(scope="function")
-def test_esM_for_spagat(esM_init, get_data_fixture):
-    """Simpler version of multi_node_test_esM_init.
-    Makes spagat tests faster.
-    """
-    data = deepcopy(get_data_fixture)
-
-    # Create an energy system model instance
-    esM = esM_init
-
-    # onshore wind
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Wind (onshore)",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            operationRateMax=data["Wind (onshore), operationRateMax"],
-            capacityMax=data["Wind (onshore), capacityMax"],
-            investPerCapacity=1.1,
-            opexPerCapacity=1.1 * 0.02,
-            interestRate=0.08,
-            economicLifetime=20,
-        )
-    )
-
-    # CO2 from environment
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="CO2 from environment",
-            commodity="CO2",
-            hasCapacityVariable=False,
-            balanceLimitID="CO2 limit",
-        )
-    )
-
-    # Electrolyzers
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="Electroylzers",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
-            hasCapacityVariable=True,
-            investPerCapacity=0.5,
-            opexPerCapacity=0.5 * 0.025,
-            interestRate=0.08,
-            economicLifetime=10,
-        )
-    )
-
-    # Pumped hydro storage
-    esM.add(
-        fn.Storage(
-            esM=esM,
-            name="Pumped hydro storage",
-            commodity="electricity",
-            chargeEfficiency=0.88,
-            dischargeEfficiency=0.88,
-            hasCapacityVariable=True,
-            selfDischarge=1 - (1 - 0.00375) ** (1 / (30 * 24)),
-            chargeRate=0.16,
-            dischargeRate=0.12,
-            capacityFix=data["Pumped hydro storage, capacityFix"],
-            investPerCapacity=0,
-            opexPerCapacity=0.000153,
-            opexPerChargeOperation=1e-6,
-            opexPerDischargeOperation=1e-6,
-        )
-    )
-
-    # DC cables
-    esM.add(
-        fn.Transmission(
-            esM=esM,
-            name="DC cables",
-            commodity="electricity",
-            losses=data["DC cables, losses"],
-            distances=data["DC cables, distances"],
-            hasCapacityVariable=True,
-            capacityFix=data["DC cables, capacityFix"],
-        )
-    )
-
-    # Hydrogen sinks
-    FCEV_penetration = 0.5
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="Hydrogen demand",
-            commodity="hydrogen",
-            hasCapacityVariable=False,
-            operationRateFix=data["Hydrogen demand, operationRateFix"]
-            * FCEV_penetration,
-        )
-    )
-
-    ### Lithium ion batteries
-    esM.add(
-        fn.Storage(
-            esM=esM,
-            name="Li-ion batteries",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            chargeEfficiency=0.95,
-            cyclicLifetime=10000,
-            dischargeEfficiency=0.95,
-            selfDischarge=1 - (1 - 0.03) ** (1 / (30 * 24)),
-            chargeRate=1,
-            dischargeRate=1,
-            doPreciseTsaModeling=False,
-            investPerCapacity=0.151,
-            opexPerCapacity=0.002,
-            interestRate=0.08,
-            economicLifetime=22,
-            opexPerChargeOperation=0.0001,
-        )
-    )
-
-    return esM
+#: Time horizon of the multi-node test model in hours. The input data of the
+#: multi-region example covers a full year (8760 hourly values). The tests use
+#: only the first 30 days, because writing and reading the hourly results of a
+#: full year (in Excel and netCDF) made these tests the slowest of the suite.
+MULTI_NODE_NUMBER_OF_TIME_STEPS = 30 * 24
 
 
 @pytest.fixture(scope="function")
 def multi_node_test_esM_init(get_data_fixture):
     data = deepcopy(get_data_fixture)
+    for key, value in data.items():
+        if isinstance(value, (pd.DataFrame, pd.Series)) and len(value) == 8760:
+            data[key] = value.iloc[:MULTI_NODE_NUMBER_OF_TIME_STEPS]
 
     # 2. Create an energy system model instance
     locations = {
@@ -526,7 +470,7 @@ def multi_node_test_esM_init(get_data_fixture):
     esM = fn.EnergySystemModel(
         locations=locations,
         commodities=commodities,
-        numberOfTimeSteps=8760,
+        numberOfTimeSteps=MULTI_NODE_NUMBER_OF_TIME_STEPS,
         commodityUnitsDict=commodityUnitDict,
         hoursPerTimeStep=1,
         costUnit="1e9 Euro",
@@ -559,23 +503,38 @@ def multi_node_test_esM_init(get_data_fixture):
 
     ### Wind offshore
 
+    # A small time-dependent cost removes alternate optimal dispatch profiles
+    # across solvers. Repeating it daily prevents it from influencing which
+    # days are selected as typical periods during temporal aggregation.
+    offshore_operation_rate = data["Wind (offshore), operationRateMax"]
+    offshore_time_step_cost = np.tile(
+        np.linspace(1e-5 / 24, 1e-5, 24),
+        len(offshore_operation_rate) // 24,
+    )
+    offshore_cost_time_series = pd.DataFrame(
+        np.broadcast_to(
+            offshore_time_step_cost[:, np.newaxis], offshore_operation_rate.shape
+        ),
+        index=offshore_operation_rate.index,
+        columns=offshore_operation_rate.columns,
+    )
+
     esM.add(
         fn.Source(
             esM=esM,
             name="Wind (offshore)",
             commodity="electricity",
             hasCapacityVariable=True,
-            operationRateMax=data["Wind (offshore), operationRateMax"],
+            operationRateMax=offshore_operation_rate,
             capacityMax=data["Wind (offshore), capacityMax"],
             investPerCapacity=2.3,
             opexPerCapacity=2.3 * 0.02,
             interestRate=0.08,
             economicLifetime=20,
             opexPerOperation=0.005,
+            commodityCost=offshore_cost_time_series,
         )
     )
-
-    data["Wind (offshore), operationRateMax"].sum()
 
     ### PV
 
@@ -622,7 +581,7 @@ def multi_node_test_esM_init(get_data_fixture):
             name="Natural gas purchase",
             commodity="methane",
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Natural Gas, commodityCostTimeSeries"],
+            commodityCost=data["Natural Gas, commodityCostTimeSeries"],
         )
     )
 
@@ -634,7 +593,7 @@ def multi_node_test_esM_init(get_data_fixture):
             commodity="biogas",
             operationRateMax=data["Biogas, operationRateMax"],
             hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Biogas, commodityCostTimeSeries"],
+            commodityCost=data["Biogas, commodityCostTimeSeries"],
         )
     )
 
@@ -978,469 +937,8 @@ def multi_node_test_esM_init(get_data_fixture):
 
 
 @pytest.fixture(scope="function")
-def multi_node_test_esM_optimized(get_data_fixture):
-    data = deepcopy(get_data_fixture)
-
-    # 2. Create an energy system model instance
-    locations = {
-        "cluster_0",
-        "cluster_1",
-        "cluster_2",
-        "cluster_3",
-        "cluster_4",
-        "cluster_5",
-        "cluster_6",
-        "cluster_7",
-    }
-    commodityUnitDict = {
-        "electricity": r"GW$_{el}$",
-        "methane": r"GW$_{CH_{4},LHV}$",
-        "biogas": r"GW$_{biogas,LHV}$",
-        "CO2": r"Mio. t$_{CO_2}$/h",
-        "hydrogen": r"GW$_{H_{2},LHV}$",
-    }
-    commodities = {"electricity", "hydrogen", "methane", "biogas", "CO2"}
-    CO2_reductionTarget = 1
-    balanceLimit = pd.DataFrame(
-        index=["CO2 limit"],
-        columns=["Total", "lowerBound"],
-        data=[[-366 * (1 - CO2_reductionTarget), True]],
-    )
-
-    esM = fn.EnergySystemModel(
-        locations=locations,
-        commodities=commodities,
-        numberOfTimeSteps=8760,
-        commodityUnitsDict=commodityUnitDict,
-        hoursPerTimeStep=1,
-        costUnit="1e9 Euro",
-        lengthUnit="km",
-        verboseLogLevel=0,
-        balanceLimit=balanceLimit,
-    )
-
-    # 3. Add commodity sources to the energy system model
-    ## 3.1. Electricity sources
-    ### Wind onshore
-
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Wind (onshore)",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            operationRateMax=data["Wind (onshore), operationRateMax"],
-            capacityMax=data["Wind (onshore), capacityMax"],
-            investPerCapacity=1.1,
-            opexPerCapacity=1.1 * 0.02,
-            interestRate=0.08,
-            economicLifetime=20,
-        )
-    )
-
-    data["Wind (onshore), operationRateMax"].sum()
-
-    ### Wind offshore
-
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Wind (offshore)",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            operationRateMax=data["Wind (offshore), operationRateMax"],
-            capacityMax=data["Wind (offshore), capacityMax"],
-            investPerCapacity=2.3,
-            opexPerCapacity=2.3 * 0.02,
-            interestRate=0.08,
-            economicLifetime=20,
-        )
-    )
-
-    data["Wind (offshore), operationRateMax"].sum()
-
-    ### PV
-
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="PV",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            operationRateMax=data["PV, operationRateMax"],
-            capacityMax=data["PV, capacityMax"],
-            investPerCapacity=0.65,
-            opexPerCapacity=0.65 * 0.02,
-            interestRate=0.08,
-            economicLifetime=25,
-        )
-    )
-
-    data["PV, operationRateMax"].sum()
-
-    ### Exisisting run-of-river hydroelectricity plants
-
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Existing run-of-river plants",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            operationRateFix=data["Existing run-of-river plants, operationRateFix"],
-            tsaWeight=0.01,
-            capacityFix=data["Existing run-of-river plants, capacityFix"],
-            investPerCapacity=0,
-            opexPerCapacity=0.208,
-        )
-    )
-
-    ## 3.2. Methane (natural gas and biogas)
-    ### Natural gas
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Natural gas purchase",
-            commodity="methane",
-            hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Natural Gas, commodityCostTimeSeries"],
-        )
-    )
-
-    ### Biogas
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="Biogas purchase",
-            commodity="biogas",
-            operationRateMax=data["Biogas, operationRateMax"],
-            hasCapacityVariable=False,
-            commodityCostTimeSeries=data["Biogas, commodityCostTimeSeries"],
-        )
-    )
-
-    ## 3.3 CO2
-    ### CO2
-
-    esM.add(
-        fn.Source(
-            esM=esM,
-            name="CO2 from environment",
-            commodity="CO2",
-            hasCapacityVariable=False,
-            balanceLimitID="CO2 limit",
-        )
-    )
-
-    # 4. Add conversion components to the energy system model
-
-    ### Combined cycle gas turbine plants
-
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="CCGT plants (methane)",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={
-                "electricity": 1,
-                "methane": -1 / 0.625,
-                "CO2": 201 * 1e-6 / 0.625,
-            },
-            hasCapacityVariable=True,
-            investPerCapacity=0.65,
-            opexPerCapacity=0.021,
-            interestRate=0.08,
-            economicLifetime=33,
-        )
-    )
-
-    ### New combined cycle gas turbine plants for biogas
-
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="New CCGT plants (biogas)",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={"electricity": 1, "biogas": -1 / 0.635},
-            hasCapacityVariable=True,
-            investPerCapacity=0.7,
-            opexPerCapacity=0.021,
-            interestRate=0.08,
-            economicLifetime=33,
-        )
-    )
-
-    ### New combined cycly gas turbines for hydrogen
-
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="New CCGT plants (hydrogen)",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={"electricity": 1, "hydrogen": -1 / 0.6},
-            hasCapacityVariable=True,
-            investPerCapacity=0.7,
-            opexPerCapacity=0.021,
-            interestRate=0.08,
-            economicLifetime=33,
-        )
-    )
-
-    ### Electrolyzers
-
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="Electroylzers",
-            physicalUnit=r"GW$_{el}$",
-            commodityConversionFactors={"electricity": -1, "hydrogen": 0.7},
-            hasCapacityVariable=True,
-            investPerCapacity=0.5,
-            opexPerCapacity=0.5 * 0.025,
-            interestRate=0.08,
-            economicLifetime=10,
-        )
-    )
-
-    ### rSOC
-
-    capexRSOC = 1.5
-
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="rSOEC",
-            physicalUnit=r"GW$_{el}$",
-            linkedConversionCapacityID="rSOC",
-            commodityConversionFactors={"electricity": -1, "hydrogen": 0.6},
-            hasCapacityVariable=True,
-            investPerCapacity=capexRSOC / 2,
-            opexPerCapacity=capexRSOC * 0.02 / 2,
-            interestRate=0.08,
-            economicLifetime=10,
-        )
-    )
-
-    esM.add(
-        fn.Conversion(
-            esM=esM,
-            name="rSOFC",
-            physicalUnit=r"GW$_{el}$",
-            linkedConversionCapacityID="rSOC",
-            commodityConversionFactors={"electricity": 1, "hydrogen": -1 / 0.6},
-            hasCapacityVariable=True,
-            investPerCapacity=capexRSOC / 2,
-            opexPerCapacity=capexRSOC * 0.02 / 2,
-            interestRate=0.08,
-            economicLifetime=10,
-        )
-    )
-
-    # 5. Add commodity storages to the energy system model
-    ## 5.1. Electricity storage
-    ### Lithium ion batteries
-
-    esM.add(
-        fn.Storage(
-            esM=esM,
-            name="Li-ion batteries",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            chargeEfficiency=0.95,
-            cyclicLifetime=10000,
-            dischargeEfficiency=0.95,
-            selfDischarge=1 - (1 - 0.03) ** (1 / (30 * 24)),
-            chargeRate=1,
-            dischargeRate=1,
-            doPreciseTsaModeling=False,
-            investPerCapacity=0.151,
-            opexPerCapacity=0.002,
-            interestRate=0.08,
-            economicLifetime=22,
-        )
-    )
-
-    ## 5.2. Hydrogen storage
-    ### Hydrogen filled salt caverns
-
-    esM.add(
-        fn.Storage(
-            esM=esM,
-            name="Salt caverns (hydrogen)",
-            commodity="hydrogen",
-            hasCapacityVariable=True,
-            capacityVariableDomain="continuous",
-            capacityPerPlantUnit=133,
-            chargeRate=1 / 470.37,
-            dischargeRate=1 / 470.37,
-            sharedPotentialID="Existing salt caverns",
-            stateOfChargeMin=0.33,
-            stateOfChargeMax=1,
-            capacityMax=data["Salt caverns (hydrogen), capacityMax"],
-            investPerCapacity=0.00011,
-            opexPerCapacity=0.00057,
-            interestRate=0.08,
-            economicLifetime=30,
-        )
-    )
-
-    ## 5.3. Methane storage
-    ### Methane filled salt caverns
-
-    esM.add(
-        fn.Storage(
-            esM=esM,
-            name="Salt caverns (biogas)",
-            commodity="biogas",
-            hasCapacityVariable=True,
-            capacityVariableDomain="continuous",
-            capacityPerPlantUnit=443,
-            chargeRate=1 / 470.37,
-            dischargeRate=1 / 470.37,
-            sharedPotentialID="Existing salt caverns",
-            stateOfChargeMin=0.33,
-            stateOfChargeMax=1,
-            capacityMax=data["Salt caverns (methane), capacityMax"],
-            investPerCapacity=0.00004,
-            opexPerCapacity=0.00001,
-            interestRate=0.08,
-            economicLifetime=30,
-        )
-    )
-
-    ## 5.4 Pumped hydro storage
-    ### Pumped hydro storage
-
-    esM.add(
-        fn.Storage(
-            esM=esM,
-            name="Pumped hydro storage",
-            commodity="electricity",
-            chargeEfficiency=0.88,
-            dischargeEfficiency=0.88,
-            hasCapacityVariable=True,
-            selfDischarge=1 - (1 - 0.00375) ** (1 / (30 * 24)),
-            chargeRate=0.16,
-            dischargeRate=0.12,
-            capacityFix=data["Pumped hydro storage, capacityFix"],
-            investPerCapacity=0,
-            opexPerCapacity=0.000153,
-        )
-    )
-
-    # 6. Add commodity transmission components to the energy system model
-    ## 6.1. Electricity transmission
-    ### AC cables
-
-    esM.add(
-        fn.LinearOptimalPowerFlow(
-            esM=esM,
-            name="AC cables",
-            commodity="electricity",
-            hasCapacityVariable=True,
-            capacityFix=data["AC cables, capacityFix"],
-            reactances=data["AC cables, reactances"],
-        )
-    )
-
-    ### DC cables
-
-    esM.add(
-        fn.Transmission(
-            esM=esM,
-            name="DC cables",
-            commodity="electricity",
-            losses=data["DC cables, losses"],
-            distances=data["DC cables, distances"],
-            hasCapacityVariable=True,
-            capacityFix=data["DC cables, capacityFix"],
-        )
-    )
-
-    ## 6.2 Methane transmission
-    ### Methane pipeline
-
-    esM.add(
-        fn.Transmission(
-            esM=esM,
-            name="Pipelines (biogas)",
-            commodity="biogas",
-            distances=data["Pipelines, distances"],
-            hasCapacityVariable=True,
-            hasIsBuiltBinaryVariable=False,
-            locationalEligibility=data["Pipelines, eligibility"],
-            capacityMax=data["Pipelines, eligibility"] * 15,
-            sharedPotentialID="pipelines",
-            investPerCapacity=0.000037,
-            investIfBuilt=0.000314,
-            interestRate=0.08,
-            economicLifetime=40,
-        )
-    )
-
-    ## 6.3 Hydrogen transmission
-    ### Hydrogen pipelines
-
-    esM.add(
-        fn.Transmission(
-            esM=esM,
-            name="Pipelines (hydrogen)",
-            commodity="hydrogen",
-            distances=data["Pipelines, distances"],
-            hasCapacityVariable=True,
-            hasIsBuiltBinaryVariable=False,
-            locationalEligibility=data["Pipelines, eligibility"],
-            capacityMax=data["Pipelines, eligibility"] * 15,
-            sharedPotentialID="pipelines",
-            investPerCapacity=0.000177,
-            investIfBuilt=0.00033,
-            interestRate=0.08,
-            economicLifetime=40,
-        )
-    )
-
-    # 7. Add commodity sinks to the energy system model
-    ## 7.1. Electricity sinks
-    ### Electricity demand
-
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="Electricity demand",
-            commodity="electricity",
-            hasCapacityVariable=False,
-            operationRateFix=data["Electricity demand, operationRateFix"],
-        )
-    )
-
-    ## 7.2. Hydrogen sinks
-    ### Fuel cell electric vehicle (FCEV) demand
-
-    FCEV_penetration = 0.5
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="Hydrogen demand",
-            commodity="hydrogen",
-            hasCapacityVariable=False,
-            operationRateFix=data["Hydrogen demand, operationRateFix"]
-            * FCEV_penetration,
-        )
-    )
-
-    ## 7.3. CO2 sinks
-    ### CO2 exiting the system's boundary
-
-    esM.add(
-        fn.Sink(
-            esM=esM,
-            name="CO2 to environment",
-            commodity="CO2",
-            hasCapacityVariable=False,
-            balanceLimitID="CO2 limit",
-        )
-    )
-
-    # 8. Optimize energy system model
+def multi_node_test_esM_optimized(multi_node_test_esM_init):
+    esM = multi_node_test_esM_init
 
     esM.aggregateTemporally(
         numberOfTypicalPeriods=3,
@@ -1789,7 +1287,9 @@ def balanceLimitConstraint_test_esM():
 
 
 @pytest.fixture(scope="function")
-def perfectForesight_test_esM():
+def perfectForesight_test_esM(request):
+    # annuityPerpetuity can be set via indirect parametrization, default False
+    annuityPerpetuity = getattr(request, "param", False)
     # Create an energy system model instance
     esM = fn.EnergySystemModel(
         locations={"PerfectLand", "ForesightLand"},
@@ -1806,6 +1306,7 @@ def perfectForesight_test_esM():
         startYear=2020,
         lengthUnit="km",
         verboseLogLevel=2,
+        annuityPerpetuity=annuityPerpetuity,
     )
 
     PVoperationRateMax = pd.DataFrame(
