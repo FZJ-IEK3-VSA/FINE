@@ -349,7 +349,9 @@ class EnergySystemModel:
 
         :param componentLimitEligibility2dim: the transmission counterpart of componentLimitEligibility. It marks
             with 0 and 1 which connections each componentLimitID is summed over. Its index holds (locFrom, locTo)
-            pairs and its columns are componentLimitIDs.
+            pairs and its columns are componentLimitIDs. A limit of type "operation" over connections bounds the
+            annual flow on the listed directed connections; over regions (componentLimitEligibility) it bounds the
+            net import into the group of regions.
 
             |br| * the default value is None
         :type componentLimitEligibility2dim: None or pd.DataFrame

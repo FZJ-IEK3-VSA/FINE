@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import pytest
 
+from fine.utils import ImplementedSolvers
+
 
 def test_componentLimitConstraint(multi_node_test_esM_init):
     locations = multi_node_test_esM_init.locations
@@ -253,3 +255,215 @@ def test_checkAndSetComponentLimitID_rejects_other_types():
         fn.utils.checkAndSetComponentLimitID(1)
     with pytest.raises(ValueError):
         fn.utils.checkAndSetComponentLimitID(["LIM1", 2])
+
+
+def _twoRegionEsM(componentLimit, eligibility, eligibility2dim=None, **esMKwargs):
+    """Two regions, one time step per hour, electricity demand of 10 per step."""
+    esM = fn.EnergySystemModel(
+        locations={"R1", "R2"},
+        commodities={"electricity", "gas", "biogas"},
+        numberOfTimeSteps=4,
+        commodityUnitsDict={
+            "electricity": r"kW$_{el}$",
+            "gas": r"kW$_{gas}$",
+            "biogas": r"kW$_{gas}$",
+        },
+        hoursPerTimeStep=1,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+        componentLimit=componentLimit,
+        componentLimitEligibility=eligibility,
+        componentLimitEligibility2dim=eligibility2dim,
+        **esMKwargs,
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame(
+                [[10.0, 10.0]] * 4, columns=sorted(esM.locations)
+            ),
+        )
+    )
+    # expensive fallback, so that every cheaper path is used up to its limit
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Backup",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            commodityCost=100.0,
+        )
+    )
+    return esM
+
+
+def _gasLimit(value, ip=0):
+    """Gas use of at most `value`: gas has a negative conversion factor."""
+    return pd.DataFrame(
+        index=["gasUse"],
+        columns=["value", "bound", "type", "commodity", "ip", "ipEnd"],
+        data=[[-value, "lower", "operation", "gas", ip, None]],
+    )
+
+
+_ELIGIBLE_EVERYWHERE = pd.DataFrame(1, index=["R1", "R2"], columns=["gasUse"])
+
+
+def _plantFactors(variant):
+    if variant == "scalar":
+        return {"electricity": 1, "gas": -2}, {}
+    if variant == "series_per_location":
+        return {"electricity": 1, "gas": pd.Series({"R1": -2.0, "R2": -2.5})}, {}
+    if variant == "commissioning_dependent":
+        return {(2020, 2020): {"electricity": 1, "gas": -2}}, {
+            "commissioningDependentCcf": True
+        }
+    if variant == "flexible":
+        return {"electricity": 1, "fuel": {"gas": -2, "biogas": -2}}, {}
+    raise ValueError(variant)
+
+
+@pytest.mark.parametrize(
+    "variant",
+    ["scalar", "series_per_location", "commissioning_dependent", "flexible"],
+)
+def test_componentLimit_conversion_operation_in_commodity(variant):
+    """A Conversion's operation counts in the limit's commodity.
+
+    The plant burns cheap gas to cover the demand, so its gas use is bounded
+    only by the componentLimit. All gas comes from the source "Gas", so the
+    source's annual output is the plant's gas use.
+    """
+    esMKwargs = {"startYear": 2020} if variant == "commissioning_dependent" else {}
+    esM = _twoRegionEsM(
+        _gasLimit(20.0, ip=2020 if esMKwargs else 0),
+        _ELIGIBLE_EVERYWHERE,
+        **esMKwargs,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Gas",
+            commodity="gas",
+            hasCapacityVariable=False,
+            commodityCost=1.0,
+        )
+    )
+    # biogas only feeds the flexible plant, and is cheaper than the backup
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Biogas",
+            commodity="biogas",
+            hasCapacityVariable=False,
+            commodityCost=10.0,
+        )
+    )
+    factors, plantKwargs = _plantFactors(variant)
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Plant",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors=factors,
+            hasCapacityVariable=True,
+            investPerCapacity=0.0,
+            interestRate=0.0,
+            componentLimitID="gasUse",
+            **plantKwargs,
+        )
+    )
+
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+
+    operation = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
+    gasUse = operation.loc["Gas"].to_numpy().sum()
+    # an unbound model would burn far more than 20 units of gas
+    assert np.isclose(gasUse, 20.0)
+
+
+def test_componentLimit_conversion_ignores_unconverted_commodity():
+    """A Conversion that does not convert the limit's commodity contributes 0."""
+    esM = _twoRegionEsM(_gasLimit(20.0), _ELIGIBLE_EVERYWHERE)
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Biogas",
+            commodity="biogas",
+            hasCapacityVariable=False,
+            commodityCost=1.0,
+        )
+    )
+    esM.add(
+        fn.Conversion(
+            esM=esM,
+            name="Plant",
+            physicalUnit=r"kW$_{el}$",
+            commodityConversionFactors={"electricity": 1, "biogas": -2},
+            hasCapacityVariable=True,
+            investPerCapacity=0.0,
+            interestRate=0.0,
+            componentLimitID="gasUse",
+        )
+    )
+
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+
+    # nothing limits the plant, so it covers the whole demand of 80
+    operation = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
+    assert np.isclose(operation.loc["Backup"].to_numpy().sum(), 0.0)
+
+
+def test_componentLimit_transmission_operation_on_connections():
+    """An operation limit on connections bounds the flow on exactly those."""
+    componentLimit = pd.DataFrame(
+        index=["lineFlow"],
+        columns=["value", "bound", "type", "commodity", "ip", "ipEnd"],
+        data=[[15.0, "upper", "operation", None, 0, None]],
+    )
+    eligibility2dim = pd.DataFrame(
+        1, index=pd.MultiIndex.from_tuples([("R1", "R2")]), columns=["lineFlow"]
+    )
+    esM = _twoRegionEsM(
+        componentLimit,
+        pd.DataFrame(index=["R1", "R2"]),
+        eligibility2dim=eligibility2dim,
+    )
+    # cheap electricity is available in R1 only
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="Cheap",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            locationalEligibility=pd.Series({"R1": 1, "R2": 0}),
+            commodityCost=1.0,
+        )
+    )
+    esM.add(
+        fn.Transmission(
+            esM=esM,
+            name="Line",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            investPerCapacity=0.0,
+            interestRate=0.0,
+            componentLimitID="lineFlow",
+        )
+    )
+
+    esM.optimize(
+        timeSeriesAggregation=False, solver=ImplementedSolvers.STANDARD_SOLVER.value
+    )
+
+    # R2 needs 40 over the four steps; the line may carry 15 of it
+    operation = esM.componentModelingDict["SourceSinkModel"].operationVariablesOptimum
+    assert np.isclose(operation.loc[("Backup", "R2")].sum(), 25.0)
