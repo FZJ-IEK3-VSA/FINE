@@ -1512,7 +1512,7 @@ def componentLimit_esM_factory():
 
 @pytest.fixture(scope="function")
 def componentLimit_test_esM():
-    """The componentLimit test model with limits whose meaning the specification keeps.
+    """Build the componentLimit test model with limits whose meaning the specification keeps.
 
     Its optimization model is stored as an LP snapshot, so that a refactoring of
     the componentLimit code shows that these limits stay unchanged.
