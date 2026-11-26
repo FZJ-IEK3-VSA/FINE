@@ -1152,8 +1152,7 @@ class SourceSinkModel(ComponentModel):
 
             # operation rows (operation, operation_annual, opexOp, commodCosts,
             # commodRevenues) are aggregated once in _subclassSummaryFrames and written here,
-            # so the summary and the staged raw-results export accessor share the same
-            # source.
+            # so the summary and the result export share the same source.
             self._writeOperationSummaryRows(optSummary, esM, ipName)
 
             # get discounted investment cost as total annual cost (TAC)
