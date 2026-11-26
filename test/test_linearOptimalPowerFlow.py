@@ -1,4 +1,5 @@
 import fine as fn
+import fine.IOManagement.xarrayIO as xrIO
 import pandas as pd
 
 
@@ -93,3 +94,21 @@ def test_lopf_full_workflow():
     # 4) Check reference node angle is zero
     # In the current implementation the alphabetically first node is the reference node.
     assert abs(angles.loc[("DC cables", "cluster_1"), 0]) < 1e-6
+
+    # 5) The phase angle must survive the xarray/netCDF export. It is a 1-dim,
+    # time-dependent variable on a 2-dim component; regression guard for issue #735.
+    xrds = xrIO.writeEnergySystemModelToDatasets(esM)
+    ds = xrds["Results"][esM.investmentPeriodNames[0]]["LOPFModel"]["DC cables"]
+    assert "phaseAngleVariablesOptimum" in ds.data_vars
+    assert set(ds["phaseAngleVariablesOptimum"].dims) == {"time", "location"}
+    pa = ds["phaseAngleVariablesOptimum"].sel(time=0)
+    assert abs(float(pa.sel(location="cluster_1")) - 0.0) < 1e-6
+    assert abs(float(pa.sel(location="cluster_2")) - (-10.0)) < 1e-6
+    # The 2-dim operation is exported too.
+    assert "operationVariablesOptimum" not in ds.data_vars
+    assert "operationTimeSeries" in ds.data_vars
+    assert set(ds["operationTimeSeries"].dims) == {
+        "time",
+        "locationIn",
+        "locationOut",
+    }

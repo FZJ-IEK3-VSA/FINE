@@ -77,10 +77,9 @@ class ComponentResultsMixin:
         self._decommissioningVariablesOptimum = {}
         self._isBuiltVariablesOptimum = {}
         self._optSummary = {}
-        # Raw results dict (single source of truth for the summary and the staged
-        # raw-results export accessors), filled by extractRawResults/deriveEconomics during
-        # optimize(). The current xarrayIO exporter continues to read the public summary and
-        # getOptimalValues until its separate refactor lands. Empty until the model is solved.
+        # Raw results dict: the single source of truth for the summary and the xarray/netCDF
+        # result export. Filled by extractRawResults/deriveEconomics during optimize().
+        # Empty until the model is solved.
         self._rawResults = {}
         self._rawResults1dim = {}
         # Additional summary rows contributed by expansion modules that run after
@@ -605,11 +604,9 @@ class ComponentResultsMixin:
         }
 
     # ------------------------------------------------------------------
-    # Results-dict accessors staged for the separate xarray/netCDF export refactor.
-    # They read directly from the raw results dict (``self._rawResults`` /
-    # ``self._rawResults1dim``), while the current xarrayIO exporter still reads the public
-    # optimization summary and getOptimalValues. Once adopted by that refactor, these
-    # accessors avoid reparsing the summary DataFrame.
+    # Results-dict accessors used by the xarray/netCDF export. They read the raw results
+    # dict (``self._rawResults`` / ``self._rawResults1dim``) directly instead of reparsing
+    # the summary DataFrame.
     # ------------------------------------------------------------------
 
     def _requireRawResults(self, ip):
@@ -662,7 +659,7 @@ class ComponentResultsMixin:
             ("decommissioning", "decommissioningVariablesOptimum", False, d),
         ]
 
-    def getResultOptimalValues(self, ip):
+    def getResultOptimalValues(self, ip, exclude=()):
         """Return the design/operation optima for the export, read from ``self._rawResults``.
 
         Per component, each optimum variable is shaped into a ``Series`` ready for
@@ -674,12 +671,21 @@ class ComponentResultsMixin:
         :param ip: investment period name (key into ``self._rawResults``).
         :type ip: string
 
+        :param exclude: optimum variable names to leave out. Shaping a variable costs a
+            ``stack``/``transpose`` per component, so a caller that discards a variable anyway
+            should name it here instead of filtering the result afterwards.
+            |br| * the default value is ()
+        :type exclude: iterable of string
+
         :return: ``{componentName: {optimumVariableName: (values, None)}}``.
         :rtype: dict
         """
         results_ip = self._requireRawResults(ip)
+        exclude = set(exclude)
         out = {compName: {} for compName in self.componentsDict}
         for rawKey, optName, timeDependent, dimension in self._exportOptimumVarMap():
+            if optName in exclude:
+                continue
             frame = results_ip.get(rawKey)
             if frame is None:
                 continue
@@ -741,8 +747,7 @@ class ComponentResultsMixin:
 
         These frames are the single source of the aggregated operation rows: they feed the
         optimization summary (written into the summary skeleton by
-        :meth:`_writeOperationSummaryRows`) and the staged raw-results export accessor
-        (:meth:`getResultSummaryDict`).
+        :meth:`_writeOperationSummaryRows`) and the result export (:meth:`getResultSummaryDict`).
 
         :return: ordered list of ``(property, frame, unitFn)`` where ``frame`` is indexed by
             component with locations (1dim) / connections (2dim) as columns, and ``unitFn`` maps
@@ -756,7 +761,7 @@ class ComponentResultsMixin:
 
         Shared by every subclass' ``_buildSubclassOptimizationSummary`` so the operation
         aggregation is computed once (in :meth:`_subclassSummaryFrames`) and reused by the
-        summary and staged raw-results export accessor.
+        summary and the result export (:meth:`getResultSummaryDict`).
 
         :param optSummary: summary skeleton with a ``(Component, Property, Unit) x columns``
             MultiIndex; filled in place.
@@ -833,9 +838,29 @@ class ComponentResultsMixin:
         for compName in compDict:
             for prop, frame, unit in rows:
                 values = self._extractComponentResult(frame, compName, esM, mapC)
+                if prop in frames.FOLDED_SUMMARY_PROPERTIES:
+                    # The public optimization summary normalizes uncovered cells of these
+                    # folded cost rows to zero (see ``buildOptimizationSummary``). Recreate
+                    # its complete index here before the raw-results export turns the series
+                    # into xarray; otherwise omitted 2-dim connections reappear as NaN when
+                    # xarray aligns this variable with the component dataset's coordinates.
+                    if self.dimension == Dimension.ONE:
+                        fullIndex = pd.Index(sorted(esM.locations))
+                    else:
+                        fullIndex = pd.MultiIndex.from_tuples(mapC.values())
+                    if values is None:
+                        values = pd.Series(np.nan, index=fullIndex)
+                    else:
+                        values = values.reindex(fullIndex)
+                    # Always export float. The summary fills an integer 0 into an object
+                    # column, which made a fully filled row int64. A model read back from
+                    # netCDF cannot tell a filled cell from a computed 0, so a dtype that
+                    # depends on the filling would change on every netCDF round trip.
+                    values = pd.to_numeric(values).astype(float).fillna(0.0)
                 if values is None:
                     continue
-                series = self._nameResultSeries(pd.to_numeric(values), prop)
+                values = pd.to_numeric(values)
+                series = self._nameResultSeries(values, prop)
                 out[compName][prop] = (
                     series,
                     unit(compName) if callable(unit) else unit,

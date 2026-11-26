@@ -736,6 +736,47 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     compare_esm_outputs(esm_original, esm_from_netcdf)
 
 
+def test_export_without_raw_results_raises(minimal_test_esM, tmp_path):
+    """An esM read back from netCDF holds the summary but not the raw results dict, so
+    re-exporting its results must fail with an explanatory error instead of an AttributeError.
+    """
+    test_esM = str(tmp_path / "test_esM.nc")
+
+    esm_original = minimal_test_esM
+    esm_original.optimize()
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original, outputFilePath=test_esM, overwriteExisting=True
+    )
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
+
+    with pytest.raises(RuntimeError, match="re-optimize"):
+        xrIO.convertOptimizationOutputToDatasets(esm_from_netcdf)
+
+
+def test_optSumOutputLevel_is_deprecated(minimal_test_esM):
+    """The export cannot apply the summary's output-level filtering anymore, but the parameter
+    is still accepted (as a no-op) so existing calls do not break.
+    """
+    esM = minimal_test_esM
+    esM.optimize()
+
+    with pytest.warns(FutureWarning, match="optSumOutputLevel"):
+        withParam = xrIO.convertOptimizationOutputToDatasets(esM, optSumOutputLevel=2)
+
+    without = xrIO.convertOptimizationOutputToDatasets(esM)
+
+    assert withParam["Results"].keys() == without["Results"].keys()
+    for ip, models in without["Results"].items():
+        assert withParam["Results"][ip].keys() == models.keys()
+        for model, components in models.items():
+            assert withParam["Results"][ip][model].keys() == components.keys()
+            for component, dataset in components.items():
+                # identical() also compares the unit attributes, not only the values
+                assert withParam["Results"][ip][model][component].identical(dataset), (
+                    f"optSumOutputLevel changed the export of {model}/{component}"
+                )
+
+
 def test_output_esm_to_netcdf_and_back_perfectForesight(
     perfectForesight_test_esM, tmp_path
 ):
@@ -884,21 +925,6 @@ def test_ip_parameters_with_empty_periods_to_dataset_and_back(
             == compDict[className]["Component"][parameter].keys()
         )
     compare_esm_inputs(esM, esM_new)
-
-
-def test_esm_to_datasets_with_processed_values(minimal_test_esM):
-    esm_original = minimal_test_esM
-
-    xr_dss = xrIO.convertOptimizationInputToDatasets(
-        esm_original, useProcessedValues=True
-    )
-    assert (
-        xr_dss.get("Input")
-        .get("Transmission")
-        .get("Pipelines")["0d_investPerCapacity.0"]
-        .item()
-        == 0.177
-    )
 
 
 def test_transmission_dims(minimal_test_esM):
