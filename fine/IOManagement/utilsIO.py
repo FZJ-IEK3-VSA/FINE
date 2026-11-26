@@ -174,11 +174,14 @@ def extractDataFrameAttributesFromXarray(attrs):
                 # astype(bool) on a string is True for every non-empty string,
                 # so "False" would come back as True
                 df[column] = df[column] == "True"
-            elif df[column].dtype == object and dtype == "object":
+            elif dtype == "object":
                 # a None or a NaN became a string on the way out; turn it back,
-                # otherwise "None" would read as a set value
-                df[column] = df[column].where(
-                    ~df[column].isin(_MISSING_VALUE_STRINGS), None
+                # otherwise "None" would read as a set value. The column is
+                # cast to object first: pandas 3 reads strings into its "str"
+                # dtype, which would store the None as NaN.
+                column_values = df[column].astype(object)
+                df[column] = column_values.where(
+                    ~column_values.isin(_MISSING_VALUE_STRINGS), None
                 )
             else:
                 df[column] = df[column].astype(dtype)
