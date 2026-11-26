@@ -852,11 +852,11 @@ class ComponentResultsMixin:
                         values = pd.Series(np.nan, index=fullIndex)
                     else:
                         values = values.reindex(fullIndex)
-                    # Fill exactly as the summary does: an integer 0 in an object column.
-                    # pd.to_numeric then yields the summary's dtype, which is int64 when every
-                    # value is integral and at least one cell was filled, so the exported
-                    # dtype stays the one the summary-based export wrote.
-                    values = values.astype(object).where(values.notna(), 0)
+                    # Always export float. The summary fills an integer 0 into an object
+                    # column, which made a fully filled row int64. A model read back from
+                    # netCDF cannot tell a filled cell from a computed 0, so a dtype that
+                    # depends on the filling would change on every netCDF round trip.
+                    values = pd.to_numeric(values).astype(float).fillna(0.0)
                 if values is None:
                     continue
                 values = pd.to_numeric(values)
