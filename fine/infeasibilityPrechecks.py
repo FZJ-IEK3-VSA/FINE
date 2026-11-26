@@ -296,7 +296,6 @@ class _PeriodData:
             bound = (
                 capacity.get(loc, np.inf)
                 * float(comp.dischargeRate or 1)
-                * float(comp.dischargeEfficiency or 1)
                 * self.hoursPerTimeStep
             )
             self.storage.append((comp.commodity, loc, bound))

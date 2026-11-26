@@ -937,3 +937,48 @@ def test_pooled_commodity_is_not_balanced_outside_of_its_pools():
     feasible, therefore the pre-checks must not raise either.
     """
     runInfeasibilityPrechecks(_build_pool_esM(purchaseMax=5, pool="AB"))
+
+
+def test_storage_discharge_efficiency_is_no_false_positive():
+    """The discharge efficiency only reduces the state of charge, not the
+    delivered discharge of 20 * 0.5 = 10, so the demand of 9.5 can be met.
+    """
+    esM = fn.EnergySystemModel(
+        locations={"A"},
+        commodities={"electricity"},
+        numberOfTimeSteps=2,
+        commodityUnitsDict={"electricity": "GW_el"},
+        hoursPerTimeStep=1,
+        costUnit="1e9 Euro",
+        lengthUnit="km",
+        verboseLogLevel=0,
+    )
+    esM.add(
+        fn.Source(
+            esM=esM,
+            name="PV",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateMax=pd.DataFrame({"A": [100.0, 0.0]}),
+        )
+    )
+    esM.add(
+        fn.Sink(
+            esM=esM,
+            name="Demand",
+            commodity="electricity",
+            hasCapacityVariable=False,
+            operationRateFix=pd.DataFrame({"A": [0.0, 9.5]}),
+        )
+    )
+    esM.add(
+        fn.Storage(
+            esM=esM,
+            name="Battery",
+            commodity="electricity",
+            capacityFix=20,
+            dischargeRate=0.5,
+            dischargeEfficiency=0.9,
+        )
+    )
+    runInfeasibilityPrechecks(esM)
