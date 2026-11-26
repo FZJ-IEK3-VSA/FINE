@@ -615,7 +615,6 @@ class ConversionModel(ComponentModel):
         super().__init__()
         self.abbrvName = ComponentAbbreviation.CONVERSION
         self.dimension = Dimension.ONE
-        self._operationVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -1674,8 +1673,7 @@ class ConversionModel(ComponentModel):
     def _extractSubclassRawResults(self, esM, pyM, rawResults):
         """Extract the conversion specific raw solved ``operation`` variable.
 
-        Adds ``operation`` to ``rawResults`` and populates
-        ``self._operationVariablesOptimum``.
+        Adds ``operation`` to ``rawResults``.
         """
         super()._extractSubclassRawResults(esM, pyM, rawResults)
         opVar = getattr(pyM, "op_" + self.abbrvName)
@@ -1689,7 +1687,6 @@ class ConversionModel(ComponentModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._operationVariablesOptimum[ipName] = optVal
             rawResults[ipName]["operation"] = optVal
 
     def _deriveSubclassEconomics(self, esM, pyM, rawResults):
@@ -1852,25 +1849,3 @@ class ConversionModel(ComponentModel):
             ),
             ("opexOp", results_ip.get("opexOp"), perA),
         ]
-
-    def getOptimalValues(self, name="all", ip=0):
-        """Return optimal values of the components.
-
-        :param name: name of the variables of which the optimal values should be returned:
-
-            * 'capacityVariables',
-            * 'isBuiltVariables',
-            * 'operationVariablesOptimum',
-            * 'all' or another input: all variables are returned.
-
-        |br| * the default value is 'all'
-        :type name: string
-
-        :param ip: investment period
-            |br| * the default value is 0
-        :type ip: int
-
-        :returns: a dictionary with the optimal values of the components
-        :rtype: dict
-        """
-        return super().getOptimalValues(name, ip=ip)

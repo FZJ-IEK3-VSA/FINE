@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 # cannot drift apart.
 #
 # Optima whose values the time-independent summary already carries under the row name on the
-# left. The export writes the summary row only; the reader restores the *VariablesOptimum
-# attribute from it.
+# left. The export writes the summary row only; the reader rebuilds the raw results from it.
 DUPLICATE_OPTIMUM_SUMMARY_ROWS = {
     "capacity": "capacityVariablesOptimum",
     "commissioning": "commissioningVariablesOptimum",
@@ -32,11 +31,6 @@ DUPLICATE_OPTIMUM_VARIABLES = frozenset(DUPLICATE_OPTIMUM_SUMMARY_ROWS.values())
 # Reader: exported names that hold optimum values only, although they lack "Optimum", so the
 # summary loop must skip them.
 OPTIMUM_ONLY_VARIABLES = frozenset(RENAMED_OPTIMUM_VARIABLES.values())
-# Reader: exported name -> the optimum variable to restore from it.
-SUMMARY_OPTIMUM_MAPPING = {
-    **DUPLICATE_OPTIMUM_SUMMARY_ROWS,
-    **{exported: raw for raw, exported in RENAMED_OPTIMUM_VARIABLES.items()},
-}
 
 
 def _warnDeprecatedOptSumOutputLevel(optSumOutputLevel):
@@ -490,9 +484,6 @@ def convertDatasetsToEnergySystemModel(datasets):
             # its own variables there (e.g. LOPF's phaseAngle) is restored automatically.
             modelingClass = esM.componentModelingDict[model]
             exportMap = modelingClass._exportOptimumVarMap()
-            renameOptimumVariables = {
-                "operationVariablesOptimum": "operationTimeSeries"
-            }
             timeDependentRawKeys = {
                 rawKey: (optName, dimension)
                 for rawKey, optName, timeDependent, dimension in exportMap
@@ -501,14 +492,6 @@ def convertDatasetsToEnergySystemModel(datasets):
             designProps = {"capacity", "commissioning", "decommissioning", "isBuilt"}
             rawResultsDict = {}
             rawResults1dimDict = {}
-            operationVariablesOptimum_dict = {}
-            capacityVariablesOptimum_dict = {}
-            isBuiltVariablesOptimum_dict = {}
-            commissioningVariablesOptimum_dict = {}
-            decommissioningVariablesOptimum_dict = {}
-            chargeOperationVariablesOptimum_dict = {}
-            dischargeOperationVariablesOptimum_dict = {}
-            stateOfChargeOperationVariablesOptimum_dict = {}
 
             for ip in datasets["Results"].keys():
                 # read opt Summary
@@ -616,7 +599,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                         )
 
                 for rawKey, (optName, dimension) in timeDependentRawKeys.items():
-                    datasetVarName = renameOptimumVariables.get(optName, optName)
+                    datasetVarName = RENAMED_OPTIMUM_VARIABLES.get(optName, optName)
                     subs = {}
                     for component, comp_ds in datasets["Results"][ip][model].items():
                         if datasetVarName not in comp_ds.data_vars:
@@ -636,333 +619,12 @@ def convertDatasetsToEnergySystemModel(datasets):
                             utilsIO.mergeConnectionIndexLevels(frame)
                         )
 
-                # read optimal Values (3 types exist)
-                operationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
-                capacityVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
-                isBuiltVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
-                commissioningVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
-                decommissioningVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
-                chargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
-                dischargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
-                stateOfChargeOperationVariablesOptimum_dict[int(ip)] = pd.DataFrame([])
+                # optimize() stores None for an optimum variable without values (e.g.
+                # isBuilt without binary variables); the export skips those, so restore
+                # them as None.
+                for rawKey, _, _, _ in exportMap:
+                    rawResultsDict[ipInt].setdefault(rawKey, None)
 
-                for component in datasets["Results"][ip][model]:
-                    _operationVariablesOptimum_df = pd.DataFrame([])
-                    _capacityVariablesOptimum_df = pd.DataFrame([])
-                    _isBuiltVariablesOptimum_df = pd.DataFrame([])
-                    _commissioningVariablesOptimum_df = pd.DataFrame([])
-                    _decommissioningVariablesOptimum_df = pd.DataFrame([])
-                    _chargeOperationVariablesOptimum_df = pd.DataFrame([])
-                    _dischargeOperationVariablesOptimum_df = pd.DataFrame([])
-                    _stateOfChargeOperationVariablesOptimum_df = pd.DataFrame([])
-
-                    for variable in datasets["Results"][ip][model][component]:
-                        if (
-                            "Optimum" not in variable
-                            and variable not in SUMMARY_OPTIMUM_MAPPING
-                        ):
-                            continue
-                        opt_variable = SUMMARY_OPTIMUM_MAPPING.get(variable, variable)
-                        xr_opt = datasets["Results"][ip][model][component][variable]
-
-                        if opt_variable == "operationVariablesOptimum":
-                            if "locationOut" in list(xr_opt.coords):
-                                df = (
-                                    xr_opt.to_dataframe()
-                                    .unstack(level=0)
-                                    .droplevel(0, axis=1)
-                                )
-                                _operationVariablesOptimum_df = pd.DataFrame([])
-                                for item in df.index.get_level_values(0).unique():
-                                    _df = df.loc[item]
-                                    _df = _df.drop(item)
-                                    idx = pd.MultiIndex.from_product(
-                                        [[component], [item], list(_df.index)]
-                                    )
-                                    _df = _df.set_index(idx)
-                                    if isinstance(_df, pd.Series):
-                                        _df = _df.to_frame().T
-                                    _operationVariablesOptimum_df = pd.concat(
-                                        [_operationVariablesOptimum_df, _df],
-                                        axis=0,
-                                    ).rename_axis(len(idx.names) * [None], axis=0)
-
-                            else:
-                                _operationVariablesOptimum_df = (
-                                    xr_opt.to_dataframe()
-                                    .unstack(level=0)
-                                    .droplevel(0, axis=1)
-                                )
-                                _operationVariablesOptimum_df = (
-                                    _operationVariablesOptimum_df.dropna(axis=0)
-                                )
-                                idx = pd.MultiIndex.from_product(
-                                    [[component], _operationVariablesOptimum_df.index]
-                                )
-                                _operationVariablesOptimum_df = (
-                                    _operationVariablesOptimum_df.set_index(idx)
-                                ).rename_axis(len(idx.names) * [None], axis=0)
-
-                        if opt_variable == "capacityVariablesOptimum":
-                            if "locationOut" in list(xr_opt.coords):
-                                df = (
-                                    xr_opt.to_dataframe()
-                                    .unstack(level=0)
-                                    .droplevel(0, axis=1)
-                                )
-                                idx = pd.MultiIndex.from_product(
-                                    [[component], list(df.index)]
-                                )
-                                _df = df.set_index(idx)
-                                _capacityVariablesOptimum_df = _df.rename_axis(
-                                    None, axis=1
-                                )
-                            else:
-                                _capacityVariablesOptimum_df = xr_opt.to_dataframe().T
-                                _capacityVariablesOptimum_df = (
-                                    _capacityVariablesOptimum_df.set_axis([component])
-                                ).rename_axis(None, axis=1)
-
-                        if opt_variable == "isBuiltVariablesOptimum":
-                            _isBuiltVariablesOptimum_df = (
-                                xr_opt.to_dataframe()
-                                .unstack(level=0)
-                                .droplevel(0, axis=1)
-                            )
-                            idx = pd.MultiIndex.from_product(
-                                [[component], _isBuiltVariablesOptimum_df.index]
-                            )
-                            _isBuiltVariablesOptimum_df = (
-                                _isBuiltVariablesOptimum_df.set_index(idx)
-                            ).rename_axis(None, axis=1)
-                        if opt_variable == "commissioningVariablesOptimum":
-                            if "locationOut" in list(xr_opt.coords):
-                                df = (
-                                    xr_opt.to_dataframe()
-                                    .unstack(level=0)
-                                    .droplevel(0, axis=1)
-                                )
-                                idx = pd.MultiIndex.from_product(
-                                    [[component], list(df.index)]
-                                )
-                                _df = df.set_index(idx)
-                                _commissioningVariablesOptimum_df = _df.rename_axis(
-                                    None, axis=1
-                                )
-                            else:
-                                _commissioningVariablesOptimum_df = (
-                                    xr_opt.to_dataframe().T
-                                )
-                                _commissioningVariablesOptimum_df = (
-                                    _commissioningVariablesOptimum_df.set_axis(
-                                        [component]
-                                    )
-                                ).rename_axis(None, axis=1)
-                        if opt_variable == "decommissioningVariablesOptimum":
-                            if "locationOut" in list(xr_opt.coords):
-                                df = (
-                                    xr_opt.to_dataframe()
-                                    .unstack(level=0)
-                                    .droplevel(0, axis=1)
-                                )
-                                idx = pd.MultiIndex.from_product(
-                                    [[component], list(df.index)]
-                                )
-                                _df = df.set_index(idx)
-                                _decommissioningVariablesOptimum_df = _df.rename_axis(
-                                    None, axis=1
-                                )
-                            else:
-                                _decommissioningVariablesOptimum_df = (
-                                    xr_opt.to_dataframe().T
-                                )
-                                _decommissioningVariablesOptimum_df = (
-                                    _decommissioningVariablesOptimum_df.set_axis(
-                                        [component]
-                                    )
-                                ).rename_axis(None, axis=1)
-
-                        if opt_variable == "chargeOperationVariablesOptimum":
-                            _chargeOperationVariablesOptimum_df = (
-                                xr_opt.to_dataframe()
-                                .unstack(level=0)
-                                .droplevel(0, axis=1)
-                            )
-                            idx = pd.MultiIndex.from_product(
-                                [[component], _chargeOperationVariablesOptimum_df.index]
-                            )
-                            _chargeOperationVariablesOptimum_df = (
-                                (_chargeOperationVariablesOptimum_df.set_index(idx))
-                                .rename_axis(len(idx.names) * [None], axis=0)
-                                .rename_axis(None, axis=1)
-                            )
-
-                        if opt_variable == "dischargeOperationVariablesOptimum":
-                            _dischargeOperationVariablesOptimum_df = (
-                                xr_opt.to_dataframe()
-                                .unstack(level=0)
-                                .droplevel(0, axis=1)
-                            )
-                            idx = pd.MultiIndex.from_product(
-                                [
-                                    [component],
-                                    _dischargeOperationVariablesOptimum_df.index,
-                                ]
-                            )
-                            _dischargeOperationVariablesOptimum_df = (
-                                (_dischargeOperationVariablesOptimum_df.set_index(idx))
-                                .rename_axis(len(idx.names) * [None], axis=0)
-                                .rename_axis(None, axis=1)
-                            )
-
-                        if opt_variable == "stateOfChargeOperationVariablesOptimum":
-                            _stateOfChargeOperationVariablesOptimum_df = (
-                                xr_opt.to_dataframe()
-                                .unstack(level=0)
-                                .droplevel(0, axis=1)
-                            )
-                            idx = pd.MultiIndex.from_product(
-                                [
-                                    [component],
-                                    _stateOfChargeOperationVariablesOptimum_df.index,
-                                ]
-                            )
-                            _stateOfChargeOperationVariablesOptimum_df = (
-                                (
-                                    _stateOfChargeOperationVariablesOptimum_df.set_index(
-                                        idx
-                                    )
-                                )
-                                .rename_axis(len(idx.names) * [None], axis=0)
-                                .rename_axis(None, axis=1)
-                            )
-                    if isinstance(_operationVariablesOptimum_df, pd.Series):
-                        _operationVariablesOptimum_df = (
-                            _operationVariablesOptimum_df.to_frame().T
-                        )
-                    operationVariablesOptimum_dict[int(ip)] = pd.concat(
-                        [
-                            operationVariablesOptimum_dict[int(ip)],
-                            _operationVariablesOptimum_df,
-                        ],
-                        axis=0,
-                    )
-                    if isinstance(_capacityVariablesOptimum_df, pd.Series):
-                        _capacityVariablesOptimum_df = (
-                            _capacityVariablesOptimum_df.to_frame().T
-                        )
-                    capacityVariablesOptimum_dict[int(ip)] = pd.concat(
-                        [
-                            capacityVariablesOptimum_dict[int(ip)],
-                            _capacityVariablesOptimum_df,
-                        ],
-                        axis=0,
-                    )
-                    if isinstance(_isBuiltVariablesOptimum_df, pd.Series):
-                        _isBuiltVariablesOptimum_df = (
-                            _isBuiltVariablesOptimum_df.to_frame().T
-                        )
-                    isBuiltVariablesOptimum_dict[int(ip)] = pd.concat(
-                        [
-                            isBuiltVariablesOptimum_dict[int(ip)],
-                            _isBuiltVariablesOptimum_df,
-                        ],
-                        axis=0,
-                    )
-                    if isinstance(_commissioningVariablesOptimum_df, pd.Series):
-                        _commissioningVariablesOptimum_df = (
-                            _commissioningVariablesOptimum_df.to_frame().T
-                        )
-                    commissioningVariablesOptimum_dict[int(ip)] = pd.concat(
-                        [
-                            commissioningVariablesOptimum_dict[int(ip)],
-                            _commissioningVariablesOptimum_df,
-                        ],
-                        axis=0,
-                    )
-                    if isinstance(_decommissioningVariablesOptimum_df, pd.Series):
-                        _decommissioningVariablesOptimum_df = (
-                            _decommissioningVariablesOptimum_df.to_frame().T
-                        )
-                    decommissioningVariablesOptimum_dict[int(ip)] = pd.concat(
-                        [
-                            decommissioningVariablesOptimum_dict[int(ip)],
-                            _decommissioningVariablesOptimum_df,
-                        ],
-                        axis=0,
-                    )
-                    if isinstance(_chargeOperationVariablesOptimum_df, pd.Series):
-                        _chargeOperationVariablesOptimum_df = (
-                            _chargeOperationVariablesOptimum_df.to_frame().T
-                        )
-                    chargeOperationVariablesOptimum_dict[int(ip)] = pd.concat(
-                        [
-                            chargeOperationVariablesOptimum_dict[int(ip)],
-                            _chargeOperationVariablesOptimum_df,
-                        ],
-                        axis=0,
-                    )
-                    if isinstance(_dischargeOperationVariablesOptimum_df, pd.Series):
-                        _dischargeOperationVariablesOptimum_df = (
-                            _dischargeOperationVariablesOptimum_df.to_frame().T
-                        )
-                    dischargeOperationVariablesOptimum_dict[int(ip)] = pd.concat(
-                        [
-                            dischargeOperationVariablesOptimum_dict[int(ip)],
-                            _dischargeOperationVariablesOptimum_df,
-                        ],
-                        axis=0,
-                    )
-                    if isinstance(
-                        _stateOfChargeOperationVariablesOptimum_df, pd.Series
-                    ):
-                        _stateOfChargeOperationVariablesOptimum_df = (
-                            _stateOfChargeOperationVariablesOptimum_df.to_frame().T
-                        )
-                    stateOfChargeOperationVariablesOptimum_dict[int(ip)] = pd.concat(
-                        [
-                            stateOfChargeOperationVariablesOptimum_dict[int(ip)],
-                            _stateOfChargeOperationVariablesOptimum_df,
-                        ],
-                        axis=0,
-                    )
-
-                # check if empty, if yes convert to None
-                if operationVariablesOptimum_dict[int(ip)].empty:
-                    operationVariablesOptimum_dict[int(ip)] = None
-                if capacityVariablesOptimum_dict[int(ip)].empty:
-                    capacityVariablesOptimum_dict[int(ip)] = None
-                if isBuiltVariablesOptimum_dict[int(ip)].empty:
-                    isBuiltVariablesOptimum_dict[int(ip)] = None
-                if commissioningVariablesOptimum_dict[int(ip)].empty:
-                    commissioningVariablesOptimum_dict[int(ip)] = None
-                if decommissioningVariablesOptimum_dict[int(ip)].empty:
-                    decommissioningVariablesOptimum_dict[int(ip)] = None
-                if chargeOperationVariablesOptimum_dict[int(ip)].empty:
-                    chargeOperationVariablesOptimum_dict[int(ip)] = None
-                if dischargeOperationVariablesOptimum_dict[int(ip)].empty:
-                    dischargeOperationVariablesOptimum_dict[int(ip)] = None
-                if stateOfChargeOperationVariablesOptimum_dict[int(ip)].empty:
-                    stateOfChargeOperationVariablesOptimum_dict[int(ip)] = None
-
-            componentModel._operationVariablesOptimum = operationVariablesOptimum_dict
-            componentModel._capacityVariablesOptimum = capacityVariablesOptimum_dict
-            componentModel._isBuiltVariablesOptimum = isBuiltVariablesOptimum_dict
-            componentModel._commissioningVariablesOptimum = (
-                commissioningVariablesOptimum_dict
-            )
-            componentModel._decommissioningVariablesOptimum = (
-                decommissioningVariablesOptimum_dict
-            )
-            componentModel._chargeOperationVariablesOptimum = (
-                chargeOperationVariablesOptimum_dict
-            )
-            componentModel._dischargeOperationVariablesOptimum = (
-                dischargeOperationVariablesOptimum_dict
-            )
-            componentModel._stateOfChargeOperationVariablesOptimum = (
-                stateOfChargeOperationVariablesOptimum_dict
-            )
             setattr(esM.componentModelingDict[model], "_rawResults", rawResultsDict)
             setattr(
                 esM.componentModelingDict[model],
@@ -971,29 +633,13 @@ def convertDatasetsToEnergySystemModel(datasets):
             )
             _registerLoadedExtraSummaryRows(esM, componentModel, optSum)
 
-            # if only one investment period -> keep optimal values unchanged for end user
-            def setFinalOptimalValues(esM, name):
-                if len(esM.investmentPeriodNames) == 1:
-                    data = getattr(componentModel, "_" + name)
-                    setattr(componentModel, name, data[int(startyear)])
-                else:
-                    data = getattr(componentModel, "_" + name)
-                    setattr(componentModel, name, data)
-                return esM
-
-            optimalParameters = [
-                "optSummary",
-                "operationVariablesOptimum",
-                "capacityVariablesOptimum",
-                "commissioningVariablesOptimum",
-                "decommissioningVariablesOptimum",
-                "isBuiltVariablesOptimum",
-                "chargeOperationVariablesOptimum",
-                "dischargeOperationVariablesOptimum",
-                "stateOfChargeOperationVariablesOptimum",
-            ]
-            for name in optimalParameters:
-                esM = setFinalOptimalValues(esM, name)
+            # The *VariablesOptimum names are properties that read the rebuilt raw results;
+            # only the summary is published here. With one investment period the frame
+            # itself is published, as optimize() does.
+            if len(esM.investmentPeriodNames) == 1:
+                componentModel.optSummary = optSum[int(startyear)]
+            else:
+                componentModel.optSummary = optSum
 
     return esM
 

@@ -1,5 +1,6 @@
 from fine.conversion import Conversion, ConversionModel
 from fine.enums import ComponentAbbreviation, Dimension, VarType
+from fine.results.componentResults import OptimumView
 from fine import utils
 import pyomo.environ as pyomo
 
@@ -110,11 +111,12 @@ class ConversionDynamicModel(ConversionModel):
     The ConversionDynamicModel class inherits from the ConversionModel class.
     """
 
+    maintenanceActiveVariablesOptimum = OptimumView()
+
     def __init__(self):
         super().__init__()
         self.abbrvName = ComponentAbbreviation.CONVERSION_DYNAMIC
         self.dimension = Dimension.ONE
-        self._operationVariablesOptimum = {}
 
     def declareMinimumDowntimeRequiredSet(self, esM, pyM):
         """Declare location-component-IP tuples subject to required downtime.
@@ -742,7 +744,6 @@ class ConversionDynamicModel(ConversionModel):
         if not hasattr(pyM, variableName):
             return
         maintenanceActive = getattr(pyM, variableName)
-        self._maintenanceActiveVariablesOptimum = {}
         for ip in esM.investmentPeriods:
             ipName = esM.investmentPeriodNames[ip]
             optVal = utils.formatOptimizationOutput(
@@ -753,7 +754,6 @@ class ConversionDynamicModel(ConversionModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._maintenanceActiveVariablesOptimum[ipName] = optVal
             rawResults[ipName]["maintenanceActive"] = optVal
 
     def _exportOptimumVarMap(self):
@@ -771,30 +771,3 @@ class ConversionDynamicModel(ConversionModel):
                 Dimension.ONE,
             )
         ]
-
-    def getOptimalValues(self, name="all", ip=0):
-        """Return standard optima and the scheduled-maintenance status.
-
-        :param name: Requested optimum variable name, or ``"all"``.
-        :type name: str
-
-        :param ip: Investment-period name used as the internal result key.
-        :type ip: int or str
-
-        :return: Result metadata and values in the standard FINE export layout.
-        :rtype: dict
-        """
-        maintenanceName = "maintenanceActiveVariablesOptimum"
-        maintenanceResults = getattr(self, "_" + maintenanceName, {})
-        if name not in ("all", maintenanceName) or ip not in maintenanceResults:
-            return super().getOptimalValues(name, ip=ip)
-        maintenance = {
-            "values": maintenanceResults[ip],
-            "timeDependent": True,
-            "dimension": Dimension.ONE,
-        }
-        if name == maintenanceName:
-            return maintenance
-        values = super().getOptimalValues(name, ip=ip)
-        values[maintenanceName] = maintenance
-        return values

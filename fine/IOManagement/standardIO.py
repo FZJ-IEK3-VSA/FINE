@@ -308,7 +308,7 @@ def plotOperation(
 
     :param variableName: name of the operation time series. Checkout the component model class to see which options
         are available.
-        |br| * the default value is '_operationVariablesOptimum'
+        |br| * the default value is 'operationVariablesOptimum'
     :type variableName: string
 
     :param xlabel: x-label of the plot
@@ -434,7 +434,7 @@ def plotOperationColorMap(
 
     :param variableName: name of the operation time series. Checkout the component model class to see which options
         are available.
-        |br| * the default value is '_operationVariablesOptimum'
+        |br| * the default value is 'operationVariablesOptimum'
     :type variableName: string
 
     :param cmap: heat map (color map) (see matplotlib options)
@@ -760,9 +760,9 @@ def plotTransmission(
         |br| * the default value is 'EPSG:3035'
     :type crs: string
 
-    :param variableName: parameter for plotting installed capacity ('_capacityVariablesOptimum') or operation
-        ('_operationVariablesOptimum').
-        |br| * the default value is '_capacityVariablesOptimum'
+    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation
+        ('operationVariablesOptimum').
+        |br| * the default value is 'capacityVariablesOptimum'
     :type variableName: string
 
     :param color: color of the transmission line
@@ -926,9 +926,9 @@ def plotLocationalColorMap(
         |br| * the default value is 'EPSG:3035'
     :type crs: string
 
-    :param variableName: parameter for plotting installed capacity ('_capacityVariablesOptimum') or operation
-        ('_operationVariablesOptimum'). In case of plotting the operation, set the parameter doSum to True.
-        |br| * the default value is '_capacityVariablesOptimum'
+    :param variableName: parameter for plotting installed capacity ('capacityVariablesOptimum') or operation
+        ('operationVariablesOptimum'). In case of plotting the operation, set the parameter doSum to True.
+        |br| * the default value is 'capacityVariablesOptimum'
     :type variableName: string
 
     :param doSum: indicates if the variable has to be summarized for the location (e.g. for operation

@@ -1,6 +1,7 @@
 from fine.transmission import Transmission, TransmissionModel
 from fine import utils
 from fine.enums import ComponentAbbreviation, Dimension, VarType
+from fine.results.componentResults import OptimumView
 import pyomo.environ as pyomo
 import pandas as pd
 
@@ -125,12 +126,12 @@ class LOPFModel(TransmissionModel):
     The LOPFModel class inherits from the TransmissionModel class.
     """
 
+    phaseAngleVariablesOptimum = OptimumView()
+
     def __init__(self):
         super().__init__()
         self.abbrvName = ComponentAbbreviation.LOPF
         self.dimension = Dimension.TWO
-        self._operationVariablesOptimum = {}
-        self._phaseAngleVariablesOptimum = {}
 
     ####################################################################################################################
     #                                            Declare sparse index sets                                             #
@@ -324,8 +325,7 @@ class LOPFModel(TransmissionModel):
     def _extractSubclassRawResults(self, esM, pyM, rawResults):
         """Extract the LOPF specific raw solved ``phaseAngle`` variable.
 
-        Chains the Transmission hook (operation) and adds ``phaseAngle`` to ``rawResults``
-        while populating ``self._phaseAngleVariablesOptimum``.
+        Chains the Transmission hook (operation) and adds ``phaseAngle`` to ``rawResults``.
         """
         super()._extractSubclassRawResults(esM, pyM, rawResults)
         phaseAngleVar = getattr(pyM, "phaseAngle_" + self.abbrvName)
@@ -339,7 +339,6 @@ class LOPFModel(TransmissionModel):
                 esM.periodsOrder[ip],
                 esM=esM,
             )
-            self._phaseAngleVariablesOptimum[ipName] = optVal_
             rawResults[ipName]["phaseAngle"] = optVal_
 
     def _exportOptimumVarMap(self):
@@ -352,37 +351,3 @@ class LOPFModel(TransmissionModel):
         return super()._exportOptimumVarMap() + [
             ("phaseAngle", "phaseAngleVariablesOptimum", True, Dimension.ONE),
         ]
-
-    def getOptimalValues(self, name="all", ip=0):
-        """Return optimal values of the components.
-
-        :param name: name of the variables of which the optimal values should be returned:
-
-            * 'capacityVariablesOptimum',
-            * 'isBuiltVariablesOptimum',
-            * 'operationVariablesOptimum',
-            * 'commissioningVariablesOptimum',
-            * 'decommissioningVariablesOptimum',
-            * 'phaseAngleVariablesOptimum',
-            * 'all' or another input: all variables are returned.
-
-        :type name: string
-        """
-        if name == "phaseAngleVariablesOptimum":
-            return {
-                "values": self._phaseAngleVariablesOptimum[ip],
-                "timeDependent": True,
-                "dimension": Dimension.ONE,
-            }
-
-        result = super().getOptimalValues(name, ip=ip)
-        # a single transmission variable was requested and returned by the base class
-        if name != "all" and "values" in result:
-            return result
-        # 'all' or an unknown name: the base class returned every variable it knows
-        result["phaseAngleVariablesOptimum"] = {
-            "values": self._phaseAngleVariablesOptimum[ip],
-            "timeDependent": True,
-            "dimension": Dimension.ONE,
-        }
-        return result
