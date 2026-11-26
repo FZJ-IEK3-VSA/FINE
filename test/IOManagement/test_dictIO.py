@@ -28,6 +28,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 "componentLimitEligibility2dim",
                 "componentLimit",
                 "componentLimitGrouping",
+                "pooledCommodities",
             ),
             (
                 minimal_test_esM.locations,
@@ -49,6 +50,7 @@ def test_export_to_dict_minimal(minimal_test_esM):
                 minimal_test_esM.componentLimitEligibility2dim,
                 minimal_test_esM.componentLimit,
                 minimal_test_esM.componentLimitGrouping,
+                minimal_test_esM.pooledCommodities,
             ),
         )
     )
@@ -164,6 +166,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 "componentLimitEligibility2dim",
                 "componentLimit",
                 "componentLimitGrouping",
+                "pooledCommodities",
             ),
             (
                 single_node_test_esM.locations,
@@ -185,6 +188,7 @@ def test_export_to_dict_singlenode(single_node_test_esM):
                 single_node_test_esM.componentLimitEligibility2dim,
                 single_node_test_esM.componentLimit,
                 single_node_test_esM.componentLimitGrouping,
+                single_node_test_esM.pooledCommodities,
             ),
         )
     )
@@ -250,6 +254,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 "componentLimitEligibility2dim",
                 "componentLimit",
                 "componentLimitGrouping",
+                "pooledCommodities",
             ),
             (
                 multi_node_test_esM_init.locations,
@@ -271,6 +276,7 @@ def test_export_to_dict_multinode(multi_node_test_esM_init):
                 multi_node_test_esM_init.componentLimitEligibility2dim,
                 multi_node_test_esM_init.componentLimit,
                 multi_node_test_esM_init.componentLimitGrouping,
+                multi_node_test_esM_init.pooledCommodities,
             ),
         )
     )
@@ -371,7 +377,7 @@ def test_import_from_dict(test_esM_fixture, request):
         output_df = output_esM.getComponentAttribute(
             "Electricity market", "operationRateMax"
         )
-        output_df.reset_index(level=0, drop=True, inplace=True)
+        output_df = output_df.reset_index(level=0, drop=True)
 
         output_value = output_esM.getComponentAttribute(
             "Electrolyzers", "investPerCapacity"
@@ -393,7 +399,7 @@ def test_import_from_dict(test_esM_fixture, request):
         output_df = output_esM.getComponentAttribute(
             "Hydrogen demand", "operationRateFix"
         )
-        output_df.reset_index(level=0, drop=True, inplace=True)
+        output_df = output_df.reset_index(level=0, drop=True)
 
         output_series = output_esM.getComponentAttribute(
             "AC cables", "reactances"

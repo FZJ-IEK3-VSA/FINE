@@ -33,11 +33,14 @@ def test_compareResults_longClassNames():
         if inheritsFromComponent:
             subclass_objects.append(obj)
 
-    # create ESM:
+    # create ESM: the test only checks the sheet names of the Excel output, so
+    # four time steps suffice instead of the default 8760 hourly time steps.
     esM = fn.EnergySystemModel(
         locations={"Test", "Test1"},
         commodities={"TestCom", "TargetCom"},
         commodityUnitsDict={"TestCom": "TestUnit", "TargetCom": "TargetUnit"},
+        numberOfTimeSteps=4,
+        hoursPerTimeStep=2190,
     )
     # add all subclasses which inherit from component to the esm:
     """
@@ -147,14 +150,14 @@ def test_compareResults_miniSystem(minimal_test_esM):
     compareTwoExcelFiles(pathWithSegmentation_expected, pathWithSegmentation_output)
 
 
-def test_compareResults_multiNodeSystem(multi_node_test_esM_init):
+def test_compareResults_multiNodeSystem(multi_node_test_esM_optimized):
     module_directory = Path(__file__).parent.absolute()
     dataPath = os.path.join(module_directory, "..", "data")  # noqa: PTH118
 
     # create new result excel files
     pathMultiNode_output = os.path.join(dataPath, "output_result_multinode")  # noqa: PTH118
     saveExcelResults(
-        multi_node_test_esM_init,
+        multi_node_test_esM_optimized,
         pathMultiNode_output,
     )
 
@@ -237,22 +240,11 @@ def compareTwoExcelFiles(path1, path2):
         )
 
 
-def saveExcelResults(multi_node_test_esM_init, savePathWithoutSegmentation):
+def saveExcelResults(esM, savePathWithoutSegmentation):
     # No deeopycopy is necessary, because the model is not used afterwards and only for saving the results.
     # run and save model without segmentation
-    multi_node_test_esM_init.aggregateTemporally(
-        numberOfTypicalPeriods=3,
-        segmentation=False,
-        sortValues=True,
-        representationMethod=None,
-        rescaleClusterPeriods=True,
-    )
-    multi_node_test_esM_init.optimize(
-        timeSeriesAggregation=True,
-        solver=ImplementedSolvers.STANDARD_SOLVER.value,
-    )
     writeOptimizationOutputToExcel(
-        multi_node_test_esM_init,
+        esM,
         outputFileName=savePathWithoutSegmentation,
         optSumOutputLevel={
             "SourceSinkModel": 0,

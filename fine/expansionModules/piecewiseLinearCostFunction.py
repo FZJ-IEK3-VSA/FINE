@@ -658,12 +658,15 @@ class PiecewiseLinearCostFunctionModel:
         if getOptValue:
             cost_results = {ip: pd.DataFrame() for ip in esM.investmentPeriods}
             for moduleName in self.modulesDict.keys():
+                # Read from the modeling class' raw results dict, not from the optimization
+                # summary: the summary is a view of that dict and must not be used as a
+                # derivation input (see :meth:`_commissioningResults`). Reindexing to the
+                # sorted locations reproduces the summary's fixed column set, on which the
+                # ``len(commis[ip])`` and per-location lookups below rely.
                 commis = {
-                    ip: esM.getOptimizationSummary(
-                        esM.componentNames[moduleName], ip=esM.investmentPeriodNames[ip]
-                    )
-                    .loc[moduleName, "commissioning"]
-                    .iloc[0]
+                    ip: self._commissioningResults(
+                        esM, moduleName, esM.investmentPeriodNames[ip]
+                    ).reindex(sorted(esM.locations))
                     for ip in esM.investmentPeriods
                 }
                 for ip in esM.investmentPeriods:
@@ -855,14 +858,44 @@ class PiecewiseLinearCostFunctionModel:
             f"Getting cost contribution of a pwlcf component is only defined for opex or annuity and not for {costType}."
         )
 
+    # Attribute of a module's component holding its plant unit, plus the suffix appended to it,
+    # per modeling class. Used for the unit of the knowledgeStock row.
+    _plantUnitAttribute = {
+        ComponentAbbreviation.CONVERSION: ("physicalUnit", ""),
+        ComponentAbbreviation.SOURCE_SINK: ("commodityUnit", ""),
+        ComponentAbbreviation.STORAGE: ("commodityUnit", "*h"),
+        ComponentAbbreviation.TRANSMISSION: ("commodityUnit", ""),
+    }
+
     def setOptimalValues(self, esM, pyM):
-        """Set the optimal values into the optimization summary.
+        """Derive the pwlcf results and write them into the modeling classes.
+
+        Mirrors the pipeline of the component modeling classes (see
+        :meth:`fine.component.ComponentModel.buildOptimizationSummary`): the results are derived once
+        into frames, those frames are published into the modeling classes' raw results dict -
+        the single source of truth - and the optimization summary is only a *view* of them.
+        Nothing downstream may derive values from the summary.
 
         :param esM: energy system model to which the component should be added. Used for unit checks.
         :type esM: EnergySystemModel instance from the FINE package
 
         :param pyM: pyomo ConcreteModel which stores the mathematical formulation of the model.
         :type pyM: pyomo ConcreteModel
+        """
+        results = self._deriveResults(esM, pyM)
+        self._publishResults(esM, results)
+        self._buildOptimizationSummary(esM, results)
+
+    def _deriveResults(self, esM, pyM):
+        """Derive the pwlcf result frames from the solved model.
+
+        :param esM: EnergySystemModel instance.
+        :param pyM: pyomo ConcreteModel.
+
+        :return: ``{ipName: {property: DataFrame}}``, each frame indexed by module name with one
+            column per location. Properties are ``TAC_ETL``/``TAC_EOS``,
+            ``NPVcontribution_*``, ``invest_*`` and, for etl modules, ``knowledgeStock_ETL``.
+        :rtype: dict
         """
         tac = self.getEconomicsPwlcf(
             esM, pyM, getOptValue=True, getOptValueCostType=CostType.TAC
@@ -874,238 +907,265 @@ class PiecewiseLinearCostFunctionModel:
             esM, pyM, getOptValue=True, getOptValueCostType="invest"
         )
 
-        optSummaryPwlcf = {}
+        locations = list(esM.locations)
+        results = {}
+        # knowledge stock of the previous investment period, per module. Formerly read back
+        # from the summary of that period - it is kept here so the summary stays a pure view.
+        knowledgeStockLastIp = {}
         for ip in esM.investmentPeriods:
-            optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.DataFrame()
+            ipName = esM.investmentPeriodNames[ip]
+            rows = {}
+
+            def addRow(prop, moduleName, values):
+                series = (
+                    values.reindex(locations)
+                    if isinstance(values, pd.Series)
+                    else pd.Series(values, index=locations, dtype=float)
+                )
+                rows.setdefault(prop, {})[moduleName] = series
+
             for moduleName, module in self.modulesDict.items():
-                # initialize different dataframe for ETL/EOS:
-                if module.pwlcf_type == "etl":
-                    curPWLCFtype = "ETL"
-                    props = [
-                        "TAC_ETL",
-                        "NPVcontribution_ETL",
-                        "invest_ETL",
-                        "knowledgeStock_ETL",
-                    ]
-                    units = [
-                        "[" + esM.costUnit + "/a]",
-                        "[" + esM.costUnit + "]",
-                        "[" + esM.costUnit + "]",
-                        "[-]",
-                    ]
-                else:
-                    curPWLCFtype = "EOS"
-                    props = ["TAC_EOS", "NPVcontribution_EOS", "invest_EOS"]
-                    units = [
-                        "[" + esM.costUnit + "/a]",
-                        "[" + esM.costUnit + "]",
-                        "[" + esM.costUnit + "]",
-                    ]
-
-                tuples = [
-                    (modName, prop, unit)
-                    for modName in self.modulesDict.keys()
-                    for prop, unit in zip(props, units)
-                ]
-
-                unitDict = {
-                    "conv": ("physicalUnit", ""),
-                    "srcSnk": ("commodityUnit", ""),
-                    "stor": ("commodityUnit", "*h"),
-                    "trans": ("commodityUnit", ""),
-                }
-
-                tuples = list(
-                    map(
-                        lambda x: (
-                            (
-                                x[0],
-                                x[1],
-                                "["
-                                + getattr(
-                                    self.modulesDict[x[0]].comp,
-                                    unitDict[
-                                        self.modulesDict[x[0]]
-                                        .comp.modelingClass()
-                                        .abbrvName
-                                    ][0],
-                                )
-                                + unitDict[
-                                    self.modulesDict[x[0]]
-                                    .comp.modelingClass()
-                                    .abbrvName
-                                ][1]
-                                + "]",
-                            )
-                            if x[1] == "knowledgeStock_ETL"
-                            else x
-                        ),
-                        tuples,
+                pwlcfType = "ETL" if module.pwlcf_type == "etl" else "EOS"
+                addRow(f"TAC_{pwlcfType}", moduleName, tac[ip].loc[moduleName])
+                addRow(
+                    f"NPVcontribution_{pwlcfType}", moduleName, npv[ip].loc[moduleName]
+                )
+                addRow(f"invest_{pwlcfType}", moduleName, invest[ip].loc[moduleName])
+                if pwlcfType == "ETL":
+                    knowledgeStock = self._deriveKnowledgeStock(
+                        esM, pyM, ip, moduleName, knowledgeStockLastIp
                     )
+                    knowledgeStockLastIp[moduleName] = knowledgeStock
+                    addRow("knowledgeStock_ETL", moduleName, knowledgeStock)
+
+            results[ipName] = {
+                prop: pd.DataFrame(moduleRows).T for prop, moduleRows in rows.items()
+            }
+        return results
+
+    def _deriveKnowledgeStock(self, esM, pyM, ip, moduleName, knowledgeStockLastIp):
+        """Knowledge stock of an etl module in one investment period.
+
+        The commissioning it builds on is read from the modeling class' raw results dict; the
+        optimization summary is a view of that dict and must not be used as an input here.
+
+        :param ip: investment period index.
+        :param knowledgeStockLastIp: ``{module: knowledge stock}`` of the preceding period,
+            filled by :meth:`_deriveResults` as it walks the investment periods in order.
+
+        :return: knowledge stock per location (or a scalar, broadcast by the caller).
+        :rtype: pandas.Series or float
+        """
+        if pyomo_pwlf:
+            return pyM.totalCapacity[moduleName, ip].value
+
+        module = self.modulesDict[moduleName]
+        if ip == 0:
+            stockCapacityStartYear = module.comp.stockCapacityStartYear
+            knowledgeStockLast = stockCapacityStartYear + (
+                (module.initCapacity - stockCapacityStartYear.sum())
+                / module.comp.processedLocationalEligibility.sum().sum()
+            )
+        else:
+            knowledgeStockLast = knowledgeStockLastIp[moduleName]
+
+        commissioning = self._commissioningResults(
+            esM, moduleName, esM.investmentPeriodNames[ip]
+        )
+        return knowledgeStockLast + commissioning
+
+    @staticmethod
+    def _commissioningResults(esM, moduleName, ipName):
+        """Commissioning of a module's component, read from the raw results dict.
+
+        The single place this module obtains commissioning from. It is deliberately *not* read
+        back from the optimization summary: the summary is a pure view of
+        ``ComponentModel._rawResults`` (see
+        :meth:`fine.component.ComponentModel.getResultSummaryDict`), so deriving values from it
+        would make this module depend on a presentation artifact - and on the summary having
+        been assembled first, which the ``EnergySystemModel.optimize`` call order happens to
+        guarantee but nothing enforces.
+
+        :param esM: EnergySystemModel instance.
+        :param moduleName: name of the module's component.
+        :param ipName: investment period name (key into ``_rawResults1dim``).
+
+        :return: commissioning per location.
+        :rtype: pandas.Series
+        """
+        model = esM.componentModelingDict[esM.componentNames[moduleName]]
+        return model._rawResults1dim[ipName]["commissioning"].loc[moduleName]
+
+    def _resultUnit(self, esM, prop):
+        """Return the unit of a pwlcf result row: a fixed string, or a ``module -> unit`` callable.
+
+        :rtype: string or callable
+        """
+        if prop == "knowledgeStock_ETL":
+            return self._plantUnit
+        if prop.startswith("TAC_"):
+            return "[" + esM.costUnit + "/a]"
+        return "[" + esM.costUnit + "]"
+
+    def _plantUnit(self, moduleName):
+        """Plant unit of a module's component, e.g. ``"[GW]"``.
+
+        :rtype: string
+        """
+        comp = self.modulesDict[moduleName].comp
+        attribute, suffix = self._plantUnitAttribute[comp.modelingClass().abbrvName]
+        return "[" + getattr(comp, attribute) + suffix + "]"
+
+    def _modulesOfModel(self, model, pwlcfType=None):
+        """Return the module names of a modeling class, optionally restricted to one pwlcf type.
+
+        :param pwlcfType: ``"etl"``, ``"eos"`` or ``None`` for both.
+
+        :rtype: list
+        """
+        return [
+            comp
+            for comp in model.componentsDict.keys()
+            if comp in self.modulesDict.keys()
+            if pwlcfType is None or self.modulesDict[comp].pwlcf_type == pwlcfType
+        ]
+
+    def _publishResults(self, esM, results):
+        """Hand the derived frames to the modeling classes' raw results dict.
+
+        This keeps that dict the single source of truth for the summary rows built below
+        and for ``ComponentModel.getResultSummaryDict``, the accessor staged for the separate
+        xarray/netCDF export refactor. The current exporter still reads the public summary.
+
+        :param esM: EnergySystemModel instance.
+        :param results: as returned by :meth:`_deriveResults`.
+        """
+        for model in esM.componentModelingDict.values():
+            modules = self._modulesOfModel(model)
+            if not modules:
+                continue
+            for ipName in esM.investmentPeriodNames:
+                rows = []
+                for prop, frame in results[ipName].items():
+                    ownModules = [name for name in modules if name in frame.index]
+                    if ownModules:
+                        rows.append(
+                            (prop, frame.loc[ownModules], self._resultUnit(esM, prop))
+                        )
+                model.registerExtraSummaryRows(ipName, rows)
+                self._foldContributionsIntoRawResults(
+                    model, ipName, results[ipName], modules
                 )
-                mIndex = pd.MultiIndex.from_tuples(
-                    tuples, names=["Component", "Property", "Unit"]
-                )
 
-                mdlOptSummaryPwlcf = pd.DataFrame(
-                    index=mIndex, columns=list(esM.locations)
-                ).sort_index()
+    @staticmethod
+    def _foldContributionsIntoRawResults(model, ipName, results_ip, modules):
+        """Add the pwlcf contributions to the components' base cost frames in the results dict.
 
-                mdlOptSummaryPwlcf.loc[
-                    moduleName, f"TAC_{curPWLCFtype}", "[" + esM.costUnit + "/a]"
-                ] = tac[ip].loc[moduleName]
+        A module's pwlcf costs come on top of the costs its component derived itself, for the
+        ``TAC``, ``NPVcontribution`` and ``invest`` rows alike. The summary rows are rebuilt
+        from these frames afterwards, so folding here (rather than into the summary) keeps both
+        views consistent.
 
-                mdlOptSummaryPwlcf.loc[
-                    moduleName,
-                    f"NPVcontribution_{curPWLCFtype}",
-                    "[" + esM.costUnit + "]",
-                ] = npv[ip].loc[moduleName]
-                mdlOptSummaryPwlcf.loc[
-                    moduleName, f"invest_{curPWLCFtype}", "[" + esM.costUnit + "]"
-                ] = invest[ip].loc[moduleName]
-                if pyomo_pwlf and curPWLCFtype == "ETL":
-                    knowledgeStock = pyM.totalCapacity[moduleName, ip].value
-                elif curPWLCFtype == "ETL":
-                    if ip == 0:
-                        stockCapacityStartYear = self.modulesDict[
-                            moduleName
-                        ].comp.stockCapacityStartYear
-                        knowledgeStock_last_ip = stockCapacityStartYear + (
-                            (
-                                self.modulesDict[moduleName].initCapacity
-                                - stockCapacityStartYear.sum()
-                            )
-                            / self.modulesDict[moduleName]
-                            .comp.processedLocationalEligibility.sum()
-                            .sum()
-                        )
-                    else:
-                        knowledgeStock_last_ip = (
-                            optSummaryPwlcf[esM.investmentPeriodNames[ip - 1]]
-                            .loc[moduleName, "knowledgeStock_ETL"]
-                            .iloc[0]
-                        )
-                    commis_ip = (
-                        esM.getOptimizationSummary(
-                            esM.componentNames[moduleName],
-                            ip=esM.investmentPeriodNames[ip],
-                        )
-                        .loc[moduleName, "commissioning"]
-                        .iloc[0]
-                    )
+        :param model: modeling class instance holding the components.
+        :param ipName: investment period name.
+        :param results_ip: ``{property: frame}`` of that investment period.
+        :param modules: module names belonging to this modeling class.
+        """
+        rawResults_ip = model._rawResults.get(ipName)
+        if rawResults_ip is None:
+            return
+        for base in ("TAC", "NPVcontribution", "invest"):
+            parts = [
+                results_ip[f"{base}_{pwlcfType}"]
+                for pwlcfType in ("ETL", "EOS")
+                if f"{base}_{pwlcfType}" in results_ip
+            ]
+            target = rawResults_ip.get(base)
+            if not parts or target is None:
+                continue
+            contribution = pd.concat(parts).reindex(columns=target.columns)
+            comps = [
+                comp
+                for comp in modules
+                if comp in contribution.index and comp in target.index
+            ]
+            if not comps:
+                continue
+            target = target.copy()
+            target.loc[comps] = (
+                target.loc[comps].astype(float).fillna(0).values
+                + contribution.loc[comps].fillna(0).values
+            )
+            rawResults_ip[base] = target
 
-                    knowledgeStock = knowledgeStock_last_ip + commis_ip
+    def _buildOptimizationSummary(self, esM, results):
+        """Append the pwlcf rows to the components' optimization summary, as a pure view.
 
-                if curPWLCFtype == "ETL":
-                    mdlOptSummaryPwlcf.loc[
-                        (
-                            moduleName,
-                            "knowledgeStock_ETL",
-                            "["
-                            + getattr(
-                                module.comp,
-                                unitDict[module.comp.modelingClass().abbrvName][0],
-                            )
-                            + unitDict[module.comp.modelingClass().abbrvName][1]
-                            + "]",
-                        )
-                    ] = knowledgeStock
-                optSummaryPwlcf[esM.investmentPeriodNames[ip]] = pd.concat(
-                    [
-                        optSummaryPwlcf[esM.investmentPeriodNames[ip]],
-                        mdlOptSummaryPwlcf.loc[[moduleName]],
-                    ]
-                )
+        The etl and eos rows are added as their own summary rows, and the base ``TAC``,
+        ``NPVcontribution`` and ``invest`` rows are rewritten from the raw results dict, into
+        which :meth:`_foldContributionsIntoRawResults` has already folded the pwlcf shares.
 
+        :param esM: EnergySystemModel instance.
+        :param results: as returned by :meth:`_deriveResults`.
+        """
         for model in esM.componentModelingDict.values():
             optSummary = model._optSummary
             for ipName in esM.investmentPeriodNames:
-                etlComps = [
-                    comp
-                    for comp in model.componentsDict.keys()
-                    if comp in self.modulesDict.keys()
-                    if self.modulesDict[comp].pwlcf_type == "etl"
-                ]
-                eosComps = [
-                    comp
-                    for comp in model.componentsDict.keys()
-                    if comp in self.modulesDict.keys()
-                    if self.modulesDict[comp].pwlcf_type == "eos"
-                ]
-                optSummary[ipName] = pd.concat(
-                    [optSummary[ipName], optSummaryPwlcf[ipName].loc[etlComps, :, :]],
-                    axis=0,
-                ).sort_index()
-                optSummary[ipName] = pd.concat(
-                    [optSummary[ipName], optSummaryPwlcf[ipName].loc[eosComps, :, :]],
-                    axis=0,
-                ).sort_index()
-                if len(eosComps) > 0:
-                    optSummary[ipName].loc[eosComps, "TAC", :] = (
-                        optSummary[ipName]
-                        .loc[eosComps, "TAC", :]
-                        .astype(float)
-                        .fillna(0)
-                        + optSummaryPwlcf[ipName]
-                        .loc[eosComps, "TAC_EOS", :]
-                        .astype(float)
-                        .fillna(0)
-                        .values
-                    )
-                    optSummary[ipName].loc[eosComps, "NPVcontribution", :] = (
-                        optSummary[ipName]
-                        .loc[eosComps, "NPVcontribution", :]
-                        .astype(float)
-                        .fillna(0)
-                        + optSummaryPwlcf[ipName]
-                        .loc[eosComps, "NPVcontribution_EOS", :]
-                        .astype(float)
-                        .fillna(0)
-                        .values
-                    )
-                    optSummary[ipName].loc[eosComps, "invest", :] = (
-                        optSummary[ipName]
-                        .loc[eosComps, "invest", :]
-                        .astype(float)
-                        .fillna(0)
-                        + optSummaryPwlcf[ipName]
-                        .loc[eosComps, "invest_EOS", :]
-                        .astype(float)
-                        .fillna(0)
-                        .values
-                    )
-                if len(etlComps) > 0:
-                    optSummary[ipName].loc[etlComps, "TAC", :] = (
-                        optSummary[ipName]
-                        .loc[etlComps, "TAC", :]
-                        .astype(float)
-                        .fillna(0)
-                        + optSummaryPwlcf[ipName]
-                        .loc[etlComps, "TAC_ETL", :]
-                        .astype(float)
-                        .fillna(0)
-                        .values
-                    )
-                    optSummary[ipName].loc[etlComps, "NPVcontribution", :] = (
-                        optSummary[ipName]
-                        .loc[etlComps, "NPVcontribution", :]
-                        .astype(float)
-                        .fillna(0)
-                        + optSummaryPwlcf[ipName]
-                        .loc[etlComps, "NPVcontribution_ETL", :]
-                        .astype(float)
-                        .fillna(0)
-                        .values
-                    )
-                    optSummary[ipName].loc[etlComps, "invest", :] = (
-                        optSummary[ipName]
-                        .loc[etlComps, "invest", :]
-                        .astype(float)
-                        .fillna(0)
-                        + optSummaryPwlcf[ipName]
-                        .loc[etlComps, "invest_ETL", :]
-                        .astype(float)
-                        .fillna(0)
+                for pwlcfType in ("etl", "eos"):
+                    modules = self._modulesOfModel(model, pwlcfType)
+                    if not modules:
+                        continue
+                    optSummary[ipName] = pd.concat(
+                        [
+                            optSummary[ipName],
+                            self._summaryRows(esM, results[ipName], modules),
+                        ],
+                        axis=0,
+                    ).sort_index()
+
+                # rewrite the base rows from the (already folded) raw results dict
+                modules = self._modulesOfModel(model)
+                for base in ("TAC", "NPVcontribution", "invest"):
+                    frame = model._rawResults[ipName].get(base)
+                    if frame is None:
+                        continue
+                    comps = [comp for comp in modules if comp in frame.index]
+                    if not comps:
+                        continue
+                    optSummary[ipName].loc[comps, base, :] = (
+                        frame.loc[comps]
+                        .reindex(columns=optSummary[ipName].columns)
                         .values
                     )
             model.optSummary = optSummary[esM.startYear]
+
+    def _summaryRows(self, esM, results_ip, modules):
+        """Build the pwlcf summary rows of one investment period from the derived frames.
+
+        :param results_ip: ``{property: frame}`` of that investment period.
+        :param modules: module names to build the rows for.
+
+        :return: frame with the summary's ``(Component, Property, Unit)`` MultiIndex.
+        :rtype: pandas.DataFrame
+        """
+        index = pd.MultiIndex.from_tuples(
+            [
+                (moduleName, prop, self._resultUnitFor(esM, prop, moduleName))
+                for moduleName in modules
+                for prop in results_ip
+                if moduleName in results_ip[prop].index
+            ],
+            names=["Component", "Property", "Unit"],
+        )
+        rows = pd.DataFrame(index=index, columns=list(esM.locations)).sort_index()
+        for moduleName, prop, unit in index:
+            rows.loc[(moduleName, prop, unit)] = results_ip[prop].loc[moduleName]
+        return rows
+
+    def _resultUnitFor(self, esM, prop, moduleName):
+        """:meth:`_resultUnit` resolved for one module.
+
+        :rtype: string
+        """
+        unit = self._resultUnit(esM, prop)
+        return unit(moduleName) if callable(unit) else unit
