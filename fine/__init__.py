@@ -21,6 +21,11 @@ from .expansionModules.optimizeTSAmultiStage import (
     optimizeTSAmultiStage,
 )
 from .expansionModules.transformationPath import optimizeSimpleMyopic
+from .expansionModules.stepwiseSourceSink import (
+    addStepwiseSink,
+    addStepwiseSource,
+    collapseStepwiseResults,
+)
 from .utils import ImplementedSolvers
 
 # Re-exported so that the ETHOS.TSAM 4.x aggregation can be configured without a
@@ -47,6 +52,9 @@ __all__ = [
     "Source",
     "Storage",
     "Transmission",
+    "addStepwiseSink",
+    "addStepwiseSource",
+    "collapseStepwiseResults",
     "dictIO",
     "fixBinaryVariables",
     "getShadowPrices",

@@ -1,3 +1,3 @@
-from . import piecewiseLinearCostFunction
+from . import piecewiseLinearCostFunction, stepwiseSourceSink
 
-__all__ = ["piecewiseLinearCostFunction"]
+__all__ = ["piecewiseLinearCostFunction", "stepwiseSourceSink"]
