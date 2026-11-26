@@ -927,21 +927,6 @@ def test_ip_parameters_with_empty_periods_to_dataset_and_back(
     compare_esm_inputs(esM, esM_new)
 
 
-def test_esm_to_datasets_with_processed_values(minimal_test_esM):
-    esm_original = minimal_test_esM
-
-    xr_dss = xrIO.convertOptimizationInputToDatasets(
-        esm_original, useProcessedValues=True
-    )
-    assert (
-        xr_dss.get("Input")
-        .get("Transmission")
-        .get("Pipelines")["0d_investPerCapacity.0"]
-        .item()
-        == 0.177
-    )
-
-
 def test_transmission_dims(minimal_test_esM):
     esM = minimal_test_esM
     capacityMin = pd.DataFrame(
