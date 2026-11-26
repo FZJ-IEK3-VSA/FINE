@@ -852,25 +852,18 @@ class ComponentResultsMixin:
                         fullIndex = pd.Index(sorted(esM.locations))
                     else:
                         fullIndex = pd.MultiIndex.from_tuples(mapC.values())
-                    if values is None or values.isna().all():
-                        # Keep the historical dtype too: a summary row containing only
-                        # synthesized zeros becomes int64 when passed through to_numeric.
-                        values = pd.Series(0, index=fullIndex)
+                    if values is None:
+                        values = pd.Series(np.nan, index=fullIndex)
                     else:
                         values = values.reindex(fullIndex)
-                        values = values.where(values.notna(), 0)
+                    # Fill exactly as the summary does: an integer 0 in an object column.
+                    # pd.to_numeric then yields the summary's dtype, which is int64 when every
+                    # value is integral and at least one cell was filled, so the exported
+                    # dtype stays the one the summary-based export wrote.
+                    values = values.astype(object).where(values.notna(), 0)
                 if values is None:
                     continue
                 values = pd.to_numeric(values)
-                if (
-                    prop in frames.FOLDED_SUMMARY_PROPERTIES
-                    and self.dimension == Dimension.TWO
-                    and not values.empty
-                    and values.eq(0).all()
-                ):
-                    # Stacking the object-typed 2-dim summary historically converted an
-                    # all-zero folded row to int64. Preserve that serialized dtype as well.
-                    values = values.astype(int)
                 series = self._nameResultSeries(values, prop)
                 out[compName][prop] = (
                     series,
