@@ -624,17 +624,24 @@ def meltConnectionColumns(sub):
     :param sub: frame with a ``(Component, locationIn)`` index and ``locationOut`` columns.
     :type sub: pandas.DataFrame
 
-    :return: frame indexed by ``Component`` with one column per connection string.
+    :return: frame indexed by ``Component`` with one column per connection string that
+        holds a value (column axis named ``location``, as in the frames ``optimize()``
+        builds).
     :rtype: pandas.DataFrame
     """
-    stacked = sub.stack()
+    # dropna: pandas 3 keeps NaN cells when stacking, which would add a column for every
+    # location pair, including (loc, loc), that has no connection.
+    stacked = sub.stack().dropna()
     locIn = stacked.index.get_level_values("locationIn").astype(str)
     locOut = stacked.index.get_level_values("locationOut").astype(str)
     connection = locIn + "_" + locOut
     component = stacked.index.get_level_values("Component")
     return pd.Series(
-        stacked.values, index=pd.MultiIndex.from_arrays([component, connection])
-    ).unstack(-1)
+        stacked.values,
+        index=pd.MultiIndex.from_arrays(
+            [component, connection], names=["Component", "location"]
+        ),
+    ).unstack("location")
 
 
 def mergeConnectionIndexLevels(frame):

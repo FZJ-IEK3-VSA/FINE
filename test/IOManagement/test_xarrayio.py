@@ -741,6 +741,47 @@ def test_output_esm_to_netcdf_and_back(minimal_test_esM, tmp_path):
     )
 
 
+def test_raw_results_survive_netcdf_round_trip_multi_node(
+    multi_node_test_esM_optimized, tmp_path
+):
+    """The reader must rebuild the raw results of a model with 1-dim and 2-dim classes.
+
+    The multi-node model has transmission, LOPF and storage components, which the minimal
+    model lacks. The export of the loaded model must equal the original export, and the
+    rebuilt optimum frames must equal the ones optimize() built, including the index names.
+    """
+    test_esM = str(tmp_path / "test_esM.nc")
+    esm_original = multi_node_test_esM_optimized
+    xrIO.writeEnergySystemModelToNetCDF(
+        esm_original, outputFilePath=test_esM, overwriteExisting=True
+    )
+    esm_from_netcdf = xrIO.readNetCDFtoEnergySystemModel(filePath=test_esM)
+
+    assert_nested_xarray_dict_matches(
+        xrIO.convertOptimizationOutputToDatasets(esm_from_netcdf)["Results"],
+        xrIO.convertOptimizationOutputToDatasets(esm_original)["Results"],
+    )
+
+    for name, original in esm_original.componentModelingDict.items():
+        loaded = esm_from_netcdf.componentModelingDict[name]
+        for ip, results in original._rawResults.items():
+            for rawKey, optName, _, _ in original._exportOptimumVarMap():
+                expected = results.get(rawKey)
+                if expected is None:
+                    continue
+                actual = loaded._rawResults[ip][rawKey]
+                assert list(actual.index.names) == list(expected.index.names), (
+                    f"{name}/{optName}: index names"
+                )
+                pd.testing.assert_frame_equal(
+                    actual,
+                    expected,
+                    check_like=True,
+                    check_dtype=False,
+                    obj=f"{name}/{optName}",
+                )
+
+
 def test_optSumOutputLevel_is_deprecated(minimal_test_esM):
     """The export cannot apply the summary's output-level filtering anymore, but the parameter
     is still accepted (as a no-op) so existing calls do not break.
