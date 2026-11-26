@@ -476,6 +476,7 @@ class ComponentResultsMixin:
             "_isBuiltVariablesOptimum",
             "_commissioningVariablesOptimum",
             "_decommissioningVariablesOptimum",
+            "_maintenanceActiveVariablesOptimum",
         ]
 
         for key in optimalValueParameters:

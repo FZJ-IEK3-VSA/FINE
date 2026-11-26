@@ -345,25 +345,25 @@ class Conversion(Component):
                 )
 
         # operationRateMin
-        self.operationRateMin = operationRateMin
+        self.operationRateMin = utils.sortTimeSeriesColumns(operationRateMin)
         self.fullOperationRateMin = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, operationRateMin, locationalEligibility
+            esM, name, self.operationRateMin, locationalEligibility
         )
         self.aggregatedOperationRateMin = {}
         self.processedOperationRateMin = {}
 
         # operationRateMax
-        self.operationRateMax = operationRateMax
+        self.operationRateMax = utils.sortTimeSeriesColumns(operationRateMax)
         self.fullOperationRateMax = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, operationRateMax, locationalEligibility
+            esM, name, self.operationRateMax, locationalEligibility
         )
         self.aggregatedOperationRateMax = {}
         self.processedOperationRateMax = {}
 
         # operationRateFix
-        self.operationRateFix = operationRateFix
+        self.operationRateFix = utils.sortTimeSeriesColumns(operationRateFix)
         self.fullOperationRateFix = utils.checkAndSetInvestmentPeriodTimeSeries(
-            esM, name, operationRateFix, locationalEligibility
+            esM, name, self.operationRateFix, locationalEligibility
         )
         self.aggregatedOperationRateFix = {}
         self.processedOperationRateFix = {}
@@ -781,9 +781,9 @@ class ConversionModel(ComponentModel):
                 (loc, compName, commis, ip)
                 for loc, compName, commis, ip in varSet
                 if compDict[compName].hasCapacityVariable
-                and getattr(compDict[compName], rateMax) is None
-                and getattr(compDict[compName], rateFix) is None
-                and getattr(compDict[compName], rateMin) is None
+                and getattr(compDict[compName], rateMax)[ip] is None
+                and getattr(compDict[compName], rateFix)[ip] is None
+                and getattr(compDict[compName], rateMin)[ip] is None
                 and compDict[compName].isCommisDepending
             )
 

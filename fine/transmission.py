@@ -214,8 +214,8 @@ class Transmission(Component):
             for loc2 in esM.locations:
                 if loc1 + "_" + loc2 in self.locationalEligibility.index:
                     if self.locationalEligibility[loc1 + "_" + loc2] == 0:
-                        self.locationalEligibility.drop(
-                            labels=loc1 + "_" + loc2, inplace=True
+                        self.locationalEligibility = self.locationalEligibility.drop(
+                            labels=loc1 + "_" + loc2
                         )
                     self._mapC.update({loc1 + "_" + loc2: (loc1, loc2)})
                     self._mapL.setdefault(loc1, {}).update({loc2: loc1 + "_" + loc2})
@@ -1123,7 +1123,7 @@ class TransmissionModel(ComponentModel):
             # rows would lose the unconnected location pairs.
 
             # Split connection indices to two location indices
-            optSummary = optSummary.stack()
+            optSummary = optSummary.stack(future_stack=True).dropna()
             indexNew = []
             for tup in optSummary.index.tolist():
                 loc1, loc2 = mapC[tup[3]]
@@ -1132,7 +1132,7 @@ class TransmissionModel(ComponentModel):
             optSummary = optSummary.unstack(level=-1)
             names = list(optSummaryBasic[ipName].index.names)
             names.append("locationIn")
-            optSummary.index.set_names(names, inplace=True)
+            optSummary.index = optSummary.index.set_names(names)
             optSummaryDict[ipName] = optSummary
 
         return optSummaryDict

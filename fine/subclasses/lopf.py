@@ -48,6 +48,10 @@ class LinearOptimalPowerFlow(Transmission):
         technicalLifetime=None,
         stockCommissioning=None,
         floorTechnicalLifetime=True,
+        balanceLimitID=None,
+        pathwayBalanceLimitID=None,
+        pwlcfParameters=None,
+        linkedQuantityID=None,
     ):
         """Create a LinearOptimalPowerFlow class instance.
         The LinearOptimalPowerFlow component specific input arguments are described below. The Transmission
@@ -96,6 +100,10 @@ class LinearOptimalPowerFlow(Transmission):
             technicalLifetime=technicalLifetime,
             floorTechnicalLifetime=floorTechnicalLifetime,
             stockCommissioning=stockCommissioning,
+            balanceLimitID=balanceLimitID,
+            pathwayBalanceLimitID=pathwayBalanceLimitID,
+            pwlcfParameters=pwlcfParameters,
+            linkedQuantityID=linkedQuantityID,
         )
 
         self.modelingClass = LOPFModel

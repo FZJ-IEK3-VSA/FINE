@@ -1,6 +1,10 @@
+import pytest
+
 from fine.utils import ImplementedSolvers
 
 
+# The performance summary parses the Gurobi log file (GurobiSummary)
+@pytest.mark.requires_solver(ImplementedSolvers.GUROBI.value)
 def test_performanceSummary(minimal_test_esM):
     logFileName = "run.log"
 

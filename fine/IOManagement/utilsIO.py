@@ -189,12 +189,16 @@ def _leafToIndexedData(data, classname, component, _mapC_dict, locations):
 
     # regional time series (time, space) - or (time, space, space_2) for Transmission
     if isinstance(data, pd.DataFrame):
-        multi_index_dataframe = data.stack()
+        multi_index_dataframe = data.stack(future_stack=True).dropna()
         if "Period" in multi_index_dataframe.index.names:
             multi_index_dataframe = multi_index_dataframe.droplevel(0)
 
-        multi_index_dataframe.index.set_names("time", level=0, inplace=True)
-        multi_index_dataframe.index.set_names("space", level=1, inplace=True)
+        multi_index_dataframe.index = multi_index_dataframe.index.set_names(
+            "time", level=0
+        )
+        multi_index_dataframe.index = multi_index_dataframe.index.set_names(
+            "space", level=1
+        )
 
         if isTransmission:
             # use _mapC to split the packed loc1_loc2 index into two dimensions
@@ -218,8 +222,10 @@ def _leafToIndexedData(data, classname, component, _mapC_dict, locations):
         if isTransmission:
             # 2d (space, space_2): series indices are packed like loc1_loc2
             df = transform1dSeriesto2dDataFrame(data, locations)
-            multi_index_dataframe = df.stack()
-            multi_index_dataframe.index.set_names(["space", "space_2"], inplace=True)
+            multi_index_dataframe = df.stack(future_stack=True).dropna()
+            multi_index_dataframe.index = multi_index_dataframe.index.set_names(
+                ["space", "space_2"]
+            )
             return "2d_", multi_index_dataframe
 
         if set(data.index.values).issubset(set(locations)):
@@ -497,15 +503,21 @@ def add2dVariableToDict(
     :return: component_dict
     """
     if drop_component:
-        series = comp_var_xr.drop("component").to_dataframe().stack(level=0)
+        series = (
+            comp_var_xr.drop("component")
+            .to_dataframe()
+            .stack(level=0, future_stack=True)
+        )
     else:
-        series = comp_var_xr.to_dataframe().stack(level=0)
+        series = comp_var_xr.to_dataframe().stack(level=0, future_stack=True)
     series.index = series.index.droplevel(level=2).map("_".join)
 
     # NOTE: In FINE, a check is made to make sure that locationalEligibility indices matches indices of other
     # attributes. Removing 0 values ensures the match. If all are 0s, empty series is fed in, leading to error.
     # Therefore, if series is empty, the variable is not added.
-    series = series[series > 0]
+    # NaN values are kept: the writer fills location pairs without a connection with 0, so NaN only
+    # appears for a connection with a NaN value, e.g. in an investment period without capacityFix.
+    series = series[(series > 0) | series.isna()]
 
     if not len(series.index) == 0:
         class_name = component.split("; ")[0]
@@ -594,7 +606,11 @@ def add0dVariableToDict(component_dict, comp_var_xr, component, variable):
         key_list = getKeyHierarchyOfNestedDict(variable)
         key_list[0] = key_list[0][3:]
 
-        setInDict(component_dict[class_name][comp_name], key_list, var_value.item())
+        # NaN is restored as None: the writer writes unset entries of nested
+        # parameters as None, which NetCDF stores as NaN
+        value = None if pd.isnull(var_value) else var_value.item()
+
+        setInDict(component_dict[class_name][comp_name], key_list, value)
 
     return component_dict
 

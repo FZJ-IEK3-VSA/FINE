@@ -5,7 +5,6 @@ import pandas as pd
 import datetime
 import time
 import warnings
-from functools import wraps
 import logging
 import matplotlib.patches as mpatches
 
@@ -23,34 +22,13 @@ try:
     import geopandas as gpd
 except ImportError:
     warnings.warn(
-        "The package geopandas is not installed. Spatial aggregation cannot be used without it."
+        "The package geopandas is not installed. Plotting locations cannot be used without it."
     )
 
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     warnings.warn("Matplotlib.pyplot could not be imported.")
-
-
-def timer(func):
-    """Track the time taken by a function (wrapper).
-
-    :param func: Function
-
-    .. note:: Usage as a decorator before a function -> @timer
-    """
-
-    @wraps(func)  # Required to get documentation for functions using this decorator
-    def f(*args, **kwargs):
-        before = time.perf_counter()
-        rv = func(*args, **kwargs)
-        after = time.perf_counter()
-        logger.debug(
-            "elapsed time for %s: %.2f minutes", func.__name__, (after - before) / 60
-        )
-        return rv
-
-    return f
 
 
 def writeOptimizationOutputToExcel(
@@ -179,7 +157,9 @@ def writeOptimizationOutputToExcel(
                 columns={"Segment Duration": "timeStepsPerSegment"}
             )
 
-            segmentDuration.index.set_names(names="segmentNumber", inplace=True)
+            segmentDuration.index = segmentDuration.index.set_names(
+                names="segmentNumber"
+            )
             segmentDuration.to_excel(writer, sheet_name="Misc", startrow=3)
         utils.output("\tSaving file...", esM.verboseLogLevel, 0)
         writer.close()
@@ -271,7 +251,7 @@ def getShadowPrices(
         SP = fn.utils.buildFullTimeSeries(
             SP, periodsOrder[ip], ip, esM=esM, divide=False
         )
-        SP = SP.stack()
+        SP = SP.stack(future_stack=True).dropna()
 
     return SP
 
@@ -1003,8 +983,8 @@ def plotLocationalColorMap(
 
     # Make sure the data and gdf indices match
     ## 1. Sort the indices to obtain same order
-    data.sort_index(inplace=True)
-    gdf.sort_values(indexColumn, inplace=True)
+    data = data.sort_index()
+    gdf = gdf.sort_values(indexColumn)
 
     ## 2. Take first 20 characters of the string for matching. (In gdfs usually long strings are cut in the end)
     gdf[indexColumn] = gdf[indexColumn].apply(lambda x: x[:20])
@@ -1123,7 +1103,7 @@ def plotPieChart(
 
     property_subset = property_subset.droplevel(["Property", "Unit"]).fillna(0)
     property_subset = property_subset.transpose()
-    property_subset.index.set_names(names=indexColumn_in_shp, inplace=True)
+    property_subset.index = property_subset.index.set_names(names=indexColumn_in_shp)
 
     # Total property values in each region
     regional_property_sum = property_subset.sum(axis=1)
