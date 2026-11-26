@@ -47,6 +47,34 @@ def test_Stock_wrongStockYears():
         )
 
 
+@pytest.mark.parametrize("invalidStock", [-0.2, np.nan])
+def test_Stock_invalidSeries(invalidStock):
+    esM = fn.EnergySystemModel(
+        locations={"A", "B"},
+        commodities={"electricity"},
+        commodityUnitsDict={"electricity": "GW"},
+        numberOfTimeSteps=2,
+        hoursPerTimeStep=1,
+        numberOfInvestmentPeriods=3,
+        investmentPeriodInterval=5,
+        startYear=2020,
+        verboseLogLevel=2,
+    )
+    with pytest.raises(ValueError, match="is negative or NaN for 2015"):
+        fn.Source(
+            esM=esM,
+            name="wind_stock",
+            commodity="electricity",
+            hasCapacityVariable=True,
+            technicalLifetime=20,
+            commissioningMax=0,
+            stockCommissioning={
+                2010: pd.Series([1.0, 1.0], index=["A", "B"]),
+                2015: pd.Series([invalidStock, 0.0], index=["A", "B"]),
+            },
+        )
+
+
 def stock_esM():
     numberOfTimeSteps = 4
     hoursPerTimeStep = 2190

@@ -385,7 +385,7 @@ def sourceEsM(stochasticModel=False, **sourceKwargs):
 
 def test_capacityFixWithMissingInvestmentPeriods():
     # issue 839: capacityFix given as dict with None for some investment periods
-    esM = sourceEsM(capacityFix={2023: 0.0, 2028: None, 2033: None})
+    esM = sourceEsM(capacityFix={2023: 1.0, 2028: None, 2033: None})
     esM.optimize(
         solver=ImplementedSolvers.STANDARD_SOLVER.value, timeSeriesAggregation=False
     )
@@ -411,3 +411,52 @@ def test_stockExceedsCapacityMaxInStochasticModel():
     sourceEsM(**kwargs)
     with pytest.raises(ValueError, match="Mismatch between stock capacity"):
         sourceEsM(stochasticModel=True, **kwargs)
+
+
+def test_inputErrorCollectorWithoutErrors():
+    errors = utils.InputErrorCollector("Source", "Wind")
+    with errors.field("capacityMax"):
+        pass
+    errors.raiseIfAny()
+
+
+def test_inputErrorCollectorCollectsIndependentFields():
+    errors = utils.InputErrorCollector("Source", "Wind")
+    first = ValueError("capacityMax[CH]: unknown location")
+    with errors.field("capacityMax"):
+        raise first
+    with errors.field("investPerCapacity"):
+        raise TypeError("not a number\nsecond line")
+    with errors.field("opexPerCapacity"):
+        pass
+    with pytest.raises(utils.InputValidationError) as excInfo:
+        errors.raiseIfAny()
+
+    error = excInfo.value
+    assert isinstance(error, ValueError)
+    assert str(error) == (
+        "Source 'Wind' - 2 problems\n"
+        "  capacityMax: capacityMax[CH]: unknown location\n"
+        "  investPerCapacity: not a number\nsecond line"
+    )
+    assert error.component == "Source 'Wind'"
+    assert [field for field, _ in error.errors] == ["capacityMax", "investPerCapacity"]
+    assert isinstance(error.errors[1][1], TypeError)
+    assert error.__cause__ is first
+
+
+def test_inputErrorCollectorSingleProblem():
+    errors = utils.InputErrorCollector("Sink", "Demand")
+    with errors.field("operationRateFix"):
+        raise ValueError("Mismatch between stock capacity")
+    with pytest.raises(ValueError, match="Mismatch between stock capacity") as excInfo:
+        errors.raiseIfAny()
+    assert str(excInfo.value).startswith("Sink 'Demand' - 1 problem\n")
+
+
+def test_inputErrorCollectorPropagatesOtherErrors():
+    errors = utils.InputErrorCollector("Source", "Wind")
+    with pytest.raises(KeyError):
+        with errors.field("capacityMax"):
+            raise KeyError("CH")
+    assert errors.errors == []

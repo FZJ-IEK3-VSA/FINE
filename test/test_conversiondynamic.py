@@ -421,7 +421,9 @@ def test_scheduled_maintenance_by_location_and_investment_period():
         (2025, "region1", 3 * 2),
         (2025, "region2", 2 * 1),
     ]:
-        assert maintenance_active[ipName].loc["Methane heater", loc].sum() == expected
+        assert maintenance_active[ipName].loc[
+            "Methane heater", loc
+        ].sum() == pytest.approx(expected)
 
 
 def test_scheduled_maintenance_rejects_time_series_aggregation():

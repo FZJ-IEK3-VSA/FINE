@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import math
 import os
@@ -9,6 +10,60 @@ from scipy.optimize import linprog
 from scipy.sparse import csr_matrix
 
 from fine.enums import Dimension, VarType
+
+
+class InputValidationError(ValueError):
+    """Error that reports all invalid input fields of a component at once."""
+
+    def __init__(self, component, errors):
+        """Initialize the error and build its message with one line per problem.
+
+        :param component: Label of the component, e.g. "Source 'Wind'".
+        :type component: string
+
+        :param errors: The collected problems as (field, exception) tuples.
+        :type errors: list
+        """
+        self.component = component
+        self.errors = errors
+        count = f"{len(errors)} problem" + ("s" if len(errors) > 1 else "")
+        lines = [f"{component} - {count}"]
+        lines += [f"  {field}: {error}" for field, error in errors]
+        super().__init__("\n".join(lines))
+
+
+class InputErrorCollector:
+    """Collect independent input errors of a component and raise them together."""
+
+    def __init__(self, componentType, componentName):
+        """Initialize an empty collector.
+
+        :param componentType: Type of the component, e.g. "Source".
+        :type componentType: string
+
+        :param componentName: Name of the component, e.g. "Wind".
+        :type componentName: string
+        """
+        self.component = f"{componentType} '{componentName}'"
+        self.errors = []
+
+    @contextlib.contextmanager
+    def field(self, name):
+        """Record a ValueError or TypeError raised in this block for the given field.
+
+        :param name: Name of the input field that is checked in the block.
+        :type name: string
+        """
+        try:
+            yield
+        except (ValueError, TypeError) as error:
+            self.errors.append((name, error))
+
+    def raiseIfAny(self):
+        """Raise an InputValidationError if any error was collected."""
+        if self.errors:
+            error = InputValidationError(self.component, self.errors)
+            raise error from self.errors[0][1]
 
 
 def checkAndSetBalanceLimitID(balanceLimitID):
@@ -2490,6 +2545,12 @@ def checkAndSetStock(component, esM, stockCommissioning):
                 for x in yearly_stock.values
             ):
                 raise ValueError(f"Stock capacities in year '{year}' must be int/float")
+            if not (yearly_stock >= 0).all():
+                raise ValueError(
+                    f"stockCommissioning of '{component.name}' is negative or NaN for {year} "
+                    + f"in location(s) {yearly_stock[~(yearly_stock >= 0)].index.tolist()}; "
+                    + "stock must be >= 0."
+                )
 
         else:
             raise TypeError(
