@@ -967,6 +967,22 @@ class TransmissionModel(ComponentModel):
             else:
                 relevant_indices = [ip]
 
+            if loc_list and isinstance(loc_list[0], tuple):
+                # (locFrom, locTo) connections from componentLimitEligibility2dim:
+                # the limit applies to the annual flow on exactly these directed
+                # connections. A net import, as below, is only defined for a
+                # group of regions.
+                return sum(
+                    opVar[locFrom + "_" + locTo, compName, i, p, t]
+                    * esM.periodOccurrences[i][p]
+                    for i in relevant_indices
+                    for locFrom, locTo in loc_list
+                    for compName in opVarDictOut[i].get(locFrom, {}).get(locTo, [])
+                    if compName in componentNames
+                    for p in periods
+                    for t in timeSteps
+                )
+
             aut_list = []
             for locInGroup in loc_list:
                 # what enters the location group from outside it, after losses
