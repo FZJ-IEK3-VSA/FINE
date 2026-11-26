@@ -45,10 +45,10 @@ checkJointInputDemandPerTimeStep
 from collections import defaultdict
 from types import SimpleNamespace
 
-import networkx as nx
 import numpy as np
 import pandas as pd
-from networkx.algorithms.flow import edmonds_karp
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import connected_components, maximum_flow
 
 from fine.enums import Dimension
 from fine.utils import output
@@ -229,11 +229,20 @@ class _PeriodData:
                 self.supply += [(commodity, loc, np.inf) for loc in unbalanced]
         self.links = self._getTransmissionLinks()
         self._islands = {}
+        locations = sorted(esM.locations)
+        index = {loc: i for i, loc in enumerate(locations)}
         for commodity, links in self.links.items():
-            graph = nx.Graph()
-            graph.add_nodes_from(esM.locations)
-            graph.add_edges_from(tuple(locations) for locations in links)
-            for group in nx.connected_components(graph):
+            edges = np.array([[index[loc] for loc in link] for link in links])
+            edges = edges.reshape(-1, 2)
+            graph = csr_matrix(
+                (np.ones(len(edges)), (edges[:, 0], edges[:, 1])),
+                shape=(len(locations), len(locations)),
+            )
+            _, labels = connected_components(graph, directed=False)
+            groups = defaultdict(set)
+            for loc, label in zip(locations, labels):
+                groups[label].add(loc)
+            for group in groups.values():
                 self._islands.update(
                     {(commodity, loc): frozenset(group) for loc in group}
                 )
@@ -512,29 +521,34 @@ def _isClose(a, b):
 
 
 def _maxFlow(supply, demand, members, links):
-    """Return the maximum flow from the supply to the demand of an island per
-    time step. Identical time steps are solved once; infinite capacities are
-    capped by a value which exceeds every demand. Edmonds-Karp is the fastest
-    networkx algorithm for these small graphs.
+    """Return an upper bound of the maximum flow from the supply to the demand
+    of an island per time step. Identical time steps are solved once. scipy
+    requires integer capacities, so they are scaled to the demand and rounded
+    up, which can only increase the maximum flow; infinite capacities are
+    capped by a value which exceeds every demand.
     """
-    bigCapacity = max(float(demand.sum(axis=1).max()), 1.0) * 1e6
-    source, sink = ("_supply_",), ("_demand_",)
-    graph = nx.DiGraph()
-    for loc in members:
-        graph.add_edge(source, loc, capacity=0.0)
-        graph.add_edge(loc, sink, capacity=0.0)
+    numberOfMembers = len(members)
+    index = {loc: i for i, loc in enumerate(members)}
+    source, sink = numberOfMembers, numberOfMembers + 1
+    linkFrom, linkTo, linkCapacity = [], [], []
     for locations, flow in links.items():
         if flow > 0 and locations <= set(members):
-            loc1, loc2 = locations
-            graph.add_edge(loc1, loc2, capacity=min(flow, bigCapacity))
-            graph.add_edge(loc2, loc1, capacity=min(flow, bigCapacity))
+            i, j = (index[loc] for loc in locations)
+            linkFrom += [i, j]
+            linkTo += [j, i]
+            linkCapacity += [flow, flow]
+    edgeFrom = np.r_[[source] * numberOfMembers, range(numberOfMembers), linkFrom]
+    edgeTo = np.r_[range(numberOfMembers), [sink] * numberOfMembers, linkTo]
     rows, inverse = np.unique(np.hstack([supply, demand]), axis=0, return_inverse=True)
     flows = np.empty(len(rows))
     for r, row in enumerate(rows):
-        for i, loc in enumerate(members):
-            graph[source][loc]["capacity"] = min(float(row[i]), bigCapacity)
-            graph[loc][sink]["capacity"] = float(row[len(members) + i])
-        flows[r] = nx.maximum_flow_value(graph, source, sink, flow_func=edmonds_karp)
+        scale = 1e8 / max(row[numberOfMembers:].sum(), 1e-12)
+        capacity = np.minimum(np.ceil(np.r_[row, linkCapacity] * scale), 2**30)
+        graph = csr_matrix(
+            (capacity.astype(np.int32), (edgeFrom, edgeTo)),
+            shape=(numberOfMembers + 2, numberOfMembers + 2),
+        )
+        flows[r] = maximum_flow(graph, source, sink).flow_value / scale
     return flows[inverse.reshape(-1)]
 
 
