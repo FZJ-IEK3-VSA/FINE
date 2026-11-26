@@ -2020,7 +2020,10 @@ class StorageModel(ComponentModel):
                                 .T
                             ).T
                         )
-                    optVal = pd.concat(data, axis=1, ignore_index=True)
+                    # Name the axes as formatOptimizationOutput does for every other optimum.
+                    optVal = pd.concat(data, axis=1, ignore_index=True).rename_axis(
+                        index=["component", "location"], columns="time"
+                    )
                 else:
                     optVal = None
             rawResults[ipName]["stateOfChargeOperation"] = optVal
@@ -2205,8 +2208,7 @@ class StorageModel(ComponentModel):
 
             # charge/discharge operation rows (operation(Charge|Discharge)[_annual],
             # opex(Charge|Discharge)) are aggregated once in _subclassSummaryFrames and written
-            # here, so the summary and the staged raw-results export accessor share the same
-            # source.
+            # here, so the summary and the result export share the same source.
             framesByProp = self._writeOperationSummaryRows(optSummary, esM, ipName)
 
             # Check if there are time steps at which a storage component is both charging and

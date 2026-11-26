@@ -754,8 +754,7 @@ class ComponentResultsMixin:
 
         These frames are the single source of the aggregated operation rows: they feed the
         optimization summary (written into the summary skeleton by
-        :meth:`_writeOperationSummaryRows`) and the staged raw-results export accessor
-        (:meth:`getResultSummaryDict`).
+        :meth:`_writeOperationSummaryRows`) and the result export (:meth:`getResultSummaryDict`).
 
         :return: ordered list of ``(property, frame, unitFn)`` where ``frame`` is indexed by
             component with locations (1dim) / connections (2dim) as columns, and ``unitFn`` maps
@@ -769,7 +768,7 @@ class ComponentResultsMixin:
 
         Shared by every subclass' ``_buildSubclassOptimizationSummary`` so the operation
         aggregation is computed once (in :meth:`_subclassSummaryFrames`) and reused by the
-        summary and staged raw-results export accessor.
+        summary and the result export (:meth:`getResultSummaryDict`).
 
         :param optSummary: summary skeleton with a ``(Component, Property, Unit) x columns``
             MultiIndex; filled in place.
@@ -860,11 +859,11 @@ class ComponentResultsMixin:
                         values = pd.Series(np.nan, index=fullIndex)
                     else:
                         values = values.reindex(fullIndex)
-                    # Fill exactly as the summary does: an integer 0 in an object column.
-                    # pd.to_numeric then yields the summary's dtype, which is int64 when every
-                    # value is integral and at least one cell was filled, so the exported
-                    # dtype stays the one the summary-based export wrote.
-                    values = values.astype(object).where(values.notna(), 0)
+                    # Always export float. The summary fills an integer 0 into an object
+                    # column, which made a fully filled row int64. A model read back from
+                    # netCDF cannot tell a filled cell from a computed 0, so a dtype that
+                    # depends on the filling would change on every netCDF round trip.
+                    values = pd.to_numeric(values).astype(float).fillna(0.0)
                 if values is None:
                     continue
                 values = pd.to_numeric(values)

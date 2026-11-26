@@ -482,14 +482,14 @@ def convertDatasetsToEnergySystemModel(datasets):
             # the export), driven generically by the modeling class' own
             # _exportOptimumVarMap() instead of a hardcoded variable list, so a class adding
             # its own variables there (e.g. LOPF's phaseAngle) is restored automatically.
-            modelingClass = esM.componentModelingDict[model]
-            exportMap = modelingClass._exportOptimumVarMap()
+            exportMap = componentModel._exportOptimumVarMap()
             timeDependentRawKeys = {
                 rawKey: (optName, dimension)
                 for rawKey, optName, timeDependent, dimension in exportMap
                 if timeDependent
             }
-            designProps = {"capacity", "commissioning", "decommissioning", "isBuilt"}
+            # Design rows also have a 1-dim companion in _rawResults1dim.
+            designProps = {*DUPLICATE_OPTIMUM_SUMMARY_ROWS, "isBuilt"}
             rawResultsDict = {}
             rawResults1dimDict = {}
 
@@ -580,7 +580,7 @@ def convertDatasetsToEnergySystemModel(datasets):
                 ipInt = int(ip)
                 rawResultsDict[ipInt] = {}
                 rawResults1dimDict[ipInt] = {}
-                isTwoDim = modelingClass.dimension == Dimension.TWO
+                isTwoDim = componentModel.dimension == Dimension.TWO
                 for prop in optSum_df.index.get_level_values("Property").unique():
                     sub = optSum_df.xs(prop, level="Property")
                     if "Unit" in sub.index.names:
@@ -588,15 +588,17 @@ def convertDatasetsToEnergySystemModel(datasets):
                     sub = sub.dropna(axis=0, how="all").dropna(axis=1, how="all")
                     if sub.empty:
                         continue
+                    melted = utilsIO.meltConnectionColumns(sub) if isTwoDim else sub
+                    # The summary names the level "Component", optimize() names it
+                    # "component"; the public *VariablesOptimum frames must not differ
+                    # between an optimized and a loaded model.
+                    sub = sub.rename_axis(index={"Component": "component"})
+                    melted = melted.rename_axis(index={"Component": "component"})
                     if prop in designProps:
                         rawResultsDict[ipInt][prop] = sub
-                        rawResults1dimDict[ipInt][prop] = (
-                            utilsIO.meltConnectionColumns(sub) if isTwoDim else sub
-                        )
+                        rawResults1dimDict[ipInt][prop] = melted
                     elif prop not in timeDependentRawKeys:
-                        rawResultsDict[ipInt][prop] = (
-                            utilsIO.meltConnectionColumns(sub) if isTwoDim else sub
-                        )
+                        rawResultsDict[ipInt][prop] = melted
 
                 for rawKey, (optName, dimension) in timeDependentRawKeys.items():
                     datasetVarName = RENAMED_OPTIMUM_VARIABLES.get(optName, optName)
@@ -625,12 +627,8 @@ def convertDatasetsToEnergySystemModel(datasets):
                 for rawKey, _, _, _ in exportMap:
                     rawResultsDict[ipInt].setdefault(rawKey, None)
 
-            setattr(esM.componentModelingDict[model], "_rawResults", rawResultsDict)
-            setattr(
-                esM.componentModelingDict[model],
-                "_rawResults1dim",
-                rawResults1dimDict,
-            )
+            componentModel._rawResults = rawResultsDict
+            componentModel._rawResults1dim = rawResults1dimDict
             _registerLoadedExtraSummaryRows(esM, componentModel, optSum)
 
             # The *VariablesOptimum names are properties that read the rebuilt raw results;
