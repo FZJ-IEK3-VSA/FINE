@@ -1545,188 +1545,191 @@ class ConversionModel(ComponentModel):
             ),
         )
 
+    def carriesCommodity(self, compName, commodity):
+        """Return whether a Conversion component converts or emits a commodity.
+
+        It does if any of its conversion factors, flexible conversion groups or
+        emission factors names the commodity.
+        """
+        comp = self.componentsDict[compName]
+        for factors in comp.processedCommodityConversionFactors.values():
+            if not factors:
+                continue
+            if commodity in factors or any(
+                isinstance(groupFactors, dict) and commodity in groupFactors
+                for groupFactors in factors.values()
+            ):
+                return True
+        return bool(comp.processedEmissionFactors) and (
+            commodity in comp.processedEmissionFactors
+        )
+
     def getComponentLimitContribution(
         self,
         esM,
         pyM,
-        timeSeriesAggregation,
-        ip,
-        loc,
         componentNames,
+        locations,
+        ips,
         limitType,
         commodity,
+        yearsPerPeriod,
+        overConnections,
     ):
-        """Get the contribution of this component class to a componentLimit.
+        """Get the contribution of the Conversion components to one componentLimit row.
 
-        See :func:`EnergySystemModel.declareComponentLimitConstraints` for the
-        constraint the contribution enters. Without a commodity, the annual
-        operation is counted in the physical unit of the component. With a
-        commodity, it is multiplied by that commodity's conversion factor, so an
-        input commodity (negative factor) contributes with a negative sign.
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pym: pyomo ConcreteModel
-
-        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-
-            (a) the full time series (False) or
-            (b) clustered time series data (True).
-
-        :type timeSeriesAggregation: boolean
-
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
-
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
-
-        :param componentNames: Names of components which contribute to the component limit
-        :type componentNames: list
-
-        :param limitType: Quantity the componentLimit applies to. One of "operation"
-            (annual operation), "capacity" (installed capacity) or "commissioning"
-            (newly commissioned capacity).
-        :type limitType: string
-
-        :returns: the summed contribution as a pyomo expression, or None if no
-            component of this class contributes at this location
-        :rtype: pyomo expression or None
+        See :meth:`ComponentModel.getComponentLimitContribution`. A balance exists
+        only per commodity, so a balance row without a commodity cannot contain
+        Conversion components.
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-
-        if limitType == "operation":
-            if isinstance(ip, (list, tuple)):
-                start_ip, end_ip = ip
-                relevant_indices = [
-                    _ip for _ip in esM.investmentPeriods if start_ip <= _ip <= end_ip
-                ]
-            else:
-                relevant_indices = [ip]
-            balance = sum(
-                self._componentLimitOperation(
-                    esM, pyM, timeSeriesAggregation, i, loc, compName, commodity
+        if limitType == "balance" and commodity is None and not overConnections:
+            members = self.componentLimitMembers(componentNames, commodity)
+            if members:
+                raise ValueError(
+                    "A componentLimit row of type 'balance' without a commodity cannot "
+                    f"contain Conversion components ({members}), because their "
+                    "balance exists only per commodity. Set the row's commodity."
                 )
-                for compName in compDict.keys()
-                if compName in componentNames
-                and compDict[compName].processedLocationalEligibility[loc] == 1
-                for i in relevant_indices
-            )
-            if isinstance(balance, int) or isinstance(balance, float):
-                return None
-            return balance
-        if limitType == "capacity":
-            capVar = getattr(pyM, "cap_" + abbrvName)
-            balance = sum(
-                capVar[loc, compName, ip]
-                for compName in compDict.keys()
-                if compName in componentNames
-                and compDict[compName].processedLocationalEligibility[loc] == 1
-            )
-            if isinstance(balance, int) or isinstance(balance, float):
-                return None
-            return balance
-        if limitType == "commissioning":
-            commisVar = getattr(pyM, "commis_" + abbrvName)
-            if isinstance(ip, (list, tuple)):
-                start_ip, end_ip = ip
-                relevant_indices = [
-                    idx
-                    for idx, ip in enumerate(esM.investmentPeriods)
-                    if start_ip <= ip <= end_ip
-                ]
-                balance = sum(
-                    commisVar[loc, compName, i]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                    for i in relevant_indices
-                )
-            else:
-                balance = sum(
-                    commisVar[loc, compName, ip]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                )
-            if isinstance(balance, int) or isinstance(balance, float):
-                return None
-            return balance
-        raise ValueError(
-            "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
+        return super().getComponentLimitContribution(
+            esM,
+            pyM,
+            componentNames,
+            locations,
+            ips,
+            limitType,
+            commodity,
+            yearsPerPeriod,
+            overConnections,
         )
 
-    def _componentLimitOperation(
-        self, esM, pyM, timeSeriesAggregation, ip, loc, compName, commodity
+    def getComponentLimitOperationTerms(
+        self, pyM, compName, loc, ip, p, t, limitType, commodity
     ):
-        """Annual operation of one conversion component for a componentLimit.
+        """Return the operation terms of one Conversion component for a componentLimit.
 
         Without a commodity, the operation is counted in the physical unit of the
-        component. With a commodity, it is counted in that commodity, as the
-        commodity balance counts it: through the conversion factor of the
-        commodity, the commissioning year dependent operation or the flexible
-        operation. A component that does not convert the commodity contributes 0.
+        component. With a commodity, the terms are those of the commodity balance;
+        for the unsigned operation their coefficients count as absolute values.
         """
-        comp = self.componentsDict[compName]
-        abbrvName = self.abbrvName
-        if timeSeriesAggregation:
-            periods = esM.typicalPeriods
-            timeSteps = (
-                esM.segmentsPerPeriod if esM.segmentation else esM.timeStepsPerPeriod
-            )
-        else:
-            periods = esM.periods
-            timeSteps = esM.totalTimeSteps
+        if commodity is None:
+            opVar = getattr(pyM, "op_" + self.abbrvName)
+            return [(opVar[loc, compName, ip, p, t], 1)]
+        terms = self.commodityBalanceTerms(
+            pyM, commodity, loc, ip, p, t, compNames={compName}
+        )
+        if limitType == "operation":
+            return [(var, abs(coef)) for var, coef in terms]
+        return terms
 
-        def annual(term):
-            return sum(
-                term(p, t) * esM.periodOccurrences[ip][p]
-                for p in periods
-                for t in timeSteps
-            )
+    def commodityBalanceTerms(self, pyM, commod, loc, ip, p, t, compNames=None):
+        r"""Get the terms of the contribution to a commodity balance.
 
+        .. math::
+
+            \\text{C}^{comp,comm}_{loc,ip,p,t} =  \\text{conversionFactor}^{comp}_{comm} \\cdot op_{loc,ip,p,t}^{comp,op}
+
+        :param compNames: restrict the terms to these components; None means all
+            components that operate at the location
+        :type compNames: None or collection of strings
+
+        :returns: list of (pyomo variable, coefficient) pairs
+        """
+        compDict, abbrvName = self.componentsDict, self.abbrvName
         opVar = getattr(pyM, "op_" + abbrvName)
-        if commodity in ["None", None]:
-            return annual(lambda p, t: opVar[loc, compName, ip, p, t])
+        opVarFlex = getattr(pyM, "op_flex_" + abbrvName)
+        opCommisVar = getattr(pyM, "op_commis_" + abbrvName)
+        opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
 
-        ccf = comp.processedCommodityConversionFactors
-        if comp.isCommisDepending:
-            opCommisVar = getattr(pyM, "op_commis_" + abbrvName)
-            return sum(
-                annual(
-                    lambda p, t, commis=commis: opCommisVar[
-                        loc, compName, commis, ip, p, t
-                    ]
-                    * conversionFactorValue(ccf[(commis, ip)][commodity], loc, p, t)
-                )
-                for (commis, _ip) in ccf
-                if _ip == ip and commodity in ccf[(commis, ip)]
-            )
+        def selected(compName):
+            return compNames is None or compName in compNames
 
-        contribution = 0
-        if commodity in ccf[ip]:
-            contribution += annual(
-                lambda p, t: opVar[loc, compName, ip, p, t]
-                * conversionFactorValue(ccf[ip][commodity], loc, p, t)
+        compsAtLoc = [c for c in opVarDict[ip][loc] if selected(c)]
+        terms = []
+
+        # 1.a components whose commodity conversions do not vary with the commissioning year
+        terms += [
+            (
+                opVar[loc, compName, ip, p, t],
+                conversionFactorValue(
+                    compDict[compName].processedCommodityConversionFactors[ip][commod],
+                    loc,
+                    p,
+                    t,
+                ),
             )
-        if comp.flexibleConversion:
-            opVarFlex = getattr(pyM, "op_flex_" + abbrvName)
-            flexGroupSet = getattr(pyM, "operationFlexGroupSet_" + abbrvName)
-            for group in {
-                index[3]
-                for index in flexGroupSet
-                if index[0] == loc and index[1] == compName and index[2] == ip
-            }:
-                if commodity in ccf[ip][group]:
-                    contribution += annual(
-                        lambda p, t, group=group: opVarFlex[
-                            loc, compName, ip, group, commodity, p, t
-                        ]
-                        * conversionFactorValue(ccf[ip][group][commodity], loc, p, t)
+            for compName in compsAtLoc
+            if not compDict[compName].isCommisDepending
+            and commod in compDict[compName].processedCommodityConversionFactors[ip]
+        ]
+        # 1.b flexible conversion components
+        flexible_comp_commod_groups = {
+            (index[1], index[3])
+            for index in getattr(pyM, "operationFlexGroupSet_" + self.abbrvName)
+            if index[0] == loc and selected(index[1])
+        }
+        terms += [
+            (
+                opVarFlex[loc, compName, ip, group, commod, p, t],
+                conversionFactorValue(
+                    compDict[compName].processedCommodityConversionFactors[ip][group][
+                        commod
+                    ],
+                    loc,
+                    p,
+                    t,
+                ),
+            )
+            for compName, group in flexible_comp_commod_groups
+            if not compDict[compName].isCommisDepending
+            if compDict[compName].flexibleConversion
+            and commod
+            in compDict[compName].processedCommodityConversionFactors[ip][group]
+        ]
+        # 2. commodity conversion factors that depend on the commissioning year (e.g. efficiencies)
+        for compName in compsAtLoc:
+            if not compDict[compName].isCommisDepending:
+                continue
+            commodConv = compDict[compName].processedCommodityConversionFactors
+            for _commis in [x for (x, y) in commodConv.keys() if y == ip]:
+                if commod in commodConv[(_commis, ip)]:
+                    terms.append(
+                        (
+                            opCommisVar[loc, compName, _commis, ip, p, t],
+                            conversionFactorValue(
+                                commodConv[(_commis, ip)][commod], loc, p, t
+                            ),
+                        )
                     )
-        return contribution
+        # 3. emissions from flexible conversion components
+        emission_comps = {
+            compName: list(compDict[compName].processedEmissionFactors[commod].keys())
+            for compName in compDict.keys()
+            if compDict[compName].processedEmissionFactors is not None
+            if commod in compDict[compName].processedEmissionFactors.keys()
+            if compDict[compName].processedEmissionFactors[commod] is not None
+        }
+        terms += [
+            (
+                opVarFlex[loc, compName, ip, group, commodity, p, t],
+                compDict[compName].emissionFactors[commod][commodity]
+                * abs(
+                    conversionFactorValue(
+                        compDict[compName].processedCommodityConversionFactors[ip][
+                            group
+                        ][commodity],
+                        loc,
+                        p,
+                        t,
+                    )
+                ),
+            )
+            for compName, group in flexible_comp_commod_groups
+            if compName in emission_comps.keys()
+            for commodity in emission_comps[compName]
+            if commodity
+            in compDict[compName].processedCommodityConversionFactors[ip][group].keys()
+        ]
+        return terms
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         r"""Get contribution to a commodity balance.
@@ -1736,117 +1739,9 @@ class ConversionModel(ComponentModel):
             \\text{C}^{comp,comm}_{loc,ip,p,t} =  \\text{conversionFactor}^{comp}_{comm} \\cdot op_{loc,ip,p,t}^{comp,op}
 
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        opVar = getattr(pyM, "op_" + abbrvName)
-        opVarFlex = getattr(pyM, "op_flex_" + abbrvName)
-        opCommisVar = getattr(pyM, "op_commis_" + abbrvName)
-        opVarDict = getattr(pyM, "operationVarDict_" + abbrvName)
-
-        getFactor = conversionFactorValue
-
-        # 1.a get balance for components, which do not have commodity conversions varying with the commissioning year
-        # prepare data
-        sumCommisYearIndependent = sum(
-            opVar[loc, compName, ip, p, t]
-            * getFactor(
-                compDict[compName].processedCommodityConversionFactors[ip][commod],
-                loc,
-                p,
-                t,
-            )
-            for compName in opVarDict[ip][loc]
-            if not compDict[compName].isCommisDepending
-            and commod in compDict[compName].processedCommodityConversionFactors[ip]
-        )
-        # 1.b get balance contribution for flexible conversion components
-        flexible_comp_commod_groups = {
-            (index[1], index[3])
-            for index in getattr(pyM, "operationFlexGroupSet_" + self.abbrvName)
-            if index[0] == loc
-        }
-        sumCommisYearIndependentFlex = sum(
-            opVarFlex[loc, compName, ip, group, commod, p, t]
-            * getFactor(
-                compDict[compName].processedCommodityConversionFactors[ip][group][
-                    commod
-                ],
-                loc,
-                p,
-                t,
-            )
-            for compName, group in flexible_comp_commod_groups
-            if not compDict[compName].isCommisDepending
-            if compDict[compName].flexibleConversion
-            and commod
-            in compDict[compName].processedCommodityConversionFactors[ip][group]
-        )
-        # 2. commodity conversions factors is depending on the commissioning year (e.g. efficiencies) if
-        # a) component has isCommisDepending
-        # b) component processes the commodity
-        sumCommisYearDependent = 0
-        if any(compDict[comp].isCommisDepending for comp in opVarDict[ip][loc]):
-            # TODO implement dataframe similar to cost consideration
-            for compName in opVarDict[ip][loc]:
-                if compDict[compName].isCommisDepending:
-                    commodConv = compDict[compName].processedCommodityConversionFactors
-                    relevantCommissioningYears = [
-                        x for (x, y) in commodConv.keys() if y == ip
-                    ]
-                    for _commis in relevantCommissioningYears:
-                        if (
-                            commod
-                            in compDict[compName].processedCommodityConversionFactors[
-                                (_commis, ip)
-                            ]
-                        ):
-                            sumCommisYearDependent += opCommisVar[
-                                loc, compName, _commis, ip, p, t
-                            ] * getFactor(
-                                compDict[compName].processedCommodityConversionFactors[
-                                    (_commis, ip)
-                                ][commod],
-                                loc,
-                                p,
-                                t,
-                            )
-        # 3. get balance contribution for emissions from flexible conversion components
-        emission_comps = {
-            compName: list(compDict[compName].processedEmissionFactors[commod].keys())
-            for compName in compDict.keys()
-            if compDict[compName].processedEmissionFactors is not None
-            if commod in compDict[compName].processedEmissionFactors.keys()
-            if compDict[compName].processedEmissionFactors[commod] is not None
-        }
-        if len(emission_comps) > 0:
-            sumFlexEmission = sum(
-                opVarFlex[loc, compName, ip, group, commodity, p, t]
-                * compDict[compName].emissionFactors[commod][commodity]
-                * abs(
-                    getFactor(
-                        compDict[compName].processedCommodityConversionFactors[ip][
-                            group
-                        ][commodity],
-                        loc,
-                        p,
-                        t,
-                    )
-                )
-                for compName, group in flexible_comp_commod_groups
-                if compName in emission_comps.keys()
-                for commodity in emission_comps[compName]
-                if commodity
-                in compDict[compName]
-                .processedCommodityConversionFactors[ip][group]
-                .keys()
-            )
-        else:
-            sumFlexEmission = 0
-
-        return (
-            sumCommisYearIndependent
-            + sumCommisYearDependent
-            + sumCommisYearIndependentFlex
-            + sumFlexEmission
+        return sum(
+            var * coef
+            for var, coef in self.commodityBalanceTerms(pyM, commod, loc, ip, p, t)
         )
 
     def getObjectiveFunctionContribution(self, esM, pyM):

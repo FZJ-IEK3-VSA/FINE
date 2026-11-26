@@ -1944,7 +1944,7 @@ def checkAndSetComponentLimit(
     )
 
     validBounds = ["lower", "upper", "fixed"]
-    validTypes = ["capacity", "commissioning", "operation"]
+    validTypes = ["capacity", "commissioning", "operation", "balance"]
 
     eligibilityFrames = (componentLimitEligibility, componentLimitEligibility2dim)
     if componentLimit is None:
@@ -2011,6 +2011,25 @@ def checkAndSetComponentLimit(
             f"componentLimitID(s) {notFinite} are not."
         )
     _componentLimit["value"] = values.astype(float)
+
+    # a commodity restricts the row to the components that carry it; an empty
+    # cell, also one that came back from a file as "None" or NaN, means none
+    _componentLimit["commodity"] = [
+        None if pd.isna(commodity) or commodity in ("None", "") else commodity
+        for commodity in _componentLimit["commodity"]
+    ]
+    unknownCommodities = sorted(
+        {
+            str(commodity)
+            for commodity in _componentLimit["commodity"]
+            if commodity is not None and commodity not in esM.commodities
+        }
+    )
+    if unknownCommodities:
+        raise ValueError(
+            "componentLimit 'commodity' column contains the commodities "
+            f"{unknownCommodities}, which are not commodities of the model."
+        )
 
     if "ip" not in _componentLimit.columns:
         warnings.warn(
@@ -2145,6 +2164,21 @@ def checkAndSetComponentLimit(
         if not componentLimitEligibility2dim.isin([0, 1]).all().all():
             raise ValueError(
                 "componentLimitEligibility2dim has to contain only 0 and 1 as values"
+            )
+
+    # a balance is the net amount that enters a group of locations, so it is not
+    # defined for a set of connections
+    if componentLimitEligibility2dim is not None:
+        balanceOverConnections = sorted(
+            str(ID)
+            for ID, row in _componentLimit.iterrows()
+            if row["type"] == "balance" and ID in componentLimitEligibility2dim.columns
+        )
+        if balanceOverConnections:
+            raise ValueError(
+                "componentLimit rows with type='balance' are summed over locations "
+                "and cannot use componentLimitEligibility2dim. Offending "
+                f"componentLimitID(s): {balanceOverConnections}."
             )
 
     # every row has to name the locations or the connections it is summed over,

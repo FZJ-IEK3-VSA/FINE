@@ -302,11 +302,11 @@ def _twoRegionEsM(componentLimit, eligibility, eligibility2dim=None, **esMKwargs
 
 
 def _gasLimit(value, ip=0):
-    """Gas use of at most `value`: gas has a negative conversion factor."""
+    """Gas use of at most `value`; the operation in a commodity is unsigned."""
     return pd.DataFrame(
         index=["gasUse"],
         columns=["value", "bound", "type", "commodity", "ip", "ipEnd"],
-        data=[[-value, "lower", "operation", "gas", ip, None]],
+        data=[[value, "upper", "operation", "gas", ip, None]],
     )
 
 

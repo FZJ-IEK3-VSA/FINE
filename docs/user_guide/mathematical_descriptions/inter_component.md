@@ -227,11 +227,12 @@ A row is rejected with an error if
 - its $\text{value}$ is not a finite number,
 - $\text{ipEnd}$ lies before $\text{ip}$, or a range is used where the type or the model does not
   allow one (see above),
-- a `"lower"` or `"fixed"` bound with a value other than 0 has no contributing variable, because such
-  a constraint cannot be satisfied.
+- no variable contributes to it and 0 does not satisfy its bound (a `"lower"` bound above 0, an
+  `"upper"` bound below 0 or a `"fixed"` bound other than 0), because such a constraint cannot be
+  satisfied.
 
-A row whose identifier no component carries builds no constraint and produces a warning. An `"upper"`
-bound without contributing variable is always satisfied and builds no constraint.
+A row without contributing variable whose bound 0 satisfies builds no constraint. A row whose
+identifier no component carries builds no constraint and produces a warning.
 
 ### Component limit and balance limit
 

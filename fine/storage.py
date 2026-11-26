@@ -1810,99 +1810,19 @@ class StorageModel(ComponentModel):
             ]
         )
 
-    def getComponentLimitContribution(
-        self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, limitType
+    def getComponentLimitOperationTerms(
+        self, pyM, compName, loc, ip, p, t, limitType, commodity
     ):
-        """Get the contribution of this component class to a componentLimit.
+        """Return the operation terms of one Storage for a componentLimit.
 
-        See :func:`EnergySystemModel.declareComponentLimitConstraints` for the
-        constraint the contribution enters. The annual operation is signed:
-
-        - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
-        - A Sink contributes with a negative sign. Example: Sale of electricity
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pym: pyomo ConcreteModel
-
-        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-
-            (a) the full time series (False) or
-            (b) clustered time series data (True).
-
-        :type timeSeriesAggregation: boolean
-
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
-
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
-
-        :param componentNames: Names of components which contribute to the component limit
-        :type componentNames: list
-
-        :param limitType: Quantity the componentLimit applies to. One of "operation"
-            (annual operation), "capacity" (installed capacity) or "commissioning"
-            (newly commissioned capacity).
-        :type limitType: string
-
-        :returns: the summed contribution as a pyomo expression, or None if no
-            component of this class contributes at this location
-        :rtype: pyomo expression or None
+        The operation is the discharge; the balance is discharge minus charge.
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        if limitType == "operation":
-            # A storage has a charge and a discharge operation variable, so
-            # "annual operation" is ambiguous for it in a way it is not for the
-            # other component classes. Raise instead of contributing nothing:
-            # a silent zero contribution would make the limit look satisfied.
-            raise NotImplementedError(
-                "A componentLimit with type='operation' is not supported for "
-                "Storage components. Use type='capacity' or type='commissioning', "
-                "or remove the Storage components from the componentLimitID."
-            )
-        if limitType == "capacity":
-            capVar = getattr(pyM, "cap_" + abbrvName)
-            balance = sum(
-                capVar[loc, compName, ip]
-                for compName in compDict.keys()
-                if compName in componentNames
-                and compDict[compName].processedLocationalEligibility[loc] == 1
-            )
-            if isinstance(balance, int) or isinstance(balance, float):
-                return None
-            return balance
-        if limitType == "commissioning":
-            commisVar = getattr(pyM, "commis_" + abbrvName)
-            if isinstance(ip, (list, tuple)):
-                start_ip, end_ip = ip
-                relevant_indices = [
-                    idx
-                    for idx, ip in enumerate(esM.investmentPeriods)
-                    if start_ip <= ip <= end_ip
-                ]
-                balance = sum(
-                    commisVar[loc, compName, i]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                    for i in relevant_indices
-                )
-            else:
-                balance = sum(
-                    commisVar[loc, compName, ip]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                )
-            if isinstance(balance, int) or isinstance(balance, float):
-                return None
-            return balance
-        raise ValueError(
-            "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
-        )
+        dischargeOp = getattr(pyM, "dischargeOp_" + self.abbrvName)
+        terms = [(dischargeOp[loc, compName, ip, p, t], 1)]
+        if limitType == "balance":
+            chargeOp = getattr(pyM, "chargeOp_" + self.abbrvName)
+            terms.append((chargeOp[loc, compName, ip, p, t], -1))
+        return terms
 
     def getCommodityBalanceContribution(self, pyM, commod, loc, ip, p, t):
         r"""Get contribution to a commodity balance.

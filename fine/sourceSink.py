@@ -820,134 +820,17 @@ class SourceSinkModel(ComponentModel):
             ]
         )
 
-    def getComponentLimitContribution(
-        self, esM, pyM, timeSeriesAggregation, ip, loc, componentNames, limitType
+    def getComponentLimitOperationTerms(
+        self, pyM, compName, loc, ip, p, t, limitType, commodity
     ):
-        """Get the contribution of this component class to a componentLimit.
+        """Return the operation terms of one Source or Sink for a componentLimit.
 
-        See :func:`EnergySystemModel.declareComponentLimitConstraints` for the
-        constraint the contribution enters. The annual operation is signed:
-
-        - If component is a Source it contributes with a positive sign to the limit. Example: Electricity Purchase
-        - A Sink contributes with a negative sign. Example: Sale of electricity
-
-        :param esM: EnergySystemModel instance representing the energy system in which the component should be modeled.
-        :type esM: esM - EnergySystemModel class instance
-
-        :param pym: pyomo ConcreteModel which stores the mathematical formulation of the model.
-        :type pym: pyomo ConcreteModel
-
-        :param timeSeriesAggregation: states if the optimization of the energy system model should be done with
-
-            (a) the full time series (False) or
-            (b) clustered time series data (True).
-
-        :type timeSeriesAggregation: boolean
-
-        :param ip: investment period of transformation path analysis.
-        :type ip: int
-
-        :param loc: Name of the regarded location (locations are defined in the EnergySystemModel instance)
-        :type loc: string
-
-        :param componentNames: Names of components which contribute to the component limit
-        :type componentNames: list
-
-        :param limitType: Quantity the componentLimit applies to. One of "operation"
-            (annual operation), "capacity" (installed capacity) or "commissioning"
-            (newly commissioned capacity).
-        :type limitType: string
-
-        :returns: the summed contribution as a pyomo expression, or None if no
-            component of this class contributes at this location
-        :rtype: pyomo expression or None
+        The operation counts positive for both; in a balance a Sink counts with
+        its negative sign.
         """
-        compDict, abbrvName = self.componentsDict, self.abbrvName
-        if limitType == "operation":
-            opVar = getattr(pyM, "op_" + abbrvName)
-
-            if timeSeriesAggregation:
-                periods = esM.typicalPeriods
-                if esM.segmentation:
-                    timeSteps = esM.segmentsPerPeriod
-                else:
-                    timeSteps = esM.timeStepsPerPeriod
-            else:
-                periods = esM.periods
-                timeSteps = esM.totalTimeSteps
-
-            if isinstance(ip, tuple):
-                start_ip, end_ip = ip
-                relevant_indices = [
-                    idx
-                    for idx, ip in enumerate(esM.investmentPeriods)
-                    if start_ip <= ip <= end_ip
-                ]
-                balance = sum(
-                    opVar[loc, compName, i, p, t]
-                    * compDict[compName].sign
-                    * esM.periodOccurrences[i][p]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                    for i in relevant_indices
-                    for p in periods
-                    for t in timeSteps
-                )
-            else:
-                balance = sum(
-                    opVar[loc, compName, ip, p, t]
-                    * compDict[compName].sign
-                    * esM.periodOccurrences[ip][p]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                    for p in periods
-                    for t in timeSteps
-                )
-            if isinstance(balance, int) or isinstance(balance, float):
-                return None
-            return balance
-        if limitType == "capacity":
-            capVar = getattr(pyM, "cap_" + abbrvName)
-            balance = sum(
-                capVar[loc, compName, ip]
-                for compName in compDict.keys()
-                if compName in componentNames
-                and compDict[compName].processedLocationalEligibility[loc] == 1
-            )
-            if isinstance(balance, int) or isinstance(balance, float):
-                return None
-            return balance
-        if limitType == "commissioning":
-            commisVar = getattr(pyM, "commis_" + abbrvName)
-            if isinstance(ip, tuple):
-                start_ip, end_ip = ip
-                relevant_indices = [
-                    idx
-                    for idx, ip in enumerate(esM.investmentPeriods)
-                    if start_ip <= ip <= end_ip
-                ]
-                balance = sum(
-                    commisVar[loc, compName, i]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                    for i in relevant_indices
-                )
-            else:
-                balance = sum(
-                    commisVar[loc, compName, ip]
-                    for compName in compDict.keys()
-                    if compName in componentNames
-                    and compDict[compName].processedLocationalEligibility[loc] == 1
-                )
-            if isinstance(balance, int) or isinstance(balance, float):
-                return None
-            return balance
-        raise ValueError(
-            "Invalid type in ComponentLimit Contraint. Please choose 'operation', 'capacity', or 'commissioning'."
-        )
+        opVar = getattr(pyM, "op_" + self.abbrvName)
+        sign = self.componentsDict[compName].sign if limitType == "balance" else 1
+        return [(opVar[loc, compName, ip, p, t], sign)]
 
     def getBalanceLimitContribution(
         self, esM, pyM, ID, ip, timeSeriesAggregation, loc, componentNames
