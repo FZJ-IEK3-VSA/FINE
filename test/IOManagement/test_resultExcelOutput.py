@@ -33,11 +33,14 @@ def test_compareResults_longClassNames():
         if inheritsFromComponent:
             subclass_objects.append(obj)
 
-    # create ESM:
+    # create ESM: the test only checks the sheet names of the Excel output, so
+    # four time steps suffice instead of the default 8760 hourly time steps.
     esM = fn.EnergySystemModel(
         locations={"Test", "Test1"},
         commodities={"TestCom", "TargetCom"},
         commodityUnitsDict={"TestCom": "TestUnit", "TargetCom": "TargetUnit"},
+        numberOfTimeSteps=4,
+        hoursPerTimeStep=2190,
     )
     # add all subclasses which inherit from component to the esm:
     """
