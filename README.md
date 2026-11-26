@@ -44,7 +44,6 @@ ETHOS.FINE was the [JuRSE Code of the Month for February 2026](https://www.fz-ju
 - Component library covering sources and sinks, conversion, storage and transmission
 - Cost-optimal design and operation against technical and environmental constraints
 - Temporal complexity reduction via typical periods, including an interconnected storage formulation
-- Spatial and technology aggregation to cut model size
 - Transformation pathways with perfect foresight, stochastic optimization and partload behaviour
 - Model setup from Excel and reproducible storage of inputs and results as netCDF
 
@@ -158,8 +157,6 @@ A number of [examples](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/example
   - The application cases of ETHOS.FINE are not limited. This application shows how to model the water supply system.
 - [06_NetCDF_to_save_and_set_up_model_instance](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/06_NetCDF_to_save_and_set_up_model_instance)
   - This example shows how to save the input and optimized results of an energy system Model instance to netCDF files to allow reproducibility.
-- [07_Spatial_and_technology_aggregation](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/07_Spatial_and_technology_aggregation)
-  - These two examples show how to reduce the model complexity. Model regions can be aggregated to reduce the number of regions (spatial aggregation). Input parameters are automatically adapted. Furthermore, technologies can be aggregated to reduce complexity, e.g. reducing the number of different PV components (technology aggregation). Input parameters are automatically adapted.
 - [08_Stochastic_Optimization](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/08_Stochastic_Optimization)
   - In this application, a stochastic optimization is performed. It is possible to perform the optimization of an energy system model with different input parameter sets to receive a more robust solution.
 - [09_PerfectForesight](https://github.com/FZJ-IEK3-VSA/FINE/tree/develop/examples/09_PerfectForesight)
