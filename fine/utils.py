@@ -1709,6 +1709,94 @@ def checkAndSetInvestmentPeriodCostParameter(
     return parameter
 
 
+def checkCostCurve(esM, costCurve, isSource):
+    """Validate and normalize a stepwise (piecewise-linear, monotonic) cost/revenue curve."""
+
+    isTimeVarying = isinstance(costCurve, pd.DataFrame)
+    if isinstance(costCurve, (list, tuple)):
+        if len(costCurve) == 0:
+            raise ValueError("costCurve must contain at least one (width, price) segment.")
+        for i, segment in enumerate(costCurve):
+            if not (isinstance(segment, (tuple, list)) and len(segment) == 2):
+                raise TypeError(f"costCurve segment {i} has to be a (width, price) tuple.")
+            if not all(isinstance(value, (int, float)) for value in segment):
+                raise TypeError(f"costCurve segment {i}: width and price have to be numbers.")
+        costCurve = pd.DataFrame(
+            [[value for segment in costCurve for value in segment]],
+            columns=pd.MultiIndex.from_product([range(len(costCurve)), ["width", "price"]]),
+        )
+    elif isTimeVarying:
+        # One row per time step of the esM, exactly like the other FINE time series.
+        checkTimeSeriesIndex(esM, costCurve)
+    else:
+        raise TypeError(
+            "costCurve has to be either a list of (width, price) tuples or a pandas "
+            "DataFrame with a 2-level column MultiIndex of (segment, {'width','price'})."
+        )
+
+
+    if not isinstance(costCurve.columns, pd.MultiIndex) or costCurve.columns.nlevels != 2:
+        raise TypeError(
+            "costCurve DataFrame has to have a 2-level column MultiIndex of "
+            "(segment, {'width','price'})."
+        )
+    fields = set(costCurve.columns.get_level_values(1))
+    if fields != {"width", "price"}:
+        raise TypeError(
+            "costCurve DataFrame's second column level has to be exactly "
+            f"{{'width', 'price'}}, got {fields}."
+        )
+    segments = sorted(set(costCurve.columns.get_level_values(0)))
+    if segments != list(range(len(segments))):
+        raise ValueError(
+            "costCurve segment indices (first column level) have to be a contiguous "
+            f"range starting at 0, got {segments}."
+        )
+    for seg in segments:
+        if (seg, "width") not in costCurve.columns or (seg, "price") not in costCurve.columns:
+            raise ValueError(f"costCurve segment {seg} is missing a 'width' or 'price' column.")
+    if costCurve.isnull().any().any():
+        raise ValueError("costCurve must not contain NaN values.")
+
+
+    widths = [costCurve[(seg, "width")].astype(float) for seg in segments]
+    prices = [costCurve[(seg, "price")].astype(float) for seg in segments]
+    for seg in segments:
+        if (widths[seg] < 0).any():
+            raise ValueError(f"costCurve segment {seg}: widths have to be positive.")
+        if (prices[seg] < 0).any():
+            raise ValueError(f"costCurve segment {seg}: prices have to be positive.")
+        infMask = np.isinf(widths[seg].to_numpy())
+        if infMask.any() and seg != segments[-1]:
+            raise ValueError(
+                f"costCurve segment {seg}: only the last segment's width may be infinite."
+            )
+        if infMask.any() and not infMask.all():
+            raise ValueError(
+                "costCurve: the last segment's width has to be either infinite for every "
+                "timestep or finite for every timestep."
+            )
+
+    direction = "non-decreasing" if isSource else "non-increasing"
+    kind = "cost (Source)" if isSource else "revenue (Sink)"
+    for seg in segments[:-1]:
+        current, following = prices[seg], prices[seg + 1]
+        violation = (current > following) if isSource else (current < following)
+        if violation.any():
+            badIndex = costCurve.index[violation.to_numpy()][0]
+            where = f" at timestep {badIndex}" if isTimeVarying else ""
+            raise ValueError(
+                f"costCurve prices must be {direction} across segments for a {kind} "
+                f"component{where}: segment {seg} (price={current[badIndex]}) is not "
+                f"{direction} relative to segment {seg + 1} (price={following[badIndex]})."
+            )
+
+
+    if not isTimeVarying:
+        return [float(w.iloc[0]) for w in widths], [float(p.iloc[0]) for p in prices], False
+    return widths, prices, True
+
+
 def processCommodityCost(esM, name, data, locationalEligibility):
     """Check a commodity cost or revenue parameter and convert it to a time series
     (DataFrame) per investment period. Zero or None results in None.
