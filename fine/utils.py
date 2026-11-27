@@ -1502,7 +1502,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
         )
     if dimension == Dimension.ONE:
         if not (
-            isinstance(data, int)
+            isinstance(data, (int, np.integer))
             or isinstance(data, float)
             or isinstance(data, pd.Series)
         ):
@@ -1514,7 +1514,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             )
     elif dimension == Dimension.TWO:
         if not (
-            isinstance(data, int)
+            isinstance(data, (int, np.integer))
             or isinstance(data, float)
             or isinstance(data, pd.Series)
         ):
@@ -1528,7 +1528,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
         raise ValueError("The dimension parameter has to be either '1dim' or '2dim' ")
 
     if dimension == Dimension.ONE:
-        if isinstance(data, int) or isinstance(data, float):
+        if isinstance(data, (int, np.integer)) or isinstance(data, float):
             if data < 0:
                 raise ValueError(
                     "Value error in "
@@ -1540,7 +1540,7 @@ def checkAndSetCostParameter(esM, name, data, dimension, locationalEligibility):
             )
         data = checkRegionalIndex(esM, data, locationalEligibility)
     else:
-        if isinstance(data, int) or isinstance(data, float):
+        if isinstance(data, (int, np.integer)) or isinstance(data, float):
             if data < 0:
                 raise ValueError(
                     "Value error in "
@@ -1691,7 +1691,7 @@ def checkAndSetInvestmentPeriodCostParameter(
         # ip=int((_ip-esM.startYear)/esM.investmentPeriodInterval)
         _ip = int(esM.startYear + ip * esM.investmentPeriodInterval)
         if (
-            isinstance(data, int)
+            isinstance(data, (int, np.integer))
             or isinstance(data, float)
             or isinstance(data, pd.Series)
         ):
@@ -1725,13 +1725,13 @@ def processCommodityCost(esM, name, data, locationalEligibility):
         )
 
     # a zero cost is treated as no cost, so that no zero time series is built
-    if isinstance(data, (int, float)) and data == 0:
+    if isinstance(data, (int, np.integer, float)) and data == 0:
         data = None
 
     parameterCost = {}
     for ip, _ip in zip(esM.investmentPeriods, esM.investmentPeriodNames):
         value = data[_ip] if isinstance(data, dict) else data
-        if isinstance(value, (int, float)) or (
+        if isinstance(value, (int, np.integer, float)) or (
             isinstance(value, pd.Series) and set(value.index) != set(esM.totalTimeSteps)
         ):
             parameterCost[ip] = checkAndSetCostParameter(
@@ -2297,7 +2297,7 @@ def preprocess2dimInvestmentPeriodData(
         year = int(esM.startYear + ip * esM.investmentPeriodInterval)
 
         if (
-            isinstance(data, int)
+            isinstance(data, (int, np.integer))
             or isinstance(data, float)
             or isinstance(data, pd.DataFrame)
             or isinstance(data, pd.Series)
