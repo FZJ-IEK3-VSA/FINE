@@ -674,6 +674,29 @@ def test_ef_counts_as_converged(efResults):
     assert efResults.convergence["stopReason"] == "extensiveForm"
 
 
+def test_ef_passes_solver_options_to_the_solver(tmp_path):
+    # mpi-sppy's ExtensiveForm ignores options["solver_options"] and applies only the
+    # options handed to solve_extensive_form, so they used to be dropped silently.
+    if not pyomo.SolverFactory("gurobi").available(exception_flag=False):
+        pytest.skip("needs Gurobi, whose log shows the parameters it received")
+    logFile = tmp_path / "ef_gurobi.log"
+    solverOptions = {"LogFile": str(logFile), "Method": 2}
+
+    results = mssp.optimizeMultiStageStochastic(
+        _buildBaseModel(),
+        _treeSpec(),
+        stageInvestmentPeriods=STAGE_INVESTMENT_PERIODS,
+        method="ef",
+        solver="gurobi",
+        solverOptions=solverOptions,
+    )
+
+    assert logFile.is_file(), "Gurobi did not receive the LogFile option"
+    assert "Set parameter Method to value 2" in logFile.read_text()
+    assert solverOptions == {"LogFile": str(logFile), "Method": 2}
+    assert results.objectiveValue == pytest.approx(EXPECTED_OBJECTIVE, rel=1e-6)
+
+
 # ---------------------------------------------------------------- progressive hedging
 
 

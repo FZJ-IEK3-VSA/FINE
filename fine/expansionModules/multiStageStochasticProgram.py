@@ -1778,7 +1778,13 @@ def optimizeMultiStageStochastic(
     )
 
     if methodKey == "ef":
-        solverResults = solverObject.solve_extensive_form()
+        # mpi-sppy's ExtensiveForm does not read options["solver_options"]: it applies only
+        # the options passed to solve_extensive_form (copied, since mpi-sppy adds LogFile to
+        # them when solver_log_dir is set).
+        efSolverOptions = options.get("solver_options")
+        solverResults = solverObject.solve_extensive_form(
+            solver_options=None if efSolverOptions is None else dict(efSolverOptions)
+        )
         _checkSolverStatus(solverResults)
         convergence = {"converged": True, "stopReason": "extensiveForm"}
     else:
