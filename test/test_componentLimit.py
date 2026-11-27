@@ -102,3 +102,57 @@ def test_componentLimitConstraint(multi_node_test_esM_init):
     value = _data.loc[techs, elig].sum().sum()
 
     assert np.isclose(10, value)
+
+
+def test_componentLimit_with_location_specific_conversion_factor():
+    """A componentLimit weighted by a commodity uses the factor of each location
+    when the factor is given per location (pd.Series), e.g. for a myopic stock
+    component whose locations hold builds of different efficiency. Before the
+    fix, building the constraint failed with 'invalid index to scalar variable'."""
+    esM = fn.EnergySystemModel(
+        locations={"Loc1", "Loc2"},
+        commodities={"electricity", "hydrogen"},
+        numberOfTimeSteps=1,
+        commodityUnitsDict={"electricity": r"kW$_{el}$", "hydrogen": r"kW$_{H_{2},LHV}$"},
+        hoursPerTimeStep=1,
+        costUnit="1 Euro",
+        lengthUnit="km",
+        verboseLogLevel=2,
+    )
+    esM.add(fn.Source(esM=esM, name="Electricity market", commodity="electricity",
+                      hasCapacityVariable=False, commodityCost=1.0))
+    # cheaper hydrogen: without the limit, the electrolyser would not run
+    esM.add(fn.Source(esM=esM, name="H2 import", commodity="hydrogen",
+                      hasCapacityVariable=False, commodityCost=0.1))
+    esM.add(fn.Sink(esM=esM, name="H2 demand", commodity="hydrogen", hasCapacityVariable=False,
+                    operationRateFix=pd.DataFrame({"Loc1": [10.0], "Loc2": [20.0]},
+                                                  index=esM.totalTimeSteps)))
+    esM.add(fn.Conversion(esM=esM, name="Electrolyser", physicalUnit=r"kW$_{el}$",
+                          commodityConversionFactors={
+                              "electricity": -1,
+                              "hydrogen": pd.Series({"Loc1": 0.5, "Loc2": 1.0}),
+                          },
+                          hasCapacityVariable=True, investPerCapacity=0, opexPerCapacity=0,
+                          interestRate=0.08, economicLifetime=10,
+                          componentLimitID="H2_MIN_LOC1"))
+    # at least 4 units of hydrogen from the electrolyser in Loc1
+    esM.processedComponentLimit = pd.DataFrame(
+        columns=["value", "bound", "type", "commodity", "ip", "ipEnd"],
+        index=["H2_MIN_LOC1"],
+        data=[[4.0, "lower", "operation", "hydrogen", 0, None]],
+    )
+    esM.processedComponentLimitEligibility = pd.DataFrame(
+        {"H2_MIN_LOC1": [1, 0]}, index=["Loc1", "Loc2"])
+
+    import pyomo.environ as pyomo
+
+    solver = next((s for s in ("glpk", "highs", "gurobi")
+                   if pyomo.SolverFactory(s).available(exception_flag=False)), None)
+    if solver is None:
+        pytest.skip("no LP solver available")
+    esM.optimize(timeSeriesAggregation=False, solver=solver)
+
+    op = esM.componentModelingDict["ConversionModel"].operationVariablesOptimum.xs("Electrolyser")
+    # 4 hydrogen at a factor of 0.5 needs 8 electricity (a factor of 1 would give 4)
+    np.testing.assert_almost_equal(op.loc["Loc1", 0], 8.0, decimal=6)
+    np.testing.assert_almost_equal(op.loc["Loc2", 0], 0.0, decimal=6)

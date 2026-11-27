@@ -1493,10 +1493,15 @@ class ConversionModel(ComponentModel):
         compDict, abbrvName = self.componentsDict, self.abbrvName
         
         def getFactor(commodCommodityConversionFactors, loc, p, t):
+            # same cases as the commodity balance (getCommodityBalance): scalar,
+            # one value per location (pd.Series, e.g. a myopic stock component
+            # whose locations hold builds with different efficiencies), or a time
+            # series per location
             if isinstance(commodCommodityConversionFactors, (int, float)):
                 return commodCommodityConversionFactors
-            else:
-                return commodCommodityConversionFactors[loc][p, t]
+            if isinstance(commodCommodityConversionFactors, pd.Series):
+                return commodCommodityConversionFactors.loc[loc]
+            return commodCommodityConversionFactors[loc][p, t]
 
         
         if type == "operation":
